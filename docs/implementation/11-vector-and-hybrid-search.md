@@ -1,6 +1,6 @@
 # 11. Vector Scan and Hybrid Search
 
-- Status: `planned`
+- Status: `done`
 - Prerequisites: `06-fts-search`, `09-vector-materialization`, `10-embedding-orchestration-and-reconciliation`
 - Followed by: `12-retrieval-evaluation`, `13-cli-and-mcp`
 - Design source: `local-code-search-mcp-v1-design-r3.md` sections 8 and 9.2
@@ -16,6 +16,14 @@ Read the [implementation index](README.md), [execution guide](EXECUTION-GUIDE.md
 - Re-check that one search result uses one committed generation/profile snapshot and deterministic scan, aggregation, tie-break, and RRF rules.
 - Stop if profile consistency, coverage semantics, query privacy, or snapshot materialization is unresolved. Do not introduce ANN, graph search, caching, or multi-profile serving.
 - Before pausing, update this phase's evidence and decision log, then update [STATUS.md](STATUS.md) with checked scenarios, remaining risks, and the next action.
+
+## Entry Gate Record
+
+- Entered: 2026-08-15
+- Owner: Codex (`/root/phase11_hybrid_search`)
+- Prerequisites checked: Phase 06 deterministic lexical search and pinned snapshot handoff; Phase 09 shared transformer/codecs and production-vector validation; Phase 10 active-profile reconciliation and no-transaction provider-wait boundary. Their recorded evidence is [Phase 06](evidence/phase-06/README.md), [Phase 09](evidence/phase-09/README.md), and [Phase 10](evidence/phase-10/README.md).
+- Workspace state: clean before entry; no existing implementation changes were claimed.
+- Intended evidence: focused fake-client/core tests for free FTS isolation, preflight fallbacks, exact query request/transform, snapshot consistency, codec scans, deterministic RRF, and body-packaging fidelity. No real provider, credential, corpus, lab runtime access, or paid operation is permitted.
 
 ## 1. Objective
 
@@ -243,6 +251,34 @@ The service uses immutable `ResolvedConfig` created at server start rather than 
 
 ## 11. Completion Evidence
 
+Implementation and main-agent acceptance record (2026-08-15; details in [Phase 11 evidence](evidence/phase-11/README.md)):
+
+- Added the transport-independent `internal/search` core and one production-only pinned snapshot loader in `internal/store/hybrid_snapshot.go`. Runtime search neither imports nor opens the lab database, and it has no write path.
+- Hybrid preflight uses one pinned read-only snapshot to check paid permission, desired versus active source/space/storage fingerprints, and every present active referenced vector row before a provider request. Missing rows remain partial coverage; zero valid rows and malformed rows respectively yield `NO_VALID_DOCUMENT_VECTORS` and `VECTOR_SNAPSHOT_INVALID` with zero provider calls.
+- Query embedding uses the existing Voyage response validator and a single injected fake client in tests. The request is the source-1024 float query role, then the existing shared transformer produces only request-local target f32. No provider-native quantization path is used.
+- The post-request snapshot copies FTS candidates, active segment references, validated stored vectors, bodies, coverage, generation, manifest, and fingerprints from one read transaction; CPU scan, RRF, and body packaging run after it closes. Generation/manifest/profile drift discards the query result and returns FTS with `QUERY_PROFILE_CHANGED_DURING_REQUEST`.
+- Binary and int8 scans score each distinct canonical input key once, fan scores out to segments, choose the maximum parent score, apply stable candidate ordering, and use deterministic one-based-rank RRF. Corruption falls back the full vector lane rather than inflating coverage.
+- The shared body packager preserves result identity/order/count for zero, small, and sufficient raw-UTF-8 budgets. It returns only complete indexed parents, complete vector-winning segments, or no body; FTS-only does not create an excerpt.
+- Acceptance follow-up: explicit FTS and every fallback now use a separate lexical-only snapshot that reads metadata, FTS candidates, and their indexed bodies only. It does not materialize vectors, segments, coverage, or vector payloads; response metadata records that vector coverage was not observed.
+- Acceptance follow-up: the hybrid snapshot stores each parent chunk/body once and each active canonical vector key once. Segment references contain only a parent/key/display-range link; one score is computed per key and then fanned out.
+- Acceptance follow-up: `QueryTextFormatVersion=1` is code-owned runtime policy, included in the serving-policy fingerprint and core response. v1 strictly validates then preserves query UTF-8 bytes. Query calls use the resolved batch timeout; provider timeout, provider error, response validation, or transform failure uses the ordinary FTS fallback while caller cancellation remains cancellation.
+
+Focused checks actually run:
+
+```text
+gofmt -w internal/search internal/store/hybrid_snapshot.go
+go test -count=1 ./internal/search
+go test -count=1 -race ./internal/search ./internal/store ./internal/config ./internal/vector ./internal/embedclient ./internal/search/lexical
+go vet ./internal/search ./internal/store ./internal/config ./internal/vector ./internal/embedclient ./internal/search/lexical
+go build ./internal/search ./internal/store ./internal/config ./internal/vector ./internal/embedclient ./internal/search/lexical
+go list -deps ./internal/search ./internal/store | rg 'cidx/internal/lab'   # no matches
+git diff --check
+```
+
+The focused fake-client tests cover FTS zero calls and lexical-only isolation from corrupt vector/segment rows; disabled, unready, missing-client, profile-mismatch, provider-failure, timeout, and corrupt-row fallbacks; exact query request fields and 1024-to-target transform; partial coverage; binary/int8 deterministic shared-key collapse and RRF ties; post-request generation drift; independent FTS while a query client blocks; no query write to `vector_cache` or lab state; and zero/small/full aggregate body budgets with exact UTF-8 segment bytes/ranges and no FTS-only invented excerpt.
+
+Not run: a real Voyage request, API-key retrieval, network access, corpus selection/access, paid operation, raw-lab runtime access, CLI/MCP transport, `read_span`, Phase 12 evaluation, full-project validation, load testing, or a live publish-concurrency benchmark. Deduplicated parent-body copying and brute-force scan have no latency/memory guarantee; Phase 12 must measure them. The main-agent acceptance review inspected the Phase 11 diff and reran the focused race, vet, build, format, dependency-boundary, and diff checks before changing this phase to `done`.
+
 - API-call count table by mode and preflight condition.
 - Query 1024 -> target dimensions/norm validation.
 - Corrupt-row fallback and coverage result.
@@ -267,3 +303,6 @@ Phase 12 calls this exact transform, scorer, aggregation, RRF, and body-packagin
 - Start with brute-force scan; decide on ANN or graphs only after measurement.
 - Observe latency and hit rate, but do not make them numeric completion gates here.
 - Own body allocation in the search core so offline evaluation and MCP transport observe one policy; Phase 13 only validates transport input and serializes the packaged result.
+- Query-client availability is an injected capability: the core neither reads an API key nor constructs a real provider client. A missing injected client maps to `API_KEY_MISSING` without a provider call.
+- A corrupt active vector row invalidates the whole vector lane for that search, including partial-coverage searches. Missing rows remain ordinary partial coverage.
+- Profile, generation, or manifest movement between an approved query request and the pinned materialization snapshot discards the transient query vector rather than attempting cross-snapshot reuse.

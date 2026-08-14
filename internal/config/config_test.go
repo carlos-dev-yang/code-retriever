@@ -46,6 +46,20 @@ func TestRFC8785ProfileFixturesAndStrictResolvedDefaults(t *testing.T) {
 	}
 }
 
+func TestServingPolicyFingerprintIncludesQueryTextFormatVersion(t *testing.T) {
+	base := profile.ServingPolicyProfile{DefaultMode: "fts", QueryTextFormatVersion: QueryTextFormatVersion}
+	changed := base
+	changed.QueryTextFormatVersion++
+	left, err := Fingerprint(base, ServingPolicyDomain)
+	if err != nil {
+		t.Fatal(err)
+	}
+	right, err := Fingerprint(changed, ServingPolicyDomain)
+	if err != nil || left == right {
+		t.Fatalf("query format version is absent from policy fingerprint: %q %q %v", left, right, err)
+	}
+}
+
 func TestCanonicalJSONRFC8785UsedValueConformance(t *testing.T) {
 	// Phase 00's profile fixtures above prove the externally fixed digests.
 	canonical, err := CanonicalJSON(map[string]any{"html": "<script>&\u2028", "\U0001f600": 1, "\ufffd": 2})

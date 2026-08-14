@@ -4,14 +4,14 @@ This ledger is the authoritative resumable state for implementation work. Update
 
 ## Current state
 
-- Active phase: none — Phase 10 accepted at its commit boundary
+- Active phase: none — Phase 11 accepted at its commit boundary
 - Active owner: Codex
 - Last updated: 2026-08-15
 - Current blocker: Phase 07 needs user-selected corpus manifests; any Phase 08 paid capture still requires explicit approval
 - Latest contract change: production storage codec now defaults to cidx-owned `binary`; `int8` is the only alternative, and exact encoder/scorer contracts remain a Phase 01 evidence item
 - Latest evaluation change: strict Phase 02 traces use per-group first-loss observations with an explicit provider-union stage, typed operation denominators, frozen review-pass identities, ABSTAINABLE/no-answer truth, and graded durable relevance judgments
-- Next eligible phase: Phase 11 vector and hybrid search; Phase 07 remains gated on user-selected corpus manifests
-- Exact next action: commit accepted Phase 10, then enter Phase 11 without a real provider request, API key, or corpus access
+- Next eligible phase: Phase 12 retrieval-evaluation infrastructure that does not require corpus access; Phase 07 remains gated on user-selected corpus manifests
+- Exact next action: commit accepted Phase 11, then implement the corpus-independent Phase 12 runner and contracts without a real provider request, API key, corpus, or paid action
 
 ## Phase ledger
 
@@ -28,7 +28,7 @@ This ledger is the authoritative resumable state for implementation work. Update
 | 08 | done | terra/high implementation agent; Codex validation | Yes — [Phase 02](evidence/phase-02/README.md) and [Phase 05](evidence/phase-05/README.md) evidence plus profile/store handoff inspected | Voyage adapter, cache-first raw capture, lab schema v2 migration, resumable failure handling, shared embed lock, and [Phase 08 evidence](evidence/phase-08/README.md) accepted | Main focused race, vet, build, format, dependency-boundary, migration, retry, rollback, and diff checks passed; live provider evidence remains NOT RUN | Enter Phase 09 |
 | 09 | done | terra/high implementation agent; Codex validation | Yes — [Phase 01](evidence/phase-01/README.md), [Phase 02](evidence/phase-02/README.md), [Phase 05](evidence/phase-05/README.md), and [Phase 08](evidence/phase-08/README.md) evidence reviewed | Shared transform/codecs, lab v3 staging evidence, production v2 lineage, narrow active-key planning, and complete-set atomic publication accepted | Main focused race, vet, build, migration, dependency-boundary, format, module, diff, and synthetic fidelity checks passed; no provider/corpus/paid action | Enter Phase 10 |
 | 10 | done | terra/high implementation agent; Codex validation | Yes — [Phase 05](evidence/phase-05/README.md), [Phase 08](evidence/phase-08/README.md), and [Phase 09](evidence/phase-09/README.md) evidence reviewed | Public opaque plan/apply, v2-to-v3 migration, derived active state, retry/failure accounting, guarded incremental publication, and [Phase 10 evidence](evidence/phase-10/README.md) accepted | Main focused race, vet, build, format, dependency-boundary, stale-plan, partial-batch, late-response, migration, and diff checks passed; no credentials, network, corpus, or paid action | Enter Phase 11 |
-| 11 | planned | — | No | None | Requires 06, 09, 10 | Wait |
+| 11 | done | terra/high implementation agent; Codex validation | Yes — [Phase 06](evidence/phase-06/README.md), [Phase 09](evidence/phase-09/README.md), and [Phase 10](evidence/phase-10/README.md) evidence and their documented store/profile handoffs reviewed | Query transform, valid-vector preflight, codec scan, segment collapse, deterministic RRF, lexical fallback isolation, rank-invariant body packaging, and [Phase 11 evidence](evidence/phase-11/README.md) accepted | Main focused race, vet, build, format, dependency-boundary, fallback, snapshot, body-budget, and diff checks passed; no real provider, credential, network, corpus, lab runtime, or paid action used. Deduplicated parent bodies remain a Phase 12 load-measurement risk, not a latency claim. | Enter corpus-independent Phase 12 implementation; Phase 07 evidence remains gated |
 | 12 | planned | — | No | None | Requires 07, 08, 09, 11, approved corpus bindings, and paid-query approval | Wait |
 | 13 | planned | — | No | None | Requires 05, 06, 10, 11, 12 | Wait |
 | 14 | planned | — | No | None | Requires 13 | Wait |

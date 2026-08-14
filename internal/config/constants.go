@@ -20,6 +20,9 @@ const (
 	DefaultMaxQueryBytes      = 8 << 10
 	DefaultMaxQueryTokens     = 64
 	DefaultMaxQueryTokenRunes = 128
+	// QueryTextFormatVersion is code-owned runtime policy. It identifies the
+	// deterministic bytes sent to the query embedding provider.
+	QueryTextFormatVersion = 1
 
 	// Query limits are runtime policy. The defaults are intentionally modest,
 	// while these ceilings leave room for local use without permitting an

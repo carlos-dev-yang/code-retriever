@@ -64,6 +64,7 @@ type ServingPolicy struct {
 	DefaultMode                    string
 	AllowPaidQueryEmbedding        bool
 	ReturnK, CandidateK, RRFK      int
+	QueryTextFormatVersion         int
 	QueryLimits                    QueryLimits
 	FTSSymbolWeight, FTSBodyWeight float64
 }
@@ -166,7 +167,7 @@ func Resolve(raw RawConfig) (ResolvedConfig, error) {
 	resolved := ResolvedConfig{Version: raw.Version,
 		Index:     ResolvedIndex{MaxSourceFileBytes: raw.Index.MaxSourceFileBytes, MaxChunkBytes: raw.Index.MaxChunkBytes, MaxSegmentInputBytes: raw.Index.MaxSegmentInputBytes},
 		Embedding: ResolvedEmbedding{Model: model, TargetDimensions: *raw.Embedding.TargetDimensions, ReducerID: reducer, NormalizerID: normalizer, Metric: metric, StorageCodec: codec, Batch: ResolvedBatch{MaxInputs: raw.Embedding.Batch.MaxInputs, MaxInputTokens: raw.Embedding.Batch.MaxInputTokens, MaxRetries: raw.Embedding.Batch.MaxRetries, RequestTimeoutMS: raw.Embedding.Batch.RequestTimeoutMS}},
-		Search:    ServingPolicy{DefaultMode: mode, AllowPaidQueryEmbedding: allowPaid, ReturnK: returnK, CandidateK: candidateK, RRFK: rrfK, QueryLimits: QueryLimits{MaxBytes: maxQueryBytes, MaxTokens: maxQueryTokens, MaxTokenRunes: maxQueryTokenRunes}, FTSSymbolWeight: symbolWeight, FTSBodyWeight: bodyWeight},
+		Search:    ServingPolicy{DefaultMode: mode, AllowPaidQueryEmbedding: allowPaid, ReturnK: returnK, CandidateK: candidateK, RRFK: rrfK, QueryTextFormatVersion: QueryTextFormatVersion, QueryLimits: QueryLimits{MaxBytes: maxQueryBytes, MaxTokens: maxQueryTokens, MaxTokenRunes: maxQueryTokenRunes}, FTSSymbolWeight: symbolWeight, FTSBodyWeight: bodyWeight},
 		MCP:       ResolvedMCP{HardMaxInlineBytes: raw.MCP.HardMaxInlineBytes, MaxReadSpanLines: raw.MCP.MaxReadSpanLines},
 	}
 	for _, language := range raw.Index.Languages {
