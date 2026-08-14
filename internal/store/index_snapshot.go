@@ -14,6 +14,56 @@ type IndexSnapshot struct {
 	Applied config.AppliedProfiles
 	Files   map[string]IndexedFile
 }
+
+// ActiveVectorPlanningSnapshot is the narrow materialization input. It pins
+// profile metadata and distinct current serving keys in one read transaction
+// without loading source bodies or inactive-profile segments.
+type ActiveVectorPlanningSnapshot struct {
+	Applied         config.AppliedProfiles
+	CanonicalInputs []string
+}
+
+func (store *ProductionStore) ActiveVectorPlanningSnapshot(ctx context.Context) (ActiveVectorPlanningSnapshot, error) {
+	tx, err := store.Read.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return ActiveVectorPlanningSnapshot{}, err
+	}
+	defer tx.Rollback()
+	var result ActiveVectorPlanningSnapshot
+	var index, canonical, source, space, storage, serving string
+	if err := tx.QueryRowContext(ctx, `SELECT schema_version,active_generation,manifest_sha256,index_profile,canonical_text_profile,source_profile,vector_space_profile,vector_storage_profile,active_serving_profile FROM meta WHERE id=1`).Scan(&result.Applied.SchemaVersion, &result.Applied.ActiveGeneration, &result.Applied.ManifestSHA256, &index, &canonical, &source, &space, &storage, &serving); err != nil {
+		return result, err
+	}
+	if result.Applied.SchemaVersion != ProductionSchemaVersion || serving == "" {
+		return result, fmt.Errorf("invalid production index metadata")
+	}
+	result.Applied.ActiveServingProfile = configFingerprint(serving)
+	result.Applied.Fingerprints.Index, result.Applied.Fingerprints.CanonicalText, result.Applied.Fingerprints.Source, result.Applied.Fingerprints.VectorSpace, result.Applied.Fingerprints.VectorStorage = configFingerprint(index), configFingerprint(canonical), configFingerprint(source), configFingerprint(space), configFingerprint(storage)
+	rows, err := tx.QueryContext(ctx, `SELECT DISTINCT canonical_input_sha256 FROM embedding_segments WHERE serving_profile=? ORDER BY canonical_input_sha256`, serving)
+	if err != nil {
+		return result, err
+	}
+	for rows.Next() {
+		var hash string
+		if err := rows.Scan(&hash); err != nil {
+			rows.Close()
+			return result, err
+		}
+		result.CanonicalInputs = append(result.CanonicalInputs, hash)
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return result, err
+	}
+	if err := rows.Close(); err != nil {
+		return result, err
+	}
+	if err := tx.Commit(); err != nil {
+		return result, err
+	}
+	return result, nil
+}
+
 type IndexedSegment struct {
 	ID                                                           int64
 	Path, Kind, QualifiedSymbol, Signature, CanonicalInputSHA256 string

@@ -16,6 +16,12 @@ import (
 // source vectors.
 type Store struct{ db *sql.DB }
 
+func (s *Store) CanonicalRoot(ctx context.Context) (string, error) {
+	var root string
+	err := s.db.QueryRowContext(ctx, `SELECT canonical_root FROM lab_meta WHERE id=1`).Scan(&root)
+	return root, err
+}
+
 type DocumentRaw struct {
 	SourceProfile  string
 	InputHash      string
@@ -32,6 +38,7 @@ type RawEmbeddingKey struct{ SourceProfile, InputHash string }
 type RawEmbeddingRecord struct {
 	Key                                      RawEmbeddingKey
 	Dimensions                               int
+	Checksum                                 uint32
 	VectorF32LE                              []byte
 	VectorSHA256                             string
 	RequestedModel, ResponseModel, RequestID string
@@ -296,5 +303,58 @@ func (s *Store) GetRawDocument(ctx context.Context, key RawEmbeddingKey) (RawEmb
 	if record.VectorSHA256 != VectorSHA256(record.VectorF32LE) {
 		return RawEmbeddingRecord{}, fmt.Errorf("raw vector SHA-256 mismatch")
 	}
+	record.Checksum = checksum
 	return record, nil
+}
+
+// RawDocuments reads and fully validates a bounded batch of immutable raw
+// inputs. It is deliberately a lab-only API; production never opens this DB.
+func (s *Store) RawDocuments(ctx context.Context, sourceProfile string, hashes []string) (map[string]RawEmbeddingRecord, error) {
+	if sourceProfile == "" {
+		return nil, fmt.Errorf("source profile is required")
+	}
+	output := make(map[string]RawEmbeddingRecord, len(hashes))
+	for start := 0; start < len(hashes); start += sqliteVariableBatch {
+		end := start + sqliteVariableBatch
+		if end > len(hashes) {
+			end = len(hashes)
+		}
+		marks := make([]string, end-start)
+		args := make([]any, 0, end-start+1)
+		args = append(args, sourceProfile)
+		for i, hash := range hashes[start:end] {
+			marks[i] = "?"
+			args = append(args, hash)
+		}
+		rows, err := s.db.QueryContext(ctx, `SELECT canonical_input_sha256,dimensions,checksum,blob,vector_sha256,requested_model,response_model,request_id FROM raw_document_embeddings WHERE source_profile=? AND canonical_input_sha256 IN (`+strings.Join(marks, ",")+`)`, args...)
+		if err != nil {
+			return nil, err
+		}
+		for rows.Next() {
+			var record RawEmbeddingRecord
+			record.Key.SourceProfile = sourceProfile
+			if err := rows.Scan(&record.Key.InputHash, &record.Dimensions, &record.Checksum, &record.VectorF32LE, &record.VectorSHA256, &record.RequestedModel, &record.ResponseModel, &record.RequestID); err != nil {
+				rows.Close()
+				return nil, err
+			}
+			if _, err := DecodeF32(record.VectorF32LE, record.Dimensions, record.Checksum); err != nil {
+				rows.Close()
+				return nil, err
+			}
+			if record.VectorSHA256 != VectorSHA256(record.VectorF32LE) {
+				rows.Close()
+				return nil, fmt.Errorf("raw vector SHA-256 mismatch")
+			}
+			record.VectorF32LE = append([]byte(nil), record.VectorF32LE...)
+			output[record.Key.InputHash] = record
+		}
+		if err := rows.Err(); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		if err := rows.Close(); err != nil {
+			return nil, err
+		}
+	}
+	return output, nil
 }

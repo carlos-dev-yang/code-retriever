@@ -59,3 +59,45 @@ func TestTransformAndCodecsRejectInvalidAndPreserveContracts(t *testing.T) {
 		t.Fatal("expected int8 norm mismatch rejection")
 	}
 }
+
+func TestTransformerAndBothCodecsAreDeterministic(t *testing.T) {
+	source := make([]float32, 1024)
+	for i := range source {
+		source[i] = float32((i % 17) - 8)
+	}
+	transformer := Transformer{Spec: TransformSpec{SourceDimensions: 1024, TargetDimensions: 256, ReducerID: ReducerID, NormalizerID: NormalizerID, MetricID: MetricID}}
+	first, err := transformer.Transform(source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := transformer.Transform(source)
+	if err != nil || !equalF32(first, second) {
+		t.Fatalf("non-deterministic transform: %v", err)
+	}
+	for _, id := range []string{BinaryCodecID, Int8CodecID} {
+		codec, err := CodecForID(id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		a, err := codec.Encode(first)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b, err := codec.Encode(second)
+		if err != nil || string(a.Blob) != string(b.Blob) || a.Scale != b.Scale || a.Norm != b.Norm {
+			t.Fatalf("%s encoding not deterministic: %v", id, err)
+		}
+	}
+}
+
+func equalF32(left, right []float32) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	for i := range left {
+		if left[i] != right[i] {
+			return false
+		}
+	}
+	return true
+}

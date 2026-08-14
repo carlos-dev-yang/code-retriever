@@ -25,7 +25,7 @@ func TestProductionMigrationFailsClosedAndUsesOwnerPermissions(t *testing.T) {
 	if err := migrateProduction(ctx, db); err != nil {
 		t.Fatalf("current production schema failed validation: %v", err)
 	}
-	if _, err := db.ExecContext(ctx, `PRAGMA user_version=2`); err != nil {
+	if _, err := db.ExecContext(ctx, `PRAGMA user_version=3`); err != nil {
 		t.Fatal(err)
 	}
 	if err := migrateProduction(ctx, db); err == nil {
@@ -68,6 +68,50 @@ func TestProductionMigrationFailsClosedAndUsesOwnerPermissions(t *testing.T) {
 		if err != nil || dir.Mode().Perm() != 0o700 {
 			t.Fatalf("production dir permissions=%#o err=%v", dir.Mode().Perm(), err)
 		}
+	}
+}
+
+func TestProductionV1ToV2PreservesLegacyVectorButRequiresNewLineage(t *testing.T) {
+	ctx := context.Background()
+	db, err := sql.Open("sqlite", filepath.Join(t.TempDir(), "v1.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if err := migrateProduction(ctx, db); err != nil {
+		t.Fatal(err)
+	}
+	for _, statement := range []string{
+		`ALTER TABLE meta RENAME TO meta_v2`,
+		`CREATE TABLE meta (id INTEGER PRIMARY KEY CHECK(id=1), schema_version INTEGER NOT NULL CHECK(schema_version=1), canonical_root TEXT NOT NULL, active_generation INTEGER NOT NULL CHECK(active_generation>=0), manifest_sha256 TEXT NOT NULL, index_profile TEXT NOT NULL, index_profile_json BLOB NOT NULL, canonical_text_profile TEXT NOT NULL, canonical_text_profile_json BLOB NOT NULL, source_profile TEXT NOT NULL, source_profile_json BLOB NOT NULL, vector_space_profile TEXT NOT NULL, vector_space_profile_json BLOB NOT NULL, vector_storage_profile TEXT NOT NULL, vector_storage_profile_json BLOB NOT NULL, active_serving_profile TEXT NOT NULL, index_attempted_at TEXT NOT NULL, index_succeeded_at TEXT NOT NULL, embed_attempted_at TEXT NOT NULL, embed_succeeded_at TEXT NOT NULL, observed_git_commit TEXT NOT NULL, observed_git_dirty INTEGER NOT NULL CHECK(observed_git_dirty IN (0,1)))`,
+		`DROP TABLE meta_v2`,
+		`ALTER TABLE vector_cache RENAME TO vector_cache_v2`,
+		`CREATE TABLE vector_cache (serving_profile TEXT NOT NULL, canonical_input_sha256 TEXT NOT NULL, dimensions INTEGER NOT NULL CHECK(dimensions>0), codec_id TEXT NOT NULL CHECK(codec_id IN ('cidx-binary-sign-lsb-v1','cidx-int8-symmetric-v1')), codec_version INTEGER NOT NULL CHECK(codec_version=1), blob BLOB NOT NULL CHECK(length(blob)>0), scale REAL, norm REAL, materialization_fingerprint TEXT NOT NULL, PRIMARY KEY(serving_profile, canonical_input_sha256))`,
+		`DROP TABLE vector_cache_v2`,
+	} {
+		if _, err := db.ExecContext(ctx, statement); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := db.ExecContext(ctx, `INSERT INTO meta VALUES(1,1,'root',1,'0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef','index',x'7b7d','canonical',x'7b7d','source',x'7b7d','space',x'7b7d','storage',x'7b7d','serving','','','','','',0); INSERT INTO vector_cache VALUES('serving','input',256,'cidx-binary-sign-lsb-v1',1,x'01',NULL,NULL,'legacy'); PRAGMA user_version=1`); err != nil {
+		t.Fatal(err)
+	}
+	if err := migrateProduction(ctx, db); err != nil {
+		t.Fatal(err)
+	}
+	var schemaVersion int
+	var root, manifest, source, space, storage, serving string
+	var generation int64
+	if err := db.QueryRowContext(ctx, `SELECT schema_version,canonical_root,active_generation,manifest_sha256,source_profile,vector_space_profile,vector_storage_profile,active_serving_profile FROM meta WHERE id=1`).Scan(&schemaVersion, &root, &generation, &manifest, &source, &space, &storage, &serving); err != nil || schemaVersion != 2 || root != "root" || generation != 1 || manifest != "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" || source != "source" || space != "space" || storage != "storage" || serving != "serving" {
+		t.Fatalf("meta preservation=%d %q %d %q %q %q %q %q err=%v", schemaVersion, root, generation, manifest, source, space, storage, serving, err)
+	}
+	var blob []byte
+	var rowSource, rowSpace, rawSHA, at string
+	if err := db.QueryRowContext(ctx, `SELECT blob,source_profile,vector_space_profile,raw_vector_sha256,materialized_at FROM vector_cache WHERE canonical_input_sha256='input'`).Scan(&blob, &rowSource, &rowSpace, &rawSHA, &at); err != nil {
+		t.Fatal(err)
+	}
+	if len(blob) != 1 || rowSource != "" || rowSpace != "" || rawSHA != "" || at != "" {
+		t.Fatalf("legacy row was rewritten or trusted: blob=%x source=%q space=%q raw=%q at=%q", blob, rowSource, rowSpace, rawSHA, at)
 	}
 }
 
@@ -168,7 +212,7 @@ func TestActiveEmbeddingStatesRejectStaleOrInvalidRowsAndSuccessClearsFailure(t 
 	}
 	insertSegment(1, "pending", active)
 	insertSegment(2, "failed", active)
-	insertSegment(3, "ready", active)
+	insertSegment(3, testRawSHA, active)
 	insertSegment(4, "invalid", active)
 	insertSegment(5, "wrong-codec", active)
 	insertSegment(6, "bad-blob", active)
@@ -176,11 +220,11 @@ func TestActiveEmbeddingStatesRejectStaleOrInvalidRowsAndSuccessClearsFailure(t 
 	if err := production.RecordEmbeddingFailure(ctx, resolved, "failed", "network", "retry later"); err != nil {
 		t.Fatal(err)
 	}
-	if err := production.RecordEmbeddingFailure(ctx, resolved, "ready", "network", "old failure"); err != nil {
+	if err := production.RecordEmbeddingFailure(ctx, resolved, testRawSHA, "network", "old failure"); err != nil {
 		t.Fatal(err)
 	}
 	valid := validBinary(t, resolved.Embedding.TargetDimensions)
-	if err := production.UpsertServingVector(ctx, resolved, "ready", "materialization", valid); err != nil {
+	if err := production.UpsertServingVector(ctx, resolved, testRawSHA, string(resolved.Profiles.Fingerprints.VectorStorage), testRawSHA, valid); err != nil {
 		t.Fatal(err)
 	}
 	invalid := valid.Clone()
@@ -217,13 +261,13 @@ func TestActiveEmbeddingStatesRejectStaleOrInvalidRowsAndSuccessClearsFailure(t 
 		t.Fatalf("coverage = %d/%d %v", ready, total, err)
 	}
 	var failures int
-	if err := production.Read.db.QueryRowContext(ctx, `SELECT count(*) FROM embedding_failures WHERE canonical_input_sha256='ready'`).Scan(&failures); err != nil || failures != 0 {
+	if err := production.Read.db.QueryRowContext(ctx, `SELECT count(*) FROM embedding_failures WHERE canonical_input_sha256=?`, testRawSHA).Scan(&failures); err != nil || failures != 0 {
 		t.Fatalf("successful upsert did not clear failure: %d %v", failures, err)
 	}
 	if _, err := production.Write.db.ExecContext(ctx, `UPDATE meta SET active_serving_profile='changed' WHERE id=1`); err != nil {
 		t.Fatal(err)
 	}
-	if err := production.UpsertServingVector(ctx, resolved, "after-change", "materialization", valid); err == nil {
+	if err := production.UpsertServingVector(ctx, resolved, testRawSHA, string(resolved.Profiles.Fingerprints.VectorStorage), testRawSHA, valid); err == nil {
 		t.Fatal("write proceeded after active profile changed")
 	}
 	if err := production.RecordEmbeddingFailure(ctx, resolved, "after-change", "network", "must fail"); err == nil {

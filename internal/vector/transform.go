@@ -30,6 +30,15 @@ type TransformSpec struct {
 	MetricID         string
 }
 
+// Transformer is the shared, side-effect-free source-to-space conversion.
+// Callers inject a validated profile-derived specification; this package never
+// reads configuration or database metadata.
+type Transformer struct{ Spec TransformSpec }
+
+func (t Transformer) Transform(source []float32) ([]float32, error) {
+	return ReduceAndNormalize(t.Spec, source)
+}
+
 func (s TransformSpec) Validate() error {
 	if s.SourceDimensions <= 0 || s.TargetDimensions <= 0 || s.TargetDimensions > s.SourceDimensions {
 		return fmt.Errorf("%w: source=%d target=%d", ErrInvalidDimensions, s.SourceDimensions, s.TargetDimensions)

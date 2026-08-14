@@ -19,6 +19,34 @@ type StoredVector struct {
 	Norm         float32 // int8 reconstructed-vector norm; zero for binary
 }
 
+// Codec is the complete cidx-owned storage contract for one selected serving
+// profile. It intentionally accepts only normalized target-space f32 values.
+type Codec interface {
+	ID() string
+	Encode([]float32) (StoredVector, error)
+}
+
+type binaryCodec struct{}
+
+func (binaryCodec) ID() string                                    { return BinaryCodecID }
+func (binaryCodec) Encode(values []float32) (StoredVector, error) { return EncodeBinary(values) }
+
+type int8Codec struct{}
+
+func (int8Codec) ID() string                                    { return Int8CodecID }
+func (int8Codec) Encode(values []float32) (StoredVector, error) { return EncodeInt8(values) }
+
+func CodecForID(id string) (Codec, error) {
+	switch id {
+	case BinaryCodecID:
+		return binaryCodec{}, nil
+	case Int8CodecID:
+		return int8Codec{}, nil
+	default:
+		return nil, fmt.Errorf("unknown cidx storage codec %q", id)
+	}
+}
+
 func (v StoredVector) Clone() StoredVector {
 	v.Blob = append([]byte(nil), v.Blob...)
 	return v

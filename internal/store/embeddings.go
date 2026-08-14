@@ -27,7 +27,7 @@ func (store *ProductionStore) ActiveSegmentStates(ctx context.Context, resolved 
 		return nil, err
 	}
 	rows, err := tx.QueryContext(ctx, `
-		SELECT s.id, v.dimensions, v.codec_id, v.codec_version, v.blob, v.scale, v.norm,
+		SELECT s.id, v.dimensions, v.codec_id, v.codec_version, v.blob, v.scale, v.norm, v.source_profile, v.vector_space_profile, v.raw_vector_sha256, v.materialization_fingerprint, v.materialized_at,
 		       EXISTS(SELECT 1 FROM embedding_failures f WHERE f.source_profile=m.source_profile AND f.canonical_input_sha256=s.canonical_input_sha256)
 		FROM embedding_segments s
 		JOIN meta m ON m.id=1
@@ -44,9 +44,10 @@ func (store *ProductionStore) ActiveSegmentStates(ctx context.Context, resolved 
 		var dimensions, version sql.NullInt64
 		var codec sql.NullString
 		var blob []byte
+		var sourceProfile, spaceProfile, rawSHA, materialization, materializedAt sql.NullString
 		var scale, norm sql.NullFloat64
 		var failed bool
-		if err := rows.Scan(&id, &dimensions, &codec, &version, &blob, &scale, &norm, &failed); err != nil {
+		if err := rows.Scan(&id, &dimensions, &codec, &version, &blob, &scale, &norm, &sourceProfile, &spaceProfile, &rawSHA, &materialization, &materializedAt, &failed); err != nil {
 			return nil, err
 		}
 		valid := false
@@ -58,7 +59,8 @@ func (store *ProductionStore) ActiveSegmentStates(ctx context.Context, resolved 
 			if norm.Valid {
 				stored.Norm = float32(norm.Float64)
 			}
-			valid = ValidateServingVector(resolved, stored) == nil
+			_, timestampErr := time.Parse(time.RFC3339Nano, materializedAt.String)
+			valid = sourceProfile.Valid && spaceProfile.Valid && rawSHA.Valid && materialization.Valid && materializedAt.Valid && sourceProfile.String == string(resolved.Profiles.Fingerprints.Source) && spaceProfile.String == string(resolved.Profiles.Fingerprints.VectorSpace) && materialization.String == string(resolved.Profiles.Fingerprints.VectorStorage) && validSHA256(rawSHA.String) && timestampErr == nil && ValidateServingVector(resolved, stored) == nil
 		}
 		states = append(states, ActiveSegmentState{SegmentID: id, State: DeriveEmbeddingState(valid, failed)})
 	}
@@ -90,6 +92,9 @@ type activeProfileReader interface {
 }
 
 func requireResolvedActiveProfile(ctx context.Context, reader activeProfileReader, resolved config.ResolvedConfig) error {
+	if err := resolved.ValidateIntegrity(); err != nil {
+		return err
+	}
 	var active string
 	if err := reader.QueryRowContext(ctx, `SELECT active_serving_profile FROM meta WHERE id=1`).Scan(&active); err != nil {
 		return err
@@ -102,8 +107,8 @@ func requireResolvedActiveProfile(ctx context.Context, reader activeProfileReade
 
 // UpsertServingVector validates the concrete active representation and makes a
 // successful materialization clear the corresponding prior failure atomically.
-func (store *ProductionStore) UpsertServingVector(ctx context.Context, resolved config.ResolvedConfig, inputHash, materializationFingerprint string, stored vector.StoredVector) error {
-	if inputHash == "" || materializationFingerprint == "" {
+func (store *ProductionStore) UpsertServingVector(ctx context.Context, resolved config.ResolvedConfig, inputHash, materializationFingerprint, rawVectorSHA256 string, stored vector.StoredVector) error {
+	if !validSHA256(inputHash) || materializationFingerprint != string(resolved.Profiles.Fingerprints.VectorStorage) || !validSHA256(rawVectorSHA256) {
 		return fmt.Errorf("vector input hash and materialization fingerprint are required")
 	}
 	if err := ValidateServingVector(resolved, stored); err != nil {
@@ -118,7 +123,7 @@ func (store *ProductionStore) UpsertServingVector(ctx context.Context, resolved 
 		return err
 	}
 	profile := string(resolved.Profiles.Fingerprints.VectorStorage)
-	if _, err := tx.ExecContext(ctx, `INSERT INTO vector_cache(serving_profile,canonical_input_sha256,dimensions,codec_id,codec_version,blob,scale,norm,materialization_fingerprint) VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(serving_profile,canonical_input_sha256) DO UPDATE SET dimensions=excluded.dimensions,codec_id=excluded.codec_id,codec_version=excluded.codec_version,blob=excluded.blob,scale=excluded.scale,norm=excluded.norm,materialization_fingerprint=excluded.materialization_fingerprint`, profile, inputHash, stored.Dimensions, stored.CodecID, stored.CodecVersion, stored.Blob, nullableFloat(stored.Scale), nullableFloat(stored.Norm), materializationFingerprint); err != nil {
+	if _, err := tx.ExecContext(ctx, `INSERT INTO vector_cache(serving_profile,canonical_input_sha256,dimensions,codec_id,codec_version,blob,scale,norm,materialization_fingerprint,source_profile,vector_space_profile,raw_vector_sha256,materialized_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(serving_profile,canonical_input_sha256) DO UPDATE SET dimensions=excluded.dimensions,codec_id=excluded.codec_id,codec_version=excluded.codec_version,blob=excluded.blob,scale=excluded.scale,norm=excluded.norm,materialization_fingerprint=excluded.materialization_fingerprint,source_profile=excluded.source_profile,vector_space_profile=excluded.vector_space_profile,raw_vector_sha256=excluded.raw_vector_sha256,materialized_at=excluded.materialized_at`, profile, inputHash, stored.Dimensions, stored.CodecID, stored.CodecVersion, stored.Blob, nullableFloat(stored.Scale), nullableFloat(stored.Norm), materializationFingerprint, string(resolved.Profiles.Fingerprints.Source), string(resolved.Profiles.Fingerprints.VectorSpace), rawVectorSHA256, time.Now().UTC().Format(time.RFC3339Nano)); err != nil {
 		return err
 	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM embedding_failures WHERE source_profile=? AND canonical_input_sha256=?`, string(resolved.Profiles.Fingerprints.Source), inputHash); err != nil {
@@ -155,6 +160,9 @@ func (store *ProductionStore) RecordEmbeddingFailure(ctx context.Context, resolv
 // ValidateServingVector checks integrity metadata against the one resolved
 // active representation. Database values never select dimensions or codecs.
 func ValidateServingVector(resolved config.ResolvedConfig, stored vector.StoredVector) error {
+	if err := resolved.ValidateIntegrity(); err != nil {
+		return err
+	}
 	if stored.Dimensions != resolved.Embedding.TargetDimensions {
 		return fmt.Errorf("stored vector dimensions do not match active profile")
 	}

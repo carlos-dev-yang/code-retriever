@@ -1,6 +1,6 @@
 # 09. Runtime Vector Materialization
 
-- Status: `planned`
+- Status: `done`
 - Prerequisite phases: `01-runtime-storage-spike`, `02-config-profiles-and-schemas`, `05-worktree-index-pipeline`, `08-raw-embedding-lab`
 - Follow-up phases: `10-embedding-orchestration-and-reconciliation`, `11-vector-and-hybrid-search`, `12-retrieval-evaluation`
 - Design basis: `local-code-search-mcp-v1-design-r3.md` §6, §7.4, §9
@@ -263,6 +263,15 @@ Development materialization uses the one resolved profile from `.cidx/config.jso
 
 ## 11. Completion Evidence
 
+Implementation handoff record (2026-08-15):
+
+- Implemented the offline source-f32 -> prefix -> L2 -> selected binary/int8 path, lab-only candidate staging, and a full-set production publication boundary.
+- Added additive lab v2-to-v3 and production v1-to-v2 migrations. Existing raw/capture rows and existing production vector rows are preserved; production legacy rows without source/space/raw-SHA lineage are intentionally not ready until rebuilt.
+- The materialization planner now uses a narrow one-snapshot active-key API, verifies lab/production root identity, reads raw rows in bounded batches, and republishes only lab-staged-and-reread variants.
+- Focused implementation checks passed: normal and race tests, vet, and builds for `./internal/config ./internal/vector ./internal/lab ./internal/store ./internal/app`; production dependency inspection found no `internal/lab` import.
+- Main-agent commit-boundary validation passed for config integrity, vector transforms/codecs, lab migrations and staging, production migration/publication, the application materializer, and the directly affected index integration.
+- Not run: a provider request, API-key read, corpus access, paid work, CLI/MCP wiring, a live server, broad load testing, or retrieval-quality evaluation.
+
 - Profile-fingerprint and dimension/codec validation report.
 - Deterministic transformation checksum for identical input.
 - binary and int8 score/ranking error summaries against the target-f32 baseline.
@@ -295,3 +304,4 @@ Provide Phase 11 search only with `VectorSpaceProfile`, `VectorStorageProfile`, 
 - Queries transform into target f32 space, then use the active codec's in-memory query preparation and scorer; query representations are not persisted.
 - Materialization has one path: fixed source 1024, then local prefix reduction and L2 normalization.
 - Both cidx-owned codecs and Voyage provider-quantized output are separate profile and encoding contracts.
+- Production provenance is additive: v2 records source/space profile, raw SHA-256, and materialization time. Legacy rows remain physically preserved but fail the new readiness guard rather than being silently trusted or deleted.

@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"reflect"
 
 	"cidx/internal/chunk"
 	"cidx/internal/embedclient"
@@ -17,6 +18,24 @@ type ResolvedConfig struct {
 	Search    ServingPolicy
 	MCP       ResolvedMCP
 	Profiles  DesiredProfiles
+}
+
+// ValidateIntegrity detects accidental mutation after resolution. Resolved
+// config is an immutable injection contract, but Go callers can still alter
+// exported fields; profile fingerprints must never be trusted after that.
+func (value ResolvedConfig) ValidateIntegrity() error {
+	copy := value
+	if err := Validate(&copy); err != nil {
+		return err
+	}
+	expected, err := FingerprintProfiles(copy)
+	if err != nil {
+		return err
+	}
+	if !reflect.DeepEqual(expected, value.Profiles) {
+		return fmt.Errorf("resolved config profiles do not match resolved values")
+	}
+	return nil
 }
 
 // EmbeddingSourceSpec and TransformSpec are the only adapters from resolved

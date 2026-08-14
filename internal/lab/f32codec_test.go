@@ -148,7 +148,7 @@ func TestLabMigrationIsAtomicAndFailsClosed(t *testing.T) {
 	if err := migrate(ctx, db); err != nil {
 		t.Fatalf("current schema did not validate: %v", err)
 	}
-	if _, err := db.ExecContext(ctx, `PRAGMA user_version=3`); err != nil {
+	if _, err := db.ExecContext(ctx, `PRAGMA user_version=4`); err != nil {
 		t.Fatal(err)
 	}
 	if err := migrate(ctx, db); err == nil {
@@ -215,6 +215,53 @@ func TestV1MigrationPreservesRawBytesHashAndSnapshotReference(t *testing.T) {
 	}
 	if err := db.QueryRowContext(ctx, `SELECT snapshot_reference FROM lab_inputs WHERE canonical_input_sha256='input'`).Scan(&reference); err != nil || reference != "snapshot" {
 		t.Fatalf("snapshot=%q err=%v", reference, err)
+	}
+}
+
+func TestV2ToV3MaterializationMigrationPreservesRawAndCaptureRows(t *testing.T) {
+	ctx := context.Background()
+	db, err := sql.Open("sqlite", filepath.Join(t.TempDir(), "v2.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if err := migrate(ctx, db); err != nil {
+		t.Fatal(err)
+	}
+	for _, statement := range []string{
+		`ALTER TABLE lab_meta RENAME TO lab_meta_v3`,
+		`CREATE TABLE lab_meta (id INTEGER PRIMARY KEY CHECK(id=1), schema_version INTEGER NOT NULL CHECK(schema_version=2), canonical_root TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), last_successful_collection_at TEXT NOT NULL DEFAULT '')`,
+		`DROP TABLE lab_meta_v3`,
+		`ALTER TABLE materialization_runs RENAME TO materialization_runs_v3`,
+		`CREATE TABLE materialization_runs (id INTEGER PRIMARY KEY, vector_space_profile TEXT NOT NULL, storage_profile TEXT NOT NULL, raw_coverage REAL NOT NULL, output_checksum TEXT NOT NULL, evaluation_run_ref TEXT)`,
+		`DROP TABLE materialization_runs_v3`,
+		`DROP TABLE materialized_variants`,
+	} {
+		if _, err := db.ExecContext(ctx, statement); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := db.ExecContext(ctx, `INSERT INTO lab_meta VALUES(1,2,'root','then',''); INSERT INTO raw_document_embeddings VALUES('source','input',1024,1,x'00000000','sha','voyage-code-4','voyage-code-4','','cidx-lab-f32-le-v1','then'); INSERT INTO capture_runs(generation,manifest_sha256,source_profile,planned_count,requested_count,hit_count,miss_count,success_count,failure_count,estimated_tokens,actual_tokens,status) VALUES(1,'manifest','source',1,1,0,1,0,0,0,0,'complete'); INSERT INTO materialization_runs VALUES(9,'space','storage',1.0,'sum','ref'); INSERT INTO evaluation_runs VALUES(4,'root',1,'query','profile','artifact'); PRAGMA user_version=2`); err != nil {
+		t.Fatal(err)
+	}
+	if err := migrate(ctx, db); err != nil {
+		t.Fatal(err)
+	}
+	var rawCount, captureCount, variantTable, evaluationCount, materializationCount int
+	if err := db.QueryRowContext(ctx, `SELECT count(*) FROM raw_document_embeddings`).Scan(&rawCount); err != nil || rawCount != 1 {
+		t.Fatalf("raw preservation=%d %v", rawCount, err)
+	}
+	if err := db.QueryRowContext(ctx, `SELECT count(*) FROM capture_runs`).Scan(&captureCount); err != nil || captureCount != 1 {
+		t.Fatalf("capture preservation=%d %v", captureCount, err)
+	}
+	if err := db.QueryRowContext(ctx, `SELECT count(*) FROM evaluation_runs`).Scan(&evaluationCount); err != nil || evaluationCount != 1 {
+		t.Fatalf("evaluation preservation=%d %v", evaluationCount, err)
+	}
+	if err := db.QueryRowContext(ctx, `SELECT count(*) FROM materialization_runs WHERE build_id='legacy-9'`).Scan(&materializationCount); err != nil || materializationCount != 1 {
+		t.Fatalf("materialization preservation=%d %v", materializationCount, err)
+	}
+	if err := db.QueryRowContext(ctx, `SELECT count(*) FROM sqlite_master WHERE type='table' AND name='materialized_variants'`).Scan(&variantTable); err != nil || variantTable != 1 {
+		t.Fatalf("variant table=%d %v", variantTable, err)
 	}
 }
 

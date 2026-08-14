@@ -157,6 +157,20 @@ func TestPlanImpactClassesAndPrecedence(t *testing.T) {
 	}
 }
 
+func TestResolvedConfigIntegrityRejectsPostResolutionMutation(t *testing.T) {
+	resolved, err := LoadBytes([]byte(validConfigJSON("")))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := resolved.ValidateIntegrity(); err != nil {
+		t.Fatal(err)
+	}
+	resolved.Embedding.TargetDimensions = 512
+	if err := resolved.ValidateIntegrity(); err == nil {
+		t.Fatal("mutated resolved config retained old fingerprints")
+	}
+}
+
 func validConfigJSON(extra string) string {
 	return `{"version":1,"index":{"languages":["go","typescript"],"max_source_file_bytes":10000,"max_chunk_bytes":5000,"max_segment_input_bytes":2000},"embedding":{"target_dimensions":256` + extra + `,"batch":{"max_inputs":1,"max_input_tokens":1,"max_retries":0,"request_timeout_ms":1}},"search":{},"mcp":{"hard_max_inline_bytes":1,"max_read_span_lines":1}}`
 }

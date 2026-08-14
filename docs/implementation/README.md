@@ -1,6 +1,6 @@
 # cidx v1 Implementation Plan Index
 
-- Status: implementation in progress — Phases 00–06 complete; corpus selection and paid-capture approval gate the next tracks
+- Status: implementation in progress — Phases 00–06, 08, and 09 complete; Phase 10 embedding orchestration is next
 - Canonical design: [Local Code Search MCP v1 Design — Revision 3](../../local-code-search-mcp-v1-design-r3.md)
 - Earlier designs: [original](../../local-code-search-mcp-v1-design.md), [r1](../../local-code-search-mcp-v1-design-r1.md), [r2](../../local-code-search-mcp-v1-design-r2.md)
 - Execution protocol: [Implementation Execution and Context-Recovery Guide](EXECUTION-GUIDE.md)
@@ -40,7 +40,7 @@ Allowed states are `planned | in_progress | blocked | done`. A phase becomes `do
 | 06 | done | [FTS search](06-fts-search.md) | 05 | Contentless FTS, safe queries, BM25 chunk candidates | [Evidence](06-fts-search.md#11-completion-evidence) |
 | 07 | planned | [Lexical evaluation](07-lexical-evaluation.md) | 06 | Frozen labels, parser/FTS stage scorecard, first-loss and lexical baseline evidence | [Evidence](07-lexical-evaluation.md#11-completion-evidence) |
 | 08 | done | [Initial raw-embedding lab](08-raw-embedding-lab.md) | 02, 05 | Isolated 1024-dimensional document f32 capture | [Evidence](08-raw-embedding-lab.md#11-completion-evidence) |
-| 09 | planned | [Vector materialization](09-vector-materialization.md) | 01, 02, 05, 08 | Shared reduction/normalization, binary/int8 codecs, and selected-profile publish | [Evidence](09-vector-materialization.md#11-completion-evidence) |
+| 09 | done | [Vector materialization](09-vector-materialization.md) | 01, 02, 05, 08 | Shared reduction/normalization, binary/int8 codecs, and selected-profile publish | [Evidence](09-vector-materialization.md#11-completion-evidence) |
 | 10 | planned | [Embedding orchestration and reconciliation](10-embedding-orchestration-and-reconciliation.md) | 05, 08, 09 | General embedding, cost/failure handling, profile reconciliation | [Evidence](10-embedding-orchestration-and-reconciliation.md#11-completion-evidence) |
 | 11 | planned | [Vector and hybrid search](11-vector-and-hybrid-search.md) | 06, 09, 10 | Query transform, codec-aware scan, segment collapse, RRF, fallback, shared body packaging | [Evidence](11-vector-and-hybrid-search.md#11-completion-evidence) |
 | 12 | planned | [Retrieval evaluation](12-retrieval-evaluation.md) | 07, 08, 09, 11 | Paired dimension/codec/lane/RRF/package evidence and scoped core-retrieval promotion result | [Evidence](12-retrieval-evaluation.md#11-completion-evidence) |
