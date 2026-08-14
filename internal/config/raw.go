@@ -46,6 +46,9 @@ type RawSearch struct {
 	ReturnK                 *int          `json:"return_k"`
 	CandidateK              *int          `json:"candidate_k"`
 	RRFK                    *int          `json:"rrf_k"`
+	MaxQueryBytes           *int          `json:"max_query_bytes"`
+	MaxQueryTokens          *int          `json:"max_query_tokens"`
+	MaxQueryTokenRunes      *int          `json:"max_query_token_runes"`
 	FTSWeights              RawFTSWeights `json:"fts_weights"`
 }
 

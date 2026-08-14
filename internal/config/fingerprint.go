@@ -281,7 +281,7 @@ func FingerprintProfiles(resolved ResolvedConfig) (DesiredProfiles, error) {
 	if err != nil {
 		return DesiredProfiles{}, err
 	}
-	policy := profile.ServingPolicyProfile{DefaultMode: resolved.Search.DefaultMode, AllowPaidQueryEmbedding: resolved.Search.AllowPaidQueryEmbedding, ReturnK: resolved.Search.ReturnK, CandidateK: resolved.Search.CandidateK, RRFK: resolved.Search.RRFK, FTSSymbolWeight: resolved.Search.FTSSymbolWeight, FTSBodyWeight: resolved.Search.FTSBodyWeight, HardMaxInlineBytes: resolved.MCP.HardMaxInlineBytes, MaxReadSpanLines: resolved.MCP.MaxReadSpanLines}
+	policy := profile.ServingPolicyProfile{DefaultMode: resolved.Search.DefaultMode, AllowPaidQueryEmbedding: resolved.Search.AllowPaidQueryEmbedding, ReturnK: resolved.Search.ReturnK, CandidateK: resolved.Search.CandidateK, RRFK: resolved.Search.RRFK, MaxQueryBytes: resolved.Search.QueryLimits.MaxBytes, MaxQueryTokens: resolved.Search.QueryLimits.MaxTokens, MaxQueryTokenRunes: resolved.Search.QueryLimits.MaxTokenRunes, FTSSymbolWeight: resolved.Search.FTSSymbolWeight, FTSBodyWeight: resolved.Search.FTSBodyWeight, HardMaxInlineBytes: resolved.MCP.HardMaxInlineBytes, MaxReadSpanLines: resolved.MCP.MaxReadSpanLines}
 	policyFingerprint, err := Fingerprint(policy, ServingPolicyDomain)
 	if err != nil {
 		return DesiredProfiles{}, err

@@ -1,0 +1,53 @@
+# Phase 06 Free FTS5 Search Evidence
+
+- Phase: `06-fts-search`
+- State: `complete; main-agent commit-boundary validation accepted`
+- Date: 2026-08-15
+
+## Implemented contract
+
+- `internal/symbol/query_tokens.go` reuses the Phase 02 `IdentifierNormalizer` for camelCase, PascalCase, snake_case, qualified-name, path, Unicode, and ordinary-text token classification. It does not create a second normalization implementation.
+- `internal/search/lexical` validates UTF-8 and the injected resolved query limits, rejects tokenless input with `EMPTY_QUERY`, and converts only normalized letter/digit tokens into double-quoted FTS phrases joined by internal `AND` grammar. Raw user input is never passed to `MATCH`.
+- The lexical service obtains candidate limits and BM25 field weights only from the injected immutable `ResolvedConfig.Search` serving policy. A per-call candidate limit may narrow, but never exceed, that resolved limit.
+- `internal/store/search_snapshot.go` opens one independent read transaction, reads `meta.active_generation` plus manifest, and ranks contentless `chunk_fts` with its authoritative chunk/file join before applying the candidate limit. An FTS row lacking a chunk returns `ErrIndexCorrupt`; it is not silently dropped.
+- Final rank ordering is BM25 descending, then qualified-symbol exact normalized equality only when BM25 ties, then path, qualified symbol, and chunk ID. The full ordering precedes `LIMIT`, so a boundary tie cannot discard the exact/stable winner. Lexical ranks are one-based and stable for Phase 07 and Phase 11.
+- The implementation imports no provider, API-key, network, vector, or lab package. It does not scan the filesystem, acquire `index.lock`, reindex, or expose an MCP/CLI surface.
+
+## Focused core checks actually run
+
+```text
+gofmt -w <Phase 06 and directly changed config/profile Go paths>
+go test -count=1 ./internal/config ./internal/profile ./internal/symbol ./internal/store ./internal/search/lexical
+go vet ./internal/config ./internal/profile ./internal/symbol ./internal/store ./internal/search/lexical
+go build ./internal/config ./internal/profile ./internal/symbol ./internal/store ./internal/search/lexical
+gofmt -l <Phase 06 and directly changed config/profile Go paths>
+rg -n '"cidx/internal/(embedclient|lab|vector)"' <Phase 06 runtime paths>
+git diff --check
+```
+
+The lexical tests create a temporary live Git worktree, use the Phase 05 indexer to publish Go, TypeScript, and TSX chunks, then verify identifier/body retrieval, generation/manifest metadata, one-based deterministic ranks, safe handling of FTS-like quotes/operators/wildcards, empty/invalid-UTF-8 rejection, negative candidate rejection, and fail-closed detection of an injected orphan contentless FTS row. Store fixtures verify that equal-BM25 candidates are fully ordered by exact/stable keys before `candidate_k=1` applies. Config fixtures verify resolved defaults, explicit values, zero rejection, and the query-byte ceiling. Query-builder fixtures record `GetUserByID -> "get" AND "user" AND "by" AND "id"` and preserve FTS keywords as quoted literal tokens.
+
+## Checks not run
+
+- No race, broad-project, corpus, lexical-evaluation, provider, paid API, embedding, vector, hybrid, MCP, CLI, load, or platform-concurrency benchmark was run by the implementation agent.
+- A concurrent publish-versus-complete-lexical-search harness was not added. The implementation uses the same short reader transaction for metadata, FTS candidates, and authoritative chunk rows; Phase 05 already proved SQLite old-reader/new-publish snapshot behavior, but Phase 06-specific concurrent execution remains for commit-boundary review if desired.
+
+## Main-agent commit-boundary validation
+
+```text
+go test -count=1 -race ./internal/config ./internal/profile ./internal/symbol ./internal/store ./internal/search/lexical
+go vet ./internal/config ./internal/profile ./internal/symbol ./internal/store ./internal/search/lexical
+go build ./internal/config ./internal/profile ./internal/symbol ./internal/store ./internal/search/lexical
+gofmt -l <Phase 06 and directly changed config/profile Go paths>
+rg -n '"cidx/internal/(embedclient|lab|vector)"' <Phase 06 runtime paths>
+git diff --check
+```
+
+All checks passed. Validation remained scoped to Phase 06 and the directly extended serving-policy config/profile packages; it did not run provider, vector, hybrid, MCP, corpus, or evaluation workflows.
+
+## Handoff and remaining risks
+
+- Phase 07 can call `lexical.Searcher.Search` for normalized diagnostics, manifest/generation identifiers, distinct no-hit versus error outcomes, source-chunk IDs, and deterministic ordinal lexical ranks.
+- Phase 11 can consume the same ordinal rank as the FTS lane for RRF without duplicating query construction or FTS SQL.
+- Query limits are optional `search.max_query_bytes`, `search.max_query_tokens`, and `search.max_query_token_runes` settings resolved through the central immutable `ServingPolicy`; named defaults remain bounded by code-owned absolute ceilings. They affect the serving-policy fingerprint only and require no reindex, rematerialization, or migration.
+- Absolute BM25 scores remain diagnostic/internal and are not a persistence or MCP compatibility promise.

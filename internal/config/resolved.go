@@ -45,8 +45,10 @@ type ServingPolicy struct {
 	DefaultMode                    string
 	AllowPaidQueryEmbedding        bool
 	ReturnK, CandidateK, RRFK      int
+	QueryLimits                    QueryLimits
 	FTSSymbolWeight, FTSBodyWeight float64
 }
+type QueryLimits struct{ MaxBytes, MaxTokens, MaxTokenRunes int }
 type ResolvedMCP struct{ HardMaxInlineBytes, MaxReadSpanLines int }
 type DesiredProfiles struct {
 	Index         profile.IndexProfile
@@ -118,6 +120,18 @@ func Resolve(raw RawConfig) (ResolvedConfig, error) {
 	if raw.Search.RRFK != nil {
 		rrfK = *raw.Search.RRFK
 	}
+	maxQueryBytes := DefaultMaxQueryBytes
+	if raw.Search.MaxQueryBytes != nil {
+		maxQueryBytes = *raw.Search.MaxQueryBytes
+	}
+	maxQueryTokens := DefaultMaxQueryTokens
+	if raw.Search.MaxQueryTokens != nil {
+		maxQueryTokens = *raw.Search.MaxQueryTokens
+	}
+	maxQueryTokenRunes := DefaultMaxQueryTokenRunes
+	if raw.Search.MaxQueryTokenRunes != nil {
+		maxQueryTokenRunes = *raw.Search.MaxQueryTokenRunes
+	}
 	symbolWeight := DefaultFTSSymbolWeight
 	if raw.Search.FTSWeights.Symbols != nil {
 		symbolWeight = *raw.Search.FTSWeights.Symbols
@@ -133,7 +147,7 @@ func Resolve(raw RawConfig) (ResolvedConfig, error) {
 	resolved := ResolvedConfig{Version: raw.Version,
 		Index:     ResolvedIndex{MaxSourceFileBytes: raw.Index.MaxSourceFileBytes, MaxChunkBytes: raw.Index.MaxChunkBytes, MaxSegmentInputBytes: raw.Index.MaxSegmentInputBytes},
 		Embedding: ResolvedEmbedding{Model: model, TargetDimensions: *raw.Embedding.TargetDimensions, ReducerID: reducer, NormalizerID: normalizer, Metric: metric, StorageCodec: codec, Batch: ResolvedBatch{MaxInputs: raw.Embedding.Batch.MaxInputs, MaxInputTokens: raw.Embedding.Batch.MaxInputTokens, MaxRetries: raw.Embedding.Batch.MaxRetries, RequestTimeoutMS: raw.Embedding.Batch.RequestTimeoutMS}},
-		Search:    ServingPolicy{DefaultMode: mode, AllowPaidQueryEmbedding: allowPaid, ReturnK: returnK, CandidateK: candidateK, RRFK: rrfK, FTSSymbolWeight: symbolWeight, FTSBodyWeight: bodyWeight},
+		Search:    ServingPolicy{DefaultMode: mode, AllowPaidQueryEmbedding: allowPaid, ReturnK: returnK, CandidateK: candidateK, RRFK: rrfK, QueryLimits: QueryLimits{MaxBytes: maxQueryBytes, MaxTokens: maxQueryTokens, MaxTokenRunes: maxQueryTokenRunes}, FTSSymbolWeight: symbolWeight, FTSBodyWeight: bodyWeight},
 		MCP:       ResolvedMCP{HardMaxInlineBytes: raw.MCP.HardMaxInlineBytes, MaxReadSpanLines: raw.MCP.MaxReadSpanLines},
 	}
 	for _, language := range raw.Index.Languages {

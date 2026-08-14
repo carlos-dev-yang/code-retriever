@@ -1,6 +1,6 @@
 # cidx v1 Implementation Plan Index
 
-- Status: implementation in progress — Phases 00–05 complete; Phase 06 is next
+- Status: implementation in progress — Phases 00–06 complete; corpus selection and paid-capture approval gate the next tracks
 - Canonical design: [Local Code Search MCP v1 Design — Revision 3](../../local-code-search-mcp-v1-design-r3.md)
 - Earlier designs: [original](../../local-code-search-mcp-v1-design.md), [r1](../../local-code-search-mcp-v1-design-r1.md), [r2](../../local-code-search-mcp-v1-design-r2.md)
 - Execution protocol: [Implementation Execution and Context-Recovery Guide](EXECUTION-GUIDE.md)
@@ -37,7 +37,7 @@ Allowed states are `planned | in_progress | blocked | done`. A phase becomes `do
 | 03 | done | [Go chunker](03-go-chunker.md) | 02 | Go function, method, and type chunks/projections | [Evidence](03-go-chunker.md#11-completion-evidence) |
 | 04 | done | [TypeScript and TSX chunker](04-typescript-tsx-chunker.md) | 02 | TS/TSX function, method, and type chunks/projections | [Evidence](04-typescript-tsx-chunker.md#11-completion-evidence) |
 | 05 | done | [Worktree indexing pipeline](05-worktree-index-pipeline.md) | 03, 04 | Live-file enumeration, incremental plan, atomic generation publish | [Evidence](05-worktree-index-pipeline.md#11-completion-evidence) |
-| 06 | planned | [FTS search](06-fts-search.md) | 05 | Contentless FTS, safe queries, BM25 chunk candidates | [Evidence](06-fts-search.md#11-completion-evidence) |
+| 06 | done | [FTS search](06-fts-search.md) | 05 | Contentless FTS, safe queries, BM25 chunk candidates | [Evidence](06-fts-search.md#11-completion-evidence) |
 | 07 | planned | [Lexical evaluation](07-lexical-evaluation.md) | 06 | Frozen labels, parser/FTS stage scorecard, first-loss and lexical baseline evidence | [Evidence](07-lexical-evaluation.md#11-completion-evidence) |
 | 08 | planned | [Initial raw-embedding lab](08-raw-embedding-lab.md) | 02, 05 | Isolated 1024-dimensional document f32 capture | [Evidence](08-raw-embedding-lab.md#11-completion-evidence) |
 | 09 | planned | [Vector materialization](09-vector-materialization.md) | 01, 02, 05, 08 | Shared reduction/normalization, binary/int8 codecs, and selected-profile publish | [Evidence](09-vector-materialization.md#11-completion-evidence) |

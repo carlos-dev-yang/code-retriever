@@ -1,6 +1,6 @@
 # 06. Free FTS5 Search
 
-- Status: `planned`
+- Status: `done`
 - Prerequisite phase: `05-worktree-index-pipeline`
 - Follow-up phases: `07-lexical-evaluation`, `11-vector-and-hybrid-search`
 - Design basis: `local-code-search-mcp-v1-design-r3.md` §5, §8
@@ -271,3 +271,6 @@ Provide Phase 11 with `LexicalSearcher` and the ordinal lexical rank for each so
 | Use exact symbol only as a small tie-break. | This avoids evaluation-set overfitting and distortion of general natural-language results. | A change is supported by measurements and documented evidence. |
 | Do not make absolute BM25 score an external contract. | It is fragile across tokenizer, config, and SQLite changes. | Score calibration is designed separately. |
 | Define no numeric SLA in this phase. | The current goal is correctness and baseline collection. | Product requirements and representative corpora are settled. |
+| Build `MATCH` only from normalized, double-quoted Unicode letter/digit tokens joined by `AND`. | This preserves the Phase 02 normalizer while preventing user punctuation, operators, prefixes, columns, or quotes from becoming FTS grammar. | An explicitly designed expert query language is requested. |
+| Use the qualified-symbol normalized equality only after BM25 score comparison. | It is a deterministic tie-break, not a multiplicative score boost or corpus-tuned ranking rule. | Evaluation supports a separately designed and documented ranking change. |
+| Resolve query byte, token, and token-rune caps through `ServingPolicy` below code-owned absolute ceilings. | They are adjustable local operational limits, but must remain bounded and must not alter index/vector identity. | A request needs a new query-language or resource-limit dimension. |

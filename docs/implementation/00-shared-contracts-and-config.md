@@ -169,6 +169,9 @@ The following schema illustrates field shapes. It is not a config that fixes a s
     "return_k": "<positive integer>",
     "candidate_k": "<integer >= return_k>",
     "rrf_k": "<positive integer>",
+    "max_query_bytes": "<positive integer below executable safety ceiling>",
+    "max_query_tokens": "<positive integer below executable safety ceiling>",
+    "max_query_token_runes": "<positive integer below executable safety ceiling>",
     "fts_weights": {
       "symbols": "<positive finite number>",
       "body": "<positive finite number>"
@@ -210,6 +213,7 @@ Required validation:
 - The reducer, normalizer, and codec combination must be implemented. V1 accepts only `storage_codec=binary|int8`, with `binary` as the resolved default.
 - Validate every byte, token, batch, and retry value. Do not guess a `voyage-code-4` batch-token cap and write it into a default or ceiling before the official capability is verified.
 - Require `candidate_k >= return_k`.
+- Resolve and validate positive query byte, token, and per-token-rune limits below code-owned absolute ceilings.
 - A config hard maximum must not exceed the executable's code-owned absolute ceiling.
 - Reject provider or endpoint override fields that v1 does not expose as unknown fields.
 - Config contains no credentials or API keys.

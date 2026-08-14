@@ -134,7 +134,7 @@ Core types have these responsibilities:
 - `VectorSpaceProfile`: source profile, target dimensions, metric, reduction algorithm/version, and normalization
 - `VectorStorageProfile`: production codec and version
 - `ServingVectorProfile`: the one active composition of source, vector-space, and storage profiles
-- `ServingPolicy`: reindex-independent policy such as default mode, paid-query permission, `return_k`, `candidate_k`, RRF, and MCP hard maximum
+- `ServingPolicy`: reindex-independent policy such as default mode, paid-query permission, `return_k`, `candidate_k`, RRF, FTS query byte/token/token-rune limits, and MCP hard maximum
 - `ProfileFingerprint`: distinct value type for a canonical-JSON SHA-256 fingerprint
 - `CanonicalInputSHA256`: input identity independent of target dimensions and quantization
 - `ServingVectorKey`: serving-profile fingerprint plus canonical-input hash
@@ -189,6 +189,9 @@ Phase 01 and later measurements determine initial numeric values, but semantic o
     "return_k": 5,
     "candidate_k": 20,
     "rrf_k": "<positive integer>",
+    "max_query_bytes": "<positive integer below executable safety ceiling>",
+    "max_query_tokens": "<positive integer below executable safety ceiling>",
+    "max_query_token_runes": "<positive integer below executable safety ceiling>",
     "fts_weights": {
       "symbols": "<positive finite number>",
       "body": "<positive finite number>"

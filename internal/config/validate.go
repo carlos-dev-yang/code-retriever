@@ -36,7 +36,7 @@ func Validate(resolved *ResolvedConfig) error {
 	if resolved.Search.DefaultMode == "hybrid" && !resolved.Search.AllowPaidQueryEmbedding {
 		return fmt.Errorf("hybrid default requires paid query embedding permission")
 	}
-	if resolved.Search.ReturnK <= 0 || resolved.Search.CandidateK < resolved.Search.ReturnK || resolved.Search.RRFK <= 0 || !finitePositive(resolved.Search.FTSSymbolWeight) || !finitePositive(resolved.Search.FTSBodyWeight) {
+	if resolved.Search.ReturnK <= 0 || resolved.Search.CandidateK < resolved.Search.ReturnK || resolved.Search.RRFK <= 0 || resolved.Search.QueryLimits.MaxBytes <= 0 || resolved.Search.QueryLimits.MaxBytes > AbsoluteMaxQueryBytes || resolved.Search.QueryLimits.MaxTokens <= 0 || resolved.Search.QueryLimits.MaxTokens > AbsoluteMaxQueryTokens || resolved.Search.QueryLimits.MaxTokenRunes <= 0 || resolved.Search.QueryLimits.MaxTokenRunes > AbsoluteMaxQueryTokenRunes || !finitePositive(resolved.Search.FTSSymbolWeight) || !finitePositive(resolved.Search.FTSBodyWeight) {
 		return fmt.Errorf("invalid search policy")
 	}
 	if resolved.MCP.HardMaxInlineBytes <= 0 || resolved.MCP.MaxReadSpanLines <= 0 {

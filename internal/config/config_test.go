@@ -86,10 +86,14 @@ func TestCanonicalJSONRFC8785UsedValueConformance(t *testing.T) {
 }
 
 func TestResolvedSearchDefaultsAndExplicitZeroRejection(t *testing.T) {
-	if _, err := LoadBytes([]byte(validConfigJSON(""))); err != nil {
+	implicit, err := LoadBytes([]byte(validConfigJSON("")))
+	if err != nil {
 		t.Fatalf("omitted defaults rejected: %v", err)
 	}
-	for _, field := range []string{`"return_k":0`, `"candidate_k":0`, `"rrf_k":0`, `"fts_weights":{"symbols":0}`, `"fts_weights":{"body":0}`} {
+	if implicit.Search.QueryLimits != (QueryLimits{MaxBytes: DefaultMaxQueryBytes, MaxTokens: DefaultMaxQueryTokens, MaxTokenRunes: DefaultMaxQueryTokenRunes}) {
+		t.Fatalf("unexpected query defaults: %#v", implicit.Search.QueryLimits)
+	}
+	for _, field := range []string{`"return_k":0`, `"candidate_k":0`, `"rrf_k":0`, `"max_query_bytes":0`, `"max_query_tokens":0`, `"max_query_token_runes":0`, `"fts_weights":{"symbols":0}`, `"fts_weights":{"body":0}`} {
 		config := strings.Replace(validConfigJSON(""), `"search":{}`, `"search":{`+field+`}`, 1)
 		if _, err := LoadBytes([]byte(config)); err == nil {
 			t.Fatalf("explicit zero accepted for %s", field)
@@ -110,6 +114,18 @@ func TestResolvedSearchDefaultsAndExplicitZeroRejection(t *testing.T) {
 	}
 	if first.Profiles.Fingerprints.Policy != second.Profiles.Fingerprints.Policy {
 		t.Fatal("finite FTS-weight policy fingerprint is not deterministic")
+	}
+	configured := strings.Replace(validConfigJSON(""), `"search":{}`, `"search":{"max_query_bytes":4096,"max_query_tokens":32,"max_query_token_runes":96}`, 1)
+	resolved, err := LoadBytes([]byte(configured))
+	if err != nil || resolved.Search.QueryLimits != (QueryLimits{MaxBytes: 4096, MaxTokens: 32, MaxTokenRunes: 96}) {
+		t.Fatalf("query policy=%#v err=%v", resolved.Search.QueryLimits, err)
+	}
+	if implicit.Profiles.Fingerprints.Policy == resolved.Profiles.Fingerprints.Policy {
+		t.Fatal("query limits did not change serving-policy fingerprint")
+	}
+	tooLarge := strings.Replace(validConfigJSON(""), `"search":{}`, `"search":{"max_query_bytes":1048577}`, 1)
+	if _, err := LoadBytes([]byte(tooLarge)); err == nil {
+		t.Fatal("query byte ceiling accepted")
 	}
 }
 

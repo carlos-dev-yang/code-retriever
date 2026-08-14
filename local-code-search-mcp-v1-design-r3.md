@@ -326,7 +326,7 @@ runtime에서 사용하는 `serving_vector_profile_fingerprint`는 2~4의 resolv
 
 각 fingerprint는 전체 config 파일이 아니라 해당 resolved semantic profile의 canonical JSON에 domain-separated SHA-256을 적용한다. 스키마 migration version과 profile fingerprint는 별개다. DB row의 dimension·codec 값은 또 다른 설정 권위가 아니라 active config와 blob을 검증하는 무결성 metadata다.
 
-`return_k`, `candidate_k`, 기본 검색 모드, 유료 질의 허용 여부, 응답 byte 상한은 serving policy다. 프로필에 포함하지 않으며 재인덱싱이나 재임베딩을 유발하지 않는다.
+`return_k`, `candidate_k`, 기본 검색 모드, 유료 질의 허용 여부, FTS 질의 byte/token/rune 상한, 응답 byte 상한은 serving policy다. 이 값은 serving-policy fingerprint에는 포함되지만 index/vector identity가 아니므로 재인덱싱이나 재임베딩을 유발하지 않는다.
 
 설정 형태 초안은 다음과 같다. placeholder는 field 의미를 보여 주는 것이며 실제 JSON 값이 아니다. 초기 서빙 target dimension은 저장소별 평가 후 하나를 선택한다. `storage_codec`은 생략 시 `binary`이며 v1에서 `int8`만 대안으로 허용한다. chunker·formatter·codec 구현 version은 사용자가 임의로 올리는 필드가 아니라 실행 파일이 resolved fingerprint에 포함한다.
 
@@ -351,7 +351,10 @@ runtime에서 사용하는 `serving_vector_profile_fingerprint`는 2~4의 resolv
     "default_mode": "fts",
     "allow_paid_query_embedding": false,
     "return_k": 5,
-    "candidate_k": 20
+    "candidate_k": 20,
+    "max_query_bytes": "<positive integer below executable safety ceiling>",
+    "max_query_tokens": "<positive integer below executable safety ceiling>",
+    "max_query_token_runes": "<positive integer below executable safety ceiling>"
   }
 }
 ```
