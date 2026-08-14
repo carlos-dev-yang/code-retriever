@@ -6,11 +6,11 @@ import (
 )
 
 func TestTransformAndCodecsRejectInvalidAndPreserveContracts(t *testing.T) {
-	source := make([]float32, SourceDimensions)
+	source := make([]float32, 1024)
 	for index := range source {
 		source[index] = float32(index + 1)
 	}
-	target, err := ReduceAndNormalize(DefaultTransformSpec(256), source)
+	target, err := ReduceAndNormalize(TransformSpec{SourceDimensions: 1024, TargetDimensions: 256, ReducerID: ReducerID, NormalizerID: NormalizerID, MetricID: MetricID}, source)
 	if err != nil {
 		t.Fatal(err)
 	}

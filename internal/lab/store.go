@@ -1,33 +1,27 @@
 package lab
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"fmt"
-	"strings"
-
-	"cidx/internal/vector"
 
 	_ "modernc.org/sqlite"
 )
 
-const LabSpikeSchemaVersion = 1
-
 // Store is a development-only f32 artifact store. It has a distinct factory,
 // file path, and schema from production store and only admits document-role
-// source vectors. Phase 02 replaces this temporary schema with its migration.
+// source vectors.
 type Store struct{ db *sql.DB }
 
 type DocumentRaw struct {
 	SourceProfile string
 	InputHash     string
+	ResponseModel string
 	Vector        F32Vector
 }
 
-func OpenSpikeStore(ctx context.Context, path string) (*Store, error) {
-	if path == "" || strings.HasSuffix(path, "/index.db") || path == ".cidx/index.db" {
-		return nil, fmt.Errorf("lab store requires an explicit non-production database path")
-	}
+func openLabDatabase(ctx context.Context, path string) (*Store, error) {
 	db, err := sql.Open("sqlite", path)
 	if err != nil {
 		return nil, err
@@ -37,35 +31,17 @@ func OpenSpikeStore(ctx context.Context, path string) (*Store, error) {
 		_ = db.Close()
 		return nil, err
 	}
-	store := &Store{db: db}
-	for _, statement := range []string{
-		`CREATE TABLE IF NOT EXISTS lab_spike_meta (schema_version INTEGER NOT NULL)`,
-		`INSERT INTO lab_spike_meta (schema_version) SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM lab_spike_meta)`,
-		`CREATE TABLE IF NOT EXISTS lab_spike_document_f32 (
-			source_profile TEXT NOT NULL,
-			input_hash TEXT NOT NULL,
-			dimensions INTEGER NOT NULL,
-			checksum INTEGER NOT NULL,
-			blob BLOB NOT NULL,
-			PRIMARY KEY (source_profile, input_hash)
-		)`,
-	} {
-		if _, err := db.ExecContext(ctx, statement); err != nil {
-			_ = db.Close()
-			return nil, err
-		}
-	}
-	return store, nil
+	return &Store{db: db}, nil
 }
 
 func (s *Store) Close() error { return s.db.Close() }
 
-func (s *Store) PutDocumentSource(ctx context.Context, raw DocumentRaw) error {
-	if raw.SourceProfile == "" || raw.InputHash == "" {
-		return fmt.Errorf("source profile and input hash are required")
+func (s *Store) PutDocumentSource(ctx context.Context, raw DocumentRaw, sourceDimensions int) error {
+	if raw.SourceProfile == "" || raw.InputHash == "" || raw.ResponseModel == "" {
+		return fmt.Errorf("source profile, input hash, and response model are required")
 	}
-	if raw.Vector.Dimensions != vector.SourceDimensions {
-		return fmt.Errorf("lab source vector dimensions must be %d", vector.SourceDimensions)
+	if sourceDimensions <= 0 || raw.Vector.Dimensions != sourceDimensions {
+		return fmt.Errorf("lab source vector dimensions do not match the injected source profile")
 	}
 	validated, err := NewF32Vector(raw.Vector.Values, raw.Vector.Dimensions)
 	if err != nil {
@@ -74,15 +50,41 @@ func (s *Store) PutDocumentSource(ctx context.Context, raw DocumentRaw) error {
 	if validated.Checksum != raw.Vector.Checksum {
 		return fmt.Errorf("raw vector checksum mismatch")
 	}
-	_, err = s.db.ExecContext(ctx, `INSERT OR REPLACE INTO lab_spike_document_f32 (source_profile, input_hash, dimensions, checksum, blob) VALUES (?, ?, ?, ?, ?)`, raw.SourceProfile, raw.InputHash, raw.Vector.Dimensions, raw.Vector.Checksum, EncodeF32(raw.Vector.Values))
-	return err
+	blob := EncodeF32(raw.Vector.Values)
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+	result, err := tx.ExecContext(ctx, `INSERT OR IGNORE INTO raw_document_embeddings (source_profile, canonical_input_sha256, dimensions, checksum, blob, response_model, created_at) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`, raw.SourceProfile, raw.InputHash, raw.Vector.Dimensions, raw.Vector.Checksum, blob, raw.ResponseModel)
+	if err != nil {
+		return err
+	}
+	inserted, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if inserted == 1 {
+		return tx.Commit()
+	}
+	var existingDimensions int
+	var existingChecksum uint32
+	var existingBlob []byte
+	var existingModel string
+	if err := tx.QueryRowContext(ctx, `SELECT dimensions, checksum, blob, response_model FROM raw_document_embeddings WHERE source_profile=? AND canonical_input_sha256=?`, raw.SourceProfile, raw.InputHash).Scan(&existingDimensions, &existingChecksum, &existingBlob, &existingModel); err != nil {
+		return err
+	}
+	if existingDimensions != raw.Vector.Dimensions || existingChecksum != raw.Vector.Checksum || existingModel != raw.ResponseModel || !bytes.Equal(existingBlob, blob) {
+		return fmt.Errorf("immutable lab raw embedding conflicts with existing source/input key")
+	}
+	return tx.Commit()
 }
 
 func (s *Store) GetDocumentSource(ctx context.Context, sourceProfile, inputHash string) (F32Vector, error) {
 	var dimensions int
 	var checksum uint32
 	var blob []byte
-	err := s.db.QueryRowContext(ctx, `SELECT dimensions, checksum, blob FROM lab_spike_document_f32 WHERE source_profile = ? AND input_hash = ?`, sourceProfile, inputHash).Scan(&dimensions, &checksum, &blob)
+	err := s.db.QueryRowContext(ctx, `SELECT dimensions, checksum, blob FROM raw_document_embeddings WHERE source_profile = ? AND canonical_input_sha256 = ?`, sourceProfile, inputHash).Scan(&dimensions, &checksum, &blob)
 	if err != nil {
 		return F32Vector{}, err
 	}

@@ -33,7 +33,7 @@ Allowed states are `planned | in_progress | blocked | done`. A phase becomes `do
 | --- | --- | --- | --- | --- | --- |
 | 00 | done | [Shared contracts and configuration](00-shared-contracts-and-config.md) | none | Boundaries, typed config, profile/hash hierarchy, change-impact rules | [Evidence](00-shared-contracts-and-config.md#11-completion-evidence) |
 | 01 | done | [Runtime and storage spike](01-runtime-storage-spike.md) | 00 | SQLite/FTS5/Tree-sitter packaging decisions, generation and codec evidence | [Evidence](01-runtime-storage-spike.md#11-completion-evidence) |
-| 02 | planned | [Configuration, profiles, and schemas](02-config-profiles-and-schemas.md) | 00, 01 | `ResolvedConfig`, fingerprints, production/lab migrations | [Evidence](02-config-profiles-and-schemas.md#11-completion-evidence) |
+| 02 | done | [Configuration, profiles, and schemas](02-config-profiles-and-schemas.md) | 00, 01 | `ResolvedConfig`, fingerprints, production/lab migrations | [Evidence](02-config-profiles-and-schemas.md#11-completion-evidence) |
 | 03 | planned | [Go chunker](03-go-chunker.md) | 02 | Go function, method, and type chunks/projections | [Evidence](03-go-chunker.md#11-completion-evidence) |
 | 04 | planned | [TypeScript and TSX chunker](04-typescript-tsx-chunker.md) | 02 | TS/TSX function, method, and type chunks/projections | [Evidence](04-typescript-tsx-chunker.md#11-completion-evidence) |
 | 05 | planned | [Worktree indexing pipeline](05-worktree-index-pipeline.md) | 03, 04 | Live-file enumeration, incremental plan, atomic generation publish | [Evidence](05-worktree-index-pipeline.md#11-completion-evidence) |

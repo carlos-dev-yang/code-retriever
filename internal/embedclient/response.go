@@ -30,16 +30,8 @@ type EmbeddingSourceSpec struct {
 	AllowDirectTargetCompare bool
 }
 
-func DefaultEmbeddingSourceSpec() EmbeddingSourceSpec {
-	return EmbeddingSourceSpec{
-		Provider: ProviderID, Model: Model, SourceDimensions: vector.SourceDimensions,
-		OutputDType: OutputDType, DocumentInputType: "document", QueryInputType: "query",
-		Truncation: false, AdapterVersion: AdapterVersion, AllowDirectTargetCompare: DirectTargetComparison,
-	}
-}
-
 func (s EmbeddingSourceSpec) Validate() error {
-	if s.Provider != ProviderID || s.Model != Model || s.SourceDimensions != vector.SourceDimensions || s.OutputDType != OutputDType || s.DocumentInputType != "document" || s.QueryInputType != "query" || s.Truncation || s.AdapterVersion != AdapterVersion {
+	if s.Provider != ProviderID || s.Model != Model || s.SourceDimensions <= 0 || s.OutputDType != OutputDType || s.DocumentInputType != "document" || s.QueryInputType != "query" || s.Truncation || s.AdapterVersion != AdapterVersion {
 		return fmt.Errorf("unsupported voyage source specification")
 	}
 	if s.AllowDirectTargetCompare {

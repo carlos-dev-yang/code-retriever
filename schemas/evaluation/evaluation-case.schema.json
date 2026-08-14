@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cidx/evaluation-case/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "id", "text", "language", "cohorts", "answer_mode", "split", "required_constraints", "required_groups", "hard_negatives", "judgments", "review", "digest"],
+  "properties": {
+    "schema_version": {"const": 1}, "id": {"type": "string", "minLength": 1}, "text": {"type": "string", "minLength": 1},
+    "language": {"enum": ["go", "typescript", "tsx", "mixed"]}, "cohorts": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "answer_mode": {"enum": ["SINGLE", "BEST_N", "EXHAUSTIVE", "ABSTAINABLE"]}, "expected_cardinality": {"type": "integer", "minimum": 0},
+    "split": {"enum": ["calibration", "confirmation"]}, "required_constraints": {"$ref": "#/$defs/constraints"},
+    "required_groups": {"type": "array", "items": {"$ref": "#/$defs/group"}}, "hard_negatives": {"type": "array", "items": {"$ref": "#/$defs/hard_negative"}},
+    "judgments": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/judgment"}}, "review": {"$ref": "#/$defs/review"},
+    "assistant_task_requirements": {"$ref": "#/$defs/assistant"}, "digest": {"$ref": "#/$defs/hash"}
+  },
+  "allOf": [{
+    "if": {"properties": {"answer_mode": {"const": "ABSTAINABLE"}}},
+    "then": {"properties": {"required_groups": {"maxItems": 0}, "hard_negatives": {"minItems": 1}, "expected_cardinality": {"maximum": 0}}},
+    "else": {"properties": {"required_groups": {"minItems": 1}, "expected_cardinality": {"minimum": 1}}}
+  }],
+  "$defs": {
+    "hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "path": {"type": "string", "pattern": "^(?:[^./\\\\]|\\.[^./\\\\]|\\.\\.[^./\\\\])[^/\\\\]*(?:/(?:[^./\\\\]|\\.[^./\\\\]|\\.\\.[^./\\\\])[^/\\\\]*)*$"},
+    "span": {"type": "object", "additionalProperties": false, "required": ["path", "content_sha256", "qualified_symbol", "start_byte", "end_byte"], "properties": {"path": {"$ref": "#/$defs/path"}, "content_sha256": {"$ref": "#/$defs/hash"}, "qualified_symbol": {"type": "string", "minLength": 1}, "start_byte": {"type": "integer", "minimum": 0}, "end_byte": {"type": "integer", "minimum": 1}}},
+    "alternative": {"type": "object", "additionalProperties": false, "required": ["spans"], "properties": {"spans": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/span"}}}},
+    "group": {"type": "object", "additionalProperties": false, "required": ["id", "alternatives"], "properties": {"id": {"type": "string", "minLength": 1}, "alternatives": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/alternative"}}}},
+    "constraints": {"type": "object", "additionalProperties": false, "required": ["identifiers", "paths", "languages", "scopes"], "properties": {"identifiers": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}}, "paths": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/path"}}, "languages": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["go", "typescript", "tsx", "mixed"]}}, "scopes": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}}}},
+    "hard_negative": {"type": "object", "additionalProperties": false, "required": ["span", "reason"], "properties": {"span": {"$ref": "#/$defs/span"}, "reason": {"type": "string", "minLength": 1}}},
+    "judgment": {"type": "object", "additionalProperties": false, "required": ["span", "grade", "rationale"], "properties": {"span": {"$ref": "#/$defs/span"}, "grade": {"enum": [0, 1, 2]}, "rationale": {"type": "string", "minLength": 1}}},
+    "review": {"type": "object", "additionalProperties": false, "required": ["state", "passes", "rationale"], "properties": {"state": {"enum": ["draft", "frozen"]}, "passes": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["id", "reviewer"], "properties": {"id": {"type": "string", "minLength": 1}, "reviewer": {"type": "string", "minLength": 1}}}}, "rationale": {"type": "string", "minLength": 1}, "solo_review_limitation": {"type": "string", "minLength": 1}}, "allOf": [{"if": {"properties": {"state": {"const": "frozen"}}}, "then": {"properties": {"passes": {"minItems": 2}}}}]},
+    "assistant": {"type": "object", "additionalProperties": false, "required": ["requirements", "expected_test_outcomes"], "properties": {"requirements": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}, "expected_test_outcomes": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}}}
+  }
+}

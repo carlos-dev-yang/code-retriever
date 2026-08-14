@@ -58,6 +58,8 @@ Stable first-loss values are:
 
 Do not encode an unobserved optional stage as score zero. Required failures and timeouts remain in their metric denominator and receive the documented zero retrieval outcome plus a failure state.
 
+The portable trace wire records one ordered observation for every planned stage. Every required evidence observation carries one ordered `GroupObservation` for each frozen requirement-group ID. `GroupObservation.first_loss` is the only retrieval-survival authority: a group that is absent after source discovery/parser or after the provider union starts the primary path cannot reappear and retains its original loss value. FTS and dense remain parallel lane diagnostics. The operational observation uses operation denominators and carries no retrieval groups. An `OPERATION_FAILURE:<stage>` group loss must name that observation's `failure_stage`; strict JSON Schema enforces wire shape while the core validator enforces these cross-record relationships.
+
 ## 3. Stage Scorecard
 
 | Stage | Truth unit | Exact denominator | Required measurements |

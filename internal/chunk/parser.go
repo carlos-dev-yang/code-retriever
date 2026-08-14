@@ -10,14 +10,6 @@ import (
 	typescriptGrammar "github.com/tree-sitter/tree-sitter-typescript/bindings/go"
 )
 
-type Language string
-
-const (
-	Go         Language = "go"
-	TypeScript Language = "typescript"
-	TSX        Language = "tsx"
-)
-
 type ParseResult struct {
 	RootKind string
 	HasError bool

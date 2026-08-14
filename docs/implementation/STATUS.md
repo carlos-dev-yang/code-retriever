@@ -4,14 +4,14 @@ This ledger is the authoritative resumable state for implementation work. Update
 
 ## Current state
 
-- Active phase: none
+- Active phase: none; Phase 02 is complete and committed next
 - Active owner: none
 - Last updated: 2026-08-15
 - Current blocker: none
 - Latest contract change: production storage codec now defaults to cidx-owned `binary`; `int8` is the only alternative, and exact encoder/scorer contracts remain a Phase 01 evidence item
-- Latest evaluation change: `EVALUATION-CONTRACT.md` owns stage denominators, query labels, calibration/confirmation separation, codec-fidelity metrics, RRF diagnostics, hard gates, run artifacts, shared Phase 11 body-packaging evidence, and paired Phase 14 assistant-use evidence
-- Next eligible phase: Phase 02
-- Exact next action: enter Phase 02 after reading the Phase 00 and Phase 01 completion evidence; assign implementation to a terra/high agent
+- Latest evaluation change: strict Phase 02 traces use per-group first-loss observations with an explicit provider-union stage, typed operation denominators, frozen review-pass identities, ABSTAINABLE/no-answer truth, and graded durable relevance judgments
+- Next eligible phase: Phase 03 — Go chunker; Phase 04 is also dependency-eligible after shared-contract review
+- Exact next action: commit the accepted Phase 02 boundary, then enter Phase 03 without rerunning prior-phase validation
 
 ## Phase ledger
 
@@ -19,7 +19,7 @@ This ledger is the authoritative resumable state for implementation work. Update
 | --- | --- | --- | --- | --- | --- | --- |
 | 00 | done | Codex | n/a; no prerequisite phases | RFC 8785 profiles and all Phase 00 catalogs/reviews completed | [Phase 00 evidence index](evidence/phase-00/README.md) | Enter Phase 01 |
 | 01 | done | terra/high implementation agent; Codex validation | Yes — [Phase 00 evidence](evidence/phase-00/README.md) | Executable spikes and [Phase 01 evidence](evidence/phase-01/README.md) validated | Core, race, vet, build, runner, dependency-boundary, format, and module checks passed | Enter Phase 02 |
-| 02 | planned | — | No | None | Requires 00, 01 | Wait |
+| 02 | done | terra/high implementation agents; Codex validation | Yes — [Phase 00](evidence/phase-00/README.md) and [Phase 01](evidence/phase-01/README.md) evidence | Formal migrations, active-vector state, secure store factories, shared chunk handoff, strict evaluation wire/schemas, and [Phase 02 evidence](evidence/phase-02/README.md) accepted | Main commit-boundary core, race, vet, build, dependency, format, module, schema, and diff checks passed | Enter Phase 03 |
 | 03 | planned | — | No | None | Requires 02 | Wait |
 | 04 | planned | — | No | None | Requires 02 | Wait |
 | 05 | planned | — | No | None | Requires 03, 04 | Wait |

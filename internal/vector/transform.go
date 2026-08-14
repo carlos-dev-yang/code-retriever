@@ -9,13 +9,10 @@ import (
 )
 
 const (
-	SourceDimensions = 1024
-	ReducerID        = "prefix-l2-v1"
-	NormalizerID     = "l2-v1"
-	MetricID         = "cosine"
+	ReducerID    = "prefix-l2-v1"
+	NormalizerID = "l2-v1"
+	MetricID     = "cosine"
 )
-
-var AllowedTargetDimensions = map[int]struct{}{256: {}, 512: {}, 1024: {}}
 
 var (
 	ErrInvalidDimensions = errors.New("invalid vector dimensions")
@@ -33,22 +30,9 @@ type TransformSpec struct {
 	MetricID         string
 }
 
-func DefaultTransformSpec(targetDimensions int) TransformSpec {
-	return TransformSpec{
-		SourceDimensions: SourceDimensions,
-		TargetDimensions: targetDimensions,
-		ReducerID:        ReducerID,
-		NormalizerID:     NormalizerID,
-		MetricID:         MetricID,
-	}
-}
-
 func (s TransformSpec) Validate() error {
-	if s.SourceDimensions != SourceDimensions {
-		return fmt.Errorf("%w: source dimensions must be %d", ErrInvalidDimensions, SourceDimensions)
-	}
-	if _, ok := AllowedTargetDimensions[s.TargetDimensions]; !ok {
-		return fmt.Errorf("%w: target dimensions %d", ErrInvalidDimensions, s.TargetDimensions)
+	if s.SourceDimensions <= 0 || s.TargetDimensions <= 0 || s.TargetDimensions > s.SourceDimensions {
+		return fmt.Errorf("%w: source=%d target=%d", ErrInvalidDimensions, s.SourceDimensions, s.TargetDimensions)
 	}
 	if s.ReducerID != ReducerID || s.NormalizerID != NormalizerID || s.MetricID != MetricID {
 		return fmt.Errorf("unsupported transform contract %q/%q/%q", s.ReducerID, s.NormalizerID, s.MetricID)

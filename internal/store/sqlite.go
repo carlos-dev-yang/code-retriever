@@ -38,6 +38,21 @@ type Stores struct {
 }
 
 func OpenSpikeStores(ctx context.Context, path string) (*Stores, SQLiteCapabilities, error) {
+	stores, capabilities, err := OpenSQLiteStores(ctx, path)
+	if err != nil {
+		return nil, SQLiteCapabilities{}, err
+	}
+	if err := stores.Write.initialize(ctx); err != nil {
+		_ = stores.Close()
+		return nil, SQLiteCapabilities{}, err
+	}
+	return stores, capabilities, nil
+}
+
+// OpenSQLiteStores supplies the Phase 01-selected reader/writer connection
+// contract without selecting a schema. Production and lab migrations own their
+// own schemas and must not reuse the spike initializer.
+func OpenSQLiteStores(ctx context.Context, path string) (*Stores, SQLiteCapabilities, error) {
 	if path == "" {
 		return nil, SQLiteCapabilities{}, fmt.Errorf("sqlite path is required")
 	}
@@ -51,10 +66,6 @@ func OpenSpikeStores(ctx context.Context, path string) (*Stores, SQLiteCapabilit
 		return nil, SQLiteCapabilities{}, err
 	}
 	stores := &Stores{Read: &ReadStore{db: reader}, Write: &WriteStore{db: writer}}
-	if err := stores.Write.initialize(ctx); err != nil {
-		_ = stores.Close()
-		return nil, SQLiteCapabilities{}, err
-	}
 	capabilities, err := stores.Write.Capabilities(ctx)
 	if err != nil {
 		_ = stores.Close()

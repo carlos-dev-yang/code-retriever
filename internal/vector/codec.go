@@ -3,10 +3,8 @@ package vector
 import "fmt"
 
 const (
-	BinaryCodecID      = "cidx-binary-sign-lsb-v1"
-	Int8CodecID        = "cidx-int8-symmetric-v1"
-	StorageCodecBinary = "binary"
-	StorageCodecInt8   = "int8"
+	BinaryCodecID = "cidx-binary-sign-lsb-v1"
+	Int8CodecID   = "cidx-int8-symmetric-v1"
 )
 
 // StoredVector is the only vector payload accepted by the future production

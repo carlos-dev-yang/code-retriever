@@ -1,6 +1,6 @@
 # 02. Configuration, Profiles, and Storage Schemas
 
-- Status: `planned`
+- Status: `done`
 - Prerequisite phases: `00-shared-contracts-and-config`, `01-runtime-storage-spike`
 - Downstream phases: `03-go-chunker`, `04-typescript-tsx-chunker`, `05-worktree-index-pipeline`, `08-raw-embedding-lab`
 - Design basis: `local-code-search-mcp-v1-design-r3.md` Sections 4.4, 6, and 9
@@ -12,7 +12,7 @@
 - Reopen the Phase 00 config/constant catalog and fingerprint contract, plus Phase 01 artifacts for selected SQLite/Tree-sitter bindings, connection pragmas, atomic publication, f32/binary/int8 blob validation, platform constraints, and the direct-target decision.
 - Re-check these critical invariants: only `internal/config` reads JSON; one resolved source dimension, one resolved target dimension, and one resolved storage codec feed every consumer; desired config never partially overrides applied database profiles; production stores only the selected cidx `binary` or `int8` representation and defaults to `binary`; lab and production use different files, schemas, migrations, handles, and dependency paths; document raw f32 is dev-only and query f32 is never stored.
 - Stop before schema or API implementation if Phase 01 handoff is incomplete, fingerprint semantics are ambiguous, a config value has competing authorities, a runtime package would import `lab`, or a migration cannot fail atomically before serving.
-- Before pausing, update Section 11 evidence, Section 13 decisions, and [STATUS.md](STATUS.md). Preserve `planned` status while schema snapshots, profile fixtures, or dependency evidence remain missing.
+- Before pausing, update Section 11 evidence, Section 13 decisions, and [STATUS.md](STATUS.md). Preserve `in_progress` status while schema snapshots, profile fixtures, or dependency evidence remain missing.
 
 ## 1. Goal
 
@@ -138,16 +138,17 @@ Core types have these responsibilities:
 - `ProfileFingerprint`: distinct value type for a canonical-JSON SHA-256 fingerprint
 - `CanonicalInputSHA256`: input identity independent of target dimensions and quantization
 - `ServingVectorKey`: serving-profile fingerprint plus canonical-input hash
-- `AppliedProfiles`: index and serving profiles and generation actually applied to the database
+- `AppliedProfiles`: index and serving profiles, active generation, manifest digest, and active serving profile actually applied to the database
 - `ConfigImpactPlan`: `none | restart_only | local_reindex | local_rematerialize_if_raw | paid_embedding_required | schema_migration`, with reasons
 - `ProductionStore`: handle that opens only the production schema
 - `LabOptions`: store-open values such as repository identity and fixed lab path derived from root; owns no embedding semantics
 - `LabStore`: handle that opens only the lab schema and implements no production interface
-- `Chunker`, `ChunkRequest`, `ChunkResult`: shared language-adapter interface for parallel Phases 03 and 04
+- `Chunker`, `ChunkRequest`, `ChunkResult`: context-aware shared language-adapter interface for parallel Phases 03 and 04; request source/path/policy are immutable inputs, results carry parser metadata and typed diagnostics
 - `SourceChunk`, `ProjectionRange`, `SegmentCandidate`: shared values connecting parser output to production schema
+- `LineIndex`: immutable byte-coordinate index built once per source; derives 1-based inclusive line ranges with CRLF/UTF-8-safe byte offsets
 - `IdentifierNormalizer`: deterministic normalization shared by indexed symbol input and search queries
 - `EvaluationCase`, `RequiredGroup`, `ExpectedAlternative`: durable reviewed truth independent of generated row IDs
-- `StageTrace`, `StageObservation`, `FirstLoss`, `FailureStage`: complete stage and denominator records
+- `StageTrace`, `StageObservation`, `GroupObservation`, `FirstLoss`, `FailureStage`: complete stage and denominator records; group-level first-loss is the sole retrieval-survival authority
 - `EvaluationRunManifest`, `ArtifactManifest`: paired-run compatibility and immutable artifact identity
 - `PromotionContract`, `PromotionResult`: frozen gates, explicit `core_retrieval|release_candidate` scope, prerequisite digests, and `PROMOTION_EVIDENCE_READY|NOT_PROMOTION_READY`, with no weighted total
 
@@ -286,7 +287,7 @@ Phase 02 provides:
 
 - `config.Load(path) (ResolvedConfig, error)`
 - `config.FingerprintProfiles(ResolvedConfig) (DesiredProfiles, error)`
-- `config.PlanImpact(desired, applied) ConfigImpactPlan`
+- `config.PlanImpact(desired, applied, expectedProductionSchemaVersion) ConfigImpactPlan`; the store caller supplies the database-schema authority so it is never conflated with the config-file version
 - `store.OpenProduction(root, resolvedConfig) (ProductionStore, error)`
 - `lab.OpenStore(root, labOptions) (LabStore, error)`
 - separate production and lab `Migrate` and `InspectSchemaVersion`
@@ -367,25 +368,17 @@ Validate the following during implementation; this planning phase adds no test c
 - After migration failure, the previous schema still opens or a clear migration-required error is returned.
 - Evaluation schemas reject unknown fields, generated row IDs as durable truth, missing required denominators, invalid split/review states, and weighted-total result fields.
 - The canonical smoke trace round-trips deterministically and represents unrequested downstream stages as `NOT_OBSERVED` rather than zero.
+- Evaluation traces require one ordered observation for every stable stage, complete ordered required-group observations on required evidence stages, and immutable per-group loss after source/parser and provider-union entry. FTS/dense remain lane diagnostics; operational uses its own operation denominator and never carries retrieval groups.
+- `OPERATION_FAILURE:<stage>` is a group-level first loss whose stage must match the observation `failure_stage`; JSON Schema enforces the strict wire shape while Go validation enforces cross-record group identity, monotonicity, review identity, and relevance relationships.
 
 ## 11. Completion Evidence
 
-Before changing this phase to `done`, record actual results for:
+Completion evidence is in [Phase 02 evidence](evidence/phase-02/README.md) and was accepted by the main agent at the Phase 02 commit boundary.
 
-- Final `ResolvedConfig` structure and default/validation table
-- Fields included in index, canonical-text, source, vector-space, storage, and materialization fingerprints
-- Reproduction of a canonical fingerprint for semantically identical config
-- Production schema snapshot and migration version
-- Lab schema snapshot and its separate migration version
-- Shared `Chunker` interface and chunk/range/projection types and validator artifact
-- Shared identifier-normalization input/output fixtures and `IdentifierNormalizer` artifact
-- Versioned evaluation query/run/trace/promotion schemas and stable stage/first-loss/failure enum catalog
-- Canonical all-stage smoke trace plus deterministic artifact-checksum fixture
-- Proof that `binary` and `int8` are the only vector encodings accepted in production, that `binary` resolves by default, and that each row/scanner pairing validates the active codec
-- `ConfigImpactPlan` results for desired/applied mismatch classes
-- Proof that the production runtime dependency graph excludes the `lab` package
-- Validation actually run and validation not run
-- Remaining schema and data-migration risks
+- Strict immutable `ResolvedConfig`, profile hierarchy/fingerprints, impact planning, separate schemas, active-codec validation, chunk/projection contracts, normalizer, and portable evaluation types are implemented.
+- The canonical-text and embedding-source Phase 00 fixtures reproduce; defaulted and explicit equivalent configs share semantic fingerprints.
+- Production/lab schemas are separately versioned at 1 with atomic user-version migration checks, canonical root matching, and owner-only paths where supported. Production contains no raw f32/f16 storage or lab runtime dependency.
+- Exact successful and intentionally unrun checks, including RFC-8785 finite-number/Unicode conformance, transaction-pinned active state, immutable lab rows, and real strict JSON-Schema validation, are recorded in the evidence file.
 
 ## 12. Downstream Handoff
 
@@ -424,4 +417,6 @@ Provide Phases 07 and 12 with the versioned `evalcontract` types/schemas, stable
 | Query f32 storage | excluded | The repeated-evaluation raw bank applies only to documents. |
 | Evaluation wire contract | fixed before runners | Preserve stage denominators, first loss, paired controls, and hard-gate evidence across lexical, dense, hybrid, packaging, and assistant phases. |
 | Canonical-input hash | fixed: independent of target dimension and quantization | Reuse transformations of identical source raw. |
-| Allowed reductions | waiting for Phase 01 result | Query and document spaces must remain compatible. |
+| Allowed reductions | selected: `prefix-l2-v1` with `l2-v1` | Phase 01 fixed the local source-1024 prefix plus L2 contract. Provider direct targets remain disabled. |
+| Runtime dimensions | fixed: `ModelSpec` is the source/allowed-target authority | Provider and vector packages receive explicit source/transform specs and keep no competing runtime dimension registry. |
+| Formal migrations | fixed: fail-closed atomic `user_version` migration | New databases are created transactionally; current schemas are checked; newer or unknown schemas are refused. |
