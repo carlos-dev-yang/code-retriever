@@ -4,14 +4,14 @@ This ledger is the authoritative resumable state for implementation work. Update
 
 ## Current state
 
-- Active phase: none — Phase 07 infrastructure paused at its external corpus gate
+- Active phase: none — Phase 12 corpus-independent infrastructure is complete at its external evidence gate
 - Active owner: Codex
 - Last updated: 2026-08-15
-- Current blocker: Phase 07 official lexical evidence needs user-selected tracked corpus manifests and ignored local bindings; any Phase 08 paid capture still requires explicit approval
+- Current blocker: Phase 07 official lexical evidence and Phase 12 official retrieval evidence need user-selected tracked corpus manifests, ignored local bindings, reviewed labels, raw coverage, and separate paid-query approval
 - Latest contract change: production storage codec now defaults to cidx-owned `binary`; `int8` is the only alternative, and exact encoder/scorer contracts remain a Phase 01 evidence item
 - Latest evaluation change: strict Phase 02 traces use per-group first-loss observations with an explicit provider-union stage, typed operation denominators, frozen review-pass identities, ABSTAINABLE/no-answer truth, and graded durable relevance judgments
-- Next eligible phase: Phase 12 retrieval-evaluation infrastructure that does not require corpus access; Phase 07 official lexical evidence remains gated on user-selected corpus manifests
-- Exact next action: commit the blocked Phase 07 infrastructure, then implement corpus-independent Phase 12; official Phase 07 corpus evidence remains separately blocked on user-selected manifests, ignored bindings, and reviewed labels.
+- Next eligible phase: Phase 13 corpus-independent CLI/MCP adapter implementation. Official Phase 07/12 evidence and promotion remain gated on user-selected corpus manifests, but do not block adapter implementation that performs no corpus or paid action.
+- Exact next action: implement the corpus-independent Phase 13 adapters against the frozen Phase 12 core. After the user supplies approved corpus manifests, ignored local bindings, and reviewed calibration/confirmation datasets, verify the existing checkout and raw coverage, then seek separate approval before any paid query evaluation apply.
 
 ## Phase ledger
 
@@ -29,8 +29,8 @@ This ledger is the authoritative resumable state for implementation work. Update
 | 09 | done | terra/high implementation agent; Codex validation | Yes — [Phase 01](evidence/phase-01/README.md), [Phase 02](evidence/phase-02/README.md), [Phase 05](evidence/phase-05/README.md), and [Phase 08](evidence/phase-08/README.md) evidence reviewed | Shared transform/codecs, lab v3 staging evidence, production v2 lineage, narrow active-key planning, and complete-set atomic publication accepted | Main focused race, vet, build, migration, dependency-boundary, format, module, diff, and synthetic fidelity checks passed; no provider/corpus/paid action | Enter Phase 10 |
 | 10 | done | terra/high implementation agent; Codex validation | Yes — [Phase 05](evidence/phase-05/README.md), [Phase 08](evidence/phase-08/README.md), and [Phase 09](evidence/phase-09/README.md) evidence reviewed | Public opaque plan/apply, v2-to-v3 migration, derived active state, retry/failure accounting, guarded incremental publication, and [Phase 10 evidence](evidence/phase-10/README.md) accepted | Main focused race, vet, build, format, dependency-boundary, stale-plan, partial-batch, late-response, migration, and diff checks passed; no credentials, network, corpus, or paid action | Enter Phase 11 |
 | 11 | done | terra/high implementation agent; Codex validation | Yes — [Phase 06](evidence/phase-06/README.md), [Phase 09](evidence/phase-09/README.md), and [Phase 10](evidence/phase-10/README.md) evidence and their documented store/profile handoffs reviewed | Query transform, valid-vector preflight, codec scan, segment collapse, deterministic RRF, lexical fallback isolation, rank-invariant body packaging, and [Phase 11 evidence](evidence/phase-11/README.md) accepted | Main focused race, vet, build, format, dependency-boundary, fallback, snapshot, body-budget, and diff checks passed; no real provider, credential, network, corpus, lab runtime, or paid action used. Deduplicated parent bodies remain a Phase 12 load-measurement risk, not a latency claim. | Enter corpus-independent Phase 12 implementation; Phase 07 evidence remains gated |
-| 12 | planned | — | No | None | Requires 07, 08, 09, 11, approved corpus bindings, and paid-query approval | Wait |
-| 13 | planned | — | No | None | Requires 05, 06, 10, 11, 12 | Wait |
+| 12 | blocked | Codex (Phase 12 implementation agent) | Yes — [Phase 07](evidence/phase-07/README.md), [Phase 08](evidence/phase-08/README.md), [Phase 09](evidence/phase-09/README.md), and [Phase 11](evidence/phase-11/README.md) evidence reviewed; Phase 07 official corpus evidence remains externally blocked | Reusable arm orchestration, shared metrics, target-f32/codec fidelity, lane/body diagnostics, and core-promotion evidence validation implemented | [Phase 12 evidence](evidence/phase-12/README.md); official evidence requires user-selected manifests/bindings, reviewed labels, raw coverage, and paid-query approval | Phase 13 may implement its corpus-independent adapter now; after approval, use that seam to run the verified corpus through the frozen plan |
+| 13 | planned | — | Phase 05/06/10/11 done; Phase 12 reusable core exists, while official Phase 12 evidence remains externally blocked | None | Official promotion remains gated on Phase 12 evidence, but corpus-independent CLI/MCP adapters are eligible | Implement adapters without corpus, provider, or paid actions |
 | 14 | planned | — | No | None | Requires 13 | Wait |
 
 ## Resume note template

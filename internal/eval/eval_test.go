@@ -228,6 +228,188 @@ func TestHardNegativeDenominatorAndAbstainableTrace(t *testing.T) {
 	}
 }
 
+func TestRetrievalFidelityFusionAndBodyDiagnostics(t *testing.T) {
+	left, right := span("a.go", "A", 0, 5), span("b.go", "B", 0, 5)
+	caseValue := fixtureCase("retrieval", evalcontract.Go, []evalcontract.RequiredGroup{
+		{ID: "left", Alternatives: []evalcontract.ExpectedAlternative{{Spans: []evalcontract.SourceSpan{left}}}},
+		{ID: "right", Alternatives: []evalcontract.ExpectedAlternative{{Spans: []evalcontract.SourceSpan{right}}}},
+	}, []evalcontract.RelevanceJudgment{{Span: left, Grade: 2, Rationale: "direct"}, {Span: right, Grade: 2, Rationale: "direct"}})
+	first, second := 1.0, .5
+	f32 := CaseRanking{QueryID: caseValue.ID, Variant: VariantTargetF32, Hits: []RetrievalHit{retrievalHit(left, 1, &first), retrievalHit(right, 2, &second)}}
+	codec := CaseRanking{QueryID: caseValue.ID, Variant: VariantServingActiveCodec, Hits: []RetrievalHit{retrievalHit(right, 1, &first), retrievalHit(left, 2, &second)}}
+	fidelity, err := CompareCodecFidelity(caseValue, f32, codec, 2)
+	if err != nil || fidelity.TopKRetention != 1 || !fidelity.Top1Mismatch || fidelity.PairwiseInversionRate == nil || *fidelity.PairwiseInversionRate != 1 || fidelity.GoldF32Retention == nil || *fidelity.GoldF32Retention != 1 {
+		t.Fatalf("fidelity=%+v err=%v", fidelity, err)
+	}
+	third := span("c.go", "C", 0, 5)
+	tied := .25
+	f32WithStrictScores := CaseRanking{QueryID: caseValue.ID, Variant: VariantTargetF32, Hits: []RetrievalHit{retrievalHit(left, 1, &first), retrievalHit(right, 2, &second), retrievalHit(third, 3, &tied)}}
+	codecWithTies := CaseRanking{QueryID: caseValue.ID, Variant: VariantServingActiveCodec, Hits: []RetrievalHit{retrievalHit(right, 1, &tied), retrievalHit(left, 2, &tied), retrievalHit(third, 3, &tied)}}
+	tiedFidelity, err := CompareCodecFidelity(caseValue, f32WithStrictScores, codecWithTies, 2)
+	if err != nil || tiedFidelity.PairwiseInversionRate != nil || tiedFidelity.CodecScoreTieRate == nil || *tiedFidelity.CodecScoreTieRate != 1 || !tiedFidelity.CodecBoundaryTie || tiedFidelity.F32ScoreTieRate == nil || *tiedFidelity.F32ScoreTieRate != 0 || tiedFidelity.F32BoundaryTie {
+		t.Fatalf("tied codec fidelity=%+v err=%v", tiedFidelity, err)
+	}
+	fts := CaseRanking{QueryID: caseValue.ID, Variant: VariantFTS, Hits: []RetrievalHit{retrievalHit(left, 1, &first)}}
+	fused := CaseRanking{QueryID: caseValue.ID, Variant: VariantHybridFTSActiveCodec, Hits: []RetrievalHit{retrievalHit(left, 1, &first), retrievalHit(right, 2, &second)}}
+	fusion, err := DiagnoseFusion(caseValue, fts, codec, fused, 2)
+	if err != nil || !fusion.FusionRescue || fusion.FusionHarm || fusion.FTSOnlyCandidates != 0 || fusion.DenseOnlyCandidates != 1 {
+		t.Fatalf("fusion=%+v err=%v", fusion, err)
+	}
+	bodyDigest := strings.Repeat("f", 64)
+	body, err := DiagnoseBodyPackaging(caseValue, fused, []BodyPackageHit{
+		{Hit: retrievalHit(left, 1, &first), BodyRange: &left, BodyComplete: true, BodyBytes: left.EndByte - left.StartByte, BodySHA256: bodyDigest},
+		{Hit: retrievalHit(right, 2, &second), OmissionReason: "INLINE_BUDGET_EXCEEDED"},
+	}, 2)
+	if err != nil || body.FusedRequirementCoverage != 1 || body.PackagedRequirementCoverage != .5 || body.OmissionCounts["INLINE_BUDGET_EXCEEDED"] != 1 {
+		t.Fatalf("body=%+v err=%v", body, err)
+	}
+	if _, err := DiagnoseBodyPackaging(caseValue, fused, []BodyPackageHit{{Hit: retrievalHit(left, 1, &first), BodyRange: &left, BodyBytes: 1}}, 2); err == nil {
+		t.Fatal("inconsistent body byte accounting accepted")
+	}
+	if _, err := DiagnoseBodyPackaging(caseValue, fused, []BodyPackageHit{{Hit: retrievalHit(left, 1, &first), BodyRange: &left, BodyBytes: left.EndByte - left.StartByte}}, 2); err == nil {
+		t.Fatal("full parent marked partial accepted")
+	}
+	if _, err := DiagnoseBodyPackaging(caseValue, fused, []BodyPackageHit{{Hit: retrievalHit(left, 1, &first), BodyRange: &left, BodyComplete: true, BodyBytes: left.EndByte - left.StartByte}}, 2); err == nil {
+		t.Fatal("missing fused body omission record accepted")
+	}
+	if _, err := DiagnoseBodyPackaging(caseValue, fused, []BodyPackageHit{{Hit: retrievalHit(left, 1, &first), OmissionReason: "UNKNOWN"}, {Hit: retrievalHit(right, 2, &second), OmissionReason: "INLINE_BUDGET_EXCEEDED"}}, 2); err == nil {
+		t.Fatal("unknown omission reason accepted")
+	}
+	overlap := left
+	overlap.StartByte = 1
+	caseWithOverlap := caseValue
+	caseWithOverlap.Judgments = append(caseWithOverlap.Judgments, evalcontract.RelevanceJudgment{Span: overlap, Grade: 2, Rationale: "overlapping direct"})
+	density, err := DiagnoseBodyPackaging(caseWithOverlap, fused, []BodyPackageHit{{Hit: retrievalHit(left, 1, &first), BodyRange: &left, BodyComplete: true, BodyBytes: 5, BodySHA256: bodyDigest}}, 1)
+	if err != nil || density.RelevantByteDensity == nil || *density.RelevantByteDensity != 1 {
+		t.Fatalf("density=%+v err=%v", density, err)
+	}
+	duplicateBodies, err := DiagnoseBodyPackaging(caseValue, fused, []BodyPackageHit{{Hit: retrievalHit(left, 1, &first), BodyRange: &left, BodyComplete: true, BodyBytes: 5, BodySHA256: bodyDigest}, {Hit: retrievalHit(right, 2, &second), BodyRange: &right, BodyComplete: true, BodyBytes: 5, BodySHA256: bodyDigest}}, 2)
+	if err != nil || duplicateBodies.DuplicateBodyRatio != .5 {
+		t.Fatalf("duplicate bodies=%+v err=%v", duplicateBodies, err)
+	}
+}
+
+func TestRetrievalPlanAndCorePromotionEvidenceValidation(t *testing.T) {
+	plan := DefaultRetrievalPlan([]int{1, 5})
+	if err := plan.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	plan.Variants = plan.Variants[:len(plan.Variants)-1]
+	if err := plan.Validate(); err == nil {
+		t.Fatal("missing retrieval arm accepted")
+	}
+	artifact := fixtureArtifact()
+	paths := append([]string(nil), coreEvidencePaths...)
+	entries := make([]evalcontract.ArtifactEntry, 0, len(paths))
+	for index, path := range paths {
+		sum := sha256.Sum256([]byte(path + string(rune(index))))
+		entries = append(entries, evalcontract.ArtifactEntry{Path: path, MediaType: "application/json", ByteSize: 1, SHA256: hex.EncodeToString(sum[:])})
+	}
+	checksum, err := evalcontract.ArtifactChecksum(entries)
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract := evalcontract.PromotionContract{SchemaVersion: 1, Scope: evalcontract.CoreRetrieval, CalibrationEvidenceSHA256: []string{strings.Repeat("a", 64)}, FrozenGates: []string{"correctness"}, ConfirmationDatasetSHA256: artifact.Manifest.QueryManifestSHA256, PairedControls: artifact.Manifest.PairedControls}
+	result := evalcontract.PromotionResult{SchemaVersion: 1, Scope: evalcontract.CoreRetrieval, Status: evalcontract.PromotionEvidenceReady, PrerequisiteSHA256: []string{checksum}, PassedGates: []string{"correctness"}, ApplicableGates: []string{"correctness"}}
+	evidence := CorePromotionEvidence{Contract: contract, Result: result, ConfirmationManifest: artifact.Manifest, Artifacts: evalcontract.ArtifactManifest{SchemaVersion: 1, Entries: entries, Complete: true}, ArtifactChecksum: checksum}
+	if err := evidence.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	evidence.Result.PassedGates = nil
+	if err := evidence.Validate(); err == nil {
+		t.Fatal("ready result missing passed gate accepted")
+	}
+	for _, omitted := range []string{"provider-usage.json", "report.md", "artifact-checksums.json"} {
+		filtered := make([]evalcontract.ArtifactEntry, 0, len(entries)-1)
+		for _, entry := range entries {
+			if entry.Path != omitted {
+				filtered = append(filtered, entry)
+			}
+		}
+		filteredChecksum, err := evalcontract.ArtifactChecksum(filtered)
+		if err != nil {
+			t.Fatal(err)
+		}
+		missing := CorePromotionEvidence{Contract: contract, Result: result, ConfirmationManifest: artifact.Manifest, Artifacts: evalcontract.ArtifactManifest{SchemaVersion: 1, Entries: filtered, Complete: true}, ArtifactChecksum: filteredChecksum}
+		missing.Result.PrerequisiteSHA256 = []string{filteredChecksum}
+		if err := missing.Validate(); err == nil {
+			t.Fatalf("promotion evidence missing %q accepted", omitted)
+		}
+	}
+}
+
+func TestRunRetrievalEvaluationOrchestratesEveryArmOnce(t *testing.T) {
+	left, right := span("a.go", "A", 0, 5), span("b.go", "B", 0, 5)
+	caseValue := fixtureCase("orchestration", evalcontract.Go, []evalcontract.RequiredGroup{
+		{ID: "left", Alternatives: []evalcontract.ExpectedAlternative{{Spans: []evalcontract.SourceSpan{left}}}},
+		{ID: "right", Alternatives: []evalcontract.ExpectedAlternative{{Spans: []evalcontract.SourceSpan{right}}}},
+	}, []evalcontract.RelevanceJudgment{{Span: left, Grade: 2, Rationale: "direct"}, {Span: right, Grade: 2, Rationale: "direct"}})
+	dataset := EvaluationDataset{SchemaVersion: 1, Version: "v1", CorpusID: "sample", Cases: []evalcontract.EvaluationCase{caseValue}}
+	first, second := 1.0, .5
+	queryHash := strings.Repeat("d", 64)
+	arms := map[RetrievalVariant]RetrievalArmResult{}
+	for _, variant := range requiredRetrievalVariants {
+		hits := []RetrievalHit{retrievalHit(left, 1, &first), retrievalHit(right, 2, &second)}
+		if variant == VariantServingActiveCodec {
+			hits = []RetrievalHit{retrievalHit(right, 1, &first), retrievalHit(left, 2, &second)}
+		}
+		ranking := CaseRanking{QueryID: caseValue.ID, Variant: variant, Hits: hits}
+		if variantUsesQueryVector(variant) {
+			ranking.QueryVectorSHA256 = queryHash
+		}
+		arm := RetrievalArmResult{Ranking: ranking}
+		if variant == VariantHybridFTSActiveCodec {
+			arm.Packaged = []BodyPackageHit{{Hit: hits[0], OmissionReason: "INLINE_BUDGET_EXCEEDED"}, {Hit: hits[1], OmissionReason: "INLINE_BUDGET_EXCEEDED"}}
+		}
+		arms[variant] = arm
+	}
+	run, err := RunRetrievalEvaluation(context.Background(), dataset, DefaultRetrievalPlan([]int{1, 2}), fakeRetrievalExecutor{arms: arms})
+	if err != nil || len(run.Cases) != 1 || len(run.Cases[0].Metrics) != len(requiredRetrievalVariants) || run.Cases[0].Fidelity.TopKRetention != 1 {
+		t.Fatalf("run=%+v err=%v", run, err)
+	}
+	badArms := make(map[RetrievalVariant]RetrievalArmResult, len(arms))
+	for variant, arm := range arms {
+		badArms[variant] = arm
+	}
+	bad := fakeRetrievalExecutor{arms: badArms}
+	bad.arms[VariantHybridWithoutFTS] = RetrievalArmResult{Ranking: CaseRanking{QueryID: caseValue.ID, Variant: VariantHybridWithoutFTS, QueryVectorSHA256: strings.Repeat("e", 64)}}
+	if _, err := RunRetrievalEvaluation(context.Background(), dataset, DefaultRetrievalPlan([]int{1}), bad); err == nil {
+		t.Fatal("mismatched ephemeral query vector accepted")
+	}
+	failed, err := RunRetrievalEvaluation(context.Background(), dataset, DefaultRetrievalPlan([]int{1, 2}), fakeRetrievalExecutor{arms: arms, errors: map[RetrievalVariant]error{VariantProviderUnion: RetrievalArmFailure{Stage: evalcontract.FailureStage(evalcontract.StageProviderUnion)}}})
+	if err != nil || failed.Cases[0].Metrics[3].Metrics.FailureStage != evalcontract.FailureStage(evalcontract.StageProviderUnion) {
+		t.Fatalf("failed arm was not retained: run=%+v err=%v", failed, err)
+	}
+	failed.Cases[0].Fidelity.TopKRetention = .4
+	if err := failed.Validate(dataset); err == nil {
+		t.Fatal("forged retrieval evidence accepted")
+	}
+	fidelityFailed, err := RunRetrievalEvaluation(context.Background(), dataset, DefaultRetrievalPlan([]int{1, 2}), fakeRetrievalExecutor{arms: arms, errors: map[RetrievalVariant]error{VariantTargetF32: RetrievalArmFailure{Stage: evalcontract.FailureStage(evalcontract.StageDenseSegment)}}})
+	if err != nil || fidelityFailed.Cases[0].Fidelity.Observed || fidelityFailed.Cases[0].Fidelity.FailureStage != evalcontract.FailureStage(evalcontract.StageDenseSegment) {
+		t.Fatalf("failed prerequisite produced fidelity observation: run=%+v err=%v", fidelityFailed, err)
+	}
+	if err := (RetrievalArmResult{Ranking: CaseRanking{QueryID: caseValue.ID, Variant: VariantFTS}, FailureStage: evalcontract.FailureStage(evalcontract.StageDenseSegment)}).Validate(); err == nil {
+		t.Fatal("fts arm accepted dense failure stage")
+	}
+	if err := (RetrievalArmResult{Ranking: CaseRanking{QueryID: caseValue.ID, Variant: VariantHybridFTSActiveCodec}, FailureStage: evalcontract.FailureStage(evalcontract.StageDenseSegment)}).Validate(); err != nil {
+		t.Fatalf("full hybrid rejected upstream dense failure: %v", err)
+	}
+	if err := (RetrievalArmResult{Ranking: CaseRanking{QueryID: caseValue.ID, Variant: VariantHybridWithoutDense}, FailureStage: evalcontract.FailureStage(evalcontract.StageBodyPackaging)}).Validate(); err != nil {
+		t.Fatalf("without-dense rejected body failure: %v", err)
+	}
+	if err := (RetrievalArmResult{Ranking: CaseRanking{QueryID: caseValue.ID, Variant: VariantHybridWithoutFTS}, FailureStage: evalcontract.FailureStage(evalcontract.StageFTSCandidate)}).Validate(); err == nil {
+		t.Fatal("dense-only arm accepted fts failure stage")
+	}
+	cancelled, cancel := context.WithCancel(context.Background())
+	if _, err := RunRetrievalEvaluation(cancelled, dataset, DefaultRetrievalPlan([]int{1}), fakeRetrievalExecutor{arms: arms, cancel: cancel}); !errors.Is(err, context.Canceled) {
+		t.Fatalf("post-arm cancellation err=%v", err)
+	}
+}
+
+func retrievalHit(value evalcontract.SourceSpan, rank int, score *float64) RetrievalHit {
+	return RetrievalHit{Path: value.Path, IndexedSHA256: value.ContentSHA256, QualifiedSymbol: value.QualifiedSymbol, StartByte: value.StartByte, EndByte: value.EndByte, Rank: rank, Score: score}
+}
+
 type fakeInventory struct{ snapshot TruthInventorySnapshot }
 
 func (value fakeInventory) Snapshot(context.Context) (TruthInventorySnapshot, error) {
@@ -237,6 +419,19 @@ func (value fakeInventory) Snapshot(context.Context) (TruthInventorySnapshot, er
 type fakeSearch struct {
 	result lexical.Result
 	err    error
+}
+
+type fakeRetrievalExecutor struct {
+	arms   map[RetrievalVariant]RetrievalArmResult
+	errors map[RetrievalVariant]error
+	cancel func()
+}
+
+func (value fakeRetrievalExecutor) EvaluateArm(_ context.Context, _ evalcontract.EvaluationCase, variant RetrievalVariant) (RetrievalArmResult, error) {
+	if value.cancel != nil {
+		value.cancel()
+	}
+	return value.arms[variant], value.errors[variant]
 }
 
 func (value fakeSearch) Search(context.Context, lexical.Request) (lexical.Result, error) {

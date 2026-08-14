@@ -1,6 +1,6 @@
 # 12. Retrieval Evaluation
 
-- Status: `planned`
+- Status: `blocked` — reusable corpus-independent infrastructure is implemented; official evidence remains gated on user-selected corpus inputs and separate paid-query approval.
 - Prerequisites: `07-lexical-evaluation`, `08-raw-embedding-lab`, `09-vector-materialization`, `11-vector-and-hybrid-search`
 - Followed by: `13-cli-and-mcp`, `14-packaging-and-host-integration`
 - Design source: `local-code-search-mcp-v1-design-r3.md` sections 7.4 and 14
@@ -362,6 +362,8 @@ If results are inconclusive, record candidates, why they remain undecided, and w
 
 ## 13. Decision Log
 
+- The corpus-independent core lives in `internal/eval/retrieval.go`. Phase 13 must adapt its injected arm executor to the actual Phase 11 lanes, preserving all eight arms and one request-local query-vector digest; it must not recreate ranking, fidelity, fusion, body, or core-promotion calculations.
+- This implementation records no corpus, labels, raw coverage, provider usage, query vector, promotion result, or score. The phase remains blocked until the user supplies approved manifests and bindings, reviewed calibration/confirmation datasets, compatible raw coverage, and separate authorization for any paid query apply.
 - Open-source corpora are selected and sampled by the user; tooling only consumes explicitly approved pinned manifests and local bindings.
 - Tracked manifests are portable and contain no local absolute path; ignored bindings map IDs to local checkouts.
 - The initial 1024-f32 document bank is reusable for setup evaluation only, not permanent product workflow.

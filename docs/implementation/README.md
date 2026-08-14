@@ -1,6 +1,6 @@
 # cidx v1 Implementation Plan Index
 
-- Status: implementation in progress — Phases 00–06 and 08–11 complete; Phase 07 reusable infrastructure is blocked on user-selected corpus manifests and Phase 12 is next for evaluation infrastructure
+- Status: implementation in progress — Phases 00–06 and 08–11 complete; Phases 07 and 12 official evidence is blocked on user-selected corpus gates, while Phase 13 corpus-independent adapter work remains eligible
 - Canonical design: [Local Code Search MCP v1 Design — Revision 3](../../local-code-search-mcp-v1-design-r3.md)
 - Earlier designs: [original](../../local-code-search-mcp-v1-design.md), [r1](../../local-code-search-mcp-v1-design-r1.md), [r2](../../local-code-search-mcp-v1-design-r2.md)
 - Execution protocol: [Implementation Execution and Context-Recovery Guide](EXECUTION-GUIDE.md)
@@ -43,7 +43,7 @@ Allowed states are `planned | in_progress | blocked | done`. A phase becomes `do
 | 09 | done | [Vector materialization](09-vector-materialization.md) | 01, 02, 05, 08 | Shared reduction/normalization, binary/int8 codecs, and selected-profile publish | [Evidence](09-vector-materialization.md#11-completion-evidence) |
 | 10 | done | [Embedding orchestration and reconciliation](10-embedding-orchestration-and-reconciliation.md) | 05, 08, 09 | General embedding, cost/failure handling, profile reconciliation | [Evidence](evidence/phase-10/README.md) |
 | 11 | done | [Vector and hybrid search](11-vector-and-hybrid-search.md) | 06, 09, 10 | Query transform, codec-aware scan, segment collapse, RRF, fallback, shared body packaging | [Evidence](evidence/phase-11/README.md) |
-| 12 | planned | [Retrieval evaluation](12-retrieval-evaluation.md) | 07, 08, 09, 11 | Paired dimension/codec/lane/RRF/package evidence and scoped core-retrieval promotion result | [Evidence](12-retrieval-evaluation.md#11-completion-evidence) |
+| 12 | blocked | [Retrieval evaluation](12-retrieval-evaluation.md) | 07, 08, 09, 11 | Paired dimension/codec/lane/RRF/package evidence and scoped core-retrieval promotion result | [Evidence](evidence/phase-12/README.md) |
 | 13 | planned | [CLI and MCP](13-cli-and-mcp.md) | 05, 06, 10, 11, 12 | Stable CLI, four MCP tools, concurrent dispatch | [Evidence](13-cli-and-mcp.md#11-completion-evidence) |
 | 14 | planned | [Packaging and host integration](14-packaging-and-host-integration.md) | 13 | Distributable binary, project-scoped host examples, paired marginal assistant-use evidence, and scoped release-candidate result | [Evidence](14-packaging-and-host-integration.md#11-completion-evidence) |
 
@@ -92,6 +92,7 @@ flowchart TD
 - The free lexical path in Phases 06–07 and the optional embedding path in Phases 08–10 may partially overlap after Phase 05 when prerequisites and ownership permit.
 - Phase 07 cannot produce an official baseline until the user has selected open-source corpora and reproducible manifests exist.
 - Phase 12 chooses the initial serving profile from core retrieval evidence. It measures and reports results but does not impose a preselected universal numeric quality threshold.
+- The external corpus gate blocks official Phase 12 evidence and promotion, not the corpus-independent Phase 13 CLI/MCP adapter implementation; those adapters must consume the frozen Phase 12 core rather than recreate it.
 - Phase 12 applies the frozen hard-gate contract. Numeric noninferiority margins are calibrated from repeated cidx baselines and frozen before confirmation; no external threshold is copied into the plan.
 - MCP and host integration follow core retrieval evaluation because they are adapters and must not alter ranking behavior. Phase 14 then adds paired assistant-use evidence for cidx's marginal product value beside existing tools.
 
