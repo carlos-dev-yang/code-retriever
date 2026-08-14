@@ -21,9 +21,9 @@ type ModelSpec struct {
 func VoyageCode4() ModelSpec {
 	return ModelSpec{
 		Provider: embedclient.ProviderID, Model: embedclient.Model,
-		// The model registry is the sole runtime authority for source and
-		// allowed serving dimensions. Vector algorithms receive a concrete spec.
-		SourceDimensions: 1024, AllowedTargetDimensions: []int{256, 512, 1024},
+		// The adapter owns the source dimension; this registry exposes that
+		// capability together with the allowed serving dimensions.
+		SourceDimensions: embedclient.SourceDimensions, AllowedTargetDimensions: []int{256, 512, 1024},
 		OutputDType: embedclient.OutputDType, DocumentInputType: "document", QueryInputType: "query",
 		Truncation: false, AdapterVersion: embedclient.AdapterVersion,
 	}

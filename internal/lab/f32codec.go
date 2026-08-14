@@ -3,7 +3,9 @@
 package lab
 
 import (
+	"crypto/sha256"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"hash/crc32"
 	"math"
@@ -36,6 +38,13 @@ func EncodeF32(values []float32) []byte {
 		binary.LittleEndian.PutUint32(blob[index*4:], math.Float32bits(value))
 	}
 	return blob
+}
+
+// VectorSHA256 identifies the exact persisted f32-le-v1 bytes. It is
+// provenance only; it never selects a serving representation.
+func VectorSHA256(blob []byte) string {
+	sum := sha256.Sum256(blob)
+	return hex.EncodeToString(sum[:])
 }
 
 func DecodeF32(blob []byte, dimensions int, checksum uint32) (F32Vector, error) {

@@ -148,7 +148,7 @@ func TestLabMigrationIsAtomicAndFailsClosed(t *testing.T) {
 	if err := migrate(ctx, db); err != nil {
 		t.Fatalf("current schema did not validate: %v", err)
 	}
-	if _, err := db.ExecContext(ctx, `PRAGMA user_version=2`); err != nil {
+	if _, err := db.ExecContext(ctx, `PRAGMA user_version=3`); err != nil {
 		t.Fatal(err)
 	}
 	if err := migrate(ctx, db); err == nil {
@@ -169,6 +169,52 @@ func TestLabMigrationIsAtomicAndFailsClosed(t *testing.T) {
 	var unknownVersion int
 	if err := unknownDB.QueryRowContext(ctx, `PRAGMA user_version`).Scan(&unknownVersion); err != nil || unknownVersion != 0 {
 		t.Fatalf("failed migration stamped version=%d err=%v", unknownVersion, err)
+	}
+}
+
+func TestV1MigrationPreservesRawBytesHashAndSnapshotReference(t *testing.T) {
+	ctx := context.Background()
+	db, err := sql.Open("sqlite", filepath.Join(t.TempDir(), "v1.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	for _, statement := range []string{
+		`CREATE TABLE lab_meta (id INTEGER PRIMARY KEY CHECK(id=1), schema_version INTEGER NOT NULL CHECK(schema_version=1), canonical_root TEXT NOT NULL)`,
+		`CREATE TABLE lab_inputs (canonical_input_sha256 TEXT PRIMARY KEY, canonical_bytes BLOB, snapshot_reference TEXT, CHECK(canonical_bytes IS NOT NULL OR snapshot_reference IS NOT NULL))`,
+		`CREATE TABLE raw_document_embeddings (source_profile TEXT NOT NULL, canonical_input_sha256 TEXT NOT NULL, dimensions INTEGER NOT NULL CHECK(dimensions=1024), checksum INTEGER NOT NULL, blob BLOB NOT NULL, response_model TEXT NOT NULL, created_at TEXT NOT NULL, PRIMARY KEY(source_profile,canonical_input_sha256))`,
+		`CREATE TABLE capture_runs (id INTEGER PRIMARY KEY, generation INTEGER NOT NULL, source_profile TEXT NOT NULL, requested_count INTEGER NOT NULL, hit_count INTEGER NOT NULL, miss_count INTEGER NOT NULL, success_count INTEGER NOT NULL, failure_count INTEGER NOT NULL)`,
+		`CREATE TABLE materialization_runs (id INTEGER PRIMARY KEY, vector_space_profile TEXT NOT NULL, storage_profile TEXT NOT NULL, raw_coverage REAL NOT NULL, output_checksum TEXT NOT NULL, evaluation_run_ref TEXT)`,
+		`CREATE TABLE evaluation_runs (id INTEGER PRIMARY KEY, repository_identity TEXT NOT NULL, generation INTEGER NOT NULL, query_manifest_sha256 TEXT NOT NULL, candidate_profile TEXT NOT NULL, artifact_reference TEXT NOT NULL)`,
+	} {
+		if _, err := db.ExecContext(ctx, statement); err != nil {
+			t.Fatal(err)
+		}
+	}
+	values := make([]float32, 1024)
+	values[0] = 1
+	vector, err := NewF32Vector(values, 1024)
+	if err != nil {
+		t.Fatal(err)
+	}
+	blob := EncodeF32(vector.Values)
+	if _, err := db.ExecContext(ctx, `INSERT INTO lab_meta VALUES(1,1,'root'); INSERT INTO lab_inputs VALUES('input',NULL,'snapshot'); INSERT INTO raw_document_embeddings VALUES('source','input',1024,?,'x'||'', 'voyage-code-4','now')`, vector.Checksum); err == nil { /* placeholder below avoids multi-statement blob ambiguity */
+	}
+	if _, err := db.ExecContext(ctx, `DELETE FROM raw_document_embeddings; INSERT INTO raw_document_embeddings VALUES(?,?,?,?,?,?,?)`, "source", "input", 1024, vector.Checksum, blob, "voyage-code-4", "now"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.ExecContext(ctx, `PRAGMA user_version=1`); err != nil {
+		t.Fatal(err)
+	}
+	if err := migrate(ctx, db); err != nil {
+		t.Fatal(err)
+	}
+	var digest, reference string
+	if err := db.QueryRowContext(ctx, `SELECT vector_sha256 FROM raw_document_embeddings WHERE source_profile='source'`).Scan(&digest); err != nil || digest != VectorSHA256(blob) {
+		t.Fatalf("vector hash=%q err=%v", digest, err)
+	}
+	if err := db.QueryRowContext(ctx, `SELECT snapshot_reference FROM lab_inputs WHERE canonical_input_sha256='input'`).Scan(&reference); err != nil || reference != "snapshot" {
+		t.Fatalf("snapshot=%q err=%v", reference, err)
 	}
 }
 

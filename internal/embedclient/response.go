@@ -15,6 +15,7 @@ const (
 	APIKeyEnvironment      = "VOYAGE_API_KEY"
 	OutputDType            = "float"
 	AdapterVersion         = 1
+	SourceDimensions       = 1024
 	DirectTargetComparison = false
 )
 
@@ -31,7 +32,7 @@ type EmbeddingSourceSpec struct {
 }
 
 func (s EmbeddingSourceSpec) Validate() error {
-	if s.Provider != ProviderID || s.Model != Model || s.SourceDimensions <= 0 || s.OutputDType != OutputDType || s.DocumentInputType != "document" || s.QueryInputType != "query" || s.Truncation || s.AdapterVersion != AdapterVersion {
+	if s.Provider != ProviderID || s.Model != Model || s.SourceDimensions != SourceDimensions || s.OutputDType != OutputDType || s.DocumentInputType != "document" || s.QueryInputType != "query" || s.Truncation || s.AdapterVersion != AdapterVersion {
 		return fmt.Errorf("unsupported voyage source specification")
 	}
 	if s.AllowDirectTargetCompare {

@@ -1,6 +1,6 @@
 # 08. Raw Document Embedding Lab
 
-- Status: `planned`
+- Status: `done`
 - Prerequisite phases: `02-config-profiles-and-schemas`, `05-worktree-index-pipeline`
 - Follow-up phases: `09-vector-materialization`, `12-retrieval-evaluation`
 - Design basis: `local-code-search-mcp-v1-design-r3.md` §7.1–§7.4, §9.1
@@ -78,7 +78,7 @@ These paths identify implementation responsibilities. If an earlier phase alread
 | `internal/embedclient/client.go` | provider-independent `EmbeddingClient` interface |
 | `internal/embedclient/voyage.go` | official Voyage AI request/response adapter and code-owned endpoint |
 | `internal/embedclient/validate.go` | response model, count, index, dimension, and finite-value validation |
-| Phase 02 `internal/lab/{schema,store}.go` | lab DB schema, migration, and connection factory; consumed rather than changed here |
+| Phase 02 `internal/lab/{schema,store}.go` | lab DB factory extended here with the additive v2 raw-capture provenance migration; production schema is unchanged |
 | `internal/lab/inputs.go` | document canonical-input provenance |
 | `internal/lab/raw_embeddings.go` | immutable raw-row lookup/insert plus run/failure records |
 | `internal/lab/collector.go` | active-input planning, batching, and raw-first persistence |
@@ -268,6 +268,8 @@ Do not create validation code in this planning-document phase. During implementa
 
 ## 11. Completion Evidence
 
+Implementation evidence is recorded in [Phase 08 evidence](evidence/phase-08/README.md). The focused fake-backed checks validate cache-first plan/apply, all-or-nothing malformed-response rejection, immutable f32 persistence, root isolation, and v1-to-v2 lab migration preservation. Live provider/cost/corpus evidence is **NOT RUN**; no paid operation was authorized or executed.
+
 - Raw-DB schema dump and migration version.
 - Plan/apply log showing that only the first of two identical inputs incurs a paid call.
 - `voyage-code-4` 1024-dimensional source response and model/count/index/finite-validation record.
@@ -300,3 +302,4 @@ Phase 09 does not connect the raw DB to search. It uses the bank only to create 
 - Keep provider-supplied int8/binary output separate from both cidx-owned local codecs; do not mix it into v1 materialization.
 - The provider may offer a 2048-dimensional option, but v1 excludes it from the source profile, runtime capability registry, and evaluation candidates. Do not request or preserve it without a separate decision.
 - The development CLI is an unstable helper, not an MCP or public product contract.
+- Lab schema v2 adds source-run/failure provenance and vector SHA-256. The additive v1 migration preserves raw blob bytes, derives their SHA-256, and retains snapshot-reference-only inputs; production schema remains unchanged.
