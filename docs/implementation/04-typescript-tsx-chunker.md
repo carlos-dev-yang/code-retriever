@@ -1,6 +1,6 @@
 # 04. TypeScript and TSX Chunker and Projections
 
-- Status: `planned`
+- Status: `done` — implementation and main-agent completion validation accepted on 2026-08-15
 - Prerequisite phase: `02-config-profiles-and-schemas`
 - Downstream phases: `05-worktree-index-pipeline`, `06-fts-search`, `08-raw-embedding-lab`
 - Parallel phase: `03-go-chunker`
@@ -256,6 +256,16 @@ Validate these fixtures and scenarios during implementation; writing this docume
 
 ## 11. Completion Evidence
 
+### 2026-08-15 implementation evidence (pending main-agent validation)
+
+- Adapter: `internal/chunk/typescript` implements the Phase 02 `chunk.Chunker` contract using the embedded Tree-sitter TypeScript and TSX grammars selected only by `typescript.New(chunk.TypeScript)` or `typescript.New(chunk.TSX)`. `ChunkerVersion` is `typescript-tsx-tree-sitter-0.23.2-jsdoc-class-fields-v1`.
+- Supported chunks: named `function_declaration` and `generator_function_declaration`; top-level identifier-bound `arrow_function`, `function_expression`, and generator function values; named class methods, getters, setters, constructors, and class-field function values; and class/abstract-class/interface/type-alias/enum declarations. Ordinary variable values, nested callbacks, object-literal methods, computed names, and anonymous default-export expressions are excluded.
+- Fixed policies: contiguous same-owner overload signatures combine with an implementation into one chunk; a top-level bodyless signature group remains one function chunk; interface and abstract/bodyless class signatures remain only in the containing type projection; identifier-bound class-field function values are method-like chunks and only their executable function-body ranges are excluded from the class type projection; anonymous default exports are excluded rather than assigned a synthetic name.
+- Function-value chunks keep the binding, parameters, return annotation, and arrow/function token in `Signature`; their actual Tree-sitter `body` node supplies body projection and AST segmentation. Type signatures are normalized declaration headers ending at the semantic content start (`body` for class/interface/enum and `value` for type aliases), never a full declaration that would reintroduce member bodies.
+- JSDoc rule: include only immediately preceding contiguous `comment` siblings whose gaps contain horizontal whitespace and at most one line break. This is part of the versioned chunker rule.
+- Exactness fixtures cover TypeScript functions, generics, variable-bound arrow/function expressions, ordinary-variable exclusion, class methods/constructors/getters/setters, class-field functions, overload collapsing, interface/abstract bodyless non-duplication, class/interface/type-alias/enum chunks, TSX JSX bytes, CRLF/UTF-8 ranges, deterministic output, cancellation, invalid UTF-8, malformed-input recovery, and statement/member-boundary segmentation with later type segments excluding earlier member text.
+- See [Phase 04 evidence index](evidence/phase-04/README.md) for commands, outcomes, deferred checks, and residual risks.
+
 Before changing this phase to `done`, record actual results for:
 
 - Supported declaration and node-kind table for TypeScript and TSX
@@ -294,9 +304,9 @@ Provide FTS and embedding phases with:
 | Exported const/var itself | excluded | Export status does not define a retrieval unit. |
 | Named variable-bound arrow/function | included | Explicit contract for `export const handler = () => ...`. |
 | Arbitrary callback or IIFE | excluded | Not a stable named unit and would cause chunk explosion. |
-| Type kinds | direction: class, interface, type alias, enum | Confirm through v1 type fixtures. |
-| Overload handling | direction: logical signature-plus-implementation group | Avoid duplicate results while preserving signatures. |
-| Independent interface-method chunk | decide at implementation start | Evaluate duplication between type and method results. |
-| Class-field arrow | decide at implementation start | Evaluate method-like retrieval value and duplicate projections. |
-| Anonymous default-export function | decide at implementation start | Requires a stable display-symbol policy. |
+| Type kinds | fixed: class, interface, type alias, enum | Confirmed through v1 type fixtures. |
+| Overload handling | fixed: logical signature-plus-implementation group | Avoid duplicate results while preserving signatures. |
+| Independent interface-method chunk | fixed: exclude independent bodyless method chunks | Interface and abstract/bodyless class signatures remain in their parent type projection, avoiding duplicate result slots. |
+| Class-field arrow | fixed: direct identifier-bound values are method-like | Emit a method chunk and exclude only its exact executable body range from the class projection. |
+| Anonymous default-export function | fixed: excluded | It has no stable named identity in v1, so no synthetic `default` symbol is emitted. |
 | Segment threshold and overlap | later evaluation values | Manage through config and the index profile. |
