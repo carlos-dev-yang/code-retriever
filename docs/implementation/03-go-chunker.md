@@ -1,6 +1,6 @@
 # 03. Go Chunker and Projections
 
-- Status: `planned`
+- Status: `done` — implementation and main-agent completion validation accepted on 2026-08-15
 - Prerequisite phase: `02-config-profiles-and-schemas`
 - Downstream phases: `05-worktree-index-pipeline`, `06-fts-search`, `08-raw-embedding-lab`
 - Parallel phase: `04-typescript-tsx-chunker`
@@ -232,6 +232,18 @@ Before changing this phase to `done`, record actual results for:
 
 Hit rate and numeric segment thresholds are not completion conditions for this phase. Pass results forward as baseline inputs to lexical and retrieval evaluation.
 
+### 2026-08-15 implementation handoff
+
+- Adapter: `internal/chunk/golang` implements the Phase 02 `Chunker` contract with the offline embedded Go Tree-sitter grammar (`0.25.0`). `ChunkerVersion` is `go-tree-sitter-0.25.0-doc-comments-v1`.
+- Supported node kinds: top-level `function_declaration`, `method_declaration`, and each `type_spec` or `type_alias` inside `type_declaration`. Functions produce `function` chunks, receiver-bearing declarations produce `method`, and type specs/aliases produce `type`.
+- Exclusions: `const_declaration`, `var_declaration`, and anonymous function literals are never traversed as chunk roots.
+- Doc comments: a directly preceding contiguous Go comment block is included when every comment-to-comment/declaration gap contains only horizontal whitespace and at most one line break. The chunk `source_body` and first projection therefore retain that semantic context. A blank line or intervening token prevents association.
+- Grouped types: each group member owns its exact individual type-spec/alias span (and any directly attached member doc comment), so grouped chunks do not contain neighboring specs. A grouped member cannot include the group-level `type` token because projection ranges must remain source-relative and byte-exact; its display/search signature uses the stable synthetic `type Name ...` header.
+- Receiver normalization: the first receiver type identifier in source order is the deterministic base identity. This maps `R`, `*R`, and `*R[T]` to `R`; an absent or erroneous receiver excludes the method and emits `GO_INVALID_RECEIVER`.
+- Source/projection/segment checks: every emitted source body is copied from one original byte slice; byte ranges are zero-based half-open; line ranges use the Phase 02 CRLF/UTF-8-safe `LineIndex`; projections are validated source-relative/non-overlapping; segments either retain the complete projection or pack Tree-sitter statement/field/member units without byte cuts. A single AST unit exceeding the injected byte cap remains one valid oversize segment rather than being split.
+- Parse policy: invalid UTF-8 fails closed. Unsafe declarations are excluded with a non-indexable diagnostic. Syntax errors outside an otherwise safe declaration produce a recoverable `GO_PARSE_ERROR` diagnostic with `safe_to_index=true`; a diagnostic overlapping an emitted chunk is non-indexable.
+- Focused fixtures cover ordinary/generic functions, generic pointer receivers, structs/interfaces/aliases and grouped types, doc comments, const/var/anonymous exclusions, CRLF plus Unicode coordinates, deterministic results, cancellation, malformed-input recovery, and statement-boundary segmentation.
+
 ## 12. Downstream Handoff
 
 Provide Phase 05 with:
@@ -259,5 +271,5 @@ Provide FTS and embedding phases with:
 | Grouped type handling | fixed: one chunk per type spec | Preserve each named type as an independent retrieval unit. |
 | Method receiver representation | fixed: qualified symbol uses base named type | Avoid splitting retrieval keys by pointer or generic notation. |
 | `init` identity | fixed: includes path/range; symbol alone is not unique | Go permits multiple `init` functions per package. |
-| Doc-comment inclusion | decide at implementation start | Use fixtures to assess retrieval value and range stability. |
+| Doc-comment inclusion | fixed: directly attached contiguous comment blocks are included; `go-tree-sitter-0.25.0-doc-comments-v1` | Preserve useful semantic context while retaining exact source-relative ranges. |
 | Segment threshold and overlap | later evaluation values | Keep them in config/profile without a numeric release gate. |
