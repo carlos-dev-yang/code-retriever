@@ -28,7 +28,7 @@ func (store *ProductionStore) ActiveSegmentStates(ctx context.Context, resolved 
 	}
 	rows, err := tx.QueryContext(ctx, `
 		SELECT s.id, v.dimensions, v.codec_id, v.codec_version, v.blob, v.scale, v.norm, v.source_profile, v.vector_space_profile, v.raw_vector_sha256, v.materialization_fingerprint, v.materialized_at,
-		       EXISTS(SELECT 1 FROM embedding_failures f WHERE f.source_profile=m.source_profile AND f.canonical_input_sha256=s.canonical_input_sha256)
+		       COALESCE((SELECT classification FROM embedding_failures f WHERE f.source_profile=m.source_profile AND f.canonical_input_sha256=s.canonical_input_sha256 ORDER BY f.id DESC LIMIT 1),'')
 		FROM embedding_segments s
 		JOIN meta m ON m.id=1
 		LEFT JOIN vector_cache v ON v.serving_profile=m.active_serving_profile AND v.canonical_input_sha256=s.canonical_input_sha256
@@ -46,8 +46,8 @@ func (store *ProductionStore) ActiveSegmentStates(ctx context.Context, resolved 
 		var blob []byte
 		var sourceProfile, spaceProfile, rawSHA, materialization, materializedAt sql.NullString
 		var scale, norm sql.NullFloat64
-		var failed bool
-		if err := rows.Scan(&id, &dimensions, &codec, &version, &blob, &scale, &norm, &sourceProfile, &spaceProfile, &rawSHA, &materialization, &materializedAt, &failed); err != nil {
+		var failureClass string
+		if err := rows.Scan(&id, &dimensions, &codec, &version, &blob, &scale, &norm, &sourceProfile, &spaceProfile, &rawSHA, &materialization, &materializedAt, &failureClass); err != nil {
 			return nil, err
 		}
 		valid := false
@@ -62,7 +62,7 @@ func (store *ProductionStore) ActiveSegmentStates(ctx context.Context, resolved 
 			_, timestampErr := time.Parse(time.RFC3339Nano, materializedAt.String)
 			valid = sourceProfile.Valid && spaceProfile.Valid && rawSHA.Valid && materialization.Valid && materializedAt.Valid && sourceProfile.String == string(resolved.Profiles.Fingerprints.Source) && spaceProfile.String == string(resolved.Profiles.Fingerprints.VectorSpace) && materialization.String == string(resolved.Profiles.Fingerprints.VectorStorage) && validSHA256(rawSHA.String) && timestampErr == nil && ValidateServingVector(resolved, stored) == nil
 		}
-		states = append(states, ActiveSegmentState{SegmentID: id, State: DeriveEmbeddingState(valid, failed)})
+		states = append(states, ActiveSegmentState{SegmentID: id, State: DeriveEmbeddingState(valid, failureClass == "terminal")})
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -151,7 +151,7 @@ func (store *ProductionStore) RecordEmbeddingFailure(ctx context.Context, resolv
 	if err := requireResolvedActiveProfile(ctx, tx, resolved); err != nil {
 		return err
 	}
-	if _, err := tx.ExecContext(ctx, `INSERT INTO embedding_failures(source_profile,canonical_input_sha256,attempts,error_class,last_error,last_attempted_at) VALUES(?,?,?,?,?,?) ON CONFLICT(source_profile,canonical_input_sha256) DO UPDATE SET attempts=embedding_failures.attempts+1,error_class=excluded.error_class,last_error=excluded.last_error,last_attempted_at=excluded.last_attempted_at`, string(resolved.Profiles.Fingerprints.Source), inputHash, 1, errorClass, message, time.Now().UTC().Format(time.RFC3339Nano)); err != nil {
+	if _, err := tx.ExecContext(ctx, `INSERT INTO embedding_failures(source_profile,canonical_input_sha256,classification,attempts,error_class,last_error,last_attempted_at) VALUES(?,?,?,?,?,?,?)`, string(resolved.Profiles.Fingerprints.Source), inputHash, "terminal", 1, errorClass, message, time.Now().UTC().Format(time.RFC3339Nano)); err != nil {
 		return err
 	}
 	return tx.Commit()

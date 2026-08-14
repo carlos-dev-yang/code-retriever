@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"cidx/internal/embed"
 	"cidx/internal/embedclient"
 )
 
@@ -29,10 +30,6 @@ type Collector struct {
 	SourceProfile                                           string
 	MaxInputs, MaxInputTokens, MaxRetries, RequestTimeoutMS int
 }
-
-// localInputTokenUpperBound deliberately charges one token per UTF-8 byte. It
-// is a safe local batching bound, not a claimed Voyage model token limit.
-func localInputTokenUpperBound(input []byte) int { return len(input) }
 
 func (c Collector) Plan(ctx context.Context, inputs []CaptureInput) (CapturePlan, error) {
 	return c.PlanWithOptions(ctx, inputs, PlanOptions{})
@@ -74,7 +71,7 @@ func (c Collector) PlanWithOptions(ctx context.Context, inputs []CaptureInput, o
 	}
 	plan := CapturePlan{inputs: unique, ActiveDistinct: len(unique), RetryFailed: options.RetryFailed}
 	for _, input := range unique {
-		estimate := localInputTokenUpperBound(input.CanonicalBytes)
+		estimate := embed.ConservativeInputTokenUpperBound(input.CanonicalBytes)
 		if estimate > c.MaxInputTokens {
 			return CapturePlan{}, fmt.Errorf("canonical input exceeds local batch token budget")
 		}
@@ -90,7 +87,7 @@ func (c Collector) PlanWithOptions(ctx context.Context, inputs []CaptureInput, o
 	}
 	count, tokens := 0, 0
 	for _, input := range plan.eligible {
-		estimate := localInputTokenUpperBound(input.CanonicalBytes)
+		estimate := embed.ConservativeInputTokenUpperBound(input.CanonicalBytes)
 		if count == c.MaxInputs || tokens+estimate > c.MaxInputTokens {
 			plan.BatchCount++
 			count, tokens = 0, 0
@@ -146,7 +143,7 @@ func (c Collector) Apply(ctx context.Context, plan CapturePlan, generation int64
 	for start := 0; start < len(misses); {
 		end, tokens := start, 0
 		for end < len(misses) && end-start < c.MaxInputs {
-			estimate := localInputTokenUpperBound(misses[end].CanonicalBytes)
+			estimate := embed.ConservativeInputTokenUpperBound(misses[end].CanonicalBytes)
 			if tokens+estimate > c.MaxInputTokens {
 				break
 			}

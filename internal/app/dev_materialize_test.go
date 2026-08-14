@@ -100,9 +100,13 @@ func TestDevMaterializePlansStagesPublishesAndRechecksActiveKeys(t *testing.T) {
 }
 
 func materializeResolved(t *testing.T) config.ResolvedConfig {
+	return materializeResolvedWithBatch(t, 8)
+}
+
+func materializeResolvedWithBatch(t *testing.T, maxInputs int) config.ResolvedConfig {
 	t.Helper()
 	dimensions := 256
-	value, err := config.Resolve(config.RawConfig{Version: 1, Index: config.RawIndex{Languages: []string{"go"}, MaxSourceFileBytes: 4096, MaxChunkBytes: 4096, MaxSegmentInputBytes: 2048}, Embedding: config.RawEmbedding{TargetDimensions: &dimensions, Batch: config.RawBatch{MaxInputs: 8, MaxInputTokens: 8192, RequestTimeoutMS: 100}}, MCP: config.RawMCP{HardMaxInlineBytes: 1024, MaxReadSpanLines: 10}})
+	value, err := config.Resolve(config.RawConfig{Version: 1, Index: config.RawIndex{Languages: []string{"go"}, MaxSourceFileBytes: 4096, MaxChunkBytes: 4096, MaxSegmentInputBytes: 2048}, Embedding: config.RawEmbedding{TargetDimensions: &dimensions, Batch: config.RawBatch{MaxInputs: maxInputs, MaxInputTokens: 8192, RequestTimeoutMS: 100}}, MCP: config.RawMCP{HardMaxInlineBytes: 1024, MaxReadSpanLines: 10}})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -25,7 +25,7 @@ func TestProductionMigrationFailsClosedAndUsesOwnerPermissions(t *testing.T) {
 	if err := migrateProduction(ctx, db); err != nil {
 		t.Fatalf("current production schema failed validation: %v", err)
 	}
-	if _, err := db.ExecContext(ctx, `PRAGMA user_version=3`); err != nil {
+	if _, err := db.ExecContext(ctx, `PRAGMA user_version=4`); err != nil {
 		t.Fatal(err)
 	}
 	if err := migrateProduction(ctx, db); err == nil {
@@ -71,7 +71,7 @@ func TestProductionMigrationFailsClosedAndUsesOwnerPermissions(t *testing.T) {
 	}
 }
 
-func TestProductionV1ToV2PreservesLegacyVectorButRequiresNewLineage(t *testing.T) {
+func TestProductionV1ToV3PreservesLegacyVectorButRequiresNewLineage(t *testing.T) {
 	ctx := context.Background()
 	db, err := sql.Open("sqlite", filepath.Join(t.TempDir(), "v1.db"))
 	if err != nil {
@@ -85,6 +85,7 @@ func TestProductionV1ToV2PreservesLegacyVectorButRequiresNewLineage(t *testing.T
 		`ALTER TABLE meta RENAME TO meta_v2`,
 		`CREATE TABLE meta (id INTEGER PRIMARY KEY CHECK(id=1), schema_version INTEGER NOT NULL CHECK(schema_version=1), canonical_root TEXT NOT NULL, active_generation INTEGER NOT NULL CHECK(active_generation>=0), manifest_sha256 TEXT NOT NULL, index_profile TEXT NOT NULL, index_profile_json BLOB NOT NULL, canonical_text_profile TEXT NOT NULL, canonical_text_profile_json BLOB NOT NULL, source_profile TEXT NOT NULL, source_profile_json BLOB NOT NULL, vector_space_profile TEXT NOT NULL, vector_space_profile_json BLOB NOT NULL, vector_storage_profile TEXT NOT NULL, vector_storage_profile_json BLOB NOT NULL, active_serving_profile TEXT NOT NULL, index_attempted_at TEXT NOT NULL, index_succeeded_at TEXT NOT NULL, embed_attempted_at TEXT NOT NULL, embed_succeeded_at TEXT NOT NULL, observed_git_commit TEXT NOT NULL, observed_git_dirty INTEGER NOT NULL CHECK(observed_git_dirty IN (0,1)))`,
 		`DROP TABLE meta_v2`,
+		`DROP TABLE embedding_runs`,
 		`ALTER TABLE vector_cache RENAME TO vector_cache_v2`,
 		`CREATE TABLE vector_cache (serving_profile TEXT NOT NULL, canonical_input_sha256 TEXT NOT NULL, dimensions INTEGER NOT NULL CHECK(dimensions>0), codec_id TEXT NOT NULL CHECK(codec_id IN ('cidx-binary-sign-lsb-v1','cidx-int8-symmetric-v1')), codec_version INTEGER NOT NULL CHECK(codec_version=1), blob BLOB NOT NULL CHECK(length(blob)>0), scale REAL, norm REAL, materialization_fingerprint TEXT NOT NULL, PRIMARY KEY(serving_profile, canonical_input_sha256))`,
 		`DROP TABLE vector_cache_v2`,
@@ -102,7 +103,7 @@ func TestProductionV1ToV2PreservesLegacyVectorButRequiresNewLineage(t *testing.T
 	var schemaVersion int
 	var root, manifest, source, space, storage, serving string
 	var generation int64
-	if err := db.QueryRowContext(ctx, `SELECT schema_version,canonical_root,active_generation,manifest_sha256,source_profile,vector_space_profile,vector_storage_profile,active_serving_profile FROM meta WHERE id=1`).Scan(&schemaVersion, &root, &generation, &manifest, &source, &space, &storage, &serving); err != nil || schemaVersion != 2 || root != "root" || generation != 1 || manifest != "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" || source != "source" || space != "space" || storage != "storage" || serving != "serving" {
+	if err := db.QueryRowContext(ctx, `SELECT schema_version,canonical_root,active_generation,manifest_sha256,source_profile,vector_space_profile,vector_storage_profile,active_serving_profile FROM meta WHERE id=1`).Scan(&schemaVersion, &root, &generation, &manifest, &source, &space, &storage, &serving); err != nil || schemaVersion != 3 || root != "root" || generation != 1 || manifest != "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" || source != "source" || space != "space" || storage != "storage" || serving != "serving" {
 		t.Fatalf("meta preservation=%d %q %d %q %q %q %q %q err=%v", schemaVersion, root, generation, manifest, source, space, storage, serving, err)
 	}
 	var blob []byte
@@ -112,6 +113,57 @@ func TestProductionV1ToV2PreservesLegacyVectorButRequiresNewLineage(t *testing.T
 	}
 	if len(blob) != 1 || rowSource != "" || rowSpace != "" || rawSHA != "" || at != "" {
 		t.Fatalf("legacy row was rewritten or trusted: blob=%x source=%q space=%q raw=%q at=%q", blob, rowSource, rowSpace, rawSHA, at)
+	}
+}
+
+func TestProductionV2ToV3PreservesHistoricalFailureAndPointers(t *testing.T) {
+	ctx := context.Background()
+	root := t.TempDir()
+	resolved := testResolvedConfig(t)
+	production, err := OpenProduction(ctx, root, resolved)
+	if err != nil {
+		t.Fatal(err)
+	}
+	active := string(resolved.Profiles.Fingerprints.VectorStorage)
+	valid := validBinary(t, resolved.Embedding.TargetDimensions)
+	for _, statement := range []string{`UPDATE meta SET active_generation=7,manifest_sha256='0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'`, `INSERT INTO files(id,path,language,indexed_sha256,observed_mtime_ns,observed_size) VALUES(1,'historical.go','go','file',0,1)`, `INSERT INTO chunks(id,file_id,kind,symbol,qualified_symbol,signature,start_byte,end_byte,start_line,end_line,source_body) VALUES(1,1,'function','Historical','Historical','',0,1,1,1,x'78')`, `INSERT INTO embedding_failures(source_profile,canonical_input_sha256,classification,attempts,error_class,last_error,last_attempted_at) VALUES('source','input','terminal',4,'provider','safe','2026-01-02T03:04:05Z')`} {
+		if _, err := production.Write.db.ExecContext(ctx, statement); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := production.Write.db.ExecContext(ctx, `INSERT INTO embedding_segments(id,chunk_id,segment_number,canonical_input_sha256,canonical_text_profile,serving_profile,display_start_byte,display_end_byte) VALUES(1,1,0,?,'canonical',?,0,1)`, testRawSHA, active); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := production.Write.db.ExecContext(ctx, `INSERT INTO vector_cache(serving_profile,canonical_input_sha256,dimensions,codec_id,codec_version,blob,scale,norm,materialization_fingerprint,source_profile,vector_space_profile,raw_vector_sha256,materialized_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`, active, testRawSHA, valid.Dimensions, valid.CodecID, valid.CodecVersion, valid.Blob, nil, nil, active, string(resolved.Profiles.Fingerprints.Source), string(resolved.Profiles.Fingerprints.VectorSpace), testRawSHA, "2026-01-02T03:04:05Z"); err != nil {
+		t.Fatal(err)
+	}
+	if err := production.Close(); err != nil {
+		t.Fatal(err)
+	}
+	db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "index.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	for _, statement := range []string{`ALTER TABLE meta RENAME TO meta_v3`, `CREATE TABLE meta (id INTEGER PRIMARY KEY CHECK(id=1), schema_version INTEGER NOT NULL CHECK(schema_version=2), canonical_root TEXT NOT NULL, active_generation INTEGER NOT NULL CHECK(active_generation>=0), manifest_sha256 TEXT NOT NULL, index_profile TEXT NOT NULL, index_profile_json BLOB NOT NULL, canonical_text_profile TEXT NOT NULL, canonical_text_profile_json BLOB NOT NULL, source_profile TEXT NOT NULL, source_profile_json BLOB NOT NULL, vector_space_profile TEXT NOT NULL, vector_space_profile_json BLOB NOT NULL, vector_storage_profile TEXT NOT NULL, vector_storage_profile_json BLOB NOT NULL, active_serving_profile TEXT NOT NULL, index_attempted_at TEXT NOT NULL, index_succeeded_at TEXT NOT NULL, embed_attempted_at TEXT NOT NULL, embed_succeeded_at TEXT NOT NULL, observed_git_commit TEXT NOT NULL, observed_git_dirty INTEGER NOT NULL CHECK(observed_git_dirty IN (0,1)))`, `INSERT INTO meta SELECT id,2,canonical_root,active_generation,manifest_sha256,index_profile,index_profile_json,canonical_text_profile,canonical_text_profile_json,source_profile,source_profile_json,vector_space_profile,vector_space_profile_json,vector_storage_profile,vector_storage_profile_json,active_serving_profile,index_attempted_at,index_succeeded_at,embed_attempted_at,embed_succeeded_at,observed_git_commit,observed_git_dirty FROM meta_v3`, `DROP TABLE meta_v3`, `ALTER TABLE embedding_failures RENAME TO embedding_failures_v3`, `CREATE TABLE embedding_failures (source_profile TEXT NOT NULL,canonical_input_sha256 TEXT NOT NULL,attempts INTEGER NOT NULL,error_class TEXT NOT NULL,last_error TEXT NOT NULL,last_attempted_at TEXT NOT NULL,PRIMARY KEY(source_profile,canonical_input_sha256))`, `INSERT INTO embedding_failures SELECT source_profile,canonical_input_sha256,attempts,error_class,last_error,last_attempted_at FROM embedding_failures_v3`, `DROP TABLE embedding_failures_v3`, `DROP TABLE embedding_runs`, `PRAGMA user_version=2`} {
+		if _, err := db.ExecContext(ctx, statement); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := migrateProduction(ctx, db); err != nil {
+		t.Fatal(err)
+	}
+	var files, vectors int
+	if err := db.QueryRowContext(ctx, `SELECT (SELECT count(*) FROM files),(SELECT count(*) FROM vector_cache)`).Scan(&files, &vectors); err != nil || files != 1 || vectors != 1 {
+		t.Fatalf("historical rows files=%d vectors=%d err=%v", files, vectors, err)
+	}
+	var version, generation, attempts int
+	var manifest, classification, class, at string
+	if err := db.QueryRowContext(ctx, `SELECT m.schema_version,m.active_generation,m.manifest_sha256,f.classification,f.attempts,f.error_class,f.last_attempted_at FROM meta m JOIN embedding_failures f ON 1=1`).Scan(&version, &generation, &manifest, &classification, &attempts, &class, &at); err != nil || version != 3 || generation != 7 || manifest != "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" || classification != "terminal" || attempts != 4 || class != "provider" || at != "2026-01-02T03:04:05Z" {
+		t.Fatalf("migration=%d/%d/%q/%q/%d/%q/%q err=%v", version, generation, manifest, classification, attempts, class, at, err)
+	}
+	if err := migrateProduction(ctx, db); err != nil {
+		t.Fatalf("v3 reopen=%v", err)
 	}
 }
 

@@ -1,6 +1,6 @@
 # 10. Embedding Orchestration and Profile Reconciliation
 
-- Status: `planned`
+- Status: `done`
 - Prerequisites: `05-worktree-index-pipeline`, `08-raw-embedding-lab`, `09-vector-materialization`
 - Followed by: `11-vector-and-hybrid-search`, `13-cli-and-mcp`
 - Design source: `local-code-search-mcp-v1-design-r3.md` sections 4.4, 6, and 7
@@ -99,7 +99,7 @@ Core types:
 
 `embedding_failures` stores the source-profile fingerprint, `canonical_input_sha256`, `terminal | retryable` class, attempts, last sanitized error, and last-attempt time. When a valid serving vector exists, effective state is ready; a failure cannot override readiness.
 
-`embedding_runs` stores run ID, captured generation/manifest, desired source-space-storage fingerprints, `planned | running | partially_succeeded | succeeded | failed | cancelled` state, active/reused/requested/persisted/failed counts, estimated and actual token/cost usage, and start/finish times.
+`embedding_runs` stores run ID, captured generation/manifest, desired source-space-storage fingerprints, `planned | running | partially_succeeded | succeeded | failed | cancelled` state, active/reused/requested/persisted/failed counts, estimated and actual token/cost usage, and start/finish times. `requested_count` is provider input attempts and includes retries; succeeded, failed, and discarded counts are distinct approved-input outcomes.
 
 Phase 09 owns a full current-profile publish to `vector_cache`. Normal embedding incrementally fills missing keys for that same profile.
 
@@ -230,6 +230,20 @@ Keep these sources of truth separate:
 
 ## 11. Completion Evidence
 
+See the resumable [Phase 10 evidence index](evidence/phase-10/README.md) for
+the current executed-check record.
+
+Implementation handoff record (2026-08-15; accepted at the main-agent boundary):
+
+- Added the production v2-to-v3 migration. It preflights the exact v2 schema, atomically preserves meta/vector/index data and active-profile pointers, converts preserved v2 failures to terminal historical failures, and adds classified unresolved failures plus `embedding_runs`.
+- Added a public no-lab plan/apply application boundary. Planning takes no client or credential; apply requires an explicit approval flag and an injected client. Canonical inputs are reconstructed from the active stored source/projections and verified against their canonical SHA-256 before requests.
+- Added a pinned active snapshot with derived ready/pending/failed states; it joins active segment keys, valid current-profile vectors, and latest terminal/retryable failures. Incremental writes revalidate config, generation, manifest, profiles, and active key in a short transaction, then either publish/clear failure or discard the stale key.
+- Added direct source-f32 transformation through the shared transformer and selected codec, with an ephemeral little-endian f32 SHA-256 provenance value. Production schema/storage contains no f32 vector representation and the public path has no lab dependency.
+- Added focused fake-provider checks for free planning, explicit approval, exact document/1024/float/non-truncating request fields, serving-blob parity with the shared transformer/codec, ready exclusion, retry planning, schema/run records, and the existing store migration/atomic publication checks.
+- Checks run: `go test -count=1 ./internal/app ./internal/embed ./internal/lab ./internal/store`; `go test -count=1 -race ./internal/app ./internal/embed ./internal/store`; `go vet ./internal/app ./internal/embed ./internal/lab ./internal/store`; `go build ./internal/app ./internal/embed ./internal/lab ./internal/store`; direct dependency inspection of `./internal/embed ./internal/store` for `internal/lab`; `git diff --check`. All passed; the fake-provider test proves FTS completes while its document request is blocked. No real client, credentials, network, corpus, or paid operation was used.
+- Main-agent boundary checks passed: focused race tests for `internal/app`, `internal/embed`, `internal/lab`, and `internal/store`; focused vet/build; formatting; production dependency-boundary inspection; and diff validation.
+- Checks not run: live Voyage/provider behavior, real API-key handling, CLI/MCP wiring, query/hybrid integration, corpus/evaluation work, broad project validation, and load testing.
+
 - API-call count difference between free plan and paid apply.
 - Identical serving-blob checksums from development two-step and public direct paths.
 - Results for every reconciliation-matrix mismatch.
@@ -254,3 +268,5 @@ Phase 12 uses the development raw bank and materializer separately. It must not 
 - Only the serving profile selected by config is active.
 - Profile changes leave FTS intact and hybrid safely falls back until ready.
 - General-user model locking and external vector injection remain deliberately undesigned.
+- Public plan/apply receives credentials only through an injected client; it never reads the environment. The Phase 13 adapter remains responsible for obtaining an explicitly approved credential/client without exposing it in a plan, result, run row, or log.
+- Historical v2 failures migrate as terminal because v2 had no retryability field; later retryable attempts append while unresolved and supersede that effective state. A successful current-vector publication deliberately deletes its applicable failure rows atomically.
