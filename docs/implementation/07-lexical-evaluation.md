@@ -1,6 +1,6 @@
 # 07. Lexical Chunking and Search Evaluation
 
-- Status: `planned`
+- Status: `blocked` — corpus-independent infrastructure implemented; official evidence awaits user-selected corpus manifests and local bindings.
 - Prerequisite phase: `06-fts-search`
 - Follow-up phase: `12-retrieval-evaluation`
 - Design basis: `local-code-search-mcp-v1-design-r3.md` §13, §14
@@ -376,6 +376,7 @@ Phase 12 extends the shared Phase 07 `internal/eval` dataset, ground-truth, metr
 | Never select, download, or embed a corpus in Phase 07. | This phase is a free, local lexical evaluator and a manifest is not authorization for external actions or paid work. | A separate user-authorized acquisition or embedding workflow is designed. |
 | Observe hit@k/MRR without a numeric gate. | The corpus and product usage pattern are not yet sufficiently settled. | Representative corpora and product requirements accumulate. |
 | Do not use a generative-model judge. | Avoid cost, nondeterminism, and mixing answer definition into scoring. | It is separately designed as supplementary evaluation. |
+| Defer the simple-search baseline policy. | The phase requires a deterministic baseline but does not define its ranking policy; infrastructure must not invent corpus-tuned behavior. | A reviewed corpus and baseline policy are supplied. |
 | Use human-reviewed path/kind/symbol targets as ground truth. | These map directly to the code-search unit. | Multi-hop task evaluation is added separately. |
 | Preserve failure taxonomy alongside metrics. | It identifies which implementation layer should change next. | Never. |
 | Call production services directly. | This prevents divergence between evaluation and actual behavior. | Never. |

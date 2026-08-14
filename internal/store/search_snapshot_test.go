@@ -40,3 +40,24 @@ func TestSearchFTSOrdersAllStableKeysBeforeCandidateLimit(t *testing.T) {
 		t.Fatal("NaN BM25 weight accepted")
 	}
 }
+
+func TestTruthSnapshotPinsAuthoritativeChunks(t *testing.T) {
+	ctx := context.Background()
+	resolved := testResolvedConfig(t)
+	production, err := OpenProduction(ctx, t.TempDir(), resolved)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer production.Close()
+	file := indexFile("a.go", "One", "package p\nfunc One() {}\n", resolved)
+	if err := production.PublishIndexGeneration(ctx, IndexPublishPlan{BaseGeneration: 0, NextGeneration: 1, ManifestSHA256: fixtureHash("truth"), Reason: "manual", Desired: resolved, Changed: []PreparedIndexFile{file}}); err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err := production.TruthSnapshot(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if snapshot.Generation != 1 || snapshot.ManifestSHA256 != fixtureHash("truth") || len(snapshot.Chunks) != 1 || snapshot.Chunks[0].IndexedSHA256 != file.SHA256 || snapshot.Chunks[0].Path != "a.go" {
+		t.Fatalf("truth snapshot=%#v", snapshot)
+	}
+}

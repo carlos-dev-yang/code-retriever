@@ -65,7 +65,7 @@ func (searcher *Searcher) Search(ctx context.Context, request Request) (Result, 
 	}
 	for _, candidate := range snapshot.Candidates {
 		result.Hits = append(result.Hits, Hit{
-			ChunkID: candidate.ChunkID, Path: candidate.Path, Language: candidate.Language, Kind: candidate.Kind,
+			ChunkID: candidate.ChunkID, Path: candidate.Path, IndexedSHA256: candidate.IndexedSHA256, Language: candidate.Language, Kind: candidate.Kind,
 			Symbol: candidate.Symbol, QualifiedSymbol: candidate.QualifiedSymbol, Signature: candidate.Signature,
 			StartByte: candidate.StartByte, EndByte: candidate.EndByte, StartLine: candidate.StartLine, EndLine: candidate.EndLine,
 			BM25Score: candidate.BM25Score, ExactSymbolMatched: candidate.ExactQualifiedSymbol,

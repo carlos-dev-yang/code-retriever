@@ -6,13 +6,13 @@ type Request struct {
 }
 
 type Hit struct {
-	ChunkID                                       int64
-	Path, Language, Kind, Symbol, QualifiedSymbol string
-	Signature                                     string
-	StartByte, EndByte, StartLine, EndLine        int
-	BM25Score                                     float64
-	BM25Rank                                      int
-	ExactSymbolMatched                            bool
+	ChunkID                                                      int64
+	Path, IndexedSHA256, Language, Kind, Symbol, QualifiedSymbol string
+	Signature                                                    string
+	StartByte, EndByte, StartLine, EndLine                       int
+	BM25Score                                                    float64
+	BM25Rank                                                     int
+	ExactSymbolMatched                                           bool
 }
 
 type Diagnostics struct {
