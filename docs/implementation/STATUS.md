@@ -10,15 +10,15 @@ This ledger is the authoritative resumable state for implementation work. Update
 - Current blocker: none
 - Latest contract change: production storage codec now defaults to cidx-owned `binary`; `int8` is the only alternative, and exact encoder/scorer contracts remain a Phase 01 evidence item
 - Latest evaluation change: `EVALUATION-CONTRACT.md` owns stage denominators, query labels, calibration/confirmation separation, codec-fidelity metrics, RRF diagnostics, hard gates, run artifacts, shared Phase 11 body-packaging evidence, and paired Phase 14 assistant-use evidence
-- Next eligible phase: Phase 01
-- Exact next action: enter Phase 01 with its completion evidence and assign implementation to a terra/high agent
+- Next eligible phase: Phase 02
+- Exact next action: enter Phase 02 after reading the Phase 00 and Phase 01 completion evidence; assign implementation to a terra/high agent
 
 ## Phase ledger
 
 | Phase | Status | Owner | Prerequisite evidence checked | Last completed checkpoint | Evidence / blocker | Next action |
 | --- | --- | --- | --- | --- | --- | --- |
 | 00 | done | Codex | n/a; no prerequisite phases | RFC 8785 profiles and all Phase 00 catalogs/reviews completed | [Phase 00 evidence index](evidence/phase-00/README.md) | Enter Phase 01 |
-| 01 | planned | — | No | None | Requires Phase 00 | Wait |
+| 01 | done | terra/high implementation agent; Codex validation | Yes — [Phase 00 evidence](evidence/phase-00/README.md) | Executable spikes and [Phase 01 evidence](evidence/phase-01/README.md) validated | Core, race, vet, build, runner, dependency-boundary, format, and module checks passed | Enter Phase 02 |
 | 02 | planned | — | No | None | Requires 00, 01 | Wait |
 | 03 | planned | — | No | None | Requires 02 | Wait |
 | 04 | planned | — | No | None | Requires 02 | Wait |

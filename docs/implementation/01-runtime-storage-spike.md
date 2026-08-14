@@ -1,6 +1,6 @@
 # 01. Runtime and Storage Technology Spike
 
-- Status: `planned`
+- Status: `done`
 - Prerequisite phase: `00-shared-contracts-and-config`
 - Downstream phase: `02-config-profiles-and-schemas`
 - Design basis: `local-code-search-mcp-v1-design-r3.md` Sections 4.3, 7, 9.2, and 13
@@ -11,7 +11,7 @@
 - Re-read the Phase 00 config/constant catalog, typed profile and hash contract, and production/lab boundary. Reopen the current candidate-platform list, spike manifest, and any SQLite, Tree-sitter, codec, or Voyage comparison artifacts already produced.
 - Re-check these critical invariants: production stores no f16/f32; the lab and production databases have separate files, schemas, migrations, and connection factories; parsing and API calls occur outside write transactions; one search snapshot never mixes generations; Voyage source requests explicitly return 1024-dimensional float vectors with document/query roles and `truncation=false`.
 - Stop if FTS5 cannot be guaranteed in the distributed binary, grammars require runtime downloads, atomic publish cannot preserve old-or-new snapshots, a candidate stores f32 in production, or an unverified direct-target path would replace the 1024-source reference path.
-- Before pausing, update Section 11 evidence, Section 13 decisions, and [STATUS.md](STATUS.md). Record both executed and unexecuted checks; keep the phase `planned` until the handoff is complete.
+- Before pausing, update Section 11 evidence, Section 13 decisions, and [STATUS.md](STATUS.md). Record both executed and unexecuted checks; do not reopen the completed phase without a documented contract change.
 
 ## 1. Goal
 
@@ -232,18 +232,18 @@ Run these scenarios during implementation; writing this plan adds no test code.
 
 ## 11. Completion Evidence
 
-Before changing this phase to `done`, replace these entries with actual values:
+Implementation and main-agent commit-boundary validation evidence is recorded in [Phase 01 runtime/storage evidence](evidence/phase-01/README.md).
 
-- Selected SQLite and Tree-sitter bindings, versions, licenses, and CGO decision
-- Verified OS/architecture builds and unverified platforms
-- FTS5 create, search, and rollback results
-- Atomic-publication concurrent-reader results and selected approach
-- f32/binary/int8 codec determinism, scoring, blob-layout, and invalid-data rejection results
-- Official Voyage MRL reference and, when run, provider, model, source/target dimensions, dtype, input type, truncation, adapter version, and input-manifest hash
-- Source-dimension document-f32 lab artifact schema, version, checksum, and Phase 02 handoff status
-- Observed source-prefix-plus-L2 versus API-target result, or a comparison-not-run record, plus direct-target optimization permission
-- Checks actually run and checks not run
-- Remaining risks and values Phase 02 must lock
+- Selected SQLite: `modernc.org/sqlite` v1.47.0, BSD-3-Clause; FTS5 startup probe and WAL are mandatory. Tree-sitter: `go-tree-sitter` v0.25.0 plus Go v0.25.0 and TypeScript/TSX v0.23.2 grammars, all MIT; grammar compilation requires CGO.
+- Verified platform: darwin/arm64 with Apple clang. Other platforms are explicitly unverified, not unsupported by claim or silently supported.
+- Contentless FTS5 create/search/insert/update/delete and injected publication rollback passed in core tests. Reader/writer stores use WAL and a 2-second bounded busy timeout; the modernc DSN configures both connection-local pragmas for every pool connection, proven across four held reader connections.
+- The held reader observed only generation 1 after generation 2 published; a new reader observed only generation 2. The selected path is in-place active-table replacement and one final transaction.
+- Lab f32 little-endian round trip, checksum/length/NaN rejection, binary padding/zero rejection, and int8 length/metadata/zero rejection passed. Int8 norm is recomputed from the exact persisted float32 scale and blob, and the scorer is bounded to its documented range. Binary and int8 scorer IDs and approximation semantics are fixed in the evidence.
+- The source API specification is represented without a request: Voyage official, `voyage-code-4`, source 1024, dtype float, document/query roles, `truncation=false`, adapter v1. No provider reference result or raw document artifact exists because paid operation was not approved.
+- The temporary isolated lab schema/factory is version 1 and document-only; it is a Phase 02 migration/import handoff. No source-f32 artifact/checksum was produced.
+- Direct target API compatibility is **NOT RUN**. The source-1024 local prefix-plus-L2 path remains the only permitted reference; direct target is disabled in code.
+- Exact executed and intentionally unexecuted checks, including the CGO-disabled expected failure, are recorded in the evidence file.
+- Phase 02 must formalize schema migrations, profile/config injection, and database naming without changing codec contracts or enabling direct target.
 
 Record measurements as observations, never as v1 performance guarantees.
 
@@ -264,11 +264,11 @@ Phase 02 must not finalize a schema or `ResolvedConfig` while this handoff is in
 
 | Decision | Status | Basis |
 | --- | --- | --- |
-| SQLite binding | open | Decide after FTS5 inclusion, distribution, license, and CGO spike. |
-| Tree-sitter binding and grammar packaging | open | Decide after offline parsing and platform builds. |
-| Atomic publication | preferred: in-place active-table update | Confirm with old/new snapshot results. |
-| Lab f32 encoding | direction: IEEE-754 float32 blob | Fix byte order and integrity metadata after the spike. |
-| Production storage codecs | fixed set `binary | int8`; exact versioned algorithms open | Default to cidx-owned binary, and name/version both encoder/scorer contracts after deterministic and retrieval comparison evidence. |
+| SQLite binding | selected: `modernc.org/sqlite` v1.47.0 | Pure-Go SQLite with a required runtime FTS5 probe and WAL; BSD-3-Clause. |
+| Tree-sitter binding and grammar packaging | selected: `go-tree-sitter` v0.25.0 plus Go/TypeScript grammars | Embedded grammar C sources compile with CGO; no runtime grammar download path. Verified only on darwin/arm64. |
+| Atomic publication | selected: in-place active-table update | Held-reader and rollback tests proved old-or-new FTS/chunk/generation visibility. Generation staging was not retained as an alternate serving path. |
+| Lab f32 encoding | selected: `cidx-lab-f32-le-v1` | IEEE-754 float32 little-endian, exact length and CRC-32 integrity, document-only separate lab factory/schema. |
+| Production storage codecs | selected: `cidx-binary-sign-lsb-v1` and `cidx-int8-symmetric-v1` | Binary sign agreement and reconstructed int8 cosine are codec approximations, never labelled exact cosine. |
 | Production document/query transform | fixed: identical reducer plus L2 over Voyage 1024-dimensional float output | Document and query input types differ but share one retrieval space and local transform. |
-| Source-prefix-plus-L2 versus API target compatibility | open | Use official contract and comparison only to decide whether direct target may be an equivalent optimization. |
+| Source-prefix-plus-L2 versus API target compatibility | disabled; NOT RUN | No paid comparison was approved. Direct API targets cannot replace explicit source-1024 prefix-plus-L2 without a later approved evidence run. |
 | Persistent query f32 | excluded | Queries are runtime/evaluation inputs, not lab originals. |
