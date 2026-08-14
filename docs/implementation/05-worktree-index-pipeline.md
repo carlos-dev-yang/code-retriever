@@ -1,6 +1,6 @@
 # 05. Live Worktree Index Pipeline
 
-- Status: `planned`
+- Status: `done`
 - Prerequisites: `03-go-chunker`, `04-typescript-tsx-chunker`
 - Follow-up phases: `06-fts-search`, `08-raw-embedding-lab`
 - Design basis: `local-code-search-mcp-v1-design-r3.md` §3, §4, §5, §9
@@ -287,7 +287,7 @@ Do not expose arbitrary, unimplemented chunker version numbers in user config. F
 
 ## 10. Validation Scenarios
 
-This document defines validation only; do not create test code in this phase.
+Only core contract tests authorized for this phase are included; parser syntax coverage remains owned by the prior chunker phases.
 
 1. A first index of a clean repository activates all tracked Go, TS, and TSX files.
 2. Adding an untracked, nonignored function makes it searchable after the next index.
@@ -307,6 +307,8 @@ This document defines validation only; do not create test code in this phase.
 16. The previous generation remains searchable after cancellation, disk-full, or constraint errors.
 
 ## 11. Completion Evidence
+
+Implementation evidence is recorded in [`evidence/phase-05/README.md`](evidence/phase-05/README.md). The focused integration checks cover deterministic Git enumeration, built-in and Git-ignore exclusion, live tracked/untracked preparation, unchanged/change/delete behavior, exact persisted chunks and segment inputs, unsafe source rejection, cancellation before publication, and the existing production-store transactional snapshot boundary. No corpus, provider, paid, FTS-search, CLI, or MCP evidence was run.
 
 - Report of tracked plus untracked nonignored enumeration and exclusion reasons.
 - Diagnostic evidence that hash, body, and chunks came from identical bytes.

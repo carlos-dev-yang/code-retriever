@@ -4,14 +4,14 @@ This ledger is the authoritative resumable state for implementation work. Update
 
 ## Current state
 
-- Active phase: none; Phase 04 is complete and ready to commit
-- Active owner: none
+- Active phase: none — Phase 05 accepted at its commit boundary
+- Active owner: Codex
 - Last updated: 2026-08-15
 - Current blocker: none
 - Latest contract change: production storage codec now defaults to cidx-owned `binary`; `int8` is the only alternative, and exact encoder/scorer contracts remain a Phase 01 evidence item
 - Latest evaluation change: strict Phase 02 traces use per-group first-loss observations with an explicit provider-union stage, typed operation denominators, frozen review-pass identities, ABSTAINABLE/no-answer truth, and graded durable relevance judgments
-- Next eligible phase: Phase 05 — worktree indexing pipeline
-- Exact next action: commit the accepted Phase 04 boundary, then enter Phase 05 without rerunning prior-phase validation
+- Next eligible phase: Phase 06 — free FTS5 search
+- Exact next action: verify Phase 05 evidence and enter Phase 06 with a terra/high implementation agent
 
 ## Phase ledger
 
@@ -22,7 +22,7 @@ This ledger is the authoritative resumable state for implementation work. Update
 | 02 | done | terra/high implementation agents; Codex validation | Yes — [Phase 00](evidence/phase-00/README.md) and [Phase 01](evidence/phase-01/README.md) evidence | Formal migrations, active-vector state, secure store factories, shared chunk handoff, strict evaluation wire/schemas, and [Phase 02 evidence](evidence/phase-02/README.md) accepted | Main commit-boundary core, race, vet, build, dependency, format, module, schema, and diff checks passed | Enter Phase 03 |
 | 03 | done | terra/high implementation agent; Codex validation | Yes — [Phase 02 evidence](evidence/phase-02/README.md) and `internal/chunk` shared contracts | Go Tree-sitter adapter, exact chunk/projection/segment fixtures, decision log, and [Phase 03 evidence](evidence/phase-03/README.md) accepted | Main focused test, race, vet, build, format, and diff checks passed | Enter Phase 04 |
 | 04 | done | terra/high implementation agent; Codex validation | Yes — [Phase 02 evidence](evidence/phase-02/README.md), [Phase 03 evidence](evidence/phase-03/README.md), and `internal/chunk` shared contracts inspected | TypeScript/TSX adapters, exact callable/type projections, overload and segmentation fixtures, Phase 04 decisions, and [Phase 04 evidence](evidence/phase-04/README.md) accepted | Main focused test, race, vet, build, dependency-boundary, format, and diff checks passed | Enter Phase 05 |
-| 05 | planned | — | No | None | Requires 03, 04 | Wait |
+| 05 | done | terra/high implementation agent; Codex validation | Yes — [Phase 02](evidence/phase-02/README.md), [Phase 03](evidence/phase-03/README.md), and [Phase 04](evidence/phase-04/README.md) evidence plus shared store/chunk contracts inspected | Live worktree preparation, exact profile reconciliation, atomic delta publication, and [Phase 05 evidence](evidence/phase-05/README.md) accepted | Main boundary core/race, vet, build, format, dependency-boundary, and diff checks passed after correcting the canonical final-LF fixture | Enter Phase 06 |
 | 06 | planned | — | No | None | Requires 05 | Wait |
 | 07 | planned | — | No | None | Requires 06 and user-selected corpus manifests | Wait |
 | 08 | planned | — | No | None | Requires 02, 05 and explicit paid-capture approval | Wait |
