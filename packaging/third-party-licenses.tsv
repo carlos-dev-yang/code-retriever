@@ -1,0 +1,15 @@
+# module	version	copied_source_files
+github.com/dustin/go-humanize	v1.0.1	LICENSE
+github.com/google/uuid	v1.6.0	LICENSE
+github.com/mattn/go-isatty	v0.0.20	LICENSE
+github.com/mattn/go-pointer	v0.0.1	LICENSE
+github.com/ncruces/go-strftime	v1.0.0	LICENSE
+github.com/remyoudompheng/bigfft	v0.0.0-20230129092748-24d4a6f8daec	LICENSE
+github.com/tree-sitter/go-tree-sitter	v0.25.0	LICENSE,src/unicode/LICENSE
+github.com/tree-sitter/tree-sitter-go	v0.25.0	LICENSE
+github.com/tree-sitter/tree-sitter-typescript	v0.23.2	LICENSE
+golang.org/x/sys	v0.42.0	LICENSE,PATENTS
+modernc.org/libc	v1.70.0	LICENSE,LICENSE-3RD-PARTY.md
+modernc.org/mathutil	v1.7.1	LICENSE,mersenne/LICENSE
+modernc.org/memory	v1.11.0	LICENSE,LICENSE-MMAP-GO,LICENSE-GO
+modernc.org/sqlite	v1.47.0	LICENSE

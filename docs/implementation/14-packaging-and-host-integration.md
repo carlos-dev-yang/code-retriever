@@ -1,9 +1,9 @@
 # 14. Packaging and MCP Host Integration
 
-- Status: `planned`
+- Status: `blocked` — corpus-independent implementation accepted; artifact generation awaits an owner-selected project license, and official release-candidate evidence remains externally gated
 - Prerequisite: `13-cli-and-mcp`
 - Followed by: v1 release-candidate validation
-- Design source: `local-code-search-mcp-v1-design-r4.md` sections 2, 9, 11, and 15
+- Design source: `local-code-search-mcp-v1-design-r4.md` sections 1–3 and 7–10
 - Evaluation authority: [EVALUATION-CONTRACT.md](EVALUATION-CONTRACT.md)
 
 ## Context Recovery Checklist
@@ -71,7 +71,7 @@ Do not add provider plugins, vector import formats, model bundles, or speculativ
 - Phase 01 decided SQLite binding, FTS5 inclusion, CGO policy, Tree-sitter binding, and candidate platforms.
 - Phase 02 froze production/lab schemas and migration boundary.
 - Phase 13 froze public/development CLI, stdio, and four MCP schemas.
-- Startup can report build/version/schema/FTS capabilities.
+- Phase 14 owns build/version/schema/FTS and bundled-grammar capability reporting before packaging claims are accepted.
 - `cidx serve --root` fails closed on canonical-root/config/DB mismatch.
 - Exact host names and versions used for verification can be recorded.
 
@@ -97,8 +97,7 @@ Do not add provider plugins, vector import formats, model bundles, or speculativ
 
 ```text
 internal/buildinfo/info.go        # version, commit, target, dependency IDs
-internal/runtimecheck/sqlite.go   # FTS5 capability
-internal/runtimecheck/grammars.go # bundled grammar registry
+internal/runtimecheck/check.go    # disposable SQLite FTS5/WAL and bundled-grammar probes
 cmd/cidx/main.go
 docs/install.md
 docs/hosts.md
@@ -128,7 +127,7 @@ Required types:
 BuildInfo
   Version / Commit / BuildTime(optional, with reproducibility caveat)
   TargetOS / TargetArch
-  SQLiteImplementationID / GrammarImplementationIDs
+  SQLiteImplementationID / GrammarImplementationIDs / ChunkerImplementationIDs
 
 RuntimeCapabilities
   FTS5Available / RegisteredLanguages
@@ -314,3 +313,6 @@ If operational feedback establishes a real requirement for permanent model pinni
 | Fixed model versus external supply stays out of scope | Do not mix initial lab needs with long-term distribution | Real production requirements appear |
 | No speculative vector import format | Avoid unvalidated integrity/security compatibility | A separate ADR and provenance design are approved |
 | Evaluate marginal assistant value | cidx is an auxiliary tool, so existing tools remain the product baseline and cidx use must not be forced | The product role changes |
+| Runtime checks use disposable local state | FTS5/WAL and all embedded grammars must fail before repository mutation or production migration, without downloads or repairs | A future runtime changes the bundled dependency boundary |
+| Local package refuses missing owner license | Third-party notices cannot select cidx's redistribution terms | The repository owner chooses and adds a project license |
+| CLI-only provenance report | Build facts are needed for package verification, while Phase 13's MCP `serverInfo` and four-tool surface remain frozen | The MCP version contract is separately revised |

@@ -2,6 +2,7 @@ package app
 
 import (
 	"cidx/internal/config"
+	"cidx/internal/runtimecheck"
 	"cidx/internal/store"
 	"context"
 	"encoding/json"
@@ -89,6 +90,21 @@ func TestInitializeRejectsExistingConfigBeforeDatabaseMutation(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(repository, ".cidx", initialConfigTemporaryName)); !os.IsNotExist(err) {
 		t.Fatalf("existing config created staging state: %v", err)
+	}
+}
+
+func TestInitializeRejectsRuntimeFailureBeforeCidxMutation(t *testing.T) {
+	ctx, repository := context.Background(), t.TempDir()
+	runGit(t, repository, "init")
+	dependencies := defaultInitializationDependencies()
+	dependencies.runtimeCheck = func(context.Context) (runtimecheck.Capabilities, error) {
+		return runtimecheck.Capabilities{}, errors.New("injected runtime capability failure")
+	}
+	if err := initialize(ctx, repository, 256, config.StorageCodecBinary, dependencies); err == nil {
+		t.Fatal("runtime capability failure succeeded")
+	}
+	if _, err := os.Stat(filepath.Join(repository, ".cidx")); !os.IsNotExist(err) {
+		t.Fatalf("runtime failure mutated .cidx: %v", err)
 	}
 }
 
@@ -250,5 +266,35 @@ func TestOpenProductionAssemblyDoesNotCreateLabState(t *testing.T) {
 	defer application.Close()
 	if _, err := os.Stat(filepath.Join(root, ".cidx", "lab")); !os.IsNotExist(err) {
 		t.Fatalf("serve assembly created lab state: %v", err)
+	}
+}
+
+func TestOpenChecksRuntimeBeforeProductionOpen(t *testing.T) {
+	ctx, root := context.Background(), t.TempDir()
+	runGit(t, root, "init")
+	dim := 256
+	raw := config.RawConfig{Version: 1, Index: config.RawIndex{Languages: []string{"go"}, MaxSourceFileBytes: 4096, TargetSegmentBytes: 2048}, Embedding: config.RawEmbedding{ServingDimensions: &dim, Request: config.RawRequest{MaxInputs: 1, MaxTotalInputBytes: 8192, TimeoutSeconds: 1}}, MCP: config.RawMCP{HardMaxInlineBytes: 1024}}
+	data, err := json.Marshal(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mustWriteFile(t, filepath.Join(root, ".cidx", "config.json"), string(data))
+	called := false
+	dependencies := defaultOpenDependencies()
+	dependencies.runtimeCheck = func(context.Context) (runtimecheck.Capabilities, error) {
+		return runtimecheck.Capabilities{}, errors.New("injected runtime capability failure")
+	}
+	dependencies.openProduction = func(context.Context, string, config.ResolvedConfig) (*store.ProductionStore, error) {
+		called = true
+		return nil, errors.New("must not open production")
+	}
+	if _, err := open(ctx, root, false, dependencies); err == nil {
+		t.Fatal("runtime capability failure succeeded")
+	}
+	if called {
+		t.Fatal("production opened after runtime failure")
+	}
+	if _, err := os.Stat(filepath.Join(root, ".cidx", "index.db")); !os.IsNotExist(err) {
+		t.Fatalf("runtime failure opened production database: %v", err)
 	}
 }

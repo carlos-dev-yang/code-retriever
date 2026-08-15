@@ -15,6 +15,7 @@ import (
 	"cidx/internal/embedclient"
 	"cidx/internal/index"
 	"cidx/internal/root"
+	"cidx/internal/runtimecheck"
 	"cidx/internal/search"
 	"cidx/internal/store"
 )
@@ -33,6 +34,7 @@ const initialConfigTemporaryName = ".config.json.init"
 
 type initializationDependencies struct {
 	openProduction  func(context.Context, string, config.ResolvedConfig) (*store.ProductionStore, error)
+	runtimeCheck    func(context.Context) (runtimecheck.Capabilities, error)
 	beforePublish   func(string)
 	removeTemporary func(string) error
 }
@@ -40,6 +42,7 @@ type initializationDependencies struct {
 func defaultInitializationDependencies() initializationDependencies {
 	return initializationDependencies{
 		openProduction:  store.OpenProduction,
+		runtimeCheck:    runtimecheck.Check,
 		beforePublish:   func(string) {},
 		removeTemporary: os.Remove,
 	}
@@ -71,6 +74,9 @@ func initialize(ctx context.Context, requestedRoot string, servingDimensions int
 		return fmt.Errorf("encode default config: %w", err)
 	}
 	data = append(data, '\n')
+	if _, err := dependencies.runtimeCheck(ctx); err != nil {
+		return fmt.Errorf("runtime capability check: %w", err)
+	}
 	state, err := prepareInitialState(canonical)
 	if err != nil {
 		return err
@@ -263,17 +269,26 @@ func (state initialState) ownsClaimedDatabase() bool {
 }
 
 func Open(ctx context.Context, requestedRoot string) (*Application, error) {
-	return open(ctx, requestedRoot, true)
+	return open(ctx, requestedRoot, true, defaultOpenDependencies())
 }
 
 // OpenLocal assembles only local production services. Development planning
 // uses it to guarantee that corpus/profile/raw preflight neither reads
 // VOYAGE_API_KEY nor constructs a provider client.
 func OpenLocal(ctx context.Context, requestedRoot string) (*Application, error) {
-	return open(ctx, requestedRoot, false)
+	return open(ctx, requestedRoot, false, defaultOpenDependencies())
 }
 
-func open(ctx context.Context, requestedRoot string, allowProvider bool) (*Application, error) {
+type openDependencies struct {
+	runtimeCheck   func(context.Context) (runtimecheck.Capabilities, error)
+	openProduction func(context.Context, string, config.ResolvedConfig) (*store.ProductionStore, error)
+}
+
+func defaultOpenDependencies() openDependencies {
+	return openDependencies{runtimeCheck: runtimecheck.Check, openProduction: store.OpenProduction}
+}
+
+func open(ctx context.Context, requestedRoot string, allowProvider bool, dependencies openDependencies) (*Application, error) {
 	canonical, err := root.Repository(ctx, requestedRoot)
 	if err != nil {
 		return nil, err
@@ -282,7 +297,10 @@ func open(ctx context.Context, requestedRoot string, allowProvider bool) (*Appli
 	if err != nil {
 		return nil, fmt.Errorf("load config: %w", err)
 	}
-	production, err := store.OpenProduction(ctx, canonical, resolved)
+	if _, err := dependencies.runtimeCheck(ctx); err != nil {
+		return nil, fmt.Errorf("runtime capability check: %w", err)
+	}
+	production, err := dependencies.openProduction(ctx, canonical, resolved)
 	if err != nil {
 		return nil, err
 	}

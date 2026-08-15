@@ -13,10 +13,12 @@ import (
 	"time"
 
 	"cidx/internal/app"
+	"cidx/internal/buildinfo"
 	"cidx/internal/config"
 	"cidx/internal/embedclient"
 	"cidx/internal/index"
 	"cidx/internal/mcp"
+	"cidx/internal/runtimecheck"
 )
 
 type DevRunner interface {
@@ -61,6 +63,8 @@ func Run(ctx context.Context, args []string, deps Dependencies) error {
 		return indexCommand(ctx, args[1:], deps)
 	case "embed":
 		return embedCommand(ctx, args[1:], deps)
+	case "version", "--version":
+		return versionCommand(ctx, args[1:], deps)
 	case "dev":
 		if deps.Dev == nil {
 			return fmt.Errorf("development commands unavailable")
@@ -73,6 +77,32 @@ func Run(ctx context.Context, args []string, deps Dependencies) error {
 		usage(deps.Stderr)
 		return fmt.Errorf("unknown command %q", args[0])
 	}
+}
+
+func versionCommand(ctx context.Context, args []string, deps Dependencies) error {
+	flags := flag.NewFlagSet("version", flag.ContinueOnError)
+	flags.SetOutput(deps.Stderr)
+	asJSON := flags.Bool("json", false, "emit JSON")
+	if err := flags.Parse(args); err != nil {
+		return err
+	}
+	if flags.NArg() != 0 {
+		return fmt.Errorf("version accepts no positional arguments")
+	}
+	report := struct {
+		buildinfo.Info
+		Runtime runtimecheck.Capabilities `json:"runtime"`
+	}{Info: buildinfo.Current()}
+	runtime, err := runtimecheck.Check(ctx)
+	if err != nil {
+		return fmt.Errorf("runtime capability check: %w", err)
+	}
+	report.Runtime = runtime
+	if *asJSON {
+		return json.NewEncoder(deps.Stdout).Encode(report)
+	}
+	_, err = fmt.Fprintf(deps.Stdout, "cidx %s commit=%s target=%s/%s\n", report.Version, report.Commit, report.TargetOS, report.TargetArch)
+	return err
 }
 func initCommand(ctx context.Context, args []string, deps Dependencies) error {
 	flags := flag.NewFlagSet("init", flag.ContinueOnError)
@@ -202,5 +232,5 @@ func embedCommand(ctx context.Context, args []string, deps Dependencies) error {
 	return json.NewEncoder(deps.Stdout).Encode(result)
 }
 func usage(writer io.Writer) {
-	_, _ = fmt.Fprint(writer, "cidx init --serving-dim <256|512|1024> [--codec <binary|int8>]\ncidx status [--json]\ncidx index [--dry-run] [--reason manual|commit]\ncidx embed [--dry-run|--apply] [--retry-failed]\ncidx serve --root <repository-root>\ncidx dev <unstable development command>\n\ninit creates local config and SQLite state only; it never calls Voyage AI. Document embedding and hybrid search may send code or query text to Voyage AI only through their configured explicit paid guards.\n")
+	_, _ = fmt.Fprint(writer, "cidx init --serving-dim <256|512|1024> [--codec <binary|int8>]\ncidx version [--json]\ncidx status [--json]\ncidx index [--dry-run] [--reason manual|commit]\ncidx embed [--dry-run|--apply] [--retry-failed]\ncidx serve --root <repository-root>\ncidx dev <unstable development command>\n\ninit creates local config and SQLite state only; it never calls Voyage AI. Document embedding and hybrid search may send code or query text to Voyage AI only through their configured explicit paid guards.\n")
 }

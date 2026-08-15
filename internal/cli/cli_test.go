@@ -116,8 +116,31 @@ func TestUsageAdvertisesServingDimensionAndLocalInit(t *testing.T) {
 		t.Fatal(err)
 	}
 	text := output.String()
-	if !strings.Contains(text, "--serving-dim") || strings.Contains(text, "--target-dim") || !strings.Contains(text, "init creates local config") {
+	if !strings.Contains(text, "--serving-dim") || strings.Contains(text, "--target-dim") || !strings.Contains(text, "init creates local config") || !strings.Contains(text, "cidx version [--json]") {
 		t.Fatalf("help=%q", text)
+	}
+}
+
+func TestVersionJSONIsBuildInfoOnly(t *testing.T) {
+	var output strings.Builder
+	if err := Run(context.Background(), []string{"version", "--json"}, Dependencies{Stdout: &output, Stderr: io.Discard}); err != nil {
+		t.Fatal(err)
+	}
+	var got struct {
+		Version  string `json:"version"`
+		Commit   string `json:"commit"`
+		TargetOS string `json:"target_os"`
+		Runtime  struct {
+			FTS5Available       bool `json:"fts5_available"`
+			WALAvailable        bool `json:"wal_available"`
+			ProductionSchemaMax int  `json:"production_schema_maximum"`
+		} `json:"runtime"`
+	}
+	if err := json.Unmarshal([]byte(output.String()), &got); err != nil {
+		t.Fatal(err)
+	}
+	if got.Version == "" || got.Commit == "" || got.TargetOS == "" || !got.Runtime.FTS5Available || !got.Runtime.WALAvailable || got.Runtime.ProductionSchemaMax < 1 {
+		t.Fatalf("incomplete version JSON: %s", output.String())
 	}
 }
 
