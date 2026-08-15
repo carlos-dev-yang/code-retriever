@@ -125,6 +125,26 @@ archive_name=$(basename -- "$archive")
 cp "$archive" "$work/$archive_name"
 cp "$checksums" "$work/checksums.txt"
 (cd "$work" && shasum -a 256 -c checksums.txt)
+python3 - "$work/$archive_name" <<'PY'
+import re,tarfile,sys
+with tarfile.open(sys.argv[1], "r:gz") as bundle:
+    members=bundle.getmembers()
+    if not members:
+        raise SystemExit("archive has no members")
+    for member in members:
+        if (member.uid, member.gid, member.uname, member.gname, member.mtime) != (0, 0, "root", "root", 0):
+            raise SystemExit(f"non-neutral archive metadata: {member.name}")
+    by_name={member.name:member for member in members}
+    if by_name.get("cidx") is None or by_name["cidx"].mode & 0o777 != 0o755:
+        raise SystemExit("archive did not preserve cidx executable mode")
+    if by_name.get("LICENSE") is None or by_name["LICENSE"].mode & 0o777 != 0o644:
+        raise SystemExit("archive did not preserve LICENSE mode")
+    for name in ("linkage.txt", "binary-format.txt", "go-version-m.txt"):
+        text=bundle.extractfile(name).read().decode()
+        first=text.splitlines()[0] if text else ""
+        if "/.package." in text or not re.match(r"^cidx(?: \([^\r\n]*\))?:", first):
+            raise SystemExit(f"archive diagnostic is not portable: {name}")
+PY
 cp "$work/$archive_name" "$work/corrupt.tar.gz"
 printf 'corrupt' >>"$work/corrupt.tar.gz"
 if (cd "$work" && shasum -a 256 -c <(sed 's|cidx_.*\.tar\.gz|corrupt.tar.gz|' checksums.txt)); then

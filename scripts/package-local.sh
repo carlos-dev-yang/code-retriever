@@ -82,12 +82,12 @@ need(r.get("fts5_available") is True and r.get("wal_available") is True, "runtim
 need(r.get("registered_languages") == ["go","typescript","tsx"], "runtime grammar registry mismatch")
 need(r.get("production_schema_minimum") == 1 and r.get("production_schema_maximum") == v.get("production_schema_version"), "invalid schema range")
 PY
-otool -L "$binary" >"$stage/linkage.txt"
+otool -L "$binary" | awk -v target="$binary" 'NR == 1 && index($0, target) == 1 { $0 = "cidx" substr($0, length(target) + 1) } { print }' >"$stage/linkage.txt"
 [ -s "$stage/linkage.txt" ] || fail 'Mach-O linkage inspection produced no evidence'
-file "$binary" >"$stage/binary-format.txt"
+file "$binary" | awk -v target="$binary" 'NR == 1 && index($0, target) == 1 { $0 = "cidx" substr($0, length(target) + 1) } { print }' >"$stage/binary-format.txt"
 lipo -archs "$binary" >"$stage/binary-architectures.txt"
 grep -qw arm64 "$stage/binary-architectures.txt" || fail 'built binary is not arm64'
-go version -m "$binary" >"$stage/go-version-m.txt"
+go version -m "$binary" | awk -v target="$binary" 'NR == 1 && index($0, target) == 1 { $0 = "cidx" substr($0, length(target) + 1) } { print }' >"$stage/go-version-m.txt"
 awk '$1 == "dep" { print $2 "\t" $3 }' "$stage/go-version-m.txt" | sort -u >"$stage/linked-modules.tsv"
 if ! diff -u "$expected" "$stage/linked-modules.tsv"; then
   fail 'built binary module metadata differs from packaging allowlist'
@@ -106,7 +106,42 @@ PY
 mkdir -p "$stage/docs"
 cp docs/install.md docs/hosts.md docs/hooks.md docs/upgrade.md "$stage/docs/"
 
-tar -czf "$archive" -C "$stage" cidx LICENSE THIRD_PARTY_NOTICES THIRD_PARTY_LICENSES build-info.json build-manifest.json linkage.txt binary-format.txt binary-architectures.txt go-version-m.txt linked-modules.tsv docs
+python3 - "$stage" <<'PY'
+import pathlib,re,sys
+stage=pathlib.Path(sys.argv[1])
+for name in ("linkage.txt", "binary-format.txt", "go-version-m.txt"):
+    text=(stage/name).read_text()
+    if str(stage) in text or "/.package." in text:
+        raise SystemExit(f"staging path leaked into {name}")
+    first=text.splitlines()[0] if text else ""
+    if not re.match(r"^cidx(?: \([^\r\n]*\))?:", first):
+        raise SystemExit(f"diagnostic target is not normalized in {name}")
+PY
+# BSD tar has no --mtime. Normalize every staged member before archiving while
+# leaving the copied file modes (notably cidx and LICENSE) untouched.
+TZ=UTC find "$stage" -exec touch -h -t 197001010000 {} +
+tar -czf "$archive" --uid 0 --gid 0 --uname root --gname root -C "$stage" cidx LICENSE THIRD_PARTY_NOTICES THIRD_PARTY_LICENSES build-info.json build-manifest.json linkage.txt binary-format.txt binary-architectures.txt go-version-m.txt linked-modules.tsv docs
+python3 - "$archive" <<'PY'
+import re,tarfile,sys
+archive=sys.argv[1]
+with tarfile.open(archive, "r:gz") as bundle:
+    members=bundle.getmembers()
+    if not members:
+        raise SystemExit("archive has no members")
+    for member in members:
+        if (member.uid, member.gid, member.uname, member.gname, member.mtime) != (0, 0, "root", "root", 0):
+            raise SystemExit(f"non-neutral archive metadata: {member.name}")
+    by_name={member.name:member for member in members}
+    if by_name.get("cidx") is None or by_name["cidx"].mode & 0o777 != 0o755:
+        raise SystemExit("archive did not preserve cidx executable mode")
+    if by_name.get("LICENSE") is None or by_name["LICENSE"].mode & 0o777 != 0o644:
+        raise SystemExit("archive did not preserve LICENSE mode")
+    for name in ("linkage.txt", "binary-format.txt", "go-version-m.txt"):
+        text=bundle.extractfile(name).read().decode()
+        first=text.splitlines()[0] if text else ""
+        if "/.package." in text or not re.match(r"^cidx(?: \([^\r\n]*\))?:", first):
+            raise SystemExit(f"archive diagnostic is not portable: {name}")
+PY
 (cd "$dist" && shasum -a 256 "$(basename "$archive")") >"$dist/checksums.txt"
 printf 'created %s\n' "$archive"
 printf 'checksum manifest: %s\n' "$dist/checksums.txt"
