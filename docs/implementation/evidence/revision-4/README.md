@@ -1,6 +1,6 @@
 # Revision 4 Reconciliation and Evidence Supersession
 
-- State: Phase 00, Phase 02, Phase 05, Phase 08, Phase 10, Phase 11, the Phase 12 corpus-independent boundary, and Phase 13 are accepted; official Phase 12 remains externally blocked; Phase 14 is next
+- State: Phase 00, Phase 02, Phase 05, Phase 08, Phase 10, Phase 11, the Phase 12 corpus-independent boundary, Phase 13, and the Phase 14 corpus-independent implementation checkpoint are accepted; official Phase 12 and Phase 14 artifact/release-candidate evidence remain externally blocked
 - Date: 2026-08-15
 - Canonical authority: [`local-code-search-mcp-v1-design-r4.md`](../../../../local-code-search-mcp-v1-design-r4.md)
 - Historical checkpoint: `b3a6cb1`
@@ -28,6 +28,7 @@ Revision 4 changes the public config/profile vocabulary and fixed operational re
 | 11 | vector scan, collapse, RRF, fallback, body packaging | query provider policy | [shared request-policy/fallback evidence](../phase-11/revision-4.md) complete |
 | 12 | stage metrics, arm orchestration, artifact isolation | `serving_dimensions`, retry-attempt usage, and R4 request/profile controls | [corpus-independent accounting/migration evidence](../phase-12/revision-4.md) accepted after review/remediation and one boundary validation; official evidence remains externally gated |
 | 13 | CLI/MCP adapters, four tools, stdio concurrency, status/reindex | `init`, config names/defaults, request policy, read-span line cap | [provider-free init and CLI/MCP evidence](../phase-13/revision-4.md) accepted after review/remediation and one main boundary validation |
+| 14 | historical packaging/host plan only | build/runtime reporting, local archive/verifier, exact notices, Codex project setup, and release-candidate evidence | [corpus-independent packaging/runtime/host implementation](../phase-14/revision-4.md) accepted at `30748c1`; archive/host transcript and official release-candidate evidence remain blocked |
 
 Phases 03/04 retain their AST-boundary and oversize-segment evidence, Phase 06 retains its free FTS evidence, and Phase 09 retains its transform/codec evidence. Their connections to the new `ResolvedConfig` and fingerprints are checked at the affected owning phase boundaries rather than reopening unchanged algorithms.
 
@@ -42,5 +43,6 @@ Phases 03/04 retain their AST-boundary and oversize-segment evidence, Phase 06 r
 7. Reconcile Phase 11 query embedding policy.
 8. Revalidate Phase 12 corpus-independent adapter while leaving official promotion blocked.
 9. Complete and accept Phase 13 in its own commit.
+10. Implement and accept the corpus-independent Phase 14 packaging/runtime/host surface at `30748c1`, while leaving artifact and promotion evidence blocked.
 
-The external Phase 07/12 corpus gate does not block corpus-independent Phase 13 completion. Official Phase 12 `core_retrieval` plus Phase 13/14 assistant and host evidence remains required before Phase 14 can establish `release_candidate` scope.
+The external Phase 07/12 corpus gate does not block corpus-independent Phase 13 or Phase 14 implementation. An owner-selected project license is still required before the local archive/verifier can run. Official Phase 12 `core_retrieval` plus Phase 13/14 assistant and host evidence remains required before Phase 14 can establish `release_candidate` scope.

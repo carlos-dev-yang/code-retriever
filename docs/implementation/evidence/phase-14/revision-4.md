@@ -1,11 +1,13 @@
 # Phase 14 Revision 4 Corpus-Independent Working Evidence
 
-- Status: `blocked`; the corpus-independent implementation handoff passed
+- Status: `accepted implementation checkpoint`; Phase 14 remains `blocked` at
+  the artifact and official release-candidate boundaries. The handoff passed
   independent Terra review after remediation and the one main non-artifact
   commit-boundary validation. Artifact generation awaits an owner-selected
   cidx project license.
 - Owner: `/root/r4_phase14_executor` (terra/high).
 - Entry commit: `3030ddd`.
+- Implementation commit: `30748c1`.
 - External actions: **NOT RUN**. No corpus selection/binding, provider/API-key
   request, paid operation, model or assistant invocation, host-config mutation,
   or release publication occurred.
@@ -80,8 +82,7 @@ transcript, or package/host success is claimed.
 ## Checks not run
 
 - Package and verifier end-to-end execution: blocked by the missing owner
-  project `LICENSE`; the source tree is also intentionally in implementation
-  state until this phase is committed.
+  project `LICENSE`.
 - Actual Codex CLI project-config parse under the packaged binary: part of the
   blocked verifier; no user/home config was read or changed by this work.
 - Any non-darwin/arm64 target, code signing, notarization, model/assistant
@@ -90,8 +91,8 @@ transcript, or package/host success is claimed.
 
 ## Remaining blocker and next action
 
-The implementation checkpoint is ready for its separate provenance commit.
-Public package generation then needs an explicit owner project-license choice.
+The implementation checkpoint is committed at `30748c1`. Public package
+generation needs an explicit owner project-license choice.
 Official release-candidate scope also remains blocked on user-selected corpus/labels/bindings, a compatible Phase 12
 `core_retrieval` result, frozen assistant controls/tasks with all three arms,
 and separate paid-query approval. This record is not a promotion result and
