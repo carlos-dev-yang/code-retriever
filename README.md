@@ -2,7 +2,7 @@
 
 cidx is a lightweight local code-search MCP server under active v1 implementation. It combines free local AST/FTS indexing with optional, explicitly authorized Voyage AI embeddings and keeps SQLite as the persistent authority.
 
-The Revision 4 core through Phase 13 and the Phase 14 corpus-independent implementation checkpoint are accepted. The owner selected Apache-2.0 on 2026-08-15, so Phase 14 artifact generation is in progress; official corpus and release-candidate evidence remains separately gated. Consult the status ledger for the exact checkpoint.
+The Revision 4 core through Phase 13 and the Phase 14 corpus-independent implementation checkpoint are accepted. The local darwin/arm64 package and operational checkpoint were accepted from clean provenance `a5b2baef9a18e68d6c8b5d4fb62dc2e03727edb4`; Phase 14 remains blocked only for its official evaluation and release-candidate scope. Consult the status ledger for the exact boundary.
 
 ## Product boundary
 
@@ -19,9 +19,10 @@ The local darwin/arm64 package builder and offline verifier are documented in
 composition, and fail-closed upgrade guidance live in
 [hosts](docs/hosts.md), [hooks](docs/hooks.md), and [upgrade](docs/upgrade.md).
 The owner selected Apache-2.0 and its unmodified canonical text is in
-[`LICENSE`](LICENSE). No archive is currently claimed: the license must first
-be committed, then the local package and offline verifier must run from that
-clean commit.
+[`LICENSE`](LICENSE). The accepted checkpoint covers only the locally verified
+darwin/arm64 archive and project-scoped Codex configuration read; other
+platforms and hosts, code signing, and notarization remain unsupported or
+unverified. It does not establish `release_candidate` status.
 
 ## Start here
 

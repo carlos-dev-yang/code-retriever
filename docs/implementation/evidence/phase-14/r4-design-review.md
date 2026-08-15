@@ -3,9 +3,10 @@
 - Review target: clean implementation commit `30748c1`.
 - Reviewer: `/root/r4_final_design_review` (independent terra/high).
 - Scope: canonical Revision 4 implementation and corpus-independent phase
-  boundaries. Package artifacts, assistant-use runs, and promotion evidence
-  are explicitly outside the accepted evidence because their prerequisites do
-  not exist yet.
+  boundaries at `30748c1`; a later independent Terra artifact re-review covers
+  the local darwin/arm64 package checkpoint from clean provenance
+  `a5b2baef9a18e68d6c8b5d4fb62dc2e03727edb4`. Assistant-use, official
+  evaluation, and promotion evidence remain outside the accepted boundary.
 - Result: **no P1 or P2 implementation findings**. One P3 evidence-ledger
   staleness finding was corrected by the commit that records this review.
 
@@ -44,14 +45,26 @@ working evidence still described its implementation commit as pending. Those
 records now identify `30748c1` as the accepted corpus-independent Phase 14
 checkpoint. No implementation change was required.
 
+## Local artifact re-review addendum
+
+The later package and offline verifier run produced an accepted local
+darwin/arm64 operational checkpoint from clean provenance
+`a5b2baef9a18e68d6c8b5d4fb62dc2e03727edb4`. The independent Terra artifact
+re-review reported no findings. It covers the checksum and corruption proof,
+neutral archive metadata and diagnostic-path remediation, embedded
+build-manifest/runtime consistency, direct provider-free four-tool MCP smoke,
+negative root/schema/config cases, and an isolated Codex app-server
+project-configuration read. The Codex check did not invoke a model or
+assistant, and no corpus, provider, API key, paid action, or host-config
+mutation occurred.
+
 ## Evidence not established
 
-This review does not establish a package artifact, another platform or host,
+This review establishes only the local darwin/arm64 package/operational
+checkpoint. It does not establish another platform or host,
 signing/notarization, assistant usefulness, `core_retrieval`, or
 `release_candidate` status. The exact remaining prerequisites are:
 
-- an owner-selected cidx project `LICENSE`, followed by archive/checksum and
-  unpacked offline verifier evidence;
 - user-selected corpus manifests/bindings, reviewed labels, and compatible raw
   document coverage;
 - an immutable Phase 12 `scope=core_retrieval` result;
@@ -59,6 +72,6 @@ signing/notarization, assistant usefulness, `core_retrieval`, or
   comparison arms; and
 - separate approval for paid hybrid-query embedding.
 
-Once the license exists, only the package-artifact and host-parse outputs need
-an artifact-focused recheck before updating this evidence. Official evaluation
-and release-candidate work must still follow its separate approval gates.
+Official evaluation and release-candidate work must follow those separate
+approval gates. The local accepted checkpoint does not support non-darwin
+targets, code signing, notarization, or other hosts.

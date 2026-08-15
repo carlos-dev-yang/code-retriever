@@ -1,6 +1,6 @@
 # 14. Packaging and MCP Host Integration
 
-- Status: `in_progress` — corpus-independent implementation accepted; the owner selected Apache-2.0 on 2026-08-15, and artifact generation begins after that root license is committed. Official release-candidate evidence remains externally gated.
+- Status: `blocked` — local darwin/arm64 package and operational checkpoint accepted from clean provenance `a5b2baef9a18e68d6c8b5d4fb62dc2e03727edb4`; official release-candidate evidence remains externally gated.
 - Prerequisite: `13-cli-and-mcp`
 - Followed by: v1 release-candidate validation
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 1–3 and 7–10
@@ -31,6 +31,18 @@ The deployment must preserve:
 - Production serve does not open the lab DB.
 
 Release-candidate evidence must also measure cidx's marginal usefulness beside an assistant's existing file, symbol, compiler, and test tools. It does not treat a cidx-only assistant or forced cidx invocation as the product.
+
+## Local accepted checkpoint
+
+The local darwin/arm64 target was packaged and verified from clean provenance
+`a5b2baef9a18e68d6c8b5d4fb62dc2e03727edb4`. The ignored archive, checksum
+manifest, embedded build manifest, and retained verifier transcripts are
+identified in [Phase 14 Revision 4 evidence](evidence/phase-14/revision-4.md).
+The accepted run covers checksum and deliberate-corruption rejection, neutral
+archive metadata and diagnostic paths, runtime capabilities, provider-free
+four-tool MCP smoke, and a project-scoped Codex configuration read only. It
+does not verify another OS/architecture or host, code signing, notarization,
+assistant usefulness, official retrieval evaluation, or `release_candidate`.
 
 ## 2. Scope and Non-goals
 
@@ -314,5 +326,5 @@ If operational feedback establishes a real requirement for permanent model pinni
 | No speculative vector import format | Avoid unvalidated integrity/security compatibility | A separate ADR and provenance design are approved |
 | Evaluate marginal assistant value | cidx is an auxiliary tool, so existing tools remain the product baseline and cidx use must not be forced | The product role changes |
 | Runtime checks use disposable local state | FTS5/WAL and all embedded grammars must fail before repository mutation or production migration, without downloads or repairs | A future runtime changes the bundled dependency boundary |
-| Owner selected Apache-2.0; local package requires root license | The unmodified root `LICENSE` supplies cidx's terms while third-party notices remain separate | License is committed, package/verifier evidence is recorded, or the owner changes the project terms |
+| Owner selected Apache-2.0; root license and local package checkpoint recorded | The unmodified root `LICENSE` supplies cidx's terms while third-party notices remain separate; local verification is limited to darwin/arm64 | Another release target, distribution policy, or owner terms require review |
 | CLI-only provenance report | Build facts are needed for package verification, while Phase 13's MCP `serverInfo` and four-tool surface remain frozen | The MCP version contract is separately revised |
