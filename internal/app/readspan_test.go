@@ -41,6 +41,42 @@ func TestReadSpanHashesAndReturnsWholeRange(t *testing.T) {
 	}
 }
 
+func TestReadSpanHasNoHistoricalLineCap(t *testing.T) {
+	ctx, root := context.Background(), t.TempDir()
+	runGit(t, root, "init")
+	mustWriteFile(t, filepath.Join(root, ".cidx", "config.json"), "{}")
+	var source strings.Builder
+	for line := 0; line < 500; line++ {
+		source.WriteString("x\n")
+	}
+	body := []byte(source.String())
+	mustWriteFile(t, filepath.Join(root, "a.go"), string(body))
+	runGit(t, root, "add", "a.go")
+	service := ReadSpanService{Root: root, Resolved: materializeResolved(t)}
+	result, err := service.Read(ctx, ReadSpanRequest{Path: "a.go", StartLine: 1, EndLine: 500, ExpectedSHA256: fmt.Sprintf("%x", sha256.Sum256(body))})
+	if err != nil || string(result.Body) != string(body) {
+		t.Fatalf("result bytes=%d err=%v", len(result.Body), err)
+	}
+}
+
+func TestReadSpanOversizeReturnsTypedErrorWithoutPartialBody(t *testing.T) {
+	ctx, root := context.Background(), t.TempDir()
+	runGit(t, root, "init")
+	mustWriteFile(t, filepath.Join(root, ".cidx", "config.json"), "{}")
+	body := []byte(strings.Repeat("x", 1025) + "\n")
+	mustWriteFile(t, filepath.Join(root, "a.go"), string(body))
+	runGit(t, root, "add", "a.go")
+	service := ReadSpanService{Root: root, Resolved: materializeResolved(t)}
+	response, err := service.Read(ctx, ReadSpanRequest{Path: "a.go", StartLine: 1, EndLine: 1, ExpectedSHA256: fmt.Sprintf("%x", sha256.Sum256(body))})
+	value, ok := err.(ReadSpanError)
+	if !ok || value.Code != ReadSpanTooLarge || value.MaxBytes != service.Resolved.MCP.HardMaxInlineBytes {
+		t.Fatalf("error=%#v", err)
+	}
+	if len(response.Body) != 0 {
+		t.Fatalf("oversize response included partial body: %q", response.Body)
+	}
+}
+
 func TestReadSpanRestrictsEligibleUTF8Source(t *testing.T) {
 	ctx, root := context.Background(), t.TempDir()
 	runGit(t, root, "init")

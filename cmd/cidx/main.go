@@ -21,7 +21,7 @@ func main() {
 		return
 	}
 	fmt.Fprintln(os.Stderr, err)
-	if errors.Is(err, cli.ErrInitDefaultsPending) || errors.Is(err, flag.ErrHelp) {
+	if errors.Is(err, flag.ErrHelp) {
 		os.Exit(2)
 	}
 	os.Exit(1)

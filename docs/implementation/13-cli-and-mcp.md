@@ -1,6 +1,6 @@
 # 13. CLI and MCP Surface Integration
 
-- Status: `planned` — the mixed pre-R4 checkpoint exists; complete after the affected Revision 4 core phases are reconciled.
+- Status: `done` — the narrow Revision 4 initialization and CLI/MCP reconciliation is accepted in [Phase 13 Revision 4 evidence](evidence/phase-13/revision-4.md).
 - Prerequisites: reconciled `05-worktree-index-pipeline`, `10-embedding-orchestration-and-reconciliation`, and `11-vector-and-hybrid-search`; completed `06-fts-search`; Phase 12 corpus-independent core/API
 - Followed by: `14-packaging-and-host-integration`
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 3, 4, 8, and 10
@@ -17,6 +17,32 @@ Read the [implementation index](README.md), [execution guide](EXECUTION-GUIDE.md
 - Re-check that public/lab dependency graphs remain separate, query f32 is nonpersistent, and production vectors use the current profile's cidx-owned `binary` or `int8` codec.
 - Stop if a tool schema, max-byte semantics, error code, root/freshness boundary, or paid-query disclosure is unresolved. Do not expand the public contract implicitly.
 - Before pausing, update schemas/examples, this phase's evidence and decision log, then update [STATUS.md](STATUS.md) with validated transport behavior, open risks, and the exact next action.
+
+## Revision 4 initialization checkpoint
+
+The narrow provider-free initialization reconciliation entered from `6797544`
+is implemented, independently reviewed, validated at the one main commit
+boundary, and accepted in [Phase 13 Revision 4 evidence](evidence/phase-13/revision-4.md).
+
+- `root.GitRoot` discovers the containing Git worktree without requiring
+  `.cidx/config.json`; `root.Repository` retains its configured explicit-root
+  behavior for normal serving.
+- `cidx init --serving-dim <256|512|1024> [--codec <binary|int8>]` uses the
+  complete `config.DefaultRaw` factory and resolves it before any write. It
+  stages owner-only configuration under an exclusive temporary name, opens and
+  closes production SQLite through `store.OpenProduction`, then atomically
+  publishes `.cidx/config.json` without replacement. That hard link is the
+  commit point; redundant staging-link cleanup is best-effort.
+- Initialization has no provider client, key read, network, lab, corpus,
+  index, or embedding action. Existing configuration or configless production
+  DB state is rejected before mutation; a failed staged attempt removes only
+  its own temporary and production artifacts so a retry can succeed. It claims
+  the initially absent DB exclusively and rolls it back only when that exact
+  file identity remains current, preserving externally replaced state.
+- The existing MCP registry, search/ranking/body-packaging core, index/store
+  algorithms, and read-span implementation remain frozen; the added
+  read-span coverage only re-proves line-cap-free complete byte-bounded
+  behavior.
 
 ## 1. Objective
 
@@ -341,3 +367,4 @@ Phase 14 receives one `cidx` binary and public help, the `cidx serve --root <rep
 | Concurrent dispatcher | Long management calls must not block search at application level | Core concurrency invariant |
 | stdout is protocol-only | Prevent stdio frame corruption | Transport changes |
 | Do not estimate token budgets | Caller owns tokenizer and host-context composition | Host provides a standard token contract |
+| Init discovers Git before config | A new repository has no config yet, while normal serving still needs a configured worktree root | Repository ownership becomes multi-root |

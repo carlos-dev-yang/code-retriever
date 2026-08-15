@@ -38,6 +38,89 @@ func TestStableCommandsRejectPositionalArguments(t *testing.T) {
 	}
 }
 
+func TestInitUsesServingDimensionAndDefaultCodecThroughInitializer(t *testing.T) {
+	var calls []struct {
+		root  string
+		dim   int
+		codec string
+	}
+	deps := Dependencies{
+		Stdout: io.Discard,
+		Stderr: io.Discard,
+		Initialize: func(_ context.Context, root string, dimension int, codec string) error {
+			calls = append(calls, struct {
+				root  string
+				dim   int
+				codec string
+			}{root, dimension, codec})
+			return nil
+		},
+	}
+	if err := Run(context.Background(), []string{"init", "--serving-dim", "256"}, deps); err != nil {
+		t.Fatal(err)
+	}
+	if len(calls) != 1 || calls[0].root != "." || calls[0].dim != 256 || calls[0].codec != config.StorageCodecBinary {
+		t.Fatalf("initializer calls=%#v", calls)
+	}
+	if err := Run(context.Background(), []string{"init", "--serving-dim", "1024", "--codec", config.StorageCodecInt8}, deps); err != nil {
+		t.Fatal(err)
+	}
+	if len(calls) != 2 || calls[1].dim != 1024 || calls[1].codec != config.StorageCodecInt8 {
+		t.Fatalf("initializer calls=%#v", calls)
+	}
+}
+
+func TestInitRejectsInvalidAndLegacyDimensionFlags(t *testing.T) {
+	called := false
+	deps := Dependencies{Stdout: io.Discard, Stderr: io.Discard, Initialize: func(context.Context, string, int, string) error {
+		called = true
+		return nil
+	}}
+	for _, args := range [][]string{
+		{"init"},
+		{"init", "--serving-dim", "255"},
+		{"init", "--serving-dim", "256", "--codec", "f32"},
+		{"init", "--target-dim", "256"},
+	} {
+		if err := Run(context.Background(), args, deps); err == nil {
+			t.Fatalf("args=%v unexpectedly succeeded", args)
+		}
+	}
+	if called {
+		t.Fatal("initializer called for invalid init flags")
+	}
+}
+
+func TestInitCreatesStateAtGitRootFromNestedDirectory(t *testing.T) {
+	repository := t.TempDir()
+	git(t, repository, "init")
+	nested := filepath.Join(repository, "nested")
+	if err := os.MkdirAll(nested, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(nested)
+	if err := Run(context.Background(), []string{"init", "--serving-dim", "256"}, Dependencies{Stdout: io.Discard, Stderr: io.Discard}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(repository, ".cidx", "config.json")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(repository, ".cidx", "index.db")); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestUsageAdvertisesServingDimensionAndLocalInit(t *testing.T) {
+	var output strings.Builder
+	if err := Run(context.Background(), []string{"help"}, Dependencies{Stdout: &output, Stderr: io.Discard}); err != nil {
+		t.Fatal(err)
+	}
+	text := output.String()
+	if !strings.Contains(text, "--serving-dim") || strings.Contains(text, "--target-dim") || !strings.Contains(text, "init creates local config") {
+		t.Fatalf("help=%q", text)
+	}
+}
+
 func TestStableCLIJSONUsesSnakeCaseFields(t *testing.T) {
 	for _, fixture := range []struct {
 		value     any

@@ -5,7 +5,6 @@ package cli
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -25,16 +24,18 @@ type DevRunner interface {
 }
 type Dependencies struct {
 	Open           func(context.Context, string) (*app.Application, error)
+	Initialize     func(context.Context, string, int, string) error
 	Dev            DevRunner
 	Stdin          io.Reader
 	Stdout, Stderr io.Writer
 }
 
-var ErrInitDefaultsPending = errors.New("INIT_DEFAULTS_PENDING_DECISION")
-
 func Run(ctx context.Context, args []string, deps Dependencies) error {
 	if deps.Open == nil {
 		deps.Open = app.Open
+	}
+	if deps.Initialize == nil {
+		deps.Initialize = app.Initialize
 	}
 	if deps.Stdin == nil {
 		deps.Stdin = os.Stdin
@@ -51,7 +52,7 @@ func Run(ctx context.Context, args []string, deps Dependencies) error {
 	}
 	switch args[0] {
 	case "init":
-		return initCommand(args[1:], deps.Stderr)
+		return initCommand(ctx, args[1:], deps)
 	case "serve":
 		return serve(ctx, args[1:], deps)
 	case "status":
@@ -73,10 +74,10 @@ func Run(ctx context.Context, args []string, deps Dependencies) error {
 		return fmt.Errorf("unknown command %q", args[0])
 	}
 }
-func initCommand(args []string, stderr io.Writer) error {
+func initCommand(ctx context.Context, args []string, deps Dependencies) error {
 	flags := flag.NewFlagSet("init", flag.ContinueOnError)
-	flags.SetOutput(stderr)
-	target := flags.Int("target-dim", 0, "required target dimension (256, 512, or 1024)")
+	flags.SetOutput(deps.Stderr)
+	serving := flags.Int("serving-dim", 0, "required serving dimension (256, 512, or 1024)")
 	codec := flags.String("codec", "binary", "binary or int8")
 	if err := flags.Parse(args); err != nil {
 		return err
@@ -84,12 +85,10 @@ func initCommand(args []string, stderr io.Writer) error {
 	if flags.NArg() != 0 {
 		return fmt.Errorf("init accepts no positional arguments")
 	}
-	if _, err := config.DefaultRaw(*target, *codec); err != nil {
+	if _, err := config.DefaultRaw(*serving, *codec); err != nil {
 		return err
 	}
-	// Filesystem initialization is deliberately Phase 13 work. This call only
-	// validates the final complete default config constructed by Phase 02.
-	return ErrInitDefaultsPending
+	return deps.Initialize(ctx, ".", *serving, *codec)
 }
 func serve(ctx context.Context, args []string, deps Dependencies) error {
 	flags := flag.NewFlagSet("serve", flag.ContinueOnError)
@@ -203,5 +202,5 @@ func embedCommand(ctx context.Context, args []string, deps Dependencies) error {
 	return json.NewEncoder(deps.Stdout).Encode(result)
 }
 func usage(writer io.Writer) {
-	_, _ = fmt.Fprint(writer, "cidx init --target-dim <256|512|1024> [--codec <binary|int8>]\ncidx status [--json]\ncidx index [--dry-run] [--reason manual|commit]\ncidx embed [--dry-run|--apply] [--retry-failed]\ncidx serve --root <repository-root>\ncidx dev <unstable development command>\n\nDocument embedding and hybrid search may send code or query text to Voyage AI only through their configured explicit paid guards.\n")
+	_, _ = fmt.Fprint(writer, "cidx init --serving-dim <256|512|1024> [--codec <binary|int8>]\ncidx status [--json]\ncidx index [--dry-run] [--reason manual|commit]\ncidx embed [--dry-run|--apply] [--retry-failed]\ncidx serve --root <repository-root>\ncidx dev <unstable development command>\n\ninit creates local config and SQLite state only; it never calls Voyage AI. Document embedding and hybrid search may send code or query text to Voyage AI only through their configured explicit paid guards.\n")
 }

@@ -3,6 +3,11 @@
 - State: historical mixed pre-R4 checkpoint in `b3a6cb1`; implementation is not accepted as Revision 4 complete. The separately owned local-only retrieval-evaluation adapter is implemented.
 - Date: 2026-08-15.
 
+The narrow Revision 4 implementation checkpoint from `6797544` is recorded
+separately in [revision-4.md](revision-4.md). It remains `in_progress` pending
+independent review and one main commit-boundary validation; this historical
+record is preserved unchanged as evidence of the earlier mixed checkpoint.
+
 ## Implemented and validated, except `init` defaults
 
 - The production bootstrap opens only the configured root and production SQLite store. It conditionally creates a bounded Voyage client from `VOYAGE_API_KEY`; FTS startup needs neither key nor network. The serve/search/index runtime path imports no lab package.

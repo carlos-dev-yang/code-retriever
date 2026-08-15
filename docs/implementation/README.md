@@ -1,6 +1,6 @@
 # cidx v1 Implementation Plan Index
 
-- Status: Revision 4 Phase 12 corpus-independent boundary accepted; official evaluation remains blocked; Phase 13 is next
+- Status: Revision 4 Phase 13 CLI/MCP reconciliation accepted; Phase 14 is next; official Phase 12 evaluation remains blocked
 - Canonical design: [Local Code Search MCP v1 Final Target Contract — Revision 4](../../local-code-search-mcp-v1-design-r4.md)
 - Earlier designs: [original](../../local-code-search-mcp-v1-design.md), [r1](../../local-code-search-mcp-v1-design-r1.md), [r2](../../local-code-search-mcp-v1-design-r2.md), [r3](../../local-code-search-mcp-v1-design-r3.md)
 - Execution protocol: [Implementation Execution and Context-Recovery Guide](EXECUTION-GUIDE.md)
@@ -34,6 +34,10 @@ isolated lab migration are accepted in [its Revision 4 evidence](evidence/phase-
 Retrieval algorithms and normative evaluation schemas remain frozen. Official
 corpus evidence and promotion remain blocked, but Phase 13 is eligible without
 a corpus, provider, paid, or metric run.
+
+Phase 13's narrow provider-free initialization reconciliation is accepted in
+[its Revision 4 evidence](evidence/phase-13/revision-4.md). The existing
+MCP/search/index/store core remains frozen and Phase 14 is now eligible.
 
 cidx is a **local auxiliary search MCP** used alongside file readers, symbol tools, compilers, and tests. It is not a comprehensive code-knowledge system. The plan is bounded by free local AST/FTS indexing, explicit paid embeddings, a small MCP surface, caller-controlled inline source volume, and one serving-vector profile per repository.
 
@@ -69,7 +73,7 @@ Allowed states are `planned | in_progress | blocked | done`. A phase becomes `do
 | 10 | done | [Embedding orchestration and reconciliation](10-embedding-orchestration-and-reconciliation.md) | reconciled 05, 08, existing 09 | Byte-bounded concurrent document requests, shared retry execution, and profile reconciliation | [Accepted R4 evidence](evidence/phase-10/revision-4.md) |
 | 11 | done | [Vector and hybrid search](11-vector-and-hybrid-search.md) | 06, 09, reconciled 10 | Shared query request/retry policy, codec scan, RRF, fallback, and body packaging | [Accepted R4 evidence](evidence/phase-11/revision-4.md) |
 | 12 | blocked | [Retrieval evaluation](12-retrieval-evaluation.md) | 07, reconciled 08, 09, 11 | Accepted Revision 4 corpus-independent adapter; official corpus evaluation and promotion remain externally gated | [Accepted R4 core evidence](evidence/phase-12/revision-4.md) |
-| 13 | planned | [CLI and MCP](13-cli-and-mcp.md) | reconciled 05, 10, 11 and Phase 12 corpus-independent core | Complete Revision 4 CLI defaults, four MCP tools, and concurrent dispatch | [Historical checkpoint](evidence/phase-13/README.md) |
+| 13 | done | [CLI and MCP](13-cli-and-mcp.md) | reconciled 05, 10, 11 and Phase 12 corpus-independent core | Provider-free Revision 4 init plus revalidated four-tool MCP and concurrent dispatch | [Accepted R4 evidence](evidence/phase-13/revision-4.md) |
 | 14 | planned | [Packaging and host integration](14-packaging-and-host-integration.md) | 13 | Distributable binary, project-scoped host examples, paired marginal assistant-use evidence, and scoped release-candidate result | [Evidence](14-packaging-and-host-integration.md#11-completion-evidence) |
 
 `STATUS.md` is the operational ledger. Keep this summary table synchronized with it whenever a phase changes state.
