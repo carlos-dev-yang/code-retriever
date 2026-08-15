@@ -17,6 +17,14 @@ type vectorChunk struct {
 }
 
 func vectorRanks(ctx context.Context, query []float32, snapshot store.HybridSearchSnapshot, candidateK int) (map[int64]vectorChunk, error) {
+	scores, err := vectorScores(ctx, query, snapshot)
+	if err != nil {
+		return nil, err
+	}
+	return collapseVectorScores(ctx, snapshot, scores, candidateK)
+}
+
+func vectorScores(ctx context.Context, query []float32, snapshot store.HybridSearchSnapshot) (map[string]float64, error) {
 	keys := make([]string, 0, len(snapshot.Vectors))
 	for key := range snapshot.Vectors {
 		keys = append(keys, key)
@@ -43,6 +51,13 @@ func vectorRanks(ctx context.Context, query []float32, snapshot store.HybridSear
 		}
 		scores[key] = score
 	}
+	return scores, nil
+}
+
+// collapseVectorScores is shared by production stored-codec scanning and the
+// development target-f32 reference. It preserves the Phase 11 parent-collapse
+// and deterministic tie rules for both representations.
+func collapseVectorScores(ctx context.Context, snapshot store.HybridSearchSnapshot, scores map[string]float64, candidateK int) (map[int64]vectorChunk, error) {
 	best := map[int64]vectorChunk{}
 	for _, segment := range snapshot.Segments {
 		if err := ctx.Err(); err != nil {

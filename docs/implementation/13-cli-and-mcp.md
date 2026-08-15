@@ -1,9 +1,9 @@
 # 13. CLI and MCP Surface Integration
 
-- Status: `planned`
+- Status: `blocked` — implementation paused by user; reconcile Revision 4 before resuming.
 - Prerequisites: `05-worktree-index-pipeline`, `06-fts-search`, `10-embedding-orchestration-and-reconciliation`, `11-vector-and-hybrid-search`, `12-retrieval-evaluation`
 - Followed by: `14-packaging-and-host-integration`
-- Design source: `local-code-search-mcp-v1-design-r3.md` sections 3, 4, 8, and 10
+- Design source: `local-code-search-mcp-v1-design-r4.md` sections 3, 4, 8, and 10
 - Evaluation authority: [EVALUATION-CONTRACT.md](EVALUATION-CONTRACT.md)
 
 ## Context Recovery Checklist
@@ -145,14 +145,14 @@ CLI/MCP parsers perform syntax validation, clamp the requested maximum to the co
 ### 6.1 Stable public CLI
 
 ```text
-cidx init --target-dim <256|512|1024> [--codec <binary|int8>]
+cidx init --serving-dim <256|512|1024> [--codec <binary|int8>]
 cidx status [--json]
 cidx index [--dry-run] [--reason manual|commit]
 cidx embed [--dry-run|--apply] [--retry-failed]
 cidx serve --root <repository-root>
 ```
 
-- `init` creates production config/DB at the Git root without an API call. It records `voyage-code-4`, the selected target, and `binary` unless `--codec int8` is explicitly supplied. It resolves source 1024 from `ModelSpec` and never silently overwrites existing config.
+- `init` creates production config/DB at the Git root without an API call. It records `voyage-code-4`, the selected serving dimension, `fts` as the default mode, and `binary` unless `--codec int8` is explicitly supplied. It resolves source 1024 from `ModelSpec` and never silently overwrites existing config.
 - `status` briefly copies the active DB snapshot, closes its transaction, then inspects the whole live worktree without writing.
 - `index` uses the Phase 05 live-worktree AST+FTS pipeline; `--reason` is metadata.
 - `embed` defaults to pending-input and token/cost planning. Only `--apply` calls the paid document API and stores the active production binary/int8 representation; it does not depend on a lab DB.
@@ -213,7 +213,7 @@ Read the current live file exactly once without following symlinks. Derive the w
 
 Return the complete requested range only when it fits the server hard maximum; never truncate it. Otherwise return `SPAN_TOO_LARGE` and `max_bytes`. A single source line exceeding the cap cannot be split by v1 `read_span`.
 
-If configured, `mcp.max_read_span_lines` rejects excessive line counts before bytes are read. It supplements rather than replaces the hard byte limit and changes no profile fingerprint or index.
+There is no read-span line-count cap. The complete requested range is governed only by the byte limit and remains all-or-nothing.
 
 ### 6.6 MCP `reindex`
 
@@ -231,11 +231,10 @@ Input has one optional `dry_run` boolean. It calls the same Phase 05 `IndexServi
 | `search.return_k` | Optional `k` default | No reindex |
 | `search.candidate_k`, RRF | Search service | No reindex |
 | `mcp.hard_max_inline_bytes` | Search/read responses | Applies on next serve; no profile change |
-| `mcp.max_read_span_lines` | Range safety | Applies on next serve; no profile change |
 | Active index/serving profile | Status/search validation | Mismatch causes policy-defined fallback/reconciliation |
-| Model/target/codec | Embed/search core | Read only through the one Phase 02 profile and `voyage-code-4` spec |
+| Model/serving-dimension/codec | Embed/search core | Read only through the one Phase 02 profile and `voyage-code-4` spec |
 
-`mcp.hard_max_inline_bytes` is a positive server safety ceiling. Reject startup if it is invalid or exceeds the executable's code-owned absolute cap. A request may choose any lower nonnegative maximum. Do not estimate tokenizer counts or host context size to decide bodies.
+`mcp.hard_max_inline_bytes` defaults to 64 KiB and is a positive server safety ceiling. Reject startup if it is invalid or exceeds the code-owned absolute ceiling of 1 MiB. A request may choose any lower nonnegative maximum. Do not estimate tokenizer counts or host context size to decide bodies.
 
 Credentials come only from `VOYAGE_API_KEY`. The endpoint `https://api.voyageai.com/v1/embeddings` is code-owned and host config cannot provide a custom `base_url`. FTS-only startup succeeds without a key.
 

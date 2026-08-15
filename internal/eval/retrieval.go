@@ -132,9 +132,10 @@ type RetrievalArmExecutor interface {
 }
 
 type RetrievalArmResult struct {
-	Ranking      CaseRanking               `json:"ranking"`
-	Packaged     []BodyPackageHit          `json:"packaged,omitempty"`
-	FailureStage evalcontract.FailureStage `json:"failure_stage,omitempty"`
+	Ranking      CaseRanking                   `json:"ranking"`
+	Packaged     []BodyPackageHit              `json:"packaged,omitempty"`
+	Segments     []search.EvaluationSegmentHit `json:"segments,omitempty"`
+	FailureStage evalcontract.FailureStage     `json:"failure_stage,omitempty"`
 }
 
 // RetrievalArmFailure is the typed error an adapter returns for a required
@@ -151,7 +152,7 @@ func (value RetrievalArmResult) Validate() error {
 		return err
 	}
 	if value.FailureStage != "" {
-		if !validRetrievalFailureStage(value.Ranking.Variant, value.FailureStage) || len(value.Ranking.Hits) != 0 || value.Ranking.QueryVectorSHA256 != "" || len(value.Packaged) != 0 {
+		if !validRetrievalFailureStage(value.Ranking.Variant, value.FailureStage) || len(value.Ranking.Hits) != 0 || value.Ranking.QueryVectorSHA256 != "" || len(value.Packaged) != 0 || len(value.Segments) != 0 {
 			return fmt.Errorf("invalid failed retrieval arm")
 		}
 	}
@@ -690,6 +691,7 @@ type CorePromotionEvidence struct {
 	ConfirmationManifest evalcontract.EvaluationRunManifest `json:"confirmation_manifest"`
 	Artifacts            evalcontract.ArtifactManifest      `json:"artifacts"`
 	ArtifactChecksum     string                             `json:"artifact_checksum"`
+	CompletionArtifact   evalcontract.ArtifactEntry         `json:"completion_artifact"`
 }
 
 func (value CorePromotionEvidence) Validate() error {
@@ -718,6 +720,9 @@ func (value CorePromotionEvidence) Validate() error {
 	if value.Result.Status == evalcontract.PromotionEvidenceReady && !sameStrings(value.Result.PassedGates, value.Result.ApplicableGates) {
 		return fmt.Errorf("ready promotion did not pass every applicable gate")
 	}
+	if value.CompletionArtifact.Path != "artifact-checksums.json" || value.CompletionArtifact.MediaType != "application/json" || value.CompletionArtifact.ByteSize < 0 || !validSHA256(value.CompletionArtifact.SHA256) {
+		return fmt.Errorf("invalid artifact completion marker")
+	}
 	for _, path := range coreEvidencePaths {
 		if !hasArtifact(value.Artifacts.Entries, path) {
 			return fmt.Errorf("missing core evidence artifact %q", path)
@@ -726,7 +731,7 @@ func (value CorePromotionEvidence) Validate() error {
 	return nil
 }
 
-var coreEvidencePaths = []string{"run-manifest.json", "per-query-trace.jsonl", "fts-candidates.jsonl", "dense-segment-candidates.jsonl", "collapsed-parent-candidates.jsonl", "rrf-results.jsonl", "inline-body-packages.jsonl", "per-query-metrics.jsonl", "aggregate-metrics.json", "cohort-language-report.json", "first-loss-report.json", "provider-usage.json", "implementation-audit.json", "promotion-contract.json", "promotion-result.json", "report.md", "artifact-checksums.json"}
+var coreEvidencePaths = []string{"run-manifest.json", "per-query-trace.jsonl", "fts-candidates.jsonl", "dense-segment-candidates.jsonl", "collapsed-parent-candidates.jsonl", "rrf-results.jsonl", "inline-body-packages.jsonl", "per-query-metrics.jsonl", "aggregate-metrics.json", "cohort-language-report.json", "first-loss-report.json", "provider-usage.json", "implementation-audit.json", "promotion-contract.json", "promotion-result.json", "report.md"}
 
 func knownVariant(value RetrievalVariant) bool {
 	for _, variant := range requiredRetrievalVariants {
@@ -756,6 +761,13 @@ func hitRanks(values []RetrievalHit) map[string]int {
 	return result
 }
 func retrievalLexicalHits(values []RetrievalHit) []lexical.Hit {
+	result := make([]lexical.Hit, 0, len(values))
+	for _, value := range values {
+		result = append(result, lexical.Hit{Path: value.Path, IndexedSHA256: value.IndexedSHA256, QualifiedSymbol: value.QualifiedSymbol, StartByte: value.StartByte, EndByte: value.EndByte})
+	}
+	return result
+}
+func retrievalSegmentLexicalHits(values []search.EvaluationSegmentHit) []lexical.Hit {
 	result := make([]lexical.Hit, 0, len(values))
 	for _, value := range values {
 		result = append(result, lexical.Hit{Path: value.Path, IndexedSHA256: value.IndexedSHA256, QualifiedSymbol: value.QualifiedSymbol, StartByte: value.StartByte, EndByte: value.EndByte})
@@ -897,6 +909,203 @@ func compatibleEphemeralQuery(arms []RetrievalArmResult) error {
 		}
 	}
 	return nil
+}
+
+// BuildRetrievalTrace derives the normative Phase 12 stage trace from the
+// frozen eight-arm evidence. It is intentionally kept with the metric core so
+// artifact publication cannot invent a second first-loss implementation.
+func BuildRetrievalTrace(evaluationCase evalcontract.EvaluationCase, evidence RetrievalCaseEvidence) (evalcontract.StageTrace, error) {
+	if evaluationCase.ID != evidence.Case.QueryID || evidence.Case.Validate(RetrievalPlan{Variants: requiredRetrievalVariants, Ks: []int{1}}) != nil {
+		return evalcontract.StageTrace{}, fmt.Errorf("invalid retrieval trace evidence")
+	}
+	byVariant := map[RetrievalVariant]RetrievalArmResult{}
+	for _, arm := range evidence.Arms {
+		byVariant[arm.Ranking.Variant] = arm
+	}
+	groups := make([]string, 0, len(evaluationCase.RequiredGroups))
+	for _, group := range evaluationCase.RequiredGroups {
+		groups = append(groups, group.ID)
+	}
+	present := func(arm RetrievalArmResult) map[string]bool {
+		if arm.FailureStage != "" {
+			return map[string]bool{}
+		}
+		return groupsForHits(evaluationCase.RequiredGroups, retrievalLexicalHits(arm.Ranking.Hits))
+	}
+	presentSegments := func(arm RetrievalArmResult) map[string]bool {
+		if arm.FailureStage != "" {
+			return map[string]bool{}
+		}
+		return groupsForHits(evaluationCase.RequiredGroups, retrievalSegmentLexicalHits(arm.Segments))
+	}
+	withQuery := func(stage evalcontract.Stage, arm RetrievalArmResult) evalcontract.StageObservation {
+		observation := retrievalObservation(stage, groups, present(arm), len(arm.Ranking.Hits), arm.FailureStage)
+		observation.QueryVectorSHA256 = arm.Ranking.QueryVectorSHA256
+		return observation
+	}
+	withDenseSegments := func(arm RetrievalArmResult) evalcontract.StageObservation {
+		observation := retrievalObservation(evalcontract.StageDenseSegment, groups, presentSegments(arm), len(arm.Segments), arm.FailureStage)
+		observation.QueryVectorSHA256 = arm.Ranking.QueryVectorSHA256
+		return observation
+	}
+	withParentCollapse := func(arm RetrievalArmResult) evalcontract.StageObservation {
+		observation := retrievalObservation(evalcontract.StageParentCollapse, groups, present(arm), len(arm.Ranking.Hits), arm.FailureStage)
+		observation.QueryVectorSHA256 = arm.Ranking.QueryVectorSHA256
+		return observation
+	}
+	fts := byVariant[VariantFTS]
+	dense := byVariant[VariantServingActiveCodec]
+	union := byVariant[VariantProviderUnion]
+	fused := byVariant[VariantHybridFTSActiveCodec]
+	providerUnion := retrievalObservation(evalcontract.StageProviderUnion, groups, mergeGroupPresence(present(fts), presentSegments(dense)), providerUnionCandidates(fts, dense), union.FailureStage)
+	providerUnion.QueryVectorSHA256 = union.Ranking.QueryVectorSHA256
+	bodyPresent := map[string]bool{}
+	if fused.FailureStage == "" {
+		for _, group := range evaluationCase.RequiredGroups {
+			for _, alternative := range group.Alternatives {
+				complete := true
+				for _, span := range alternative.Spans {
+					found := false
+					for _, body := range fused.Packaged {
+						if bodyContains(body, span) {
+							found = true
+							break
+						}
+					}
+					if !found {
+						complete = false
+						break
+					}
+				}
+				if complete {
+					bodyPresent[group.ID] = true
+					break
+				}
+			}
+		}
+	}
+	observations := []evalcontract.StageObservation{
+		requiredObservation(evalcontract.StageSourceDiscovery, groups, allPresent(groups), 0, ""),
+		requiredObservation(evalcontract.StageParserChunker, groups, allPresent(groups), 0, ""),
+		withQuery(evalcontract.StageFTSCandidate, fts),
+		withDenseSegments(dense),
+		providerUnion,
+		withParentCollapse(union),
+		withQuery(evalcontract.StageRRFFusion, fused),
+		retrievalObservation(evalcontract.StageBodyPackaging, groups, bodyPresent, len(fused.Packaged), fused.FailureStage),
+		{Stage: evalcontract.StageAssistantUse, Required: false, Status: evalcontract.ObservationNotObserved},
+		{Stage: evalcontract.StageAssistantResolution, Required: false, Status: evalcontract.ObservationNotObserved},
+		{Stage: evalcontract.StageOperational, Required: true, Status: evalcontract.Observed, Denominators: []evalcontract.DenominatorRecord{{Name: "operation_attempts", TruthUnit: "operation", Count: 1}}},
+	}
+	observations[7].QueryVectorSHA256 = fused.Ranking.QueryVectorSHA256
+	if err := preserveRetrievalFirstLoss(observations); err != nil {
+		return evalcontract.StageTrace{}, err
+	}
+	for _, arm := range evidence.Arms {
+		if arm.FailureStage != "" {
+			observations[10].FailureStage = arm.FailureStage
+			break
+		}
+	}
+	terminal := evalcontract.TerminalComplete
+	if observations[10].FailureStage != "" {
+		terminal = evalcontract.TerminalFailed
+	}
+	trace := evalcontract.StageTrace{SchemaVersion: evalcontract.SchemaVersion, QueryID: evaluationCase.ID, RequiredGroupIDs: groups, Observations: observations, TerminalState: terminal}
+	if err := trace.Validate(); err != nil {
+		return evalcontract.StageTrace{}, err
+	}
+	return trace, nil
+}
+
+func mergeGroupPresence(left, right map[string]bool) map[string]bool {
+	result := make(map[string]bool, len(left)+len(right))
+	for group, present := range left {
+		result[group] = present
+	}
+	for group, present := range right {
+		result[group] = result[group] || present
+	}
+	return result
+}
+
+// providerUnionCandidates is the exact union of FTS parents and dense segment
+// parents before collapse/ranking. It intentionally does not count segments
+// twice when several segments belong to one parent.
+func providerUnionCandidates(fts, dense RetrievalArmResult) int {
+	parents := map[string]struct{}{}
+	if fts.FailureStage == "" {
+		for _, hit := range fts.Ranking.Hits {
+			parents[retrievalParentKey(hit)] = struct{}{}
+		}
+	}
+	if dense.FailureStage == "" {
+		for _, segment := range dense.Segments {
+			key := segment.Path + "\x00" + segment.IndexedSHA256 + "\x00" + segment.QualifiedSymbol + fmt.Sprintf("\x00%d\x00%d", segment.ParentStartByte, segment.ParentEndByte)
+			parents[key] = struct{}{}
+		}
+	}
+	return len(parents)
+}
+
+func preserveRetrievalFirstLoss(observations []evalcontract.StageObservation) error {
+	lost := map[string]evalcontract.FirstLoss{}
+	providerUnionReached := false
+	for index := range observations {
+		observation := &observations[index]
+		if observation.Stage == evalcontract.StageProviderUnion {
+			providerUnionReached = true
+		}
+		if !providerUnionReached || !observation.Required || observation.Stage == evalcontract.StageOperational {
+			continue
+		}
+		for groupIndex := range observation.GroupObservations {
+			group := &observation.GroupObservations[groupIndex]
+			if original, exists := lost[group.GroupID]; exists {
+				if group.Present {
+					// A downstream lane may have independently found the group,
+					// but it did not survive the staged evaluation funnel.
+					group.Present = false
+				}
+				group.FirstLoss = original
+				continue
+			}
+			if !group.Present {
+				lost[group.GroupID] = group.FirstLoss
+			}
+		}
+	}
+	return nil
+}
+
+func retrievalObservation(stage evalcontract.Stage, groupIDs []string, present map[string]bool, candidates int, failure evalcontract.FailureStage) evalcontract.StageObservation {
+	observation := requiredObservation(stage, groupIDs, present, candidates, failure)
+	if failure != "" {
+		return observation
+	}
+	for index := range observation.GroupObservations {
+		if !observation.GroupObservations[index].Present {
+			observation.GroupObservations[index].FirstLoss = retrievalStageLoss(stage)
+		}
+	}
+	return observation
+}
+
+func retrievalStageLoss(stage evalcontract.Stage) evalcontract.FirstLoss {
+	switch stage {
+	case evalcontract.StageDenseSegment:
+		return evalcontract.DenseSegmentMiss
+	case evalcontract.StageProviderUnion:
+		return evalcontract.ProviderUnionMiss
+	case evalcontract.StageParentCollapse:
+		return evalcontract.SegmentParentCollapse
+	case evalcontract.StageRRFFusion:
+		return evalcontract.RRFFusion
+	case evalcontract.StageBodyPackaging:
+		return evalcontract.BodyPackaging
+	default:
+		return evalcontract.FTSCandidateMiss
+	}
 }
 
 func variantUsesQueryVector(value RetrievalVariant) bool {

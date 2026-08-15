@@ -3,14 +3,14 @@
 - Status: done
 - Prerequisite phases: none
 - Downstream phases: all phases 01 through 14
-- Baseline design: [r3](../../local-code-search-mcp-v1-design-r3.md)
+- Baseline design: [r4](../../local-code-search-mcp-v1-design-r4.md)
 
 ## Context Recovery Checklist
 
 - Reopen the [implementation index](README.md), [execution guide](EXECUTION-GUIDE.md), [evaluation contract](EVALUATION-CONTRACT.md), and [status board](STATUS.md) before continuing after context compaction.
-- Re-read the r3 cost, snapshot, retrieval, and response contracts. Phase 00 has no prerequisite implementation artifact, but its config catalog, constant catalog, and profile/hash fixtures become prerequisites for every later phase.
+- Re-read the r4 cost, snapshot, retrieval, and response contracts. Phase 00 has no prerequisite implementation artifact, but its config catalog, constant catalog, and profile/hash fixtures become prerequisites for every later phase.
 - Re-check these critical invariants: FTS paths never call Voyage; the only v1 provider/model pair is `voyage-official`/`voyage-code-4`; document and query source requests explicitly produce 1024-dimensional float vectors with their distinct input roles; production stores only one active cidx-owned `binary` or `int8` representation and defaults to `binary`; only dev lab capture may persist document-role source f32; runtime never imports or opens the lab.
-- Stop if the provider/model contract, source or allowed target dimensions, canonical framing, profile ownership, or production/lab boundary is unresolved or conflicts with r3. Do not let a downstream phase invent a local interpretation.
+- Stop if the provider/model contract, source or allowed serving dimensions, canonical framing, profile ownership, or production/lab boundary is unresolved or conflicts with the final target contract. Do not let a downstream phase invent a local interpretation.
 - Before pausing, update Section 11 evidence, Section 13 decisions, and [STATUS.md](STATUS.md). Keep the phase `planned` while any required evidence remains a placeholder.
 
 ## 1. Goal and Resulting Capabilities
@@ -42,7 +42,7 @@ Completion must make it possible to:
 
 - Actual Go packages and migrations: Phase 02
 - Exact SQLite and Tree-sitter binding selection: Phase 01
-- Initial target dimension selection: after Phase 12 evaluation
+- Initial serving-dimension selection: after Phase 12 evaluation
 - Exact `binary` and `int8` codec algorithms and versioned blob/scorer contracts: Phase 01; v1 config exposes only these two IDs and defaults to `binary`
 - Preselected universal hit-rate, latency, or noninferiority thresholds; calibration freezes project-specific margins before confirmation
 - A future fixed-model policy for general users or an external-vector injection policy
@@ -50,12 +50,12 @@ Completion must make it possible to:
 
 ## 3. Prerequisites and Inputs
 
-- The r3 cost, snapshot, retrieval, and response contracts
+- The r4 cost, snapshot, retrieval, and response contracts
 - The official Voyage MRL dimension-reduction contract for `voyage-code-4`
 - v1 language scope: Go, TypeScript, and TSX
 - Stable v1 MCP tools: `status`, `search`, `read_span`, and `reindex`
 
-Voyage documentation describes MRL, or Matryoshka Representation Learning, output dimensions. The v1 reference path requests source f32 with `output_dimension=1024`, `output_dtype=float`, and `truncation=false`, selects an allowed leading target prefix locally, and L2-normalizes it. It does not assume that the API result for `output_dimension=512` or `output_dimension=256` is identical to the local transform; Phase 01 may compare them when needed.
+Voyage documentation describes MRL, or Matryoshka Representation Learning, output dimensions. The v1 reference path always requests source f32 with `output_dimension=1024`, `output_dtype=float`, and `truncation=false`, selects an allowed leading serving prefix locally, and L2-normalizes it. V1 does not request direct 256- or 512-dimensional provider output and does not treat such a request as an equivalent serving-vector path.
 
 ## 4. Fixed Invariants
 
@@ -98,7 +98,7 @@ internal/config/
   validate.go             strict field and cross-field validation
   fingerprint.go          canonical JSON and domain-separated hashes
   constants.go            central protocol, schema, and safety constants
-  model_registry.go       Voyage model and source/target dimension capabilities
+  model_registry.go       Voyage model and source/serving-dimension capabilities
   impact.go               config-change impact planning
 
 internal/profile/
@@ -138,29 +138,32 @@ Phase 02 may consolidate package names, but it must preserve this ownership:
 
 ### 6.1 Config shape
 
-The following schema illustrates field shapes. It is not a config that fixes a specific target dimension or codec.
+The following schema illustrates the final v1 field shapes and defaults. `max_chunk_bytes` is intentionally absent: a chunk is a semantic whole function, method, or type, never a user-configured byte slice.
 
 ```jsonc
 {
   "version": 1,
   "index": {
     "languages": ["go", "typescript"],
-    "max_source_file_bytes": "<positive integer>",
-    "max_chunk_bytes": "<positive integer>",
-    "max_segment_input_bytes": "<positive integer>"
+    "max_source_file_bytes": 1048576,
+    "target_segment_bytes": 1024
   },
   "embedding": {
     "model": "voyage-code-4",
-    "target_dimensions": "<one of 256, 512, 1024 selected after evaluation>",
+    "serving_dimensions": "<one of 256, 512, 1024 selected after evaluation>",
     "reducer": "<supported reducer id>",
     "normalizer": "<supported normalizer id>",
     "metric": "cosine",
     "storage_codec": "binary",
-    "batch": {
-      "max_inputs": "<positive integer>",
-      "max_input_tokens": "<positive integer>",
-      "max_retries": "<non-negative integer>",
-      "request_timeout_ms": "<positive integer>"
+    "request": {
+      "max_inputs": 128,
+      "max_total_input_bytes": 262144,
+      "max_concurrency": 4,
+      "timeout_seconds": 30
+    },
+    "retry": {
+      "max_retries": 3,
+      "wait_seconds": [10, 20, 30]
     }
   },
   "search": {
@@ -178,13 +181,12 @@ The following schema illustrates field shapes. It is not a config that fixes a s
     }
   },
   "mcp": {
-    "hard_max_inline_bytes": "<positive integer below executable safety ceiling>",
-    "max_read_span_lines": "<positive integer>"
+    "hard_max_inline_bytes": 65536
   }
 }
 ```
 
-Real JSON must not contain the string placeholders above. `init` must receive a target dimension or let the initial-evaluation workflow write it. `storage_codec` resolves to `binary` when omitted and accepts only `binary` or `int8`. Hybrid serving must not start before a target dimension is selected.
+`init` receives `--serving-dim` or an initial-evaluation workflow writes `serving_dimensions`. `storage_codec` resolves to `binary` when omitted and accepts only `binary` or `int8`; search defaults to `fts`. Hybrid serving must not start before a serving dimension is selected. The source-file limit is 1 MiB, the normal segment target is 1024 bytes, and the MCP hard inline default is 64 KiB; their user-facing values may never exceed the executable's 1 MiB source/inline safety ceilings.
 
 ### 6.2 Resolution and validation
 
@@ -205,16 +207,18 @@ Required validation:
 - Raw config does not accept `provider`, `endpoint`, `output_dimensions`, `output_dimension`, `output_dtype`, `input_type`, or `truncation`.
 - The only v1 direct provider and production model are `voyage-official` and `voyage-code-4`.
 - The endpoint `https://api.voyageai.com/v1/embeddings` and credential name `VOYAGE_API_KEY` are code-owned constants and are absent from config and fingerprints.
-- `ModelSpec` owns `SourceDimensions=1024` and `AllowedTargetDimensions={256,512,1024}` in one place.
+- `ModelSpec` owns `SourceDimensions=1024` and `AllowedServingDimensions={256,512,1024}` in one place.
 - Document and query source requests both explicitly use `output_dimension=1024`.
 - Requests explicitly use `output_dtype=float` and `truncation=false`, omit `encoding_format`, and apply the registry's document/query input-type mapping.
-- `target_dimensions` must be a member of `ModelSpec.AllowedTargetDimensions`.
+- `serving_dimensions` must be a member of `ModelSpec.AllowedServingDimensions`.
 - The only v1 metric is cosine.
 - The reducer, normalizer, and codec combination must be implemented. V1 accepts only `storage_codec=binary|int8`, with `binary` as the resolved default.
-- Validate every byte, token, batch, and retry value. Do not guess a `voyage-code-4` batch-token cap and write it into a default or ceiling before the official capability is verified.
+- Source files are at most 1 MiB. A segment target is 1024 bytes; evaluation may compare only 768, 1024, and 1536-byte candidates. Segment packing uses AST boundaries and never cuts an AST unit arbitrarily; an oversized unit remains whole.
+- Voyage calls are synchronous request groups, never the asynchronous Voyage Batch API. A group permits at most 128 inputs and 256 KiB total input bytes; at most four groups run concurrently and each request times out after 30 seconds. `embedding.request` and `embedding.retry` own these operational values; their resolved defaults are shared by every provider caller.
+- Retry uses one initial attempt plus at most three retries after 10, 20, and 30 seconds. A longer provider `Retry-After` wins; this schedule is staged/linear, never exponential. Do not invent an unverified token-cap substitute.
 - Require `candidate_k >= return_k`.
 - Resolve and validate positive query byte, token, and per-token-rune limits below code-owned absolute ceilings.
-- A config hard maximum must not exceed the executable's code-owned absolute ceiling.
+- `mcp.hard_max_inline_bytes` defaults to 64 KiB and must not exceed the executable's 1 MiB absolute inline ceiling. `read_span` has no line-count cap; byte and eligible-file safety checks remain authoritative.
 - Reject provider or endpoint override fields that v1 does not expose as unknown fields.
 - Config contains no credentials or API keys.
 
@@ -227,7 +231,7 @@ Build `ResolvedConfig` once at process start or an explicit reload. Give each mo
 | File enumerator | languages and source-size/ignore limits |
 | Chunker | per-language chunk, projection, and segment limits |
 | Canonical formatter | `CanonicalTextProfile` |
-| Voyage client validator | `EmbeddingSourceProfile` and batch/retry limits |
+| Voyage client validator | `EmbeddingSourceProfile` and synchronous request/retry limits |
 | Document/query transformer | the same `VectorSpaceProfile` |
 | codec encoder/scanner | the same `VectorStorageProfile`; `binary` or `int8` selects a matched encoder, validator, query preparation, and scorer |
 | Store validator | all applied fingerprints and blob constraints |
@@ -264,7 +268,7 @@ embedding_source_profile_fingerprint =
 vector_space_profile_fingerprint =
   SHA256("cidx/vector-space-profile/v1" || NUL || canonical_json({
     source_profile_fingerprint,
-    target_dimensions,
+    serving_dimensions,
     reducer_id,
     normalizer_id,
     metric
@@ -297,17 +301,17 @@ The v1 reference contract uses this order:
 ```text
 Voyage source f32 (`output_dimension=1024`, `output_dtype=float`)
 -> validate finite values and length
--> select the first target_dimensions components
+-> select the first serving_dimensions components
 -> L2 normalize
 -> encode with the selected cidx codec (`binary` by default, or `int8`)
 -> validate row and blob
 ```
 
-Documents and queries use `input_type=document` and `input_type=query`, respectively, while sharing the same `VectorSpaceProfile` and transformer function. Query vectors are never persisted; after target-space transformation they remain only in the codec-specific in-memory representation required by the scanner. An API `output_dimension=target` optimization is forbidden until Phase 01 evidence justifies a separate contract change. Voyage provider-side `output_dtype=int8|binary` is distinct from the cidx codecs applied after local L2 normalization. Provider-quantized output is neither requested nor treated as a production codec ID.
+Documents and queries use `input_type=document` and `input_type=query`, respectively, while sharing the same `VectorSpaceProfile` and transformer function. Query vectors are never persisted; after serving-space transformation they remain only in the codec-specific in-memory representation required by the scanner. Provider requests always use source 1024 f32. Voyage provider-side `output_dtype=int8|binary` is distinct from the cidx codecs applied after local L2 normalization. Provider-quantized output is neither requested nor treated as a production codec ID.
 
 The `binary` codec is a complete encoder/validator/query-preparation/scorer contract, not merely a smaller blob label. Phase 01 must fix its bit-value rule, bit order, padding validation, similarity calculation, and versioned codec ID together. The `int8` codec likewise fixes scale, rounding, clamp, norm, and scorer behavior. A production row is valid only under the exact active codec contract.
 
-`metric=cosine` names the target float vector space. A quantized codec may only approximate float cosine ordering. It must not label a Hamming, asymmetric, or reconstructed score as exact cosine; its profile ID and evaluation report must identify the codec-specific scorer used.
+`metric=cosine` names the serving float vector space. A quantized codec may only approximate float cosine ordering. It must not label a Hamming, asymmetric, or reconstructed score as exact cosine; its profile ID and evaluation report must identify the codec-specific scorer used.
 
 ## 7. Change Impact and Reconciliation
 
@@ -327,15 +331,15 @@ The `binary` codec is a complete encoder/validator/query-preparation/scorer cont
 | --- | --- | --- |
 | `restart_only` | return/candidate k, RRF, inline cap | keep DB vectors and FTS |
 | `local_reindex` | chunker, projection, FTS tokenizer | publish a new local generation |
-| `local_rematerialize_if_raw` | target dimension, reducer, normalizer, codec | use the dev materializer when compatible lab raw exists; runtime never reads the lab automatically |
+| `local_rematerialize_if_raw` | serving dimension, reducer, normalizer, codec | use the dev materializer when compatible lab raw exists; runtime never reads the lab automatically |
 | `paid_embedding_required` | model, canonical bytes, lab miss | explicit normal embed or dev capture |
 | `schema_migration` | DB schema version | offline or startup migration |
 
-After a target-dimension change, `index` only reconnects active segments to the new serving key; it does not convert data automatically from the lab database. During initial evaluation, the user must run the dev materializer or explicitly run normal embed. Before the dev materializer may publish to production, its candidate profile must equal the current project config and active segment key. It never edits config automatically. FTS remains available throughout.
+After a serving-dimension change, `index` only reconnects active segments to the new serving key; it does not convert data automatically from the lab database. During initial evaluation, the user must run the dev materializer or explicitly run normal embed. Before the dev materializer may publish to production, its candidate profile must equal the current project config and active segment key. It never edits config automatically. FTS remains available throughout.
 
 ## 8. Implementation Checklist
 
-- [ ] Map r3 and this document's terms to a draft Go type naming scheme.
+- [ ] Map r4 and this document's terms to a draft Go type naming scheme.
 - [ ] Assign ownership of the config-field catalog and code-constant catalog to packages.
 - [ ] Record canonical JSON rules and hash framing as a decision.
 - [ ] Define the model registry's source and update policy.
@@ -343,7 +347,7 @@ After a target-dimension change, `index` only reconnects active segments to the 
 - [ ] Map every config change to the impact classification table.
 - [ ] Add the production/lab package import prohibition to linting or structural review.
 - [ ] Document runtime/lab database boundaries and deletion effects.
-- [ ] Prevent an unresolved target dimension or codec from becoming a silent code default.
+- [ ] Prevent an unresolved serving dimension or codec from becoming a silent code default.
 - [ ] Cross-check that Phases 01 through 14 use these terms and keys.
 - [ ] Freeze versioned evaluation query/run/trace/promotion schemas, stage/failure enums, and artifact checksum framing from `EVALUATION-CONTRACT.md` without choosing numeric margins.
 
@@ -362,7 +366,7 @@ After a target-dimension change, `index` only reconnects active segments to the 
 
 This phase creates no test code. It fixes the scenarios Phase 02 must validate.
 
-1. Changing the target dimension in one place changes the resolved value used by the document transformer, query transformer, blob validator, and scanner together.
+1. Changing the serving dimension in one place changes the resolved value used by the document transformer, query transformer, blob validator, and scanner together.
 2. Changing the codec does not change the canonical-input or source-profile hash, but does change storage and serving fingerprints.
 3. Changing the model cascades through source, vector-space, and storage fingerprints.
 4. Identical canonical input bytes reuse the source raw key even if the formatter implementation version differs.
@@ -378,7 +382,7 @@ This phase creates no test code. It fixes the scenarios Phase 02 must validate.
 Phase entry record, 2026-08-15:
 
 - Prerequisite evidence: none required for Phase 00.
-- Authorities read: repository instructions, r3 design, implementation index, execution guide, evaluation contract, status ledger, and this phase document.
+- Authorities read: repository instructions, r4 design, implementation index, execution guide, evaluation contract, status ledger, and this phase document.
 - Workspace state: Git initialized on `main`; no implementation code, Go module, remote, license, or commit exists.
 - Repository bootstrap: `.env` and `.cidx/` are ignored; text/binary attributes, editor defaults, and a root navigation README are present.
 - Intended completion evidence: the seven catalog/review entries below, with cross-phase terminology checks.
@@ -395,7 +399,7 @@ Before changing the phase to `done`, every item below must be complete:
 - Cross-phase terminology review: [complete](evidence/phase-00/cross-phase-review.md)
 - Checks actually run and results: Git initialization/status/ignore checks, RFC 8785 digest recomputation, and documentation structure/link/terminology checks are recorded in the [evidence index](evidence/phase-00/README.md) and [cross-phase review](evidence/phase-00/cross-phase-review.md).
 - Checks not run: no implementation code, tests, builds, provider calls, SQLite migrations, Tree-sitter bindings, codec algorithms, or platform checks exist yet.
-- Remaining decisions assigned to later phases: initial target dimension (Phase 12), exact binary/int8 algorithm contracts and SQLite/Tree-sitter binding selection (Phase 01).
+- Remaining decisions assigned to later phases: initial serving dimension (Phase 12), exact binary/int8 algorithm contracts and SQLite/Tree-sitter binding selection (Phase 01).
 
 The status remains `planned` while any evidence entry is a placeholder.
 
@@ -403,8 +407,8 @@ The status remains `planned` while any evidence entry is a placeholder.
 
 Provide Phase 01 with:
 
-- default/source/target dimension terms and registry values;
-- transform order and the conditional API direct-dimension comparison requirement;
+- default/source/serving-dimension terms and registry values;
+- transform order and the source-1024 local-serving-dimension requirement;
 - the requirement that production and lab SQLite databases are separate files; and
 - the requirement to decide the exact codec ID and blob layout in the spike.
 
@@ -424,10 +428,10 @@ Provide Phases 03 through 14 with:
 
 | Date | Decision | Rationale |
 | --- | --- | --- |
-| 2026-08-14 | Request explicit 1024-dimensional float output for Voyage documents and queries. | Keep one v1 source space and compare 512- and 256-dimensional candidates from the same raw vectors. |
+| 2026-08-14 | Request explicit 1024-dimensional float output for Voyage documents and queries. | Keep one v1 source space and derive the allowed local serving dimensions from the same raw vectors. |
 | 2026-08-14 | Persist 1024-dimensional source f32 only in the initial document-evaluation lab. | Reduce repeated API cost without turning runtime into a permanent multi-profile system. |
 | 2026-08-14 | Never persist raw query vectors. | Queries may change and a persistent query cache is not a product goal. |
-| 2026-08-14 | Runtime config activates one target dimension and codec. | Every retrieval component must observe the same representation. |
+| 2026-08-14 | Runtime config activates one serving dimension and codec. | Every retrieval component must observe the same representation. |
 | 2026-08-14 | Defer future model distribution and external-vector policy. | Those decisions exceed the initial local MCP quality-validation scope. |
 | 2026-08-14 | Default production storage to cidx-owned `binary` and retain `int8` as the only alternative v1 codec. | Keep one compact active serving representation while preserving an explicit comparison and fallback option. |
 | 2026-08-14 | Define stage-separated evaluation schemas before retrieval runners. | Preserve denominators, first-loss attribution, paired controls, and hard-gate evidence across phases without a weighted total. |

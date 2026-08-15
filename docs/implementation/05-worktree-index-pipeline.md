@@ -3,7 +3,7 @@
 - Status: `done`
 - Prerequisites: `03-go-chunker`, `04-typescript-tsx-chunker`
 - Follow-up phases: `06-fts-search`, `08-raw-embedding-lab`
-- Design basis: `local-code-search-mcp-v1-design-r3.md` §3, §4, §5, §9
+- Design basis: `local-code-search-mcp-v1-design-r4.md` §3, §4, §5, §9
 
 ## Context Recovery Checklist
 
@@ -207,7 +207,7 @@ This phase applies the Phase 02 `ConfigImpactPlan` to the active snapshot.
 - Embedding-source, vector-space, or storage-profile mismatch: relink active segments to the new serving key. Reuse a valid production vector for that key; otherwise let state derive as pending.
 - Serving-policy-only change: do not change generation code data, FTS data, or vector keys.
 
-The metadata update that changes desired profiles to applied profiles is part of the same final publish transaction as file, chunk, FTS, and segment-key deltas. Never publish only part of a profile mismatch. Reconciliation neither opens the lab DB nor calls an API. The v1 source profile is `voyage-official` / `voyage-code-4` with `SourceDimensions=1024`; target dimensions are limited to `{256,512,1024}` by the central `ModelSpec`.
+The metadata update that changes desired profiles to applied profiles is part of the same final publish transaction as file, chunk, FTS, and segment-key deltas. Never publish only part of a profile mismatch. Reconciliation neither opens the lab DB nor calls an API. The v1 source profile is `voyage-official` / `voyage-code-4` with `SourceDimensions=1024`; serving dimensions are limited to `{256,512,1024}` by the central `ModelSpec`.
 
 ## 7. Config Used and Change Impact
 
@@ -217,14 +217,14 @@ This phase receives only the typed config resolved by Phase 02. Subpackages do n
 | --- | --- | --- |
 | Language selection | Go, TypeScript, TSX | Index-profile change; full local rebuild |
 | Chunker/projection implementation ID | Derived from the binary | Index-profile change; full local rebuild |
-| Segment-boundary rules | AST boundaries and length limits | Index-profile change; regenerate segments |
+| Segment-boundary rules | AST boundaries with a 1024-byte target; no arbitrary split and oversized AST units remain whole; evaluation may compare only 768-, 1024-, and 1536-byte targets | Index-profile change; regenerate segments |
 | Symbol/FTS input rules | Normalization/token-input version | Index-profile change; full local rebuild |
 | Exclusion rules | Built-ins, `.cidxignore` | Changes manifest and candidate set |
-| Maximum source-file size | `index.max_source_file_bytes` | Changes candidate set; reconcile on next index |
+| Maximum source-file size | `index.max_source_file_bytes=1 MiB` | Changes candidate set; reconcile on next index |
 | Canonical-text rules | Formatter/profile | Recompute input/hash from stored projections; no API call |
 | Embedding model/source space | `voyage-code-4`, source 1024 | Relink serving keys; missing vectors become pending; no API call |
 | Search serving values | `return_k`, `candidate_k`, body-byte cap | No impact in this phase |
-| Target dimensions/codec | `{256,512,1024}` and storage profile | Does not directly trigger an AST/FTS rebuild |
+| Serving dimensions/codec | `{256,512,1024}` and storage profile | Does not directly trigger an AST/FTS rebuild |
 
 Do not expose arbitrary, unimplemented chunker version numbers in user config. Fingerprints contain only the resolved combination of user-selectable rules and implementation IDs owned by the binary. Absolute safety ceilings are code constants; config can set only a stricter project policy.
 
@@ -296,7 +296,7 @@ Only core contract tests authorized for this phase are included; parser syntax c
 5. A file with the same hash and index profile is not reparsed.
 6. A changed file hash reparses the whole file, while unchanged `canonical_input_sha256` values remain eligible for later vector reuse.
 7. Changing only the canonical-text profile rebuilds canonical input keys without rebuilding AST or FTS data.
-8. Changing only target dimensions or codec applies a new serving key without rebuilding AST/FTS or calling an API.
+8. Changing only serving dimensions or codec applies a new serving key without rebuilding AST/FTS or calling an API.
 9. File deletion removes files, chunks, and FTS rows in one transaction.
 10. A parse failure in one file exposes none of the prepared outputs for other files in the active snapshot.
 11. Searches immediately before and after publish each see exactly one complete old or new generation.

@@ -14,11 +14,11 @@ const (
 )
 
 type AppliedProfiles struct {
-	SchemaVersion        int
-	ActiveGeneration     int64
-	ManifestSHA256       string
-	ActiveServingProfile profile.Fingerprint
-	Fingerprints         profile.ProfileFingerprints
+	SchemaVersion        int                         `json:"schema_version"`
+	ActiveGeneration     int64                       `json:"active_generation"`
+	ManifestSHA256       string                      `json:"manifest_sha256"`
+	ActiveServingProfile profile.Fingerprint         `json:"active_serving_profile"`
+	Fingerprints         profile.ProfileFingerprints `json:"fingerprints"`
 }
 type ConfigImpactPlan struct {
 	Class                           ImpactClass

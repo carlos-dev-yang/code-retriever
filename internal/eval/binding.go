@@ -43,10 +43,21 @@ func LoadIgnoredCorpusBindings(ctx context.Context, repositoryRoot string) (Corp
 }
 
 func LoadCorpusBindings(data []byte) (CorpusBindings, error) {
-	var value CorpusBindings
-	if err := decodeStrict(data, &value); err != nil {
+	// The documented local-only format is a flat corpus-ID map. Accept the
+	// earlier wrapped form as a strict compatibility input so an ignored local
+	// file does not need to be rewritten merely to run a new cidx binary.
+	var flat map[string]string
+	if err := decodeStrict(data, &flat); err == nil {
+		return validateCorpusBindings(CorpusBindings{Bindings: flat})
+	}
+	var wrapped CorpusBindings
+	if err := decodeStrict(data, &wrapped); err != nil {
 		return CorpusBindings{}, fmt.Errorf("decode corpus bindings: %w", err)
 	}
+	return validateCorpusBindings(wrapped)
+}
+
+func validateCorpusBindings(value CorpusBindings) (CorpusBindings, error) {
 	if len(value.Bindings) == 0 {
 		return CorpusBindings{}, fmt.Errorf("empty corpus bindings")
 	}
@@ -123,7 +134,11 @@ func VerifyCheckout(ctx context.Context, manifest CorpusManifest, checkout strin
 		return VerifiedCorpus{}, fmt.Errorf("checkout commit does not match manifest")
 	}
 	status, err := git(ctx, root, "status", "--porcelain=v1", "--untracked-files=all")
-	if err != nil || strings.TrimSpace(status) != "" {
+	if err != nil {
+		return VerifiedCorpus{}, fmt.Errorf("read checkout status: %w", err)
+	}
+	clean := strings.TrimSpace(status) == ""
+	if manifest.CleanTreeRequired && !clean {
 		return VerifiedCorpus{}, fmt.Errorf("checkout is dirty")
 	}
 	if err := verifyLicense(root, manifest.LicenseEvidence); err != nil {
@@ -140,7 +155,7 @@ func VerifyCheckout(ctx context.Context, manifest CorpusManifest, checkout strin
 	if content != manifest.ExpectedContentSHA256 {
 		return VerifiedCorpus{}, fmt.Errorf("selected content hash does not match manifest")
 	}
-	return VerifiedCorpus{CorpusID: manifest.CorpusID, PinnedCommit: manifest.PinnedCommit, ContentSHA256: content, Clean: true}, nil
+	return VerifiedCorpus{CorpusID: manifest.CorpusID, PinnedCommit: manifest.PinnedCommit, ContentSHA256: content, Clean: clean}, nil
 }
 
 func git(ctx context.Context, root string, args ...string) (string, error) {
@@ -169,19 +184,64 @@ type contentEntry struct {
 }
 
 func selectedContentHash(ctx context.Context, root string, manifest CorpusManifest) (string, error) {
-	rootSlice := filepath.Join(root, filepath.FromSlash(manifest.RootSubdir))
-	if err := ensureNoSymlinkPath(root, manifest.RootSubdir); err != nil {
-		return "", err
-	}
-	info, err := os.Stat(rootSlice)
-	if err != nil || !info.IsDir() {
-		return "", fmt.Errorf("root subdirectory does not exist")
-	}
-	output, err := git(ctx, root, "ls-files", "-z", "--cached")
+	entries, _, err := selectedContentEntries(ctx, root, manifest)
 	if err != nil {
 		return "", err
 	}
+	canonical, err := json.Marshal(entries)
+	if err != nil {
+		return "", err
+	}
+	sum := sha256.Sum256(canonical)
+	return hex.EncodeToString(sum[:]), nil
+}
+
+// VerifyIndexedFiles makes the corpus selection policy and active production
+// source slice agree before a retrieval run can request query embeddings. It
+// compares only supported source files because manifests may deliberately hash
+// accompanying non-source files (such as license evidence) that the index is
+// not expected to parse.
+func VerifyIndexedFiles(ctx context.Context, manifest CorpusManifest, checkout string, indexed map[string]string) error {
+	entries, selectedSource, err := selectedContentEntries(ctx, checkout, manifest)
+	if err != nil {
+		return err
+	}
+	if len(entries) == 0 {
+		return fmt.Errorf("manifest selected no files")
+	}
+	for path, expected := range selectedSource {
+		actual, ok := indexed[path]
+		if !ok || actual != expected {
+			return fmt.Errorf("indexed corpus source does not match manifest selection")
+		}
+	}
+	for path, actual := range indexed {
+		if !sourceLanguage(path) {
+			continue
+		}
+		expected, ok := selectedSource[path]
+		if !ok || actual != expected {
+			return fmt.Errorf("indexed source is outside manifest selection")
+		}
+	}
+	return nil
+}
+
+func selectedContentEntries(ctx context.Context, root string, manifest CorpusManifest) ([]contentEntry, map[string]string, error) {
+	rootSlice := filepath.Join(root, filepath.FromSlash(manifest.RootSubdir))
+	if err := ensureNoSymlinkPath(root, manifest.RootSubdir); err != nil {
+		return nil, nil, err
+	}
+	info, err := os.Stat(rootSlice)
+	if err != nil || !info.IsDir() {
+		return nil, nil, fmt.Errorf("root subdirectory does not exist")
+	}
+	output, err := git(ctx, root, "ls-files", "-z", "--cached")
+	if err != nil {
+		return nil, nil, err
+	}
 	var entries []contentEntry
+	selectedSource := map[string]string{}
 	found := map[string]bool{}
 	for _, raw := range bytes.Split([]byte(output), []byte{0}) {
 		if len(raw) == 0 {
@@ -189,7 +249,7 @@ func selectedContentHash(ctx context.Context, root string, manifest CorpusManife
 		}
 		file := string(raw)
 		if !validRelative(file, false) {
-			return "", fmt.Errorf("unsafe Git file path")
+			return nil, nil, fmt.Errorf("unsafe Git file path")
 		}
 		if manifest.RootSubdir != "" && file != manifest.RootSubdir && !strings.HasPrefix(file, manifest.RootSubdir+"/") {
 			continue
@@ -200,18 +260,21 @@ func selectedContentHash(ctx context.Context, root string, manifest CorpusManife
 			continue
 		}
 		if err := ensureNoSymlinkPath(root, file); err != nil {
-			return "", err
+			return nil, nil, err
 		}
 		info, err := os.Lstat(filepath.Join(root, filepath.FromSlash(file)))
 		if err != nil || !info.Mode().IsRegular() {
-			return "", fmt.Errorf("selected file is not regular")
+			return nil, nil, fmt.Errorf("selected file is not regular")
 		}
 		data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(file)))
 		if err != nil {
-			return "", err
+			return nil, nil, err
 		}
 		sum := sha256.Sum256(data)
 		entries = append(entries, contentEntry{Path: file, SHA256: hex.EncodeToString(sum[:])})
+		if sourceLanguage(file) {
+			selectedSource[file] = hex.EncodeToString(sum[:])
+		}
 		ext := strings.ToLower(filepath.Ext(file))
 		if ext == ".go" {
 			found["go"] = true
@@ -222,23 +285,23 @@ func selectedContentHash(ctx context.Context, root string, manifest CorpusManife
 		}
 	}
 	if len(entries) == 0 {
-		return "", fmt.Errorf("manifest selected no files")
+		return nil, nil, fmt.Errorf("manifest selected no files")
 	}
 	for _, language := range manifest.LanguageSlices {
 		if language == "mixed" {
 			continue
 		}
 		if !found[string(language)] {
-			return "", fmt.Errorf("selected files lack declared %s slice", language)
+			return nil, nil, fmt.Errorf("selected files lack declared %s slice", language)
 		}
 	}
 	sort.Slice(entries, func(i, j int) bool { return entries[i].Path < entries[j].Path })
-	canonical, err := json.Marshal(entries)
-	if err != nil {
-		return "", err
-	}
-	sum := sha256.Sum256(canonical)
-	return hex.EncodeToString(sum[:]), nil
+	return entries, selectedSource, nil
+}
+
+func sourceLanguage(path string) bool {
+	ext := strings.ToLower(filepath.Ext(path))
+	return ext == ".go" || ext == ".ts" || ext == ".tsx"
 }
 
 func ensureNoSymlinkPath(root, relative string) error {

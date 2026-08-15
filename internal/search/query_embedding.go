@@ -11,6 +11,16 @@ import (
 	"cidx/internal/vector"
 )
 
+// QueryEmbeddingProviderError marks a failure returned by the injected
+// embedding client itself. Response validation and local transformation
+// failures deliberately retain their original error type: they are internal
+// invariants, not a provider observation that an evaluation may reduce to a
+// denominator failure.
+type QueryEmbeddingProviderError struct{ Err error }
+
+func (value QueryEmbeddingProviderError) Error() string { return value.Err.Error() }
+func (value QueryEmbeddingProviderError) Unwrap() error { return value.Err }
+
 // queryEmbedding creates a fresh, request-local query vector. Neither its
 // input nor either f32 representation is passed to storage or logging.
 func formatQueryText(version int, query string) (string, error) {
@@ -33,7 +43,7 @@ func queryEmbedding(ctx context.Context, client embedclient.EmbeddingClient, res
 	defer cancel()
 	response, err := client.Embed(requestCtx, request)
 	if err != nil {
-		return nil, err
+		return nil, QueryEmbeddingProviderError{Err: err}
 	}
 	ordered, err := embedclient.ValidateResponse(request, response)
 	if err != nil {

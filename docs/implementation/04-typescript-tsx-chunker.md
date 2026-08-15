@@ -4,7 +4,7 @@
 - Prerequisite phase: `02-config-profiles-and-schemas`
 - Downstream phases: `05-worktree-index-pipeline`, `06-fts-search`, `08-raw-embedding-lab`
 - Parallel phase: `03-go-chunker`
-- Design basis: `local-code-search-mcp-v1-design-r3.md` Sections 5 and 7.2
+- Design basis: `local-code-search-mcp-v1-design-r4.md` Sections 5 and 7.2
 
 ## Context Recovery Checklist
 
@@ -185,7 +185,7 @@ If a class-field arrow function becomes a separate method chunk, retain only its
 - Type alias: union, intersection, or object-type member boundaries
 - Enum: member boundaries
 
-Generate both segment projections and the contiguous display range covering each one. Never split by bytes in the middle of JSX text, a UTF-8 code point, a string/template literal, or a comment. Inject threshold and overlap from the resolved index profile.
+Generate both segment projections and the contiguous display range covering each one. Never split by bytes in the middle of JSX text, a UTF-8 code point, a string/template literal, or a comment. Chunks remain complete semantic functions, methods, or types; segment packing follows AST statement/member boundaries toward the resolved 1024-byte target. An oversized AST unit remains whole. Evaluation may compare only 768-, 1024-, and 1536-byte segment targets.
 
 ### 6.7 CLI
 
@@ -198,7 +198,7 @@ Phase 04 adds no public CLI or MCP tool. Later lexical evaluation and the index 
 | `index.languages` | enable TypeScript and TSX chunkers | changes target set; local reindex |
 | Executable-owned TypeScript chunker/grammar ID | TypeScript/TSX extraction and grammar dispatch | reparse every TypeScript/TSX file |
 | Executable-owned projection ID | class method-body exclusion and similar rules | regenerate chunk projections, FTS, and inputs |
-| `index.max_chunk_bytes`, `max_segment_input_bytes` | statement/member packing | index-profile change; regenerate segments |
+| `index.target_segment_bytes` | AST statement/member packing toward the 1024-byte target; semantic chunks remain whole | index-profile change; regenerate segments |
 | Executable-owned canonical-text profile | downstream formatter | no effect on AST chunks; recompute canonical inputs/hashes, changing keys only when actual bytes change |
 
 Manage function/method/type node names, export/modifier handling, and the supported-declaration set in one adapter-level group of named constants or queries. Do not duplicate range validation, segment packing, or line-conversion rules shared by Go and TypeScript.
@@ -300,7 +300,7 @@ Provide FTS and embedding phases with:
 
 | Decision | Status | Basis |
 | --- | --- | --- |
-| TypeScript source-chunk kinds | fixed: function, method, type | r3 v1 retrieval units |
+| TypeScript source-chunk kinds | fixed: function, method, type | r4 v1 retrieval units |
 | Exported const/var itself | excluded | Export status does not define a retrieval unit. |
 | Named variable-bound arrow/function | included | Explicit contract for `export const handler = () => ...`. |
 | Arbitrary callback or IIFE | excluded | Not a stable named unit and would cause chunk explosion. |

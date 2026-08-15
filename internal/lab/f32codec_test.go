@@ -148,7 +148,7 @@ func TestLabMigrationIsAtomicAndFailsClosed(t *testing.T) {
 	if err := migrate(ctx, db); err != nil {
 		t.Fatalf("current schema did not validate: %v", err)
 	}
-	if _, err := db.ExecContext(ctx, `PRAGMA user_version=4`); err != nil {
+	if _, err := db.ExecContext(ctx, `PRAGMA user_version=5`); err != nil {
 		t.Fatal(err)
 	}
 	if err := migrate(ctx, db); err == nil {
@@ -236,6 +236,9 @@ func TestV2ToV3MaterializationMigrationPreservesRawAndCaptureRows(t *testing.T) 
 		`CREATE TABLE materialization_runs (id INTEGER PRIMARY KEY, vector_space_profile TEXT NOT NULL, storage_profile TEXT NOT NULL, raw_coverage REAL NOT NULL, output_checksum TEXT NOT NULL, evaluation_run_ref TEXT)`,
 		`DROP TABLE materialization_runs_v3`,
 		`DROP TABLE materialized_variants`,
+		`ALTER TABLE evaluation_runs RENAME TO evaluation_runs_v3`,
+		`CREATE TABLE evaluation_runs (id INTEGER PRIMARY KEY, repository_identity TEXT NOT NULL, generation INTEGER NOT NULL, query_manifest_sha256 TEXT NOT NULL, candidate_profile TEXT NOT NULL, artifact_reference TEXT NOT NULL)`,
+		`DROP TABLE evaluation_runs_v3`,
 	} {
 		if _, err := db.ExecContext(ctx, statement); err != nil {
 			t.Fatal(err)
@@ -256,6 +259,10 @@ func TestV2ToV3MaterializationMigrationPreservesRawAndCaptureRows(t *testing.T) 
 	}
 	if err := db.QueryRowContext(ctx, `SELECT count(*) FROM evaluation_runs`).Scan(&evaluationCount); err != nil || evaluationCount != 1 {
 		t.Fatalf("evaluation preservation=%d %v", evaluationCount, err)
+	}
+	var legacyRunID, evaluationStatus string
+	if err := db.QueryRowContext(ctx, `SELECT run_id,status FROM evaluation_runs WHERE id=4`).Scan(&legacyRunID, &evaluationStatus); err != nil || legacyRunID != "legacy-4" || evaluationStatus != "legacy" {
+		t.Fatalf("evaluation v4 migration=%q/%q err=%v", legacyRunID, evaluationStatus, err)
 	}
 	if err := db.QueryRowContext(ctx, `SELECT count(*) FROM materialization_runs WHERE build_id='legacy-9'`).Scan(&materializationCount); err != nil || materializationCount != 1 {
 		t.Fatalf("materialization preservation=%d %v", materializationCount, err)
@@ -285,6 +292,16 @@ func TestLabRootUsesCanonicalSymlinkIdentity(t *testing.T) {
 		t.Fatalf("symlink-equivalent lab root rejected: %v", err)
 	}
 	_ = second.Close()
+}
+
+func TestOpenExistingStoreWritableRejectsMissingStateWithoutCreatingIt(t *testing.T) {
+	root := t.TempDir()
+	if _, err := OpenExistingStoreWritable(context.Background(), Options{Root: root}); err == nil {
+		t.Fatal("missing lab state accepted")
+	}
+	if _, err := os.Stat(filepath.Join(root, ".cidx")); !os.IsNotExist(err) {
+		t.Fatalf("writable existing open created lab state: %v", err)
+	}
 }
 
 func TestLabRejectsSymlinkedStateComponents(t *testing.T) {

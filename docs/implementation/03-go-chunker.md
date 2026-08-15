@@ -4,7 +4,7 @@
 - Prerequisite phase: `02-config-profiles-and-schemas`
 - Downstream phases: `05-worktree-index-pipeline`, `06-fts-search`, `08-raw-embedding-lab`
 - Parallel phase: `04-typescript-tsx-chunker`
-- Design basis: `local-code-search-mcp-v1-design-r3.md` Sections 5 and 7.2
+- Design basis: `local-code-search-mcp-v1-design-r4.md` Sections 5 and 7.2
 
 ## Context Recovery Checklist
 
@@ -166,7 +166,7 @@ Phase 03 adds no public CLI. It exposes a package API so later evaluation tools 
 | `index.languages` | enable Go chunker | changes target set; local reindex |
 | Executable-owned Go chunker ID | all Go extraction rules | reparse every Go file |
 | Executable-owned projection ID | type/function projections | regenerate affected chunks, FTS, and inputs |
-| `index.max_chunk_bytes`, `max_segment_input_bytes` | segment-boundary packing | index-profile change; regenerate segments |
+| `index.target_segment_bytes` | AST-boundary segment packing toward the 1024-byte target; semantic function/method/type chunks remain whole | index-profile change; regenerate segments |
 | Executable-owned canonical-text profile | formatter after chunking | no effect on AST chunk ranges; recompute canonical inputs/hashes, changing keys only when bytes change |
 
 Do not scatter Tree-sitter node-kind magic strings across files. Own them in one set of named adapter constants or one query definition. Use the shared implementation for coordinate conversion and range validation.
@@ -240,7 +240,7 @@ Hit rate and numeric segment thresholds are not completion conditions for this p
 - Doc comments: a directly preceding contiguous Go comment block is included when every comment-to-comment/declaration gap contains only horizontal whitespace and at most one line break. The chunk `source_body` and first projection therefore retain that semantic context. A blank line or intervening token prevents association.
 - Grouped types: each group member owns its exact individual type-spec/alias span (and any directly attached member doc comment), so grouped chunks do not contain neighboring specs. A grouped member cannot include the group-level `type` token because projection ranges must remain source-relative and byte-exact; its display/search signature uses the stable synthetic `type Name ...` header.
 - Receiver normalization: the first receiver type identifier in source order is the deterministic base identity. This maps `R`, `*R`, and `*R[T]` to `R`; an absent or erroneous receiver excludes the method and emits `GO_INVALID_RECEIVER`.
-- Source/projection/segment checks: every emitted source body is copied from one original byte slice; byte ranges are zero-based half-open; line ranges use the Phase 02 CRLF/UTF-8-safe `LineIndex`; projections are validated source-relative/non-overlapping; segments either retain the complete projection or pack Tree-sitter statement/field/member units without byte cuts. A single AST unit exceeding the injected byte cap remains one valid oversize segment rather than being split.
+- Source/projection/segment checks: every emitted source body is copied from one original byte slice; byte ranges are zero-based half-open; line ranges use the Phase 02 CRLF/UTF-8-safe `LineIndex`; projections are validated source-relative/non-overlapping; chunks remain complete semantic functions, methods, or types; segments pack Tree-sitter statement/field/member units toward the 1024-byte target without byte cuts. A single AST unit exceeding that target remains one valid oversize segment rather than being split. Evaluation may compare only 768-, 1024-, and 1536-byte segment targets.
 - Parse policy: invalid UTF-8 fails closed. Unsafe declarations are excluded with a non-indexable diagnostic. Syntax errors outside an otherwise safe declaration produce a recoverable `GO_PARSE_ERROR` diagnostic with `safe_to_index=true`; a diagnostic overlapping an emitted chunk is non-indexable.
 - Focused fixtures cover ordinary/generic functions, generic pointer receivers, structs/interfaces/aliases and grouped types, doc comments, const/var/anonymous exclusions, CRLF plus Unicode coordinates, deterministic results, cancellation, malformed-input recovery, and statement-boundary segmentation.
 
@@ -265,7 +265,7 @@ Provide FTS and embedding phases with:
 
 | Decision | Status | Basis |
 | --- | --- | --- |
-| Go source-chunk kinds | fixed: function, method, type | r3 v1 retrieval units |
+| Go source-chunk kinds | fixed: function, method, type | r4 v1 retrieval units |
 | Const/var chunks | excluded | Not a v1 target, regardless of export status. |
 | Anonymous function literal | excluded | Not a stable named retrieval unit. |
 | Grouped type handling | fixed: one chunk per type spec | Preserve each named type as an independent retrieval unit. |

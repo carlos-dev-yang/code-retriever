@@ -37,19 +37,28 @@ var ErrEmbeddingPlanStale = errors.New("EMBEDDING_PLAN_STALE")
 // PublicEmbeddingPlan deliberately exposes only review-safe summary data.
 // Its authorization payload and canonical inputs remain package-private.
 type PublicEmbeddingPlan struct {
-	Generation                                                                      int64
-	ActiveDistinct, Ready, SkippedTerminal, PaidInputs, EstimatedTokens, BatchCount int
-	ManifestSHA256                                                                  string
-	RetryFailed                                                                     bool
-	authorization                                                                   embeddingPlanAuthorization
+	Generation      int64  `json:"generation"`
+	ActiveDistinct  int    `json:"active_distinct"`
+	Ready           int    `json:"ready_count"`
+	SkippedTerminal int    `json:"skipped_terminal_count"`
+	PaidInputs      int    `json:"paid_input_count"`
+	EstimatedTokens int    `json:"estimated_tokens"`
+	BatchCount      int    `json:"batch_count"`
+	ManifestSHA256  string `json:"manifest_sha256"`
+	RetryFailed     bool   `json:"retry_failed"`
+	authorization   embeddingPlanAuthorization
 }
 type embeddingPlanAuthorization struct {
 	source, space, storage string
 	paidHashes             []string
 }
 type PublicEmbeddingResult struct {
-	RunID                                                 int64
-	Requested, Succeeded, Failed, Discarded, ActualTokens int
+	RunID        int64 `json:"run_id"`
+	Requested    int   `json:"requested_count"`
+	Succeeded    int   `json:"succeeded_count"`
+	Failed       int   `json:"failed_count"`
+	Discarded    int   `json:"discarded_count"`
+	ActualTokens int   `json:"actual_tokens"`
 }
 
 func (p PublicEmbedding) Plan(ctx context.Context) (PublicEmbeddingPlan, error) {

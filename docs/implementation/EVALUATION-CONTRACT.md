@@ -2,7 +2,7 @@
 
 - Status: pre-implementation normative plan
 - Applies to: Phases 00 through 14 wherever evidence, comparison, or promotion is required
-- Canonical product design: [Revision 3](../../local-code-search-mcp-v1-design-r3.md)
+- Canonical product design: [Revision 4](../../local-code-search-mcp-v1-design-r4.md)
 - Phase index: [README](README.md)
 - Execution protocol: [EXECUTION-GUIDE](EXECUTION-GUIDE.md)
 - Persistent phase state: [STATUS](STATUS.md)
@@ -16,13 +16,15 @@ The contract adapts lessons from the sibling `knowledge-system` project after an
 1. cidx is an auxiliary local retrieval MCP used beside file readers, grep/symbol tools, compilers, and tests.
 2. Product usefulness is measured as the marginal effect of adding cidx to those tools, not by forcing an assistant to use cidx and not by evaluating a cidx-only assistant as the primary product arm.
 3. FTS and dense retrieval are parallel provider lanes. They must be measured separately before RRF.
-4. cidx scans every eligible stored vector. Binary/int8 differences from target-dimension f32 are representation and codec losses, not ANN recall losses.
-5. Human relevance truth and target-dimension f32 ranking are independent references:
+4. cidx scans every eligible stored vector. Binary/int8 differences from serving-dimension f32 are representation and codec losses, not ANN recall losses.
+5. Human relevance truth and serving-dimension f32 ranking are independent references:
    - human truth measures whether useful code is retrieved;
-   - exhaustive target-f32 ranking measures whether binary or int8 preserves the chosen vector representation.
+   - exhaustive serving-f32 ranking measures whether binary or int8 preserves the chosen vector representation.
 6. A codec may preserve f32 neighbors while the dense model is semantically wrong, or change f32 neighbors while retaining human-gold results. Reports keep both facts visible.
 7. Activation, successful materialization, schema validity, or readiness proves lifecycle correctness only. It is never quality evidence.
 8. Latency, size, tokens, and cost are measured from the start, but they are not release gates until a budget is explicitly frozen before a confirmation run.
+9. Eligible source files are capped at 1 MiB. Chunks are complete semantic AST parents, not user-configured byte slices. Production embedding segments target 1024 bytes; evaluation exercises AST-aligned 768-, 1024-, and 1536-byte segment cases without arbitrary splitting.
+10. Voyage uses only the regular synchronous Embeddings endpoint: explicit 1024-dimensional f32 source output, at most 128 inputs and 256 KiB per request, concurrency 4, 30-second timeout, and at most three retries after 10/20/30 seconds, with a longer `Retry-After` winning. Batch Inference and asynchronous polling are excluded.
 
 ## 2. Evidence Path and First-Loss Model
 
@@ -66,7 +68,7 @@ The portable trace wire records one ordered observation for every planned stage.
 | --- | --- | --- | --- |
 | Source discovery and parser/chunker | Frozen eligible files and labeled eligible functions, methods, and types; exact source spans and bodies | File success: all eligible files. Construct recall: all labeled eligible constructs. Emission precision and fidelity: all emitted chunks in the reviewed slice | File success, construct recall, chunk precision, kind/symbol accuracy, byte/span/body fidelity, duplicate/overlap rate, unsupported-syntax classes, stale-row violations, clean-rebuild versus incremental equivalence |
 | FTS candidate retrieval | Gold parent chunks and requirement groups mapped to parent chunks | Hit/MRR: all required answerable queries. Recall/coverage: all gold parents or requirement groups. Known-hard-negative rate: all verified abstainable/hard-negative queries with reviewed misleading targets | Parent Hit@1/5, Recall@k, MRR, NDCG@k, requirement coverage, exact-identifier Hit@1, duplicate rate, known-hard-negative Hit@k, returned candidate count |
-| Dense segment retrieval | Gold source spans mapped to acceptable dense segments and parents | Human metrics: all required dense-relevant queries/groups. Codec fidelity: target-f32 top-k and fixed-depth ranked pairs | Segment and parent-availability Hit/Recall/MRR/NDCG, target-f32 top-k retention, missing candidates, rank displacement, pairwise inversion, ties, human-gold retention, vector coverage |
+| Dense segment retrieval | Gold source spans mapped to acceptable dense segments and parents | Human metrics: all required dense-relevant queries/groups. Codec fidelity: serving-f32 top-k and fixed-depth ranked pairs | Segment and parent-availability Hit/Recall/MRR/NDCG, serving-f32 top-k retention, missing candidates, rank displacement, pairwise inversion, ties, human-gold retention, vector coverage |
 | Segment-to-parent collapse | Gold parents represented by pre-collapse dense segments | Survival: gold parents available before collapse. Alignment: all collapsed candidates. Parent retrieval: all query gold parents/groups | Parent Hit/Recall/MRR/NDCG, gold survival, segment-parent alignment, compression/dedup ratio, parent rank movement, relevant suppression, parent dominance |
 | RRF fusion | Gold parents in the FTS/dense candidate union | Survival: gold parents available in the union. Final retrieval: all required query groups. Contribution: all candidates and gold from each lane | Fused Hit/Recall/MRR/NDCG, per-lane survival, unique-gold contribution, overlap/disagreement, rescue/harm, lane-to-fused rank movement, tie rate, deterministic order |
 | Inline body packaging | Gold requirements present in fused top-k and their frozen indexed bodies | Survival: fused gold requirements. Fidelity: every serialized body. Budget loss: every packaged query | Gold/body survival, source-span/body fidelity, relevant-byte density, duplicate-body ratio, omission/truncation rate, first-gold position, omission reason, serialized bytes and estimated tokens |
@@ -148,11 +150,11 @@ A 12–20 query set is execution smoke evidence only and cannot support a codec,
 
 Every frozen query receives human review. Freezing should have two recorded independent approvals. In a solo-development run, record two separated review passes and mark the absence of a second reviewer as a limitation; do not silently claim dual review. Every no-answer and hard-negative label requires corpus-wide search evidence and an independent second review/pass.
 
-Pool unique top results from FTS, target f32, binary, int8, and RRF for relevance review before labels freeze. Pooling expands judgment coverage; it must not alter labels after confirmation results are known.
+Pool unique top results from FTS, serving f32, binary, int8, and RRF for relevance review before labels freeze. Pooling expands judgment coverage; it must not alter labels after confirmation results are known.
 
 ### 4.6 Calibration and confirmation
 
-- Calibration data selects target dimension, codec, RRF parameters, candidate limits, body budgets, and noninferiority margins.
+- Calibration data selects serving dimension, codec, RRF parameters, candidate limits, body budgets, and noninferiority margins.
 - Confirmation data is independently frozen and cannot tune any of those values.
 - Only a complete confirmation run may vote for promotion.
 - A later label correction creates a new dataset version and invalidates direct delta claims against the old digest.
@@ -165,12 +167,12 @@ A paired delta requires identical:
 - query/label manifest and relevance grades;
 - parser, chunker, FTS schema/tokenizer, and SQLite version;
 - Voyage model/source dimension and, within one query comparison, the same ephemeral source query vector;
-- reducer/version and target dimension unless that field is the declared arm difference;
+- reducer/version and serving dimension unless that field is the declared arm difference;
 - candidate limits, collapse policy, RRF policy, body budget, and MCP schema;
 - code commit and platform; latency additionally requires equivalent hardware/load;
 - assistant model, prompt, tools, and budgets for end-to-end comparison.
 
-Within one current-profile run, target f32 and the active binary or int8 codec reuse the same in-memory query f32 and the same target-dimension document f32. Persist only the query-vector hash. Binary and int8 are evaluated in separate current-config runs; a direct cross-codec paired delta is valid only when the recorded query-vector hashes and every other paired control match. Otherwise compare each codec with its own same-query target-f32 reference and report the cross-run result as separate checkpoints, not a paired delta.
+Within one current-profile run, serving f32 and the active binary or int8 codec reuse the same in-memory query f32 and the same serving-dimension document f32. Persist only the query-vector hash. Binary and int8 are evaluated in separate current-config runs; a direct cross-codec paired delta is valid only when the recorded query-vector hashes and every other paired control match. Otherwise compare each codec with its own same-query serving-f32 reference and report the cross-run result as separate checkpoints, not a paired delta.
 
 ## 5. Metric Definitions
 
@@ -223,7 +225,7 @@ Do not rename this as abstention accuracy. It measures known misleading retrieva
 
 ## 6. Dense Representation and Codec Fidelity
 
-For target-dimension f32 top-k `Fk` and codec top-k `Ck`:
+For serving-dimension f32 top-k `Fk` and codec top-k `Ck`:
 
 ```text
 TopKRetention = |Fk intersect Ck| / |Fk|
@@ -311,7 +313,7 @@ Freeze margins before confirmation for:
 
 - Hit/Recall/MRR/NDCG and requirement coverage;
 - exact-identifier, semantic, multi-answer, hard-negative, stale/dirty, and language cohorts;
-- target-f32 codec retention, human-gold retention, rank displacement, inversion, and ties;
+- serving-f32 codec retention, human-gold retention, rank displacement, inversion, and ties;
 - parent-collapse, RRF, and body-package gold survival;
 - per-query regression count and maximum material-regressed cohort count;
 - end-to-end task success, requirement coverage, false leads, and test results when product-usefulness evidence is required.
@@ -331,6 +333,7 @@ Initially report, but do not pretend these are gates:
 - provider calls, tokens, retries, timeouts, and cost.
 
 Before using any as a promotion gate, write a pre-result budget into the promotion contract and collect repeated baseline evidence.
+No numeric performance SLA is a v1 default or implied by these observations.
 
 ## 9. Practices Prohibited
 
@@ -452,7 +455,7 @@ Required evidence:
 Required implementation evidence for each current config candidate:
 
 - codec conformance and storage integrity;
-- deterministic transform/codec/scorer conformance against target-f32 fixtures;
+- deterministic transform/codec/scorer conformance against serving-f32 fixtures;
 - blob integrity, corruption rejection, and one-active-profile publication;
 - repeated ranking-hash equality for controlled scorer fixtures;
 - size, transform-time, memory, and zero-provider-call observations;
@@ -477,8 +480,8 @@ Required evidence:
 
 - frozen candidate and promotion contract before execution;
 - independent confirmation dataset;
-- complete per-query records for FTS, target f32, the current active codec, union, collapse, RRF, body packaging, and lane ablations;
-- same-run target-f32 versus active-codec retention/displacement/inversion/tie metrics plus human-gold metrics;
+- complete per-query records for FTS, serving f32, the current active codec, union, collapse, RRF, body packaging, and lane ablations;
+- same-run serving-f32 versus active-codec retention/displacement/inversion/tie metrics plus human-gold metrics;
 - sequential binary and int8 candidate reports, with direct cross-codec paired claims only when query-vector hashes and all paired controls match;
 - complete hard-gate result;
 - implementation invariant audit;
@@ -518,7 +521,7 @@ The 2026-08-14 advisory review used these `knowledge-system` sources as design r
 Decisions:
 
 - Use stage-separated scorecards and first-loss attribution; never a single weighted score.
-- Use human relevance and exhaustive target-f32 fidelity as separate references.
+- Use human relevance and exhaustive serving-f32 fidelity as separate references.
 - Preserve standalone FTS and dense evidence around RRF.
 - Use paired hard gates with calibration/confirmation separation.
 - Exclude HNSW construction, ANN recall, `ef_search`, graph health, and ANN tuning from cidx v1 evaluation.

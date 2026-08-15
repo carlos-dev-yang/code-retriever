@@ -97,6 +97,147 @@ func TestLiveWorktreeIndexesTrackedAndUntrackedAndPublishesAtomically(t *testing
 		t.Fatalf("untouched FTS=%d %v", hits, err)
 	}
 }
+
+func TestDryRunPlansNewEmbeddingWithoutPublishing(t *testing.T) {
+	ctx, root := context.Background(), t.TempDir()
+	runGit(t, root, "init")
+	mustWrite(t, filepath.Join(root, ".cidx", "config.json"), "{}")
+	mustWrite(t, filepath.Join(root, "first.go"), "package p\nfunc First() {}\n")
+	runGit(t, root, "add", "first.go")
+	resolved := testConfig(t)
+	production, err := store.OpenProduction(ctx, root, resolved)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer production.Close()
+	service := New(production)
+	if _, err := service.Execute(ctx, Request{Root: root, Reason: ReasonManual, Config: resolved}); err != nil {
+		t.Fatal(err)
+	}
+	mustWrite(t, filepath.Join(root, "second.go"), "package p\nfunc Second() {}\n")
+	preview, err := service.Execute(ctx, Request{Root: root, DryRun: true, Reason: ReasonManual, Config: resolved})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if preview.PlannedEmbeddingsPending != 2 || preview.PlannedEmbeddingsReused != 0 {
+		t.Fatalf("preview=%#v", preview)
+	}
+	snapshot, err := production.IndexSnapshot(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if snapshot.Applied.ActiveGeneration != 1 || len(snapshot.Files) != 1 {
+		t.Fatalf("dry run published snapshot=%#v", snapshot)
+	}
+}
+
+func TestDryRunUnchangedReportsCurrentManifestAndEmbeddingPlan(t *testing.T) {
+	ctx, root := context.Background(), t.TempDir()
+	runGit(t, root, "init")
+	mustWrite(t, filepath.Join(root, ".cidx", "config.json"), "{}")
+	mustWrite(t, filepath.Join(root, "only.go"), "package p\nfunc Only() {}\n")
+	runGit(t, root, "add", "only.go")
+	resolved := testConfig(t)
+	production, err := store.OpenProduction(ctx, root, resolved)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer production.Close()
+	service := New(production)
+	indexed, err := service.Execute(ctx, Request{Root: root, Reason: ReasonManual, Config: resolved})
+	if err != nil {
+		t.Fatal(err)
+	}
+	preview, err := service.Execute(ctx, Request{Root: root, DryRun: true, Reason: ReasonManual, Config: resolved})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if preview.ManifestSHA256 != indexed.ManifestSHA256 || preview.PlannedEmbeddingsPending != 1 || preview.PlannedEmbeddingsReused != 0 {
+		t.Fatalf("preview=%#v indexed=%#v", preview, indexed)
+	}
+	snapshot, err := production.IndexSnapshot(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if snapshot.Applied.ActiveGeneration != 1 || snapshot.Applied.ManifestSHA256 != indexed.ManifestSHA256 {
+		t.Fatalf("dry run published snapshot=%#v", snapshot)
+	}
+}
+
+func TestDryRunProfileChangeUsesOnlyDesiredFutureKeys(t *testing.T) {
+	ctx, root := context.Background(), t.TempDir()
+	runGit(t, root, "init")
+	mustWrite(t, filepath.Join(root, ".cidx", "config.json"), "{}")
+	mustWrite(t, filepath.Join(root, "only.go"), "package p\nfunc Only() {}\n")
+	runGit(t, root, "add", "only.go")
+	current := testConfig(t)
+	production, err := store.OpenProduction(ctx, root, current)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer production.Close()
+	service := New(production)
+	if _, err = service.Execute(ctx, Request{Root: root, Reason: ReasonManual, Config: current}); err != nil {
+		t.Fatal(err)
+	}
+	dim := 512
+	desired, err := config.Resolve(config.RawConfig{Version: 1, Index: config.RawIndex{Languages: []string{"go", "typescript", "tsx"}, MaxSourceFileBytes: 1024 * 1024, MaxChunkBytes: 1024 * 1024, MaxSegmentInputBytes: 1024 * 1024}, Embedding: config.RawEmbedding{TargetDimensions: &dim, Batch: config.RawBatch{MaxInputs: 8, MaxInputTokens: 8192, RequestTimeoutMS: 100}}, MCP: config.RawMCP{HardMaxInlineBytes: 1024, MaxReadSpanLines: 10}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	preview, err := service.Execute(ctx, Request{Root: root, DryRun: true, Reason: ReasonManual, Config: desired})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if preview.PlannedEmbeddingsPending != 1 || preview.PlannedEmbeddingsReused != 0 {
+		t.Fatalf("preview=%#v", preview)
+	}
+}
+
+func TestDryRunCanonicalReconciliationReplacesOldKeyWithoutPublish(t *testing.T) {
+	ctx, root := context.Background(), t.TempDir()
+	runGit(t, root, "init")
+	mustWrite(t, filepath.Join(root, ".cidx", "config.json"), "{}")
+	mustWrite(t, filepath.Join(root, "only.go"), "package p\nfunc Only() {}\n")
+	runGit(t, root, "add", "only.go")
+	resolved := testConfig(t)
+	production, err := store.OpenProduction(ctx, root, resolved)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer production.Close()
+	service := New(production)
+	if _, err = service.Execute(ctx, Request{Root: root, Reason: ReasonManual, Config: resolved}); err != nil {
+		t.Fatal(err)
+	}
+	db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "index.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	old := strings.Repeat("a", 64)
+	if _, err := db.ExecContext(ctx, `UPDATE embedding_segments SET canonical_input_sha256=?; UPDATE meta SET canonical_text_profile='stale'`, old); err != nil {
+		t.Fatal(err)
+	}
+	preview, err := service.Execute(ctx, Request{Root: root, DryRun: true, Reason: ReasonManual, Config: resolved})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if preview.PlannedEmbeddingsPending != 1 || preview.PlannedEmbeddingsReused != 0 {
+		t.Fatalf("preview=%#v", preview)
+	}
+	var hash string
+	var generation int64
+	if err := db.QueryRowContext(ctx, `SELECT canonical_input_sha256 FROM embedding_segments LIMIT 1`).Scan(&hash); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRowContext(ctx, `SELECT active_generation FROM meta WHERE id=1`).Scan(&generation); err != nil {
+		t.Fatal(err)
+	}
+	if hash != old || generation != 1 {
+		t.Fatalf("dry run published hash=%s generation=%d", hash, generation)
+	}
+}
 func TestPrepareRejectsUnsafeDiagnosticsAndCancellationLeavesGeneration(t *testing.T) {
 	ctx := context.Background()
 	root := t.TempDir()
@@ -133,8 +274,15 @@ func TestReadOneRejectsSymlinkedParent(t *testing.T) {
 	if err := os.Symlink(outside, filepath.Join(root, "linked")); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := readOne(root, "linked/escape.go"); err == nil {
+	if _, _, err := readOne(root, "linked/escape.go", 1024); err == nil {
 		t.Fatal("parent symlink escape accepted")
+	}
+}
+func TestReadOneBoundsReadAtConfiguredSourceCap(t *testing.T) {
+	root := t.TempDir()
+	mustWrite(t, filepath.Join(root, "large.go"), "package p\n")
+	if _, _, err := readOne(root, "large.go", 4); err == nil {
+		t.Fatal("oversize source was read without configured cap")
 	}
 }
 func TestGitObservationExcludesOnlyGeneratedCidxState(t *testing.T) {
@@ -167,6 +315,12 @@ func TestGitObservationExcludesOnlyGeneratedCidxState(t *testing.T) {
 	_, dirty, err = gitObservation(ctx, root)
 	if err != nil || !dirty {
 		t.Fatalf("config dirty=%v err=%v", dirty, err)
+	}
+	runGit(t, root, "checkout", "--", ".cidx/config.json")
+	mustWrite(t, filepath.Join(root, ".cidx", "lab", "note"), "must remain visible")
+	_, dirty, err = gitObservation(ctx, root)
+	if err != nil || !dirty {
+		t.Fatalf("lab dirty=%v err=%v", dirty, err)
 	}
 }
 func TestProfileReconciliationRepublishesServingSegments(t *testing.T) {

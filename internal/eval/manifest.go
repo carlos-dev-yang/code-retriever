@@ -40,8 +40,9 @@ type CorpusManifest struct {
 	RootSubdir            string                  `json:"root_subdir,omitempty"`
 	Include               []string                `json:"include"`
 	Exclude               []string                `json:"exclude"`
-	ExpectedContentSHA256 string                  `json:"expected_content_sha256"`
+	ExpectedContentSHA256 string                  `json:"expected_content_hash"`
 	ExpectedTreeHash      string                  `json:"expected_tree_hash"`
+	CleanTreeRequired     bool                    `json:"clean_tree_required"`
 }
 
 func LoadCorpusManifest(data []byte) (CorpusManifest, error) {

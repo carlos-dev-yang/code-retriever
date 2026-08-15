@@ -143,6 +143,17 @@ func TestResolvedSearchDefaultsAndExplicitZeroRejection(t *testing.T) {
 	}
 }
 
+func TestCandidateKCanExceedRequestReturnLimit(t *testing.T) {
+	configured := strings.Replace(validConfigJSON(""), `"search":{}`, `"search":{"return_k":20,"candidate_k":21}`, 1)
+	resolved, err := LoadBytes([]byte(configured))
+	if err != nil {
+		t.Fatalf("candidate_k above request return cap rejected: %v", err)
+	}
+	if resolved.Search.ReturnK != AbsoluteMaxReturnK || resolved.Search.CandidateK != AbsoluteMaxReturnK+1 {
+		t.Fatalf("search policy = %#v", resolved.Search)
+	}
+}
+
 func TestPlanImpactClassesAndPrecedence(t *testing.T) {
 	resolved, err := LoadBytes([]byte(validConfigJSON("")))
 	if err != nil {

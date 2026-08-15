@@ -47,15 +47,24 @@ type Plan struct {
 	Candidates                      []string
 }
 type Result struct {
-	DryRun                                              bool
-	ActivatedGeneration                                 int64
-	ManifestSHA256                                      string
-	Scanned, Updated, Reused, Deleted, Chunks, Segments int
-	Diagnostics                                         []Diagnostic
+	DryRun                   bool         `json:"dry_run"`
+	ActivatedGeneration      int64        `json:"activated_generation,omitempty"`
+	ManifestSHA256           string       `json:"manifest_sha256"`
+	Scanned                  int          `json:"files_scanned"`
+	Updated                  int          `json:"files_updated"`
+	Reused                   int          `json:"files_reused"`
+	Deleted                  int          `json:"files_deleted"`
+	Chunks                   int          `json:"chunks_updated"`
+	Segments                 int          `json:"segments_updated"`
+	PlannedEmbeddingsReused  int          `json:"planned_embeddings_reused"`
+	PlannedEmbeddingsPending int          `json:"planned_embeddings_pending"`
+	Diagnostics              []Diagnostic `json:"diagnostics"`
 }
 type Diagnostic struct {
-	Path, Code, Message string
-	Safe                bool
+	Path    string `json:"path"`
+	Code    string `json:"code"`
+	Message string `json:"message"`
+	Safe    bool   `json:"safe"`
 }
 type Service struct {
 	Store    *store.ProductionStore
@@ -170,7 +179,7 @@ func (s *Service) Execute(ctx context.Context, r Request) (Result, error) {
 		if err := ctx.Err(); err != nil {
 			return result, err
 		}
-		body, info, err := readOne(canonical, path)
+		body, info, err := readOne(canonical, path, r.Config.Index.MaxSourceFileBytes)
 		if err != nil {
 			return result, fmt.Errorf("%s: %w", path, err)
 		}
@@ -195,10 +204,11 @@ func (s *Service) Execute(ctx context.Context, r Request) (Result, error) {
 			result.Segments += len(c.Segments)
 		}
 	}
-	if len(changed) == 0 && len(p.Deleted) == 0 && !p.ReconcileRequired {
-		return result, nil
-	}
+	noChanges := len(changed) == 0 && len(p.Deleted) == 0 && !p.ReconcileRequired
 	manifest := manifestFor(p.Candidates, prepared, snapshot.Files)
+	if noChanges {
+		manifest = snapshot.Applied.ManifestSHA256
+	}
 	var updates []store.SegmentUpdate
 	if p.ReconcileRequired && !p.FullRebuildRequired {
 		segments, err := s.Store.ReconciliationSegments(ctx, snapshot.Applied.ActiveGeneration)
@@ -209,21 +219,64 @@ func (s *Service) Execute(ctx context.Context, r Request) (Result, error) {
 			if changed[segment.Path] {
 				continue
 			}
-			hash := ""
+			hash := segment.CanonicalInputSHA256
 			if p.CanonicalReconcile {
 				var err error
 				hash, err = canonicalStored(segment)
 				if err != nil {
 					return result, err
 				}
-			} else { // source/vector/storage-only reconciliation preserves canonical key.
-				hash = segment.CanonicalInputSHA256
 			}
 			updates = append(updates, store.SegmentUpdate{ID: segment.ID, CanonicalInputSHA256: hash, CanonicalTextProfile: string(r.Config.Profiles.Fingerprints.CanonicalText), ServingProfile: string(r.Config.Profiles.Fingerprints.VectorStorage)})
 		}
 	}
 	result.ManifestSHA256 = manifest
 	if r.DryRun {
+		segments, err := s.Store.ReconciliationSegments(ctx, snapshot.Applied.ActiveGeneration)
+		if err != nil {
+			return result, err
+		}
+		updateByID := map[int64]string{}
+		for _, update := range updates {
+			updateByID[update.ID] = update.CanonicalInputSHA256
+		}
+		keys := map[string]bool{}
+		for _, segment := range segments {
+			if !changed[segment.Path] {
+				if hash, ok := updateByID[segment.ID]; ok {
+					keys[hash] = true
+				} else {
+					keys[segment.CanonicalInputSHA256] = true
+				}
+			}
+		}
+		for _, file := range prepared {
+			for _, chunk := range file.Chunks {
+				for _, segment := range chunk.Segments {
+					keys[segment.CanonicalInputSHA256] = true
+				}
+			}
+		}
+		hashes := make([]string, 0, len(keys))
+		for hash := range keys {
+			hashes = append(hashes, hash)
+		}
+		states, err := s.Store.DesiredEmbeddingStates(ctx, r.Config, hashes)
+		if err != nil {
+			return result, err
+		}
+		for _, state := range states {
+			if state == store.EmbeddingReady {
+				result.PlannedEmbeddingsReused++
+			} else {
+				result.PlannedEmbeddingsPending++
+			}
+		}
+	}
+	if r.DryRun {
+		return result, nil
+	}
+	if noChanges {
 		return result, nil
 	}
 	if err := ctx.Err(); err != nil {
@@ -256,7 +309,7 @@ func canonicalStored(s store.IndexedSegment) (string, error) {
 	return config.CanonicalInputSHA256(b), nil
 }
 func validReason(r Reason) bool { return r == ReasonManual || r == ReasonCommit || r == ReasonMCP }
-func readOne(rootPath, path string) ([]byte, os.FileInfo, error) {
+func readOne(rootPath, path string, maxBytes int) ([]byte, os.FileInfo, error) {
 	if filepath.IsAbs(path) || strings.HasPrefix(filepath.ToSlash(filepath.Clean(path)), "../") {
 		return nil, nil, fmt.Errorf("path escapes root")
 	}
@@ -296,9 +349,12 @@ func readOne(rootPath, path string) ([]byte, os.FileInfo, error) {
 	if !os.SameFile(before, after) {
 		return nil, nil, fmt.Errorf("file changed while opening")
 	}
-	body, err := io.ReadAll(file)
+	body, err := io.ReadAll(io.LimitReader(file, int64(maxBytes)+1))
 	if err != nil {
 		return nil, nil, err
+	}
+	if len(body) > maxBytes {
+		return nil, nil, fmt.Errorf("source file exceeds configured limit")
 	}
 	return body, after, nil
 }
@@ -393,7 +449,7 @@ func gitObservation(ctx context.Context, root string) (string, bool, error) {
 			return "", false, fmt.Errorf("observe Git HEAD: %w", err)
 		}
 	}
-	dirty, err := exec.CommandContext(ctx, "git", "-C", root, "status", "--porcelain", "-z", "--", ".", ":(exclude).cidx/index.db", ":(exclude).cidx/index.db-wal", ":(exclude).cidx/index.db-shm", ":(exclude).cidx/index.lock", ":(exclude).cidx/embed.lock", ":(exclude).cidx/lab/**").Output()
+	dirty, err := exec.CommandContext(ctx, "git", "-C", root, "status", "--porcelain", "-z", "--", ".", ":(exclude).cidx/index.db", ":(exclude).cidx/index.db-wal", ":(exclude).cidx/index.db-shm", ":(exclude).cidx/index.lock", ":(exclude).cidx/embed.lock").Output()
 	if err != nil {
 		return "", false, fmt.Errorf("observe Git worktree: %w", err)
 	}

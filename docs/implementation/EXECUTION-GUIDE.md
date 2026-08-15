@@ -8,7 +8,7 @@ Use the following order of authority:
 
 1. The user's latest explicit instruction.
 2. Repository `AGENTS.md` files that apply to the files being changed.
-3. The canonical v1 design: [`../../local-code-search-mcp-v1-design-r3.md`](../../local-code-search-mcp-v1-design-r3.md).
+3. The canonical v1 design: [`../../local-code-search-mcp-v1-design-r4.md`](../../local-code-search-mcp-v1-design-r4.md).
 4. The implementation index and dependency graph: [`README.md`](README.md).
 5. The evaluation and promotion contract: [`EVALUATION-CONTRACT.md`](EVALUATION-CONTRACT.md), when evidence or quality claims are in scope.
 6. The active phase document.
@@ -78,6 +78,10 @@ Implementation convenience is not authority to change the product contract.
 - Inject typed profiles into packages; packages must not reread JSON or carry copied dimension/codec constants.
 - Keep code-owned protocol and algorithm identifiers in a central registry.
 - Accept only the code-owned `binary` and `int8` storage-codec IDs in v1. Resolve `binary` as the default, and inject the selected codec together with its matching encoder, validator, and scorer.
+- Use `serving_dimensions` for the active vector length and `--serving-dim` for its CLI spelling. Never use this value to represent source paths, line ranges, or repository scope.
+- Keep the provider source response fixed at 1024 dimensions and restrict serving dimensions to 256, 512, or 1024.
+- Treat the 1 MiB source-file ceiling, 1,024-byte AST-aware segment target, 64 KiB inline default, and 1 MiB inline executable ceiling as separate named contracts.
+- Do not reintroduce a configurable chunk byte cap or a read-span line-count cap.
 - Fingerprint resolved semantic values, not the whole config file or environment-specific paths.
 - Treat row-level dimensions and codec identifiers as integrity metadata, not a second configuration source.
 - Classify every setting change as one of: restart/reload only, local reindex, local rematerialization, paid re-embedding, or schema migration.
@@ -102,6 +106,10 @@ Implementation convenience is not authority to change the product contract.
 - Document requests use `input_type=document`; query requests use `input_type=query`.
 - Both explicitly request `output_dimension=1024`, `output_dtype=float`, and `truncation=false`.
 - Validate response count, index uniqueness/range, model, exact dimension, and finite values before any publish.
+- Use only the regular synchronous embeddings endpoint. Asynchronous Batch Inference is outside v1.
+- Group at most 128 inputs and 256 KiB of canonical input per synchronous request, run at most four requests concurrently, and apply a 30-second request timeout.
+- Make one initial attempt and at most three transient retries after 10, 20, and 30 seconds. This is staged linear backoff, not exponential backoff; a longer valid `Retry-After` wins and cancellation stops waiting.
+- Treat request byte limits as bytes, not token estimates. Do not invent a `voyage-code-4` batch-token cap.
 
 ## 9. Open-source evaluation corpus protocol
 
@@ -129,7 +137,7 @@ Report Go, TypeScript, TSX, and mixed-repository slices separately where applica
 
 - Use the stage scorecard and denominators in [`EVALUATION-CONTRACT.md`](EVALUATION-CONTRACT.md); never replace them with a weighted total.
 - Preserve both FTS and dense lane observations before RRF and attribute first loss along the provider-union, collapse, fusion, body, and assistant path.
-- Use human relevance for usefulness and exhaustive target-dimension f32 for binary/int8 fidelity. Neither reference substitutes for the other.
+- Use human relevance for usefulness and exhaustive serving-dimension f32 for binary/int8 fidelity. Neither reference substitutes for the other.
 - Treat required failures and timeouts as denominator members. Use `NOT_OBSERVED` only for a downstream stage that the run contract did not require.
 - Freeze corpus, labels, controls, candidate policy, profile, generation, and artifact checksums. Only compatible paired runs support delta claims.
 - Select parameters and margins on calibration data, freeze them before confirmation, and let only complete confirmation evidence vote for promotion.

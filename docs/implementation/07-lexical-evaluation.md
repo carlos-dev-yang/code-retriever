@@ -3,7 +3,7 @@
 - Status: `blocked` — corpus-independent infrastructure implemented; official evidence awaits user-selected corpus manifests and local bindings.
 - Prerequisite phase: `06-fts-search`
 - Follow-up phase: `12-retrieval-evaluation`
-- Design basis: `local-code-search-mcp-v1-design-r3.md` §13, §14
+- Design basis: `local-code-search-mcp-v1-design-r4.md` §13, §14
 - Evaluation authority: [EVALUATION-CONTRACT.md](EVALUATION-CONTRACT.md)
 
 ## Context Recovery Checklist
@@ -74,7 +74,7 @@ This phase does not copy a passing score or SLA from another project. It builds 
 12. Result artifacts omit full source bodies by default and use path, symbol, range, and hash for reproduction.
 13. Final token counts vary by tokenizer and host; they are supplementary observations rather than authority for byte limits or retrieval quality.
 14. The evaluator follows `EVALUATION-CONTRACT.md`: stage denominators remain separate, required failures stay in denominators, calibration cannot vote for promotion, and confirmation cannot tune settings.
-15. Human relevance truth is the product reference. Later codec fidelity uses target-dimension f32 as a second independent reference; Phase 07 must not pre-label f32 results as truth.
+15. Human relevance truth is the product reference. Later codec fidelity uses serving-dimension f32 as a second independent reference; Phase 07 must not pre-label f32 results as truth.
 
 ## 5. Packages, Files, and Types to Implement
 
@@ -257,6 +257,7 @@ The evaluator invents no defaults; it records the same resolved config snapshot 
 | `candidate_k`, `return_k` | record exact values in the run manifest |
 | BM25 field weights/tie-break | record in the run manifest and compare changes as separate variants |
 | file-size and ignore rules | report differences between the corpus manifest and index manifest |
+| segment target | record the selected 1024-byte target; only 768-, 1024-, and 1536-byte candidates may be compared in a separate frozen evaluation profile, always at AST boundaries |
 | max inline bytes | does not affect rank evaluation; do not mix returned-body volume into lexical score |
 | embedding source/vector/codec | does not affect the Phase 07 lexical run |
 
@@ -358,7 +359,7 @@ Provide Phases 08–12 with:
 - the user-selected, manifest-verified corpus IDs and query/answer dataset;
 - lexical baseline rank source data;
 - query categories and representative lexical failures;
-- the evaluator contract used to compare f32, binary, and int8 at the same target dimension; and
+- the evaluator contract used to compare f32, binary, and int8 at the same serving dimension; and
 - the fixed `candidate_k`, `return_k`, and RRF input conditions used by hybrid comparison.
 - frozen calibration/confirmation digests and the lexical baseline that later lanes must protect.
 

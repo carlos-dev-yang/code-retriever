@@ -4,12 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
 )
 
-const SchemaVersion = 3
+const SchemaVersion = 4
 
 // OpenStore is the formal lab-only factory. It creates a distinct path/schema
 // and never opens or attaches production index.db.
@@ -67,6 +68,99 @@ func OpenStore(ctx context.Context, options Options) (*Store, error) {
 	return store, nil
 }
 
+// OpenExistingStore opens an already-initialized lab database without creating
+// directories, a database file, migrations, or metadata. Evaluation planning
+// uses this path so a missing raw bank remains a read-only preflight failure.
+func OpenExistingStore(ctx context.Context, options Options) (*Store, error) {
+	path, err := options.Path()
+	if err != nil {
+		return nil, err
+	}
+	root, err := canonicalRoot(options.Root)
+	if err != nil {
+		return nil, err
+	}
+	for _, value := range []string{filepath.Join(root, ".cidx"), filepath.Join(root, ".cidx", "lab")} {
+		info, err := os.Lstat(value)
+		if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+			return nil, fmt.Errorf("existing lab state directory is required")
+		}
+	}
+	info, err := os.Lstat(path)
+	if err != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 {
+		return nil, fmt.Errorf("RAW_COVERAGE_INCOMPLETE")
+	}
+	uri := &url.URL{Scheme: "file", Path: path}
+	query := uri.Query()
+	query.Set("mode", "ro")
+	query.Add("_pragma", "foreign_keys(1)")
+	uri.RawQuery = query.Encode()
+	db, err := sql.Open("sqlite", uri.String())
+	if err != nil {
+		return nil, err
+	}
+	db.SetMaxOpenConns(1)
+	if err := db.PingContext(ctx); err != nil {
+		_ = db.Close()
+		return nil, err
+	}
+	store := &Store{db: db}
+	if err := store.RequireSchemaVersion(ctx); err != nil {
+		_ = db.Close()
+		return nil, err
+	}
+	var existingRoot string
+	if err := db.QueryRowContext(ctx, `SELECT canonical_root FROM lab_meta WHERE id=1`).Scan(&existingRoot); err != nil || existingRoot != root {
+		_ = db.Close()
+		if err != nil {
+			return nil, err
+		}
+		return nil, fmt.Errorf("lab database belongs to different root")
+	}
+	return store, nil
+}
+
+// OpenExistingStoreWritable opens and migrates an existing lab database, but
+// never creates lab directories, a database file, or initial metadata. It is
+// reserved for explicitly applied operations that must persist provenance.
+func OpenExistingStoreWritable(ctx context.Context, options Options) (*Store, error) {
+	path, err := options.Path()
+	if err != nil {
+		return nil, err
+	}
+	root, err := canonicalRoot(options.Root)
+	if err != nil {
+		return nil, err
+	}
+	for _, value := range []string{filepath.Join(root, ".cidx"), filepath.Join(root, ".cidx", "lab")} {
+		info, err := os.Lstat(value)
+		if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+			return nil, fmt.Errorf("existing lab state directory is required")
+		}
+	}
+	info, err := os.Lstat(path)
+	if err != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 {
+		return nil, fmt.Errorf("RAW_COVERAGE_INCOMPLETE")
+	}
+	store, err := openLabDatabase(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+	if err := migrate(ctx, store.db); err != nil {
+		_ = store.Close()
+		return nil, err
+	}
+	var existingRoot string
+	if err := store.db.QueryRowContext(ctx, `SELECT canonical_root FROM lab_meta WHERE id=1`).Scan(&existingRoot); err != nil || existingRoot != root {
+		_ = store.Close()
+		if err != nil {
+			return nil, err
+		}
+		return nil, fmt.Errorf("lab database belongs to different root")
+	}
+	return store, nil
+}
+
 func (store *Store) InspectSchemaVersion(ctx context.Context) (int, error) {
 	var version int
 	err := store.db.QueryRowContext(ctx, `SELECT schema_version FROM lab_meta WHERE id=1`).Scan(&version)
@@ -84,14 +178,26 @@ func migrate(ctx context.Context, db *sql.DB) error {
 	if version == SchemaVersion {
 		return requireExpectedSchema(ctx, db)
 	}
+	if version == 3 {
+		if err := migrateV3ToV4(ctx, db); err != nil {
+			return err
+		}
+		return requireExpectedSchema(ctx, db)
+	}
 	if version == 2 {
 		if err := migrateV2ToV3(ctx, db); err != nil {
+			return err
+		}
+		if err := migrateV3ToV4(ctx, db); err != nil {
 			return err
 		}
 		return requireExpectedSchema(ctx, db)
 	}
 	if version == 1 {
 		if err := migrateV1ToV3(ctx, db); err != nil {
+			return err
+		}
+		if err := migrateV3ToV4(ctx, db); err != nil {
 			return err
 		}
 		return requireExpectedSchema(ctx, db)
@@ -113,7 +219,7 @@ func migrate(ctx context.Context, db *sql.DB) error {
 			return err
 		}
 	}
-	if _, err := tx.ExecContext(ctx, `PRAGMA user_version = 3`); err != nil {
+	if _, err := tx.ExecContext(ctx, `PRAGMA user_version = 4`); err != nil {
 		return err
 	}
 	if err := tx.Commit(); err != nil {
@@ -122,9 +228,24 @@ func migrate(ctx context.Context, db *sql.DB) error {
 	return requireExpectedSchema(ctx, db)
 }
 
-const labMetaTableStatement = `CREATE TABLE lab_meta (id INTEGER PRIMARY KEY CHECK(id=1), schema_version INTEGER NOT NULL CHECK(schema_version=3), canonical_root TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), last_successful_collection_at TEXT NOT NULL DEFAULT '')`
+const labMetaV3TableStatement = `CREATE TABLE lab_meta (id INTEGER PRIMARY KEY CHECK(id=1), schema_version INTEGER NOT NULL CHECK(schema_version=3), canonical_root TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), last_successful_collection_at TEXT NOT NULL DEFAULT '')`
+const labMetaTableStatement = `CREATE TABLE lab_meta (id INTEGER PRIMARY KEY CHECK(id=1), schema_version INTEGER NOT NULL CHECK(schema_version=4), canonical_root TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), last_successful_collection_at TEXT NOT NULL DEFAULT '')`
 const materializationRunsTableStatement = `CREATE TABLE materialization_runs (id INTEGER PRIMARY KEY, build_id TEXT NOT NULL UNIQUE, generation INTEGER NOT NULL, manifest_sha256 TEXT NOT NULL, source_profile TEXT NOT NULL, vector_space_profile TEXT NOT NULL, storage_profile TEXT NOT NULL, planned_count INTEGER NOT NULL DEFAULT 0, staged_count INTEGER NOT NULL DEFAULT 0, missing_count INTEGER NOT NULL DEFAULT 0, rejected_count INTEGER NOT NULL DEFAULT 0, raw_coverage REAL NOT NULL DEFAULT 0, output_checksum TEXT NOT NULL DEFAULT '', evaluation_run_ref TEXT, status TEXT NOT NULL CHECK(status IN ('planned','building','ready','published','aborted','failed')), started_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), ended_at TEXT NOT NULL DEFAULT '', error TEXT NOT NULL DEFAULT '')`
 const materializedVariantsTableStatement = `CREATE TABLE materialized_variants (materialization_id INTEGER NOT NULL REFERENCES materialization_runs(id), canonical_input_sha256 TEXT NOT NULL, dimensions INTEGER NOT NULL, codec_id TEXT NOT NULL, codec_version INTEGER NOT NULL, blob BLOB NOT NULL, scale REAL, norm REAL, raw_vector_sha256 TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), PRIMARY KEY(materialization_id,canonical_input_sha256))`
+const evaluationRunsV3TableStatement = `CREATE TABLE evaluation_runs (id INTEGER PRIMARY KEY, repository_identity TEXT NOT NULL, generation INTEGER NOT NULL, query_manifest_sha256 TEXT NOT NULL, candidate_profile TEXT NOT NULL, artifact_reference TEXT NOT NULL)`
+const evaluationRunsTableStatement = `CREATE TABLE evaluation_runs (id INTEGER PRIMARY KEY, run_id TEXT NOT NULL UNIQUE, repository_identity TEXT NOT NULL, corpus_id TEXT NOT NULL, corpus_manifest_sha256 TEXT NOT NULL, pinned_commit TEXT NOT NULL, content_sha256 TEXT NOT NULL, generation INTEGER NOT NULL, index_manifest_sha256 TEXT NOT NULL, query_manifest_sha256 TEXT NOT NULL, query_count INTEGER NOT NULL, candidate_profile TEXT NOT NULL, source_profile TEXT NOT NULL, vector_space_profile TEXT NOT NULL, raw_document_inputs INTEGER NOT NULL, query_provider_calls INTEGER NOT NULL, query_tokens INTEGER NOT NULL, artifact_reference TEXT NOT NULL UNIQUE, artifact_checksum TEXT NOT NULL, status TEXT NOT NULL CHECK(status IN ('complete','failed','legacy')), created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')))`
+
+var labV3SchemaStatements = []string{
+	labMetaV3TableStatement,
+	`CREATE TABLE lab_inputs (canonical_input_sha256 TEXT PRIMARY KEY, canonical_text_profile TEXT NOT NULL DEFAULT '', canonical_bytes BLOB, snapshot_reference TEXT, captured_generation INTEGER NOT NULL DEFAULT 0, manifest_sha256 TEXT NOT NULL DEFAULT '', source_segment_id INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), CHECK(canonical_bytes IS NOT NULL OR snapshot_reference IS NOT NULL))`,
+	`CREATE TABLE raw_document_embeddings (source_profile TEXT NOT NULL, canonical_input_sha256 TEXT NOT NULL, dimensions INTEGER NOT NULL CHECK(dimensions=1024), checksum INTEGER NOT NULL, blob BLOB NOT NULL, vector_sha256 TEXT NOT NULL, requested_model TEXT NOT NULL, response_model TEXT NOT NULL, request_id TEXT NOT NULL DEFAULT '', encoding TEXT NOT NULL CHECK(encoding='cidx-lab-f32-le-v1'), created_at TEXT NOT NULL, PRIMARY KEY(source_profile,canonical_input_sha256))`,
+	`CREATE TABLE capture_runs (id INTEGER PRIMARY KEY, generation INTEGER NOT NULL, manifest_sha256 TEXT NOT NULL DEFAULT '', source_profile TEXT NOT NULL, planned_count INTEGER NOT NULL DEFAULT 0, requested_count INTEGER NOT NULL, hit_count INTEGER NOT NULL, miss_count INTEGER NOT NULL, success_count INTEGER NOT NULL, failure_count INTEGER NOT NULL, estimated_tokens INTEGER NOT NULL DEFAULT 0, actual_tokens INTEGER NOT NULL DEFAULT 0, started_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), ended_at TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'running')`,
+	`CREATE TABLE capture_failures (id INTEGER PRIMARY KEY, run_id INTEGER NOT NULL, source_profile TEXT NOT NULL, canonical_input_sha256 TEXT NOT NULL, classification TEXT NOT NULL CHECK(classification IN ('terminal','retryable')), error_class TEXT NOT NULL, message TEXT NOT NULL, attempts INTEGER NOT NULL, last_attempted_at TEXT NOT NULL, FOREIGN KEY(run_id) REFERENCES capture_runs(id))`,
+	`CREATE INDEX capture_failures_latest_by_key ON capture_failures(source_profile,canonical_input_sha256,id DESC)`,
+	materializationRunsTableStatement,
+	materializedVariantsTableStatement,
+	evaluationRunsV3TableStatement,
+}
 
 var labSchemaStatements = []string{
 	labMetaTableStatement,
@@ -135,7 +256,7 @@ var labSchemaStatements = []string{
 	`CREATE INDEX capture_failures_latest_by_key ON capture_failures(source_profile,canonical_input_sha256,id DESC)`,
 	materializationRunsTableStatement,
 	materializedVariantsTableStatement,
-	`CREATE TABLE evaluation_runs (id INTEGER PRIMARY KEY, repository_identity TEXT NOT NULL, generation INTEGER NOT NULL, query_manifest_sha256 TEXT NOT NULL, candidate_profile TEXT NOT NULL, artifact_reference TEXT NOT NULL)`,
+	evaluationRunsTableStatement,
 }
 
 func requireExpectedSchema(ctx context.Context, db *sql.DB) error {
@@ -156,6 +277,23 @@ func requireExpectedSchema(ctx context.Context, db *sql.DB) error {
 		return err
 	}
 	if err := requireColumnSet(ctx, db, "materialized_variants", []string{"materialization_id", "canonical_input_sha256", "dimensions", "codec_id", "codec_version", "blob", "scale", "norm", "raw_vector_sha256", "created_at"}); err != nil {
+		return err
+	}
+	if err := requireColumnSet(ctx, db, "evaluation_runs", []string{"id", "run_id", "repository_identity", "corpus_id", "corpus_manifest_sha256", "pinned_commit", "content_sha256", "generation", "index_manifest_sha256", "query_manifest_sha256", "query_count", "candidate_profile", "source_profile", "vector_space_profile", "raw_document_inputs", "query_provider_calls", "query_tokens", "artifact_reference", "artifact_checksum", "status", "created_at"}); err != nil {
+		return err
+	}
+	var metaSQL string
+	if err := db.QueryRowContext(ctx, `SELECT sql FROM sqlite_master WHERE type='table' AND name='lab_meta'`).Scan(&metaSQL); err != nil {
+		return err
+	}
+	if !containsSchemaVersionCheck(metaSQL, 4) {
+		return fmt.Errorf("lab v4 meta schema is not recognized")
+	}
+	return nil
+}
+
+func requireV3Schema(ctx context.Context, db *sql.DB) error {
+	if err := requireColumnSet(ctx, db, "evaluation_runs", []string{"id", "repository_identity", "generation", "query_manifest_sha256", "candidate_profile", "artifact_reference"}); err != nil {
 		return err
 	}
 	var metaSQL string
@@ -271,7 +409,7 @@ func migrateV2ToV3(ctx context.Context, db *sql.DB) error {
 	if _, err := tx.ExecContext(ctx, `ALTER TABLE materialization_runs RENAME TO materialization_runs_v2`); err != nil {
 		return err
 	}
-	for _, statement := range []string{labMetaTableStatement, materializationRunsTableStatement, materializedVariantsTableStatement} {
+	for _, statement := range []string{labMetaV3TableStatement, materializationRunsTableStatement, materializedVariantsTableStatement} {
 		if _, err := tx.ExecContext(ctx, statement); err != nil {
 			return err
 		}
@@ -288,6 +426,47 @@ func migrateV2ToV3(ctx context.Context, db *sql.DB) error {
 		}
 	}
 	if _, err := tx.ExecContext(ctx, `PRAGMA user_version = 3`); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// migrateV3ToV4 adds vector-free retrieval-run provenance and artifact
+// checksums. It copies every historical row without rewriting raw vectors or
+// capture/materialization history; legacy rows are explicitly marked rather
+// than being treated as current complete evaluation evidence.
+func migrateV3ToV4(ctx context.Context, db *sql.DB) error {
+	if err := requireV3Schema(ctx, db); err != nil {
+		return err
+	}
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if _, err := tx.ExecContext(ctx, `ALTER TABLE lab_meta RENAME TO lab_meta_v3`); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `ALTER TABLE evaluation_runs RENAME TO evaluation_runs_v3`); err != nil {
+		return err
+	}
+	for _, statement := range []string{labMetaTableStatement, evaluationRunsTableStatement} {
+		if _, err := tx.ExecContext(ctx, statement); err != nil {
+			return err
+		}
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO lab_meta(id,schema_version,canonical_root,created_at,last_successful_collection_at) SELECT id,4,canonical_root,created_at,last_successful_collection_at FROM lab_meta_v3`); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO evaluation_runs(id,run_id,repository_identity,corpus_id,corpus_manifest_sha256,pinned_commit,content_sha256,generation,index_manifest_sha256,query_manifest_sha256,query_count,candidate_profile,source_profile,vector_space_profile,raw_document_inputs,query_provider_calls,query_tokens,artifact_reference,artifact_checksum,status) SELECT id,'legacy-' || id,repository_identity,'','','','',generation,'',query_manifest_sha256,0,candidate_profile,'','',0,0,0,artifact_reference,'','legacy' FROM evaluation_runs_v3`); err != nil {
+		return err
+	}
+	for _, name := range []string{"lab_meta_v3", "evaluation_runs_v3"} {
+		if _, err := tx.ExecContext(ctx, `DROP TABLE `+name); err != nil {
+			return err
+		}
+	}
+	if _, err := tx.ExecContext(ctx, `PRAGMA user_version = 4`); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -315,7 +494,7 @@ func migrateV1ToV3(ctx context.Context, db *sql.DB) error {
 			return err
 		}
 	}
-	for _, statement := range labSchemaStatements {
+	for _, statement := range labV3SchemaStatements {
 		if _, err := tx.ExecContext(ctx, statement); err != nil {
 			return err
 		}

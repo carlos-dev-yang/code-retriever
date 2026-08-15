@@ -1,4 +1,4 @@
-package app
+package devapp
 
 import (
 	"context"
@@ -13,52 +13,51 @@ import (
 	"cidx/internal/vector"
 )
 
-// DevMaterialize is the unstable application use case that Phase 13 will
-// expose as a development command. It opens both databases only here; serving
-// and search packages retain no lab dependency.
-type DevMaterialize struct {
+type Materialize struct {
 	Production *store.ProductionStore
 	Lab        *lab.Store
 	Resolved   config.ResolvedConfig
 }
-
 type MaterializationPlan struct {
 	Generation                                      int64
 	RequiredRaw, RawHits, MissingRaw, ExpectedBytes int
-	ManifestSHA256                                  string
-	ServingProfile                                  string
+	ManifestSHA256, ServingProfile                  string
 	required                                        []string
 }
-
 type MaterializationResult struct {
 	BuildID   string
 	Staged    int
 	Published bool
 }
 
-func (m DevMaterialize) Plan(ctx context.Context) (MaterializationPlan, error) {
+// RequiredKeys returns a defensive copy for development-only raw-bank setup.
+func (plan MaterializationPlan) RequiredKeys() []string {
+	return append([]string(nil), plan.required...)
+}
+
+func (m Materialize) Plan(ctx context.Context) (MaterializationPlan, error) {
 	if m.Production == nil || m.Lab == nil {
 		return MaterializationPlan{}, fmt.Errorf("production and lab stores are required")
 	}
 	if err := m.Resolved.ValidateIntegrity(); err != nil {
 		return MaterializationPlan{}, err
 	}
-	if err := m.requireSameRepository(ctx); err != nil {
+	if err := m.sameRepository(ctx); err != nil {
 		return MaterializationPlan{}, err
 	}
 	snapshot, err := m.Production.ActiveVectorPlanningSnapshot(ctx)
 	if err != nil {
 		return MaterializationPlan{}, err
 	}
-	if err := m.requireCurrentProfile(snapshot.Applied); err != nil {
+	if err := m.currentProfile(snapshot.Applied); err != nil {
 		return MaterializationPlan{}, err
 	}
 	required := append([]string(nil), snapshot.CanonicalInputs...)
-	if !validDigest(snapshot.Applied.ManifestSHA256) {
+	if !digest(snapshot.Applied.ManifestSHA256) {
 		return MaterializationPlan{}, fmt.Errorf("invalid active manifest")
 	}
 	for _, hash := range required {
-		if !validDigest(hash) {
+		if !digest(hash) {
 			return MaterializationPlan{}, fmt.Errorf("active segment missing canonical input")
 		}
 	}
@@ -81,15 +80,9 @@ func (m DevMaterialize) Plan(ctx context.Context) (MaterializationPlan, error) {
 	}
 	return plan, nil
 }
-
-// Activate performs only local transformations. It never constructs a
-// provider client or reads an API key.
-func (m DevMaterialize) Activate(ctx context.Context, plan MaterializationPlan) (result MaterializationResult, err error) {
+func (m Materialize) Activate(ctx context.Context, plan MaterializationPlan) (result MaterializationResult, err error) {
 	if m.Production == nil || m.Lab == nil {
 		return result, fmt.Errorf("production and lab stores are required")
-	}
-	if err := m.Resolved.ValidateIntegrity(); err != nil {
-		return result, err
 	}
 	if plan.MissingRaw != 0 {
 		return result, fmt.Errorf("RAW_COVERAGE_INCOMPLETE")
@@ -99,35 +92,33 @@ func (m DevMaterialize) Activate(ctx context.Context, plan MaterializationPlan) 
 		return result, err
 	}
 	defer release()
-	if err := m.requireSameRepository(ctx); err != nil {
+	if err = m.sameRepository(ctx); err != nil {
 		return result, err
 	}
 	snapshot, err := m.Production.ActiveVectorPlanningSnapshot(ctx)
 	if err != nil {
 		return result, err
 	}
-	if err := m.requireCurrentProfile(snapshot.Applied); err != nil {
+	if err = m.currentProfile(snapshot.Applied); err != nil {
 		return result, err
 	}
-	if snapshot.Applied.ActiveGeneration != plan.Generation || snapshot.Applied.ManifestSHA256 != plan.ManifestSHA256 || string(snapshot.Applied.ActiveServingProfile) != plan.ServingProfile || !sameStrings(snapshot.CanonicalInputs, plan.required) {
+	if snapshot.Applied.ActiveGeneration != plan.Generation || snapshot.Applied.ManifestSHA256 != plan.ManifestSHA256 || string(snapshot.Applied.ActiveServingProfile) != plan.ServingProfile || !same(snapshot.CanonicalInputs, plan.required) {
 		return result, fmt.Errorf("VECTOR_BUILD_STATE_CHANGED")
 	}
 	codec, err := vector.CodecForID(m.Resolved.Profiles.VectorStorage.StorageCodecID)
 	if err != nil {
 		return result, err
 	}
-	buildID := fmt.Sprintf("materialize-%d", time.Now().UTC().UnixNano())
-	runID, err := m.Lab.StartMaterialization(ctx, lab.MaterializationRun{BuildID: buildID, Generation: plan.Generation, ManifestSHA256: plan.ManifestSHA256, SourceProfile: string(m.Resolved.Profiles.Fingerprints.Source), VectorSpaceProfile: string(m.Resolved.Profiles.Fingerprints.VectorSpace), StorageProfile: plan.ServingProfile, Planned: plan.RequiredRaw})
+	result.BuildID = fmt.Sprintf("materialize-%d", time.Now().UTC().UnixNano())
+	runID, err := m.Lab.StartMaterialization(ctx, lab.MaterializationRun{BuildID: result.BuildID, Generation: plan.Generation, ManifestSHA256: plan.ManifestSHA256, SourceProfile: string(m.Resolved.Profiles.Fingerprints.Source), VectorSpaceProfile: string(m.Resolved.Profiles.Fingerprints.VectorSpace), StorageProfile: plan.ServingProfile, Planned: plan.RequiredRaw})
 	if err != nil {
 		return result, err
 	}
-	result.BuildID = buildID
 	published := false
 	defer func() {
-		if published {
-			return
+		if !published {
+			_ = m.Lab.FinishMaterialization(context.Background(), runID, "failed", result.Staged, plan.MissingRaw, 0, "materialization failed")
 		}
-		_ = m.Lab.FinishMaterialization(context.Background(), runID, "failed", result.Staged, plan.MissingRaw, 0, "materialization failed")
 	}()
 	raws, err := m.Lab.RawDocuments(ctx, string(m.Resolved.Profiles.Fingerprints.Source), plan.required)
 	if err != nil {
@@ -161,12 +152,12 @@ func (m DevMaterialize) Activate(ctx context.Context, plan MaterializationPlan) 
 		variants = append(variants, lab.MaterializedVariant{InputHash: hash, RawVectorSHA256: raw.VectorSHA256, Stored: stored})
 	}
 	if len(variants) > 0 {
-		if err := m.Lab.PutMaterializedVariants(ctx, runID, variants); err != nil {
+		if err = m.Lab.PutMaterializedVariants(ctx, runID, variants); err != nil {
 			return result, err
 		}
 	}
 	result.Staged = len(variants)
-	if err := m.Lab.FinishMaterialization(ctx, runID, "ready", result.Staged, 0, 0, ""); err != nil {
+	if err = m.Lab.FinishMaterialization(ctx, runID, "ready", result.Staged, 0, 0, ""); err != nil {
 		return result, err
 	}
 	staged, err := m.Lab.MaterializedVariants(ctx, runID, plan.ServingProfile)
@@ -180,27 +171,21 @@ func (m DevMaterialize) Activate(ctx context.Context, plan MaterializationPlan) 
 	for _, item := range staged {
 		rows = append(rows, store.MaterializedVector{CanonicalInputSHA256: item.InputHash, RawVectorSHA256: item.RawVectorSHA256, MaterializationFingerprint: plan.ServingProfile, Stored: item.Stored})
 	}
-	if err := m.Production.PublishMaterializedVectors(ctx, m.Resolved, store.VectorPublishExpectation{Generation: plan.Generation, ManifestSHA256: plan.ManifestSHA256, ServingProfile: plan.ServingProfile}, rows); err != nil {
+	if err = m.Production.PublishMaterializedVectors(ctx, m.Resolved, store.VectorPublishExpectation{Generation: plan.Generation, ManifestSHA256: plan.ManifestSHA256, ServingProfile: plan.ServingProfile}, rows); err != nil {
 		return result, err
 	}
 	result.Published = true
 	published = true
-	if err := m.Lab.FinishMaterialization(ctx, runID, "published", result.Staged, 0, 0, ""); err != nil {
-		// Serving publication already committed; preserve that truth and let the
-		// run remain ready for an operator-visible provenance repair.
-		return result, err
-	}
-	return result, nil
+	err = m.Lab.FinishMaterialization(ctx, runID, "published", result.Staged, 0, 0, "")
+	return result, err
 }
-
-func (m DevMaterialize) requireCurrentProfile(applied config.AppliedProfiles) error {
+func (m Materialize) currentProfile(applied config.AppliedProfiles) error {
 	if applied.Fingerprints.Source != m.Resolved.Profiles.Fingerprints.Source || applied.Fingerprints.VectorSpace != m.Resolved.Profiles.Fingerprints.VectorSpace || applied.Fingerprints.VectorStorage != m.Resolved.Profiles.Fingerprints.VectorStorage || applied.ActiveServingProfile != m.Resolved.Profiles.Fingerprints.VectorStorage {
 		return fmt.Errorf("PROFILE_RECONCILIATION_REQUIRED")
 	}
 	return nil
 }
-
-func (m DevMaterialize) requireSameRepository(ctx context.Context) error {
+func (m Materialize) sameRepository(ctx context.Context) error {
 	root, err := m.Lab.CanonicalRoot(ctx)
 	if err != nil {
 		return err
@@ -210,16 +195,14 @@ func (m DevMaterialize) requireSameRepository(ctx context.Context) error {
 	}
 	return nil
 }
-
-func validDigest(value string) bool {
+func digest(value string) bool {
 	if len(value) != 64 {
 		return false
 	}
 	_, err := hex.DecodeString(value)
 	return err == nil
 }
-
-func sameStrings(left, right []string) bool {
+func same(left, right []string) bool {
 	if len(left) != len(right) {
 		return false
 	}

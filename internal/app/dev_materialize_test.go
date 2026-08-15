@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"cidx/internal/config"
+	"cidx/internal/devapp"
 	"cidx/internal/index"
 	"cidx/internal/lab"
 	"cidx/internal/store"
@@ -35,12 +36,12 @@ func TestDevMaterializePlansStagesPublishesAndRechecksActiveKeys(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer raw.Close()
-	service := DevMaterialize{Production: production, Lab: raw, Resolved: resolved}
+	service := devapp.Materialize{Production: production, Lab: raw, Resolved: resolved}
 	foreignLab, err := lab.OpenStore(ctx, lab.Options{Root: t.TempDir()})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := (DevMaterialize{Production: production, Lab: foreignLab, Resolved: resolved}).Plan(ctx); err == nil {
+	if _, err := (devapp.Materialize{Production: production, Lab: foreignLab, Resolved: resolved}).Plan(ctx); err == nil {
 		t.Fatal("foreign lab root accepted")
 	}
 	if err := foreignLab.Close(); err != nil {
@@ -61,7 +62,7 @@ func TestDevMaterializePlansStagesPublishesAndRechecksActiveKeys(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, hash := range missing.required {
+	for _, hash := range missing.RequiredKeys() {
 		if err := raw.PutDocumentSource(ctx, lab.DocumentRaw{SourceProfile: string(resolved.Profiles.Fingerprints.Source), InputHash: hash, RequestedModel: "voyage-code-4", ResponseModel: "voyage-code-4", Vector: f32}, 1024); err != nil {
 			t.Fatal(err)
 		}

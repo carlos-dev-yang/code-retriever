@@ -13,6 +13,7 @@ const (
 	DefaultStorageCodec       = "binary"
 	DefaultSearchMode         = "fts"
 	DefaultReturnK            = 5
+	AbsoluteMaxReturnK        = 20
 	DefaultCandidateK         = 20
 	DefaultRRFK               = 60
 	DefaultFTSSymbolWeight    = 5.0

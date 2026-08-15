@@ -79,10 +79,10 @@ type ServingPolicyProfile struct {
 }
 
 type ProfileFingerprints struct {
-	Index         Fingerprint
-	CanonicalText Fingerprint
-	Source        Fingerprint
-	VectorSpace   Fingerprint
-	VectorStorage Fingerprint
-	Policy        Fingerprint
+	Index         Fingerprint `json:"index"`
+	CanonicalText Fingerprint `json:"canonical_text"`
+	Source        Fingerprint `json:"source"`
+	VectorSpace   Fingerprint `json:"vector_space"`
+	VectorStorage Fingerprint `json:"vector_storage"`
+	Policy        Fingerprint `json:"policy"`
 }

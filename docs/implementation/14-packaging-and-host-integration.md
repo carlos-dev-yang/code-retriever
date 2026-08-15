@@ -3,7 +3,7 @@
 - Status: `planned`
 - Prerequisite: `13-cli-and-mcp`
 - Followed by: v1 release-candidate validation
-- Design source: `local-code-search-mcp-v1-design-r3.md` sections 2, 9, 11, and 15
+- Design source: `local-code-search-mcp-v1-design-r4.md` sections 2, 9, 11, and 15
 - Evaluation authority: [EVALUATION-CONTRACT.md](EVALUATION-CONTRACT.md)
 
 ## Context Recovery Checklist
@@ -12,7 +12,7 @@ Read the [implementation index](README.md), [execution guide](EXECUTION-GUIDE.md
 
 - Confirm Phase 01 recorded the SQLite/Tree-sitter bindings, FTS5/CGO policy, and candidate platforms; Phase 13 must have frozen public CLI, stdio, and exactly four MCP tools.
 - Re-check that the artifact bundles FTS5 and Go/TypeScript/TSX grammars, needs no runtime dependency download for free FTS, and serves one explicit root per process.
-- Re-check project-scoped host setup, stdout protocol purity, stderr diagnostics, `max_inline_bytes`, and environment-only `VOYAGE_API_KEY` forwarding.
+- Re-check project-scoped host setup, stdout protocol purity, stderr diagnostics, the 64 KiB default / 1 MiB absolute `max_inline_bytes` ceiling, no read-span line cap, and environment-only `VOYAGE_API_KEY` forwarding.
 - Re-check that packaging does not open the lab DB, mutate host config or hooks, promise unverified platforms, or invent fixed-model/external-vector policy.
 - Re-check the frozen assistant-task controls and three product arms: existing tools only, existing tools plus lexical cidx, and existing tools plus hybrid cidx. Never force a cidx call.
 - Stop if dependency licensing, FTS/grammar reproducibility, schema compatibility, root semantics, or a host-specific config format is unverified. Do not claim inferred support.
@@ -91,6 +91,7 @@ Do not add provider plugins, vector import formats, model bundles, or speculativ
 12. Assistant usefulness runs do not require or force a cidx call; no-use is a valid observed outcome.
 13. Required assistant task failures and timeouts remain in denominators, and an unexecuted optional arm is `NOT_OBSERVED`, not zero.
 14. Paired assistant claims require the same assistant model/version, prompt, existing tools, task order policy, context/tool budgets, corpus snapshot, and expected outcomes except for the declared cidx arm.
+15. MCP body and `read_span` byte limits retain the Phase 13 64 KiB default and 1 MiB absolute ceiling; there is no separate read-span line-count limit.
 
 ## 5. Implementation Packages, Files, and Artifacts
 
@@ -190,7 +191,7 @@ Packaging never bakes project profile values into a binary. Runtime resolves `.c
 | --- | --- | --- |
 | SQLite/Tree-sitter implementation IDs | Build manifest/code | Artifact change may require reconciliation |
 | Supported OS/architecture | Release matrix | Directly determines artifact availability |
-| Model/target/codec | Project config plus `ModelSpec` | Source is `voyage-code-4` 1024; profile rules apply |
+| Model/serving-dimension/codec | Project config plus `ModelSpec` | Source is `voyage-code-4` 1024; profile rules apply |
 | Hard absolute safety caps | Named binary constants | Belong to artifact version |
 | Project MCP hard max/search policy | Project config | Applies after serve restart; no reindex |
 | Repository root | Host `--root` argument | Explicit per process |

@@ -1,14 +1,16 @@
 # cidx v1 Implementation Plan Index
 
-- Status: implementation in progress — Phases 00–06 and 08–11 complete; Phases 07 and 12 official evidence is blocked on user-selected corpus gates, while Phase 13 corpus-independent adapter work remains eligible
-- Canonical design: [Local Code Search MCP v1 Design — Revision 3](../../local-code-search-mcp-v1-design-r3.md)
-- Earlier designs: [original](../../local-code-search-mcp-v1-design.md), [r1](../../local-code-search-mcp-v1-design-r1.md), [r2](../../local-code-search-mcp-v1-design-r2.md)
+- Status: target documentation finalized; implementation paused by user pending an explicit resume and Revision 4 reconciliation
+- Canonical design: [Local Code Search MCP v1 Final Target Contract — Revision 4](../../local-code-search-mcp-v1-design-r4.md)
+- Earlier designs: [original](../../local-code-search-mcp-v1-design.md), [r1](../../local-code-search-mcp-v1-design-r1.md), [r2](../../local-code-search-mcp-v1-design-r2.md), [r3](../../local-code-search-mcp-v1-design-r3.md)
 - Execution protocol: [Implementation Execution and Context-Recovery Guide](EXECUTION-GUIDE.md)
 - Evaluation and promotion contract: [cidx v1 Evaluation and Promotion Contract](EVALUATION-CONTRACT.md)
 - Persistent state: [Phase Status Ledger](STATUS.md)
 - Last updated: 2026-08-15
 
 This directory is the executable implementation plan for cidx v1. It decomposes the canonical product contract into phase-owned packages, schemas, CLIs, validation work, and completion evidence. A design change must update this index, every affected phase, the dependency graph, the change-impact table, and the persistent status ledger together.
+
+The existing completion records describe work performed against earlier revisions. They remain historical evidence, but they do not prove Revision 4 compliance. Before code work resumes, reconcile the renamed configuration fields, size limits, synchronous request policy, retry waits, and removed read-span/chunk caps, then identify the smallest affected phase validations that must be rerun.
 
 cidx is a **local auxiliary search MCP** used alongside file readers, symbol tools, compilers, and tests. It is not a comprehensive code-knowledge system. The plan is bounded by free local AST/FTS indexing, explicit paid embeddings, a small MCP surface, caller-controlled inline source volume, and one serving-vector profile per repository.
 
@@ -44,7 +46,7 @@ Allowed states are `planned | in_progress | blocked | done`. A phase becomes `do
 | 10 | done | [Embedding orchestration and reconciliation](10-embedding-orchestration-and-reconciliation.md) | 05, 08, 09 | General embedding, cost/failure handling, profile reconciliation | [Evidence](evidence/phase-10/README.md) |
 | 11 | done | [Vector and hybrid search](11-vector-and-hybrid-search.md) | 06, 09, 10 | Query transform, codec-aware scan, segment collapse, RRF, fallback, shared body packaging | [Evidence](evidence/phase-11/README.md) |
 | 12 | blocked | [Retrieval evaluation](12-retrieval-evaluation.md) | 07, 08, 09, 11 | Paired dimension/codec/lane/RRF/package evidence and scoped core-retrieval promotion result | [Evidence](evidence/phase-12/README.md) |
-| 13 | planned | [CLI and MCP](13-cli-and-mcp.md) | 05, 06, 10, 11, 12 | Stable CLI, four MCP tools, concurrent dispatch | [Evidence](13-cli-and-mcp.md#11-completion-evidence) |
+| 13 | blocked | [CLI and MCP](13-cli-and-mcp.md) | 05, 06, 10, 11, 12 | Stable CLI, four MCP tools, concurrent dispatch | [Evidence](13-cli-and-mcp.md#11-completion-evidence) |
 | 14 | planned | [Packaging and host integration](14-packaging-and-host-integration.md) | 13 | Distributable binary, project-scoped host examples, paired marginal assistant-use evidence, and scoped release-candidate result | [Evidence](14-packaging-and-host-integration.md#11-completion-evidence) |
 
 `STATUS.md` is the operational ledger. Keep this summary table synchronized with it whenever a phase changes state.
@@ -120,7 +122,7 @@ live working tree
 active document canonical input
 -> request Voyage document-role 1024-dimensional float32 embedding
 -> persist document f32 in .cidx/lab/embeddings.db
--> choose one candidate target dimension/reducer/normalizer in project config
+-> choose one candidate serving dimension/reducer/normalizer in project config
 -> use the default `binary` codec or explicitly select the only alternative, `int8`
 -> run cidx index to reconcile active profile and segment keys
 -> materialize the current profile locally and publish one serving-vector set
@@ -148,7 +150,26 @@ hybrid query
 -> discard query f32
 ```
 
-Runtime observes one profile. `target_dimensions`, reducer, normalizer, metric, and codec come only from validated `ResolvedConfig`. The lab raw bank is neither a runtime data source nor a fallback.
+Runtime observes one profile. `serving_dimensions`, reducer, normalizer, metric, and codec come only from validated `ResolvedConfig`. The lab raw bank is neither a runtime data source nor a fallback.
+
+### 3.4 Revision 4 fixed operational target
+
+| Area | Target contract |
+| --- | --- |
+| Source eligibility | one regular UTF-8 source file, at most 1 MiB |
+| Chunking | whole named function/method/type; no configurable chunk byte cap |
+| Segmentation | AST-boundary target of 1,024 bytes; evaluate 768/1,024/1,536 |
+| Provider source | `voyage-code-4`, explicit 1024-dimensional float, role-aware, no truncation |
+| Serving dimensions | one active value from 256/512/1024; unrelated to source scope |
+| Storage codec | `binary` by default; `int8` is the only alternative |
+| Search | `fts` by default; hybrid is explicit and may incur query-embedding cost |
+| Provider execution | regular synchronous endpoint only; no asynchronous Batch Inference |
+| Request grouping | 128 inputs, 256 KiB aggregate input, concurrency 4, timeout 30 seconds |
+| Retry | initial attempt plus three transient retries after 10/20/30 seconds |
+| Inline source | required caller budget; server default 64 KiB; executable ceiling 1 MiB |
+| `read_span` | no line-count cap; complete byte-bounded range or typed error |
+
+The retry schedule is linear/staged, not exponential. Request grouping is not Voyage Batch Inference. The 1 MiB source-file ceiling and 1 MiB inline executable ceiling are separate named contracts even though they currently share a numeric value.
 
 ---
 
@@ -168,7 +189,7 @@ Runtime observes one profile. `target_dimensions`, reducer, normalizer, metric, 
 12. **Small stable surface:** MCP exposes only `status`, `search`, `read_span`, and `reindex`. Development lab commands are not MCP tools.
 13. **SQLite authority:** the persistent index is authoritative. Go heap caches may be bounded accelerators but never a second source of truth.
 14. **Stage-separated evidence:** parser, FTS, dense, collapse, RRF, body packaging, assistant use, and operations retain independent denominators and first-loss states. No weighted total replaces them.
-15. **Dual dense references:** human relevance measures usefulness; exhaustive target-f32 ranking measures binary/int8 fidelity. HNSW/ANN metrics are excluded.
+15. **Dual dense references:** human relevance measures usefulness; exhaustive serving-f32 ranking measures binary/int8 fidelity. HNSW/ANN metrics are excluded.
 16. **Paired promotion:** calibration selects settings and margins; only frozen compatible confirmation runs may vote for promotion. Activation is not quality admission.
 
 ---
@@ -188,14 +209,14 @@ config.json
 
 ### 5.1 Values managed in config
 
-- embedding model and selected `target_dimensions`;
+- embedding model and selected `serving_dimensions`;
 - supported reducer, normalizer, metric, and storage codec ID (`binary | int8`);
 - enabled supported languages;
-- source-file, chunk, and segment limits;
-- embedding batch, retry, timeout, and concurrency limits;
+- source-file eligibility and AST-aware segment target;
+- synchronous embedding request grouping, retry, timeout, and concurrency limits;
 - FTS field weights, candidate/return k, and RRF parameters;
 - paid-query permission and default search mode;
-- MCP inline/read safety limit;
+- MCP inline-body safety limit and byte-bounded read-span policy;
 - non-profile operational settings such as log level.
 
 A config key does not imply arbitrary algorithm extensibility. Every enum value must map to an implementation owned by the binary.
@@ -220,11 +241,11 @@ Users select a supported `storage_codec` ID; they cannot invent an implementatio
 | chunker/projection/segment/FTS rules | index profile | full or affected local reindex | none |
 | canonical input byte rules | input hash | recompute input keys and embed changed inputs | yes |
 | Voyage provider/model/1024 source space/role contract | source profile | document embedding | yes |
-| supported target dimension | vector-space profile | rematerialize from compatible lab raw, otherwise embed | conditional |
+| supported serving dimension | vector-space profile | rematerialize from compatible lab raw, otherwise embed | conditional |
 | reducer/normalizer/metric | vector-space profile | rematerialize from the same compatible source raw | none when raw exists |
 | storage codec (`binary | int8`) | storage profile | rematerialize from compatible vector-space f32 | none when raw exists |
 | candidate/return k or RRF | none | reload/restart | none |
-| inline/read cap | none | serve reload/restart | none |
+| inline-body or read-span byte policy | none | serve reload/restart | none |
 | schema version | database | migration | none |
 
 ---
@@ -260,7 +281,7 @@ The user will select evaluation repositories. The implementation must not choose
 
 ## 7. Decisions intentionally deferred
 
-- Initial serving target dimension: choose after Phase 12 evaluation. The initial storage codec defaults to `binary`; `int8` remains the only alternative v1 codec.
+- Initial serving dimension: choose from 256, 512, and 1024 after Phase 12 evaluation. The provider source response remains 1024-dimensional. The initial storage codec defaults to `binary`; `int8` remains the only alternative v1 codec.
 - Numeric hit@k, MRR, p50, or p95 acceptance thresholds: measure, but do not predefine them as v1 release gates.
 - ANN/HNSW: decide only after measuring the practical codec-aware full-scan limit.
 - Additional languages such as Python.

@@ -3,7 +3,7 @@
 - Status: `done`
 - Prerequisites: `06-fts-search`, `09-vector-materialization`, `10-embedding-orchestration-and-reconciliation`
 - Followed by: `12-retrieval-evaluation`, `13-cli-and-mcp`
-- Design source: `local-code-search-mcp-v1-design-r3.md` sections 8 and 9.2
+- Design source: `local-code-search-mcp-v1-design-r4.md` sections 8 and 9.2
 
 ## Context Recovery Checklist
 
@@ -11,7 +11,7 @@ Read the [implementation index](README.md), [execution guide](EXECUTION-GUIDE.md
 
 - Confirm Phase 06 provides deterministic FTS results, Phase 09 provides the shared transform/codec/scorer, and Phase 10 provides one active serving profile plus coverage and reconciliation state.
 - Re-check that `mode=fts` never calls Voyage AI and hybrid preflight runs before any paid query request.
-- Re-check the query contract: `voyage-code-4`, `input_type=query`, explicit 1024-dimensional float output, `truncation=false`, no `encoding_format`, and the same target reduction/normalization as documents.
+- Re-check the query contract: `voyage-code-4`, `input_type=query`, explicit 1024-dimensional float output, `truncation=false`, no `encoding_format`, and the same serving-dimension reduction/normalization as documents.
 - Re-check that query text and query f32 are nonpersistent, production search reads one active codec profile (`binary` by default or `int8`), and the shared body packager is transport-independent. Phase 13 owns only MCP schema and transport adaptation.
 - Re-check that one search result uses one committed generation/profile snapshot and deterministic scan, aggregation, tie-break, and RRF rules.
 - Stop if profile consistency, coverage semantics, query privacy, or snapshot materialization is unresolved. Do not introduce ANN, graph search, caching, or multi-profile serving.
@@ -29,7 +29,7 @@ Read the [implementation index](README.md), [execution guide](EXECUTION-GUIDE.md
 
 Return assistant-oriented code-search results by combining FTS results from the active index snapshot with semantic results from the single codec-specific serving profile selected by current config.
 
-A hybrid query explicitly requests a 1024-dimensional f32 embedding from Voyage AI `voyage-code-4`, applies the same `prefix(target) -> L2` transform as documents, and keeps query f32 out of the production DB, raw lab, and evaluation artifacts.
+A hybrid query explicitly requests a 1024-dimensional f32 embedding from Voyage AI `voyage-code-4`, applies the same `prefix(serving_dimensions) -> L2` transform as documents, and keeps query f32 out of the production DB, raw lab, and evaluation artifacts.
 
 ## 2. Scope and Non-goals
 
@@ -37,7 +37,7 @@ A hybrid query explicitly requests a 1024-dimensional f32 embedding from Voyage 
 
 - Explicit paid boundary between `fts` and `hybrid` modes.
 - Hybrid preflight and fallback before an API call.
-- Shared target-space transform for 1024-dimensional query f32.
+- Shared serving-space transform for 1024-dimensional query f32.
 - Full scan of current active binary or int8 vectors using the matching scorer.
 - Segment-score aggregation to source chunks.
 - Deterministic RRF across FTS and vector rankings.
@@ -59,7 +59,7 @@ A hybrid query explicitly requests a 1024-dimensional f32 embedding from Voyage 
 - FTS search, source chunks, and segment mappings are available from one active-generation snapshot.
 - Phase 09 implements the shared `VectorTransformer`, `VectorCodec`, and codec-aware scoring.
 - Phase 10 exposes active `ServingVectorProfile`, valid coverage, and reconciliation state.
-- The Voyage query client is injected separately from document batch orchestration.
+- The Voyage query client is injected separately from document request orchestration.
 - The r3 design defines `max_inline_bytes`, current-source hash checks, and `read_span`. This phase owns the transport-independent body packager so Phase 12 evaluates the same path that MCP later exposes. Phase 13 validates the caller/server maximum, annotates live freshness, and owns `read_span` plus MCP serialization.
 
 ## 4. Invariants
@@ -67,9 +67,9 @@ A hybrid query explicitly requests a 1024-dimensional f32 embedding from Voyage 
 1. `mode=fts` never calls Voyage AI, regardless of credentials.
 2. `mode=hybrid` calls no API until paid-query permission, profile agreement, and at least one active valid vector are confirmed.
 3. Query requests require f32 matching `EmbeddingSourceProfile.SourceDimensions=1024`.
-4. Queries use the document `VectorSpaceProfile.TargetDimensions`, never a separate setting.
-5. Query and document use the same source profile, reducer, normalizer, target dimensions, and metric.
-6. Query vectors remain target-space f32 or a transient codec-specific query representation in request memory and are never persisted.
+4. Queries use the document `VectorSpaceProfile.ServingDimensions`, never a separate setting.
+5. Query and document use the same source profile, reducer, normalizer, serving dimensions, and metric.
+6. Query vectors remain serving-space f32 or a transient codec-specific query representation in request memory and are never persisted.
 7. Query text and vectors never enter caches, DBs, lab storage, or debug dumps.
 8. The scanner accepts only rows passing active storage fingerprint, dimensions, codec, blob, scale/norm, and finite checks.
 9. Manifest, FTS state, chunks, segments, vectors, coverage, and response metadata for one search come from one committed generation/profile.
@@ -121,8 +121,8 @@ Any failure continues with FTS only and makes no query API call.
 - Use code-owned `https://api.voyageai.com/v1/embeddings`, `Authorization: Bearer $VOYAGE_API_KEY`, and active `voyage-code-4`.
 - Explicitly send `input_type="query"`, `output_dimension=1024`, `output_dtype="float"`, and `truncation=false`; omit `encoding_format` and never rely on provider defaults.
 - Validate response model/count/index uniqueness and range, dimensions, and NaN/Inf; restore input order by index.
-- Use `VectorTransformer` for prefix reduction and L2 normalization into the active target space.
-- Keep target f32 in request memory only and always request source 1024 regardless of active target.
+- Use `VectorTransformer` for prefix reduction and L2 normalization into the active serving space.
+- Keep serving f32 in request memory only and always request source 1024 regardless of the active serving dimension.
 - Treat a context overflow under `truncation=false` as `QUERY_EMBEDDING_FAILED`; never use a partial query.
 
 ### Snapshot and scoring order
@@ -170,9 +170,9 @@ Stable fallback values are `PAID_QUERY_DISABLED`, `PROFILE_RECONCILIATION_REQUIR
 
 ## 7. Configuration and Change Impact
 
-Embedding inputs are model, target dimensions, reducer, normalizer, metric, storage codec, and code-defined query-formatter version. `voyage-code-4` is the v1 default and only initially validated model. `ModelSpec` resolves source 1024 and allowed targets `{256,512,1024}`; source dimensions are not configurable.
+Embedding inputs are model, serving dimensions, reducer, normalizer, metric, storage codec, and code-defined query-formatter version. `voyage-code-4` is the v1 default and only initially validated model. `ModelSpec` resolves source 1024 and allowed serving dimensions `{256,512,1024}`; source dimensions are not configurable.
 
-Search inputs are default mode, paid-query permission, default/maximum `k`, FTS/vector `candidate_k`, RRF constant, and caller/server inline-source limits.
+Search defaults to `fts`; hybrid is explicit or selected only by a later user configuration change. Search inputs are paid-query permission, default/maximum `k`, FTS/vector `candidate_k`, RRF constant, and caller/server inline-source limits.
 
 | Change | Document vectors | Query behavior | FTS |
 | --- | --- | --- | --- |
@@ -236,7 +236,7 @@ The service uses immutable `ResolvedConfig` created at server start rather than 
 - FTS results are identical when no embedding client is injected.
 - Disabling paid queries produces a stable fallback and zero API calls.
 - Zero valid vectors prevents an API call.
-- A 1024-dimensional query transforms to exactly the active document target dimensions.
+- A 1024-dimensional query transforms to exactly the active document serving dimensions.
 - Dimension or codec mismatch reads no old vector and calls no query API.
 - A profile change during the API call discards the query and does not mix profiles.
 - Partial-coverage numerator and denominator agree with active segment references.
@@ -255,13 +255,13 @@ Implementation and main-agent acceptance record (2026-08-15; details in [Phase 1
 
 - Added the transport-independent `internal/search` core and one production-only pinned snapshot loader in `internal/store/hybrid_snapshot.go`. Runtime search neither imports nor opens the lab database, and it has no write path.
 - Hybrid preflight uses one pinned read-only snapshot to check paid permission, desired versus active source/space/storage fingerprints, and every present active referenced vector row before a provider request. Missing rows remain partial coverage; zero valid rows and malformed rows respectively yield `NO_VALID_DOCUMENT_VECTORS` and `VECTOR_SNAPSHOT_INVALID` with zero provider calls.
-- Query embedding uses the existing Voyage response validator and a single injected fake client in tests. The request is the source-1024 float query role, then the existing shared transformer produces only request-local target f32. No provider-native quantization path is used.
+- Query embedding uses the existing Voyage response validator and a single injected fake client in tests. The request is the source-1024 float query role, then the existing shared transformer produces only request-local serving f32. No provider-native quantization path is used.
 - The post-request snapshot copies FTS candidates, active segment references, validated stored vectors, bodies, coverage, generation, manifest, and fingerprints from one read transaction; CPU scan, RRF, and body packaging run after it closes. Generation/manifest/profile drift discards the query result and returns FTS with `QUERY_PROFILE_CHANGED_DURING_REQUEST`.
 - Binary and int8 scans score each distinct canonical input key once, fan scores out to segments, choose the maximum parent score, apply stable candidate ordering, and use deterministic one-based-rank RRF. Corruption falls back the full vector lane rather than inflating coverage.
 - The shared body packager preserves result identity/order/count for zero, small, and sufficient raw-UTF-8 budgets. It returns only complete indexed parents, complete vector-winning segments, or no body; FTS-only does not create an excerpt.
 - Acceptance follow-up: explicit FTS and every fallback now use a separate lexical-only snapshot that reads metadata, FTS candidates, and their indexed bodies only. It does not materialize vectors, segments, coverage, or vector payloads; response metadata records that vector coverage was not observed.
 - Acceptance follow-up: the hybrid snapshot stores each parent chunk/body once and each active canonical vector key once. Segment references contain only a parent/key/display-range link; one score is computed per key and then fanned out.
-- Acceptance follow-up: `QueryTextFormatVersion=1` is code-owned runtime policy, included in the serving-policy fingerprint and core response. v1 strictly validates then preserves query UTF-8 bytes. Query calls use the resolved batch timeout; provider timeout, provider error, response validation, or transform failure uses the ordinary FTS fallback while caller cancellation remains cancellation.
+- Acceptance follow-up: `QueryTextFormatVersion=1` is code-owned runtime policy, included in the serving-policy fingerprint and core response. v1 strictly validates then preserves query UTF-8 bytes. Query calls use the resolved request timeout; provider timeout, provider error, response validation, or transform failure uses the ordinary FTS fallback while caller cancellation remains cancellation.
 
 Focused checks actually run:
 
@@ -275,12 +275,12 @@ go list -deps ./internal/search ./internal/store | rg 'cidx/internal/lab'   # no
 git diff --check
 ```
 
-The focused fake-client tests cover FTS zero calls and lexical-only isolation from corrupt vector/segment rows; disabled, unready, missing-client, profile-mismatch, provider-failure, timeout, and corrupt-row fallbacks; exact query request fields and 1024-to-target transform; partial coverage; binary/int8 deterministic shared-key collapse and RRF ties; post-request generation drift; independent FTS while a query client blocks; no query write to `vector_cache` or lab state; and zero/small/full aggregate body budgets with exact UTF-8 segment bytes/ranges and no FTS-only invented excerpt.
+The focused fake-client tests cover FTS zero calls and lexical-only isolation from corrupt vector/segment rows; disabled, unready, missing-client, profile-mismatch, provider-failure, timeout, and corrupt-row fallbacks; exact query request fields and 1024-to-serving transform; partial coverage; binary/int8 deterministic shared-key collapse and RRF ties; post-request generation drift; independent FTS while a query client blocks; no query write to `vector_cache` or lab state; and zero/small/full aggregate body budgets with exact UTF-8 segment bytes/ranges and no FTS-only invented excerpt.
 
 Not run: a real Voyage request, API-key retrieval, network access, corpus selection/access, paid operation, raw-lab runtime access, CLI/MCP transport, `read_span`, Phase 12 evaluation, full-project validation, load testing, or a live publish-concurrency benchmark. Deduplicated parent-body copying and brute-force scan have no latency/memory guarantee; Phase 12 must measure them. The main-agent acceptance review inspected the Phase 11 diff and reran the focused race, vet, build, format, dependency-boundary, and diff checks before changing this phase to `done`.
 
 - API-call count table by mode and preflight condition.
-- Query 1024 -> target dimensions/norm validation.
+- Query 1024 -> serving dimensions/norm validation.
 - Corrupt-row fallback and coverage result.
 - Deterministic vector top-k and RRF checksum.
 - Evidence of no generation/profile mixing during concurrent reconciliation and publication.
@@ -291,14 +291,14 @@ Not run: a real Voyage request, API-key retrieval, network access, corpus select
 
 ## 12. Handoff
 
-Phase 12 calls this exact transform, scorer, aggregation, RRF, and body-packaging implementation. It must not create a second evaluation-only ranker or packager. Its only additional path is a development-only in-memory target-f32 document baseline sourced from the raw bank; production search cannot import or select that path.
+Phase 12 calls this exact transform, scorer, aggregation, RRF, and body-packaging implementation. It must not create a second evaluation-only ranker or packager. Its only additional path is a development-only in-memory serving-f32 document baseline sourced from the raw bank; production search cannot import or select that path.
 
 ## 13. Decision Log
 
 - Hybrid is auxiliary; FTS always works independently.
 - Every query gets a fresh nonpersistent `voyage-code-4` 1024 f32 embedding.
 - Fixed evaluation questions do not justify a runtime query cache.
-- Documents and queries do not have separate target dimensions or source-output paths.
+- Documents and queries do not have separate serving dimensions or source-output paths.
 - Production reads one active binary or int8 profile and uses shared Voyage Matryoshka prefix plus L2 followed by the active codec's scorer contract.
 - Start with brute-force scan; decide on ANN or graphs only after measurement.
 - Observe latency and hit rate, but do not make them numeric completion gates here.

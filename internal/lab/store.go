@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/url"
+	"path/filepath"
 	"strings"
 
 	_ "modernc.org/sqlite"
@@ -54,6 +55,59 @@ type CaptureRun struct {
 	Generation                                                                         int64
 	ManifestSHA256, SourceProfile                                                      string
 	Planned, Requested, Hits, Misses, Persisted, Failed, EstimatedTokens, ActualTokens int
+}
+
+// EvaluationRunRecord is intentionally vector-free. Query text, query
+// vectors, source bodies, raw document bytes, and local checkout paths are
+// excluded from the only durable evaluation reference.
+type EvaluationRunRecord struct {
+	RunID, RepositoryIdentity, CorpusID, CorpusManifestSHA256, PinnedCommit, ContentSHA256 string
+	Generation                                                                             int64
+	IndexManifestSHA256, QueryManifestSHA256, CandidateProfile                             string
+	SourceProfile, VectorSpaceProfile                                                      string
+	QueryCount, RawDocumentInputs, QueryProviderCalls, QueryTokens                         int
+	ArtifactReference, ArtifactChecksum                                                    string
+}
+
+func (s *Store) EvaluationArtifactsRoot(ctx context.Context) (string, error) {
+	root, err := s.CanonicalRoot(ctx)
+	if err != nil {
+		return "", err
+	}
+	return secureDirectoryUnderRoot(root, ".cidx", "lab", "evaluations")
+}
+
+func (s *Store) RecordEvaluationRun(ctx context.Context, record EvaluationRunRecord) (int64, error) {
+	if record.RunID == "" || record.RepositoryIdentity == "" || record.CorpusID == "" || !labSHA256(record.CorpusManifestSHA256) || record.PinnedCommit == "" || !labSHA256(record.ContentSHA256) || record.Generation < 0 || !labSHA256(record.IndexManifestSHA256) || !labSHA256(record.QueryManifestSHA256) || record.CandidateProfile == "" || record.SourceProfile == "" || record.VectorSpaceProfile == "" || record.QueryCount <= 0 || record.RawDocumentInputs <= 0 || record.QueryProviderCalls < 0 || record.QueryTokens < 0 || !validArtifactReference(record.ArtifactReference) || !labSHA256(record.ArtifactChecksum) {
+		return 0, fmt.Errorf("invalid evaluation run record")
+	}
+	result, err := s.db.ExecContext(ctx, `INSERT INTO evaluation_runs(run_id,repository_identity,corpus_id,corpus_manifest_sha256,pinned_commit,content_sha256,generation,index_manifest_sha256,query_manifest_sha256,query_count,candidate_profile,source_profile,vector_space_profile,raw_document_inputs,query_provider_calls,query_tokens,artifact_reference,artifact_checksum,status) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'complete')`, record.RunID, record.RepositoryIdentity, record.CorpusID, record.CorpusManifestSHA256, record.PinnedCommit, record.ContentSHA256, record.Generation, record.IndexManifestSHA256, record.QueryManifestSHA256, record.QueryCount, record.CandidateProfile, record.SourceProfile, record.VectorSpaceProfile, record.RawDocumentInputs, record.QueryProviderCalls, record.QueryTokens, record.ArtifactReference, record.ArtifactChecksum)
+	if err != nil {
+		return 0, err
+	}
+	return result.LastInsertId()
+}
+
+func (s *Store) EvaluationRunCount(ctx context.Context) (int, error) {
+	var count int
+	err := s.db.QueryRowContext(ctx, `SELECT count(*) FROM evaluation_runs WHERE status='complete'`).Scan(&count)
+	return count, err
+}
+
+func labSHA256(value string) bool {
+	if len(value) != 64 {
+		return false
+	}
+	for _, character := range value {
+		if !(character >= '0' && character <= '9' || character >= 'a' && character <= 'f') {
+			return false
+		}
+	}
+	return true
+}
+
+func validArtifactReference(value string) bool {
+	return strings.HasPrefix(value, "evaluations/") && !strings.Contains(value, "..") && filepath.ToSlash(value) == value
 }
 
 func openLabDatabase(ctx context.Context, path string) (*Store, error) {

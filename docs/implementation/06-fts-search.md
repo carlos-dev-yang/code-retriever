@@ -3,7 +3,7 @@
 - Status: `done`
 - Prerequisite phase: `05-worktree-index-pipeline`
 - Follow-up phases: `07-lexical-evaluation`, `11-vector-and-hybrid-search`
-- Design basis: `local-code-search-mcp-v1-design-r3.md` §5, §8
+- Design basis: `local-code-search-mcp-v1-design-r4.md` §5, §8
 
 ## Context Recovery Checklist
 

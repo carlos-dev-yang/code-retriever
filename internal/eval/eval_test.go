@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"cidx/internal/evalcontract"
+	"cidx/internal/search"
 	"cidx/internal/search/lexical"
 )
 
@@ -44,6 +45,7 @@ func TestBindingVerificationRejectsDirtyAndSymlink(t *testing.T) {
 	run(t, root, "git", "remote", "add", "origin", "https://example.invalid/acme/repo.git")
 	commit := strings.TrimSpace(run(t, root, "git", "rev-parse", "HEAD"))
 	m := fixtureManifest(root)
+	m.CleanTreeRequired = true
 	m.PinnedCommit = commit
 	m.ExpectedTreeHash = strings.TrimSpace(run(t, root, "git", "rev-parse", "HEAD^{tree}"))
 	hash, err := selectedContentHash(context.Background(), root, m)
@@ -64,6 +66,53 @@ func TestBindingVerificationRejectsDirtyAndSymlink(t *testing.T) {
 		t.Fatal("dirty checkout accepted")
 	}
 }
+
+func TestCorpusBindingFormsAndOptionalCleanTree(t *testing.T) {
+	flat, err := LoadCorpusBindings([]byte(`{"sample":"/tmp/sample"}`))
+	if err != nil || flat.Bindings["sample"] != "/tmp/sample" {
+		t.Fatalf("flat binding=%+v err=%v", flat, err)
+	}
+	wrapped, err := LoadCorpusBindings([]byte(`{"bindings":{"sample":"/tmp/sample"}}`))
+	if err != nil || wrapped.Bindings["sample"] != "/tmp/sample" {
+		t.Fatalf("wrapped binding=%+v err=%v", wrapped, err)
+	}
+	if _, err := LoadCorpusBindings([]byte(`{"sample":"/tmp/sample","unexpected":1}`)); err == nil {
+		t.Fatal("invalid flat binding accepted")
+	}
+	root := t.TempDir()
+	run(t, root, "git", "init")
+	run(t, root, "git", "config", "user.email", "test@example.invalid")
+	run(t, root, "git", "config", "user.name", "test")
+	write(t, filepath.Join(root, "LICENSE"), "MIT\n")
+	write(t, filepath.Join(root, "a.go"), "package a\n")
+	run(t, root, "git", "add", ".")
+	run(t, root, "git", "commit", "-m", "initial")
+	run(t, root, "git", "remote", "add", "origin", "https://example.invalid/acme/repo.git")
+	m := fixtureManifest(root)
+	m.PinnedCommit = strings.TrimSpace(run(t, root, "git", "rev-parse", "HEAD"))
+	m.ExpectedTreeHash = strings.TrimSpace(run(t, root, "git", "rev-parse", "HEAD^{tree}"))
+	hash, err := selectedContentHash(context.Background(), root, m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m.ExpectedContentSHA256 = hash
+	write(t, filepath.Join(root, "dirty.go"), "package a\n")
+	verified, err := VerifyCheckout(context.Background(), m, root)
+	if err != nil {
+		t.Fatalf("optional clean tree unexpectedly rejected: %v", err)
+	}
+	if verified.Clean {
+		t.Fatal("dirty optional-clean checkout was recorded as clean")
+	}
+	if err := VerifyIndexedFiles(context.Background(), m, root, map[string]string{"a.go": hex.EncodeToString(sha256Bytes([]byte("package a\n")))}); err != nil {
+		t.Fatalf("indexed source verification failed: %v", err)
+	}
+	if err := VerifyIndexedFiles(context.Background(), m, root, map[string]string{"other.go": strings.Repeat("a", 64)}); err == nil {
+		t.Fatal("out-of-policy indexed source accepted")
+	}
+}
+
+func sha256Bytes(value []byte) []byte { sum := sha256.Sum256(value); return sum[:] }
 
 func TestORAndMetricsFailuresAndSlices(t *testing.T) {
 	one, two := span("a.go", "A", 0, 5), span("b.go", "B", 0, 5)
@@ -311,7 +360,7 @@ func TestRetrievalPlanAndCorePromotionEvidenceValidation(t *testing.T) {
 	}
 	contract := evalcontract.PromotionContract{SchemaVersion: 1, Scope: evalcontract.CoreRetrieval, CalibrationEvidenceSHA256: []string{strings.Repeat("a", 64)}, FrozenGates: []string{"correctness"}, ConfirmationDatasetSHA256: artifact.Manifest.QueryManifestSHA256, PairedControls: artifact.Manifest.PairedControls}
 	result := evalcontract.PromotionResult{SchemaVersion: 1, Scope: evalcontract.CoreRetrieval, Status: evalcontract.PromotionEvidenceReady, PrerequisiteSHA256: []string{checksum}, PassedGates: []string{"correctness"}, ApplicableGates: []string{"correctness"}}
-	evidence := CorePromotionEvidence{Contract: contract, Result: result, ConfirmationManifest: artifact.Manifest, Artifacts: evalcontract.ArtifactManifest{SchemaVersion: 1, Entries: entries, Complete: true}, ArtifactChecksum: checksum}
+	evidence := CorePromotionEvidence{Contract: contract, Result: result, ConfirmationManifest: artifact.Manifest, Artifacts: evalcontract.ArtifactManifest{SchemaVersion: 1, Entries: entries, Complete: true}, ArtifactChecksum: checksum, CompletionArtifact: evalcontract.ArtifactEntry{Path: "artifact-checksums.json", MediaType: "application/json", ByteSize: 1, SHA256: strings.Repeat("a", 64)}}
 	if err := evidence.Validate(); err != nil {
 		t.Fatal(err)
 	}
@@ -403,6 +452,94 @@ func TestRunRetrievalEvaluationOrchestratesEveryArmOnce(t *testing.T) {
 	cancelled, cancel := context.WithCancel(context.Background())
 	if _, err := RunRetrievalEvaluation(cancelled, dataset, DefaultRetrievalPlan([]int{1}), fakeRetrievalExecutor{arms: arms, cancel: cancel}); !errors.Is(err, context.Canceled) {
 		t.Fatalf("post-arm cancellation err=%v", err)
+	}
+}
+
+func TestRetrievalTraceAttributesPreCollapseSegmentLoss(t *testing.T) {
+	left, right := span("a.go", "A", 0, 5), span("b.go", "B", 0, 5)
+	caseValue := fixtureCase("segment-collapse", evalcontract.Go, []evalcontract.RequiredGroup{{ID: "required", Alternatives: []evalcontract.ExpectedAlternative{{Spans: []evalcontract.SourceSpan{left}}}}}, []evalcontract.RelevanceJudgment{{Span: left, Grade: evalcontract.DirectRequirement, Rationale: "direct"}})
+	dataset := EvaluationDataset{SchemaVersion: 1, Version: "v1", CorpusID: "sample", Cases: []evalcontract.EvaluationCase{caseValue}}
+	score, digest := 1.0, strings.Repeat("a", 64)
+	arms := map[RetrievalVariant]RetrievalArmResult{}
+	for _, variant := range requiredRetrievalVariants {
+		hit := retrievalHit(left, 1, &score)
+		if variant == VariantFTS || variant == VariantServingActiveCodec || variant == VariantProviderUnion || variant == VariantHybridFTSActiveCodec {
+			hit = retrievalHit(right, 1, &score) // Collapsed parent misses the required span.
+		}
+		ranking := CaseRanking{QueryID: caseValue.ID, Variant: variant, Hits: []RetrievalHit{hit}}
+		if variantUsesQueryVector(variant) {
+			ranking.QueryVectorSHA256 = digest
+		}
+		arm := RetrievalArmResult{Ranking: ranking}
+		if variant == VariantServingActiveCodec {
+			arm.Segments = []search.EvaluationSegmentHit{{CanonicalInputSHA256: digest, Path: left.Path, IndexedSHA256: left.ContentSHA256, QualifiedSymbol: left.QualifiedSymbol, ParentStartByte: left.StartByte, ParentEndByte: left.EndByte, StartByte: left.StartByte, EndByte: left.EndByte, Rank: 1, Score: score}}
+		}
+		if variant == VariantHybridFTSActiveCodec {
+			arm.Packaged = []BodyPackageHit{{Hit: hit, OmissionReason: "INLINE_BUDGET_EXCEEDED"}}
+		}
+		arms[variant] = arm
+	}
+	run, err := RunRetrievalEvaluation(context.Background(), dataset, DefaultRetrievalPlan([]int{1}), fakeRetrievalExecutor{arms: arms})
+	if err != nil {
+		t.Fatal(err)
+	}
+	trace, err := BuildRetrievalTrace(caseValue, run.Cases[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	dense, collapse := trace.Observations[3], trace.Observations[5]
+	if dense.CandidateCount != 1 || !dense.GroupObservations[0].Present {
+		t.Fatalf("dense segment evidence=%+v", dense)
+	}
+	if collapse.GroupObservations[0].Present || collapse.GroupObservations[0].FirstLoss != evalcontract.SegmentParentCollapse {
+		t.Fatalf("collapse evidence=%+v", collapse)
+	}
+}
+
+func TestRetrievalTraceKeepsFTSOnlyGroupThroughParentCollapse(t *testing.T) {
+	left, right := span("a.go", "A", 0, 5), span("b.go", "B", 0, 5)
+	caseValue := fixtureCase("fts-collapse", evalcontract.Go, []evalcontract.RequiredGroup{{ID: "required", Alternatives: []evalcontract.ExpectedAlternative{{Spans: []evalcontract.SourceSpan{left}}}}}, []evalcontract.RelevanceJudgment{{Span: left, Grade: evalcontract.DirectRequirement, Rationale: "direct"}})
+	dataset := EvaluationDataset{SchemaVersion: 1, Version: "v1", CorpusID: "sample", Cases: []evalcontract.EvaluationCase{caseValue}}
+	score, digest := 1.0, strings.Repeat("b", 64)
+	arms := map[RetrievalVariant]RetrievalArmResult{}
+	for _, variant := range requiredRetrievalVariants {
+		hit := retrievalHit(left, 1, &score)
+		if variant == VariantServingActiveCodec {
+			hit = retrievalHit(right, 1, &score)
+		}
+		ranking := CaseRanking{QueryID: caseValue.ID, Variant: variant, Hits: []RetrievalHit{hit}}
+		if variantUsesQueryVector(variant) {
+			ranking.QueryVectorSHA256 = digest
+		}
+		arm := RetrievalArmResult{Ranking: ranking}
+		if variant == VariantHybridFTSActiveCodec {
+			arm.Packaged = []BodyPackageHit{{Hit: hit, OmissionReason: "INLINE_BUDGET_EXCEEDED"}}
+		}
+		arms[variant] = arm
+	}
+	run, err := RunRetrievalEvaluation(context.Background(), dataset, DefaultRetrievalPlan([]int{1}), fakeRetrievalExecutor{arms: arms})
+	if err != nil {
+		t.Fatal(err)
+	}
+	trace, err := BuildRetrievalTrace(caseValue, run.Cases[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	providerUnion, collapse := trace.Observations[4], trace.Observations[5]
+	if !providerUnion.GroupObservations[0].Present || !collapse.GroupObservations[0].Present {
+		t.Fatalf("fts-only group was lost: union=%+v collapse=%+v", providerUnion, collapse)
+	}
+	failedRun, err := RunRetrievalEvaluation(context.Background(), dataset, DefaultRetrievalPlan([]int{1}), fakeRetrievalExecutor{arms: arms, errors: map[RetrievalVariant]error{VariantServingActiveCodec: RetrievalArmFailure{Stage: evalcontract.FailureStage(evalcontract.StageDenseSegment)}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	failedTrace, err := BuildRetrievalTrace(caseValue, failedRun.Cases[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	providerUnion = failedTrace.Observations[4]
+	if providerUnion.CandidateCount != 1 || !providerUnion.GroupObservations[0].Present {
+		t.Fatalf("fts-only union with dense failure=%+v", providerUnion)
 	}
 }
 

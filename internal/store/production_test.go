@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"testing"
+	"time"
 
 	"cidx/internal/config"
 	"cidx/internal/vector"
@@ -324,6 +325,33 @@ func TestActiveEmbeddingStatesRejectStaleOrInvalidRowsAndSuccessClearsFailure(t 
 	}
 	if err := production.RecordEmbeddingFailure(ctx, resolved, "after-change", "network", "must fail"); err == nil {
 		t.Fatal("failure write proceeded after active profile changed")
+	}
+}
+
+func TestDesiredEmbeddingStatesUsesInactiveDesiredProfileCache(t *testing.T) {
+	ctx := context.Background()
+	current := testResolvedConfig(t)
+	production, err := OpenProduction(ctx, t.TempDir(), current)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer production.Close()
+	dim := 512
+	desired, err := config.Resolve(config.RawConfig{Version: 1, Index: config.RawIndex{Languages: []string{"go"}, MaxSourceFileBytes: 512, MaxChunkBytes: 512, MaxSegmentInputBytes: 256}, Embedding: config.RawEmbedding{TargetDimensions: &dim, Batch: config.RawBatch{MaxInputs: 1, MaxInputTokens: 1, RequestTimeoutMS: 1}}, MCP: config.RawMCP{HardMaxInlineBytes: 1, MaxReadSpanLines: 1}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	stored := validBinary(t, dim)
+	profile := string(desired.Profiles.Fingerprints.VectorStorage)
+	if _, err := production.Write.db.ExecContext(ctx, `INSERT INTO vector_cache(serving_profile,canonical_input_sha256,dimensions,codec_id,codec_version,blob,scale,norm,materialization_fingerprint,source_profile,vector_space_profile,raw_vector_sha256,materialized_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`, profile, testRawSHA, stored.Dimensions, stored.CodecID, stored.CodecVersion, stored.Blob, nil, nil, profile, string(desired.Profiles.Fingerprints.Source), string(desired.Profiles.Fingerprints.VectorSpace), testRawSHA, time.Now().UTC().Format(time.RFC3339Nano)); err != nil {
+		t.Fatal(err)
+	}
+	states, err := production.DesiredEmbeddingStates(ctx, desired, []string{testRawSHA, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if states[testRawSHA] != EmbeddingReady || states["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"] != EmbeddingPending {
+		t.Fatalf("states=%#v", states)
 	}
 }
 

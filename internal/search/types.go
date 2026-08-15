@@ -31,8 +31,10 @@ type Request struct {
 }
 
 type ByteLineRange struct {
-	StartByte, EndByte int
-	StartLine, EndLine int
+	StartByte int `json:"start_byte"`
+	EndByte   int `json:"end_byte"`
+	StartLine int `json:"start_line"`
+	EndLine   int `json:"end_line"`
 }
 
 type OmissionReason string
@@ -66,23 +68,26 @@ type Hit struct {
 	BodyComplete                                  bool
 	BodyBytes                                     int
 	BodyOmissionReason                            OmissionReason
+	SourceState                                   string
 }
 
 type Response struct {
-	RequestedMode, EffectiveMode SearchMode
-	QueryEmbeddingUsed           bool
-	QueryTextFormatVersion       int
-	FallbackReason               FallbackReason
-	Generation                   int64
-	ManifestSHA256               string
-	SourceProfile                profile.Fingerprint
-	VectorSpaceProfile           profile.Fingerprint
-	VectorStorageProfile         profile.Fingerprint
-	CoverageNumerator            int
-	CoverageDenominator          int
-	PartialVectorCoverage        bool
-	VectorCoverageObserved       bool
-	InlineBytesUsed              int
-	InlineLimited                bool
-	Hits                         []Hit
+	RequestedMaxInlineBytes, EffectiveMaxInlineBytes int
+	MaxInlineBytesClamped                            bool
+	RequestedMode, EffectiveMode                     SearchMode
+	QueryEmbeddingUsed                               bool
+	QueryTextFormatVersion                           int
+	FallbackReason                                   FallbackReason
+	Generation                                       int64
+	ManifestSHA256                                   string
+	SourceProfile                                    profile.Fingerprint
+	VectorSpaceProfile                               profile.Fingerprint
+	VectorStorageProfile                             profile.Fingerprint
+	CoverageNumerator                                int
+	CoverageDenominator                              int
+	PartialVectorCoverage                            bool
+	VectorCoverageObserved                           bool
+	InlineBytesUsed                                  int
+	InlineLimited                                    bool
+	Hits                                             []Hit
 }
