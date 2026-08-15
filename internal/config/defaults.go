@@ -2,18 +2,46 @@ package config
 
 import "fmt"
 
-// ErrDefaultRawPending marks the single deliberately unresolved init boundary.
-// The canonical design requires measured operational defaults before cidx may
-// create a config file, so callers must not scatter provisional numbers.
-var ErrDefaultRawPending = fmt.Errorf("DEFAULT_CONFIG_VALUES_PENDING_DECISION")
-
-func DefaultRaw(targetDimensions int, codec string) (RawConfig, error) {
+// DefaultRaw returns the complete final v1 file shape. Writing it is owned by
+// the later CLI/init phase; this helper has no filesystem side effect.
+func DefaultRaw(servingDimensions int, codec string) (RawConfig, error) {
 	spec := VoyageCode4()
-	if !spec.SupportsTarget(targetDimensions) {
-		return RawConfig{}, fmt.Errorf("unsupported target dimension")
+	if !spec.SupportsServingDimensions(servingDimensions) {
+		return RawConfig{}, fmt.Errorf("unsupported serving dimension")
 	}
 	if codec != StorageCodecBinary && codec != StorageCodecInt8 {
 		return RawConfig{}, fmt.Errorf("unsupported storage codec")
 	}
-	return RawConfig{}, ErrDefaultRawPending
+	waits := defaultRetryWaitSchedule()
+	return RawConfig{
+		Version: SchemaVersion,
+		Index:   RawIndex{Languages: []string{"go", "typescript", "tsx"}, MaxSourceFileBytes: DefaultMaxSourceFileBytes, TargetSegmentBytes: DefaultTargetSegmentBytes},
+		Embedding: RawEmbedding{
+			Model:             spec.Model,
+			ServingDimensions: &servingDimensions,
+			Reducer:           "prefix-l2-v1",
+			Normalizer:        "l2-v1",
+			Metric:            "cosine",
+			StorageCodec:      &codec,
+			Request:           RawRequest{MaxInputs: DefaultRequestMaxInputs, MaxTotalInputBytes: DefaultRequestMaxTotalInputBytes, MaxConcurrency: DefaultRequestMaxConcurrency, TimeoutSeconds: DefaultRequestTimeoutSeconds},
+			Retry:             RawRetry{MaxRetries: intPointer(DefaultRetryMaxRetries), WaitSeconds: &waits},
+		},
+		Search: RawSearch{
+			DefaultMode:             stringPointer(DefaultSearchMode),
+			AllowPaidQueryEmbedding: boolPointer(false),
+			ReturnK:                 intPointer(DefaultReturnK),
+			CandidateK:              intPointer(DefaultCandidateK),
+			RRFK:                    intPointer(DefaultRRFK),
+			MaxQueryBytes:           intPointer(DefaultMaxQueryBytes),
+			MaxQueryTokens:          intPointer(DefaultMaxQueryTokens),
+			MaxQueryTokenRunes:      intPointer(DefaultMaxQueryTokenRunes),
+			FTSWeights:              RawFTSWeights{Symbols: floatPointer(DefaultFTSSymbolWeight), Body: floatPointer(DefaultFTSBodyWeight)},
+		},
+		MCP: RawMCP{HardMaxInlineBytes: DefaultHardMaxInlineBytes},
+	}, nil
 }
+
+func intPointer(value int) *int           { return &value }
+func boolPointer(value bool) *bool        { return &value }
+func stringPointer(value string) *string  { return &value }
+func floatPointer(value float64) *float64 { return &value }

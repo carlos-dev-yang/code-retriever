@@ -215,7 +215,7 @@ type PairedRunControls struct {
 	SourceModel       string `json:"source_model"`
 	SourceDimensions  int    `json:"source_dimensions"`
 	ReducerID         string `json:"reducer_id"`
-	TargetDimensions  int    `json:"target_dimensions"`
+	ServingDimensions int    `json:"serving_dimensions"`
 	CandidatePolicy   string `json:"candidate_policy"`
 	BodyBudget        string `json:"body_budget"`
 	MCPVersion        string `json:"mcp_version"`

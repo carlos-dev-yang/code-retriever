@@ -46,20 +46,25 @@ func (value ResolvedEmbedding) EmbeddingSourceSpec() embedclient.EmbeddingSource
 }
 
 func (value ResolvedEmbedding) TransformSpec() vector.TransformSpec {
-	return vector.TransformSpec{SourceDimensions: value.Model.SourceDimensions, TargetDimensions: value.TargetDimensions, ReducerID: value.ReducerID, NormalizerID: value.NormalizerID, MetricID: value.Metric}
+	return vector.TransformSpec{SourceDimensions: value.Model.SourceDimensions, TargetDimensions: value.ServingDimensions, ReducerID: value.ReducerID, NormalizerID: value.NormalizerID, MetricID: value.Metric}
 }
 
 type ResolvedIndex struct {
-	Languages                                               []chunk.Language
-	MaxSourceFileBytes, MaxChunkBytes, MaxSegmentInputBytes int
+	Languages                              []chunk.Language
+	MaxSourceFileBytes, TargetSegmentBytes int
 }
 type ResolvedEmbedding struct {
 	Model                                         ModelSpec
-	TargetDimensions                              int
+	ServingDimensions                             int
 	ReducerID, NormalizerID, Metric, StorageCodec string
-	Batch                                         ResolvedBatch
+	Request                                       ResolvedRequest
+	Retry                                         ResolvedRetry
 }
-type ResolvedBatch struct{ MaxInputs, MaxInputTokens, MaxRetries, RequestTimeoutMS int }
+type ResolvedRequest struct{ MaxInputs, MaxTotalInputBytes, MaxConcurrency, TimeoutSeconds int }
+type ResolvedRetry struct {
+	MaxRetries  int
+	WaitSeconds []int
+}
 type ServingPolicy struct {
 	DefaultMode                    string
 	AllowPaidQueryEmbedding        bool
@@ -69,7 +74,7 @@ type ServingPolicy struct {
 	FTSSymbolWeight, FTSBodyWeight float64
 }
 type QueryLimits struct{ MaxBytes, MaxTokens, MaxTokenRunes int }
-type ResolvedMCP struct{ HardMaxInlineBytes, MaxReadSpanLines int }
+type ResolvedMCP struct{ HardMaxInlineBytes int }
 type DesiredProfiles struct {
 	Index         profile.IndexProfile
 	CanonicalText profile.CanonicalTextProfile
@@ -105,8 +110,8 @@ func Resolve(raw RawConfig) (ResolvedConfig, error) {
 	if err != nil {
 		return ResolvedConfig{}, err
 	}
-	if raw.Embedding.TargetDimensions == nil {
-		return ResolvedConfig{}, fmt.Errorf("embedding.target_dimensions is required")
+	if raw.Embedding.ServingDimensions == nil {
+		return ResolvedConfig{}, fmt.Errorf("embedding.serving_dimensions is required")
 	}
 	codec := DefaultStorageCodec
 	if raw.Embedding.StorageCodec != nil {
@@ -164,11 +169,36 @@ func Resolve(raw RawConfig) (ResolvedConfig, error) {
 	if raw.Search.AllowPaidQueryEmbedding != nil {
 		allowPaid = *raw.Search.AllowPaidQueryEmbedding
 	}
+	maxSourceFileBytes := defaultInt(raw.Index.MaxSourceFileBytes, DefaultMaxSourceFileBytes)
+	targetSegmentBytes := defaultInt(raw.Index.TargetSegmentBytes, DefaultTargetSegmentBytes)
+	request := ResolvedRequest{
+		MaxInputs:          defaultInt(raw.Embedding.Request.MaxInputs, DefaultRequestMaxInputs),
+		MaxTotalInputBytes: defaultInt(raw.Embedding.Request.MaxTotalInputBytes, DefaultRequestMaxTotalInputBytes),
+		MaxConcurrency:     defaultInt(raw.Embedding.Request.MaxConcurrency, DefaultRequestMaxConcurrency),
+		TimeoutSeconds:     defaultInt(raw.Embedding.Request.TimeoutSeconds, DefaultRequestTimeoutSeconds),
+	}
+	retry := ResolvedRetry{MaxRetries: DefaultRetryMaxRetries}
+	if raw.Embedding.Retry.MaxRetries != nil {
+		retry.MaxRetries = *raw.Embedding.Retry.MaxRetries
+	}
+	if retry.MaxRetries < 0 || retry.MaxRetries > AbsoluteRetryMaxRetries {
+		return ResolvedConfig{}, fmt.Errorf("invalid embedding retry policy")
+	}
+	if raw.Embedding.Retry.WaitSeconds == nil {
+		waits := defaultRetryWaitSchedule()
+		retry.WaitSeconds = append([]int(nil), waits[:retry.MaxRetries]...)
+	} else {
+		if len(*raw.Embedding.Retry.WaitSeconds) == 0 {
+			return ResolvedConfig{}, fmt.Errorf("embedding.retry.wait_seconds must be non-empty when specified")
+		}
+		retry.WaitSeconds = append([]int(nil), (*raw.Embedding.Retry.WaitSeconds)...)
+	}
+	hardMaxInlineBytes := defaultInt(raw.MCP.HardMaxInlineBytes, DefaultHardMaxInlineBytes)
 	resolved := ResolvedConfig{Version: raw.Version,
-		Index:     ResolvedIndex{MaxSourceFileBytes: raw.Index.MaxSourceFileBytes, MaxChunkBytes: raw.Index.MaxChunkBytes, MaxSegmentInputBytes: raw.Index.MaxSegmentInputBytes},
-		Embedding: ResolvedEmbedding{Model: model, TargetDimensions: *raw.Embedding.TargetDimensions, ReducerID: reducer, NormalizerID: normalizer, Metric: metric, StorageCodec: codec, Batch: ResolvedBatch{MaxInputs: raw.Embedding.Batch.MaxInputs, MaxInputTokens: raw.Embedding.Batch.MaxInputTokens, MaxRetries: raw.Embedding.Batch.MaxRetries, RequestTimeoutMS: raw.Embedding.Batch.RequestTimeoutMS}},
+		Index:     ResolvedIndex{MaxSourceFileBytes: maxSourceFileBytes, TargetSegmentBytes: targetSegmentBytes},
+		Embedding: ResolvedEmbedding{Model: model, ServingDimensions: *raw.Embedding.ServingDimensions, ReducerID: reducer, NormalizerID: normalizer, Metric: metric, StorageCodec: codec, Request: request, Retry: retry},
 		Search:    ServingPolicy{DefaultMode: mode, AllowPaidQueryEmbedding: allowPaid, ReturnK: returnK, CandidateK: candidateK, RRFK: rrfK, QueryTextFormatVersion: QueryTextFormatVersion, QueryLimits: QueryLimits{MaxBytes: maxQueryBytes, MaxTokens: maxQueryTokens, MaxTokenRunes: maxQueryTokenRunes}, FTSSymbolWeight: symbolWeight, FTSBodyWeight: bodyWeight},
-		MCP:       ResolvedMCP{HardMaxInlineBytes: raw.MCP.HardMaxInlineBytes, MaxReadSpanLines: raw.MCP.MaxReadSpanLines},
+		MCP:       ResolvedMCP{HardMaxInlineBytes: hardMaxInlineBytes},
 	}
 	for _, language := range raw.Index.Languages {
 		resolved.Index.Languages = append(resolved.Index.Languages, chunk.Language(language))
@@ -182,4 +212,11 @@ func Resolve(raw RawConfig) (ResolvedConfig, error) {
 	}
 	resolved.Profiles = profiles
 	return resolved, nil
+}
+
+func defaultInt(value, fallback int) int {
+	if value == 0 {
+		return fallback
+	}
+	return value
 }

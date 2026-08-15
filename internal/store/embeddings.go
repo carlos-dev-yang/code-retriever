@@ -163,7 +163,7 @@ func ValidateServingVector(resolved config.ResolvedConfig, stored vector.StoredV
 	if err := resolved.ValidateIntegrity(); err != nil {
 		return err
 	}
-	if stored.Dimensions != resolved.Embedding.TargetDimensions {
+	if stored.Dimensions != resolved.Embedding.ServingDimensions {
 		return fmt.Errorf("stored vector dimensions do not match active profile")
 	}
 	expected, err := expectedCodecID(resolved.Embedding.StorageCodec)

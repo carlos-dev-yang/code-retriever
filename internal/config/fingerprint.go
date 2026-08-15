@@ -252,7 +252,7 @@ type ServingVectorKey struct {
 }
 
 func FingerprintProfiles(resolved ResolvedConfig) (DesiredProfiles, error) {
-	index := profile.IndexProfile{Languages: append([]chunk.Language(nil), resolved.Index.Languages...), ChunkerVersion: IndexChunkerVersion, ProjectionVersion: IndexProjectionVersion, SegmentVersion: IndexSegmentVersion, SymbolNormalizerID: SymbolNormalizerID, FTSSchemaVersion: FTSSchemaVersion, FTSTokenizerID: FTSTokenizerID, MaxSourceFileBytes: resolved.Index.MaxSourceFileBytes, MaxChunkBytes: resolved.Index.MaxChunkBytes, MaxSegmentInputBytes: resolved.Index.MaxSegmentInputBytes}
+	index := profile.IndexProfile{Languages: append([]chunk.Language(nil), resolved.Index.Languages...), ChunkerVersion: IndexChunkerVersion, ProjectionVersion: IndexProjectionVersion, SegmentVersion: IndexSegmentVersion, SymbolNormalizerID: SymbolNormalizerID, FTSSchemaVersion: FTSSchemaVersion, FTSTokenizerID: FTSTokenizerID, MaxSourceFileBytes: resolved.Index.MaxSourceFileBytes, TargetSegmentBytes: resolved.Index.TargetSegmentBytes}
 	canonical := profile.CanonicalTextProfile{FormatterID: CanonicalTextFormatterID, FormatterVersion: CanonicalTextFormatterVer, ProjectionOrder: []string{"path", "kind", "qualified_symbol", "signature", "body"}}
 	source := profile.EmbeddingSourceProfile{Provider: resolved.Embedding.Model.Provider, Model: resolved.Embedding.Model.Model, SourceDimensions: resolved.Embedding.Model.SourceDimensions, OutputDType: resolved.Embedding.Model.OutputDType, InputTypeMapping: profile.InputTypeMapping{Document: resolved.Embedding.Model.DocumentInputType, Query: resolved.Embedding.Model.QueryInputType}, Truncation: resolved.Embedding.Model.Truncation, AdapterVersion: resolved.Embedding.Model.AdapterVersion}
 	indexFingerprint, err := Fingerprint(index, IndexProfileDomain)
@@ -267,7 +267,7 @@ func FingerprintProfiles(resolved ResolvedConfig) (DesiredProfiles, error) {
 	if err != nil {
 		return DesiredProfiles{}, err
 	}
-	space := profile.VectorSpaceProfile{SourceProfileFingerprint: sourceFingerprint, TargetDimensions: resolved.Embedding.TargetDimensions, ReducerID: resolved.Embedding.ReducerID, NormalizerID: resolved.Embedding.NormalizerID, Metric: resolved.Embedding.Metric}
+	space := profile.VectorSpaceProfile{SourceProfileFingerprint: sourceFingerprint, ServingDimensions: resolved.Embedding.ServingDimensions, ReducerID: resolved.Embedding.ReducerID, NormalizerID: resolved.Embedding.NormalizerID, Metric: resolved.Embedding.Metric}
 	spaceFingerprint, err := Fingerprint(space, VectorSpaceDomain)
 	if err != nil {
 		return DesiredProfiles{}, err
@@ -281,7 +281,7 @@ func FingerprintProfiles(resolved ResolvedConfig) (DesiredProfiles, error) {
 	if err != nil {
 		return DesiredProfiles{}, err
 	}
-	policy := profile.ServingPolicyProfile{DefaultMode: resolved.Search.DefaultMode, AllowPaidQueryEmbedding: resolved.Search.AllowPaidQueryEmbedding, ReturnK: resolved.Search.ReturnK, CandidateK: resolved.Search.CandidateK, RRFK: resolved.Search.RRFK, QueryTextFormatVersion: resolved.Search.QueryTextFormatVersion, MaxQueryBytes: resolved.Search.QueryLimits.MaxBytes, MaxQueryTokens: resolved.Search.QueryLimits.MaxTokens, MaxQueryTokenRunes: resolved.Search.QueryLimits.MaxTokenRunes, FTSSymbolWeight: resolved.Search.FTSSymbolWeight, FTSBodyWeight: resolved.Search.FTSBodyWeight, HardMaxInlineBytes: resolved.MCP.HardMaxInlineBytes, MaxReadSpanLines: resolved.MCP.MaxReadSpanLines}
+	policy := profile.ServingPolicyProfile{DefaultMode: resolved.Search.DefaultMode, AllowPaidQueryEmbedding: resolved.Search.AllowPaidQueryEmbedding, ReturnK: resolved.Search.ReturnK, CandidateK: resolved.Search.CandidateK, RRFK: resolved.Search.RRFK, QueryTextFormatVersion: resolved.Search.QueryTextFormatVersion, MaxQueryBytes: resolved.Search.QueryLimits.MaxBytes, MaxQueryTokens: resolved.Search.QueryLimits.MaxTokens, MaxQueryTokenRunes: resolved.Search.QueryLimits.MaxTokenRunes, FTSSymbolWeight: resolved.Search.FTSSymbolWeight, FTSBodyWeight: resolved.Search.FTSBodyWeight, HardMaxInlineBytes: resolved.MCP.HardMaxInlineBytes}
 	policyFingerprint, err := Fingerprint(policy, ServingPolicyDomain)
 	if err != nil {
 		return DesiredProfiles{}, err

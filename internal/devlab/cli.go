@@ -82,7 +82,7 @@ func capture(ctx context.Context, args []string, stdout, stderr io.Writer) error
 	if key == "" {
 		return fmt.Errorf("VOYAGE_API_KEY_REQUIRED")
 	}
-	service.Client = embedclient.VoyageClient{APIKey: key, HTTPClient: &http.Client{Timeout: time.Duration(application.Resolved.Embedding.Batch.RequestTimeoutMS) * time.Millisecond}}
+	service.Client = embedclient.VoyageClient{APIKey: key, HTTPClient: &http.Client{Timeout: time.Duration(application.Resolved.Embedding.Request.TimeoutSeconds) * time.Second}}
 	result, err := service.Apply(ctx, plan)
 	if err != nil {
 		return err
@@ -177,7 +177,7 @@ func retrieval(ctx context.Context, args []string, stdout, stderr io.Writer) err
 	if key == "" {
 		return fmt.Errorf("VOYAGE_API_KEY_REQUIRED")
 	}
-	applied, err := prepared.Apply(ctx, embedclient.VoyageClient{APIKey: key, HTTPClient: &http.Client{Timeout: time.Duration(application.Resolved.Embedding.Batch.RequestTimeoutMS) * time.Millisecond}})
+	applied, err := prepared.Apply(ctx, embedclient.VoyageClient{APIKey: key, HTTPClient: &http.Client{Timeout: time.Duration(application.Resolved.Embedding.Request.TimeoutSeconds) * time.Second}})
 	if err != nil {
 		return err
 	}

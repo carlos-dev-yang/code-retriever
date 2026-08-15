@@ -117,9 +117,9 @@ func testConfig(t *testing.T) config.ResolvedConfig {
 	target := 1024
 	resolved, err := config.Resolve(config.RawConfig{
 		Version:   1,
-		Index:     config.RawIndex{Languages: []string{"go", "typescript", "tsx"}, MaxSourceFileBytes: 1 << 20, MaxChunkBytes: 1 << 20, MaxSegmentInputBytes: 1 << 20},
-		Embedding: config.RawEmbedding{TargetDimensions: &target, Batch: config.RawBatch{MaxInputs: 1, MaxInputTokens: 1, MaxRetries: 0, RequestTimeoutMS: 1}},
-		MCP:       config.RawMCP{HardMaxInlineBytes: 1, MaxReadSpanLines: 1},
+		Index:     config.RawIndex{Languages: []string{"go", "typescript", "tsx"}, MaxSourceFileBytes: 1 << 20, TargetSegmentBytes: 1 << 20},
+		Embedding: config.RawEmbedding{ServingDimensions: &target, Request: config.RawRequest{MaxInputs: 1, MaxTotalInputBytes: 1, TimeoutSeconds: 1}},
+		MCP:       config.RawMCP{HardMaxInlineBytes: 1},
 	})
 	if err != nil {
 		t.Fatal(err)

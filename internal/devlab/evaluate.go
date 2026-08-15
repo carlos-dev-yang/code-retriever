@@ -171,8 +171,8 @@ func PrepareRetrievalEvaluation(ctx context.Context, application *app.Applicatio
 			return retrievalPrepared{}, err
 		}
 		estimate := embed.ConservativeInputTokenUpperBound([]byte(item.Text))
-		if estimate > application.Resolved.Embedding.Batch.MaxInputTokens {
-			return retrievalPrepared{}, fmt.Errorf("evaluation query exceeds local batch token budget")
+		if estimate > application.Resolved.Embedding.Request.MaxTotalInputBytes {
+			return retrievalPrepared{}, fmt.Errorf("evaluation query exceeds local request byte limit")
 		}
 		estimatedTokens += estimate
 	}

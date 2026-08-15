@@ -7,16 +7,15 @@ import "cidx/internal/chunk"
 type Fingerprint string
 
 type IndexProfile struct {
-	Languages            []chunk.Language `json:"languages"`
-	ChunkerVersion       int              `json:"chunker_version"`
-	ProjectionVersion    int              `json:"projection_version"`
-	SegmentVersion       int              `json:"segment_version"`
-	SymbolNormalizerID   string           `json:"symbol_normalizer_id"`
-	FTSSchemaVersion     int              `json:"fts_schema_version"`
-	FTSTokenizerID       string           `json:"fts_tokenizer_id"`
-	MaxSourceFileBytes   int              `json:"max_source_file_bytes"`
-	MaxChunkBytes        int              `json:"max_chunk_bytes"`
-	MaxSegmentInputBytes int              `json:"max_segment_input_bytes"`
+	Languages          []chunk.Language `json:"languages"`
+	ChunkerVersion     int              `json:"chunker_version"`
+	ProjectionVersion  int              `json:"projection_version"`
+	SegmentVersion     int              `json:"segment_version"`
+	SymbolNormalizerID string           `json:"symbol_normalizer_id"`
+	FTSSchemaVersion   int              `json:"fts_schema_version"`
+	FTSTokenizerID     string           `json:"fts_tokenizer_id"`
+	MaxSourceFileBytes int              `json:"max_source_file_bytes"`
+	TargetSegmentBytes int              `json:"target_segment_bytes"`
 }
 
 type CanonicalTextProfile struct {
@@ -42,7 +41,7 @@ type EmbeddingSourceProfile struct {
 
 type VectorSpaceProfile struct {
 	SourceProfileFingerprint Fingerprint `json:"source_profile_fingerprint"`
-	TargetDimensions         int         `json:"target_dimensions"`
+	ServingDimensions        int         `json:"serving_dimensions"`
 	ReducerID                string      `json:"reducer_id"`
 	NormalizerID             string      `json:"normalizer_id"`
 	Metric                   string      `json:"metric"`
@@ -75,7 +74,6 @@ type ServingPolicyProfile struct {
 	FTSSymbolWeight         float64 `json:"fts_symbol_weight"`
 	FTSBodyWeight           float64 `json:"fts_body_weight"`
 	HardMaxInlineBytes      int     `json:"hard_max_inline_bytes"`
-	MaxReadSpanLines        int     `json:"max_read_span_lines"`
 }
 
 type ProfileFingerprints struct {

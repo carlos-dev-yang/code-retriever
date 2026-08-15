@@ -55,7 +55,7 @@ func open(ctx context.Context, requestedRoot string, allowProvider bool) (*Appli
 	var client embedclient.EmbeddingClient
 	if allowProvider {
 		if key := os.Getenv("VOYAGE_API_KEY"); key != "" {
-			client = embedclient.VoyageClient{APIKey: key, HTTPClient: &http.Client{Timeout: time.Duration(resolved.Embedding.Batch.RequestTimeoutMS) * time.Millisecond}}
+			client = embedclient.VoyageClient{APIKey: key, HTTPClient: &http.Client{Timeout: time.Duration(resolved.Embedding.Request.TimeoutSeconds) * time.Second}}
 		}
 	}
 	searchService, err := search.New(production, resolved, client)

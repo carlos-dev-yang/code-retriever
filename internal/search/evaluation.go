@@ -127,7 +127,7 @@ func (session EvaluationSession) EvaluateVectorArms(ctx context.Context, query [
 	if bodyBudget < 0 {
 		return EvaluationVectorArms{}, errInvalidBodyBudget
 	}
-	if err := vector.ValidateF32(query, session.resolved.Embedding.TargetDimensions); err != nil {
+	if err := vector.ValidateF32(query, session.resolved.Embedding.ServingDimensions); err != nil {
 		return EvaluationVectorArms{}, err
 	}
 	targetScores, err := targetVectorScores(ctx, query, session.snapshot, targetDocuments)

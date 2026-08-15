@@ -39,7 +39,7 @@ func queryEmbedding(ctx context.Context, client embedclient.EmbeddingClient, res
 		return nil, err
 	}
 	request := embedclient.EmbeddingRequest{Source: resolved.Embedding.EmbeddingSourceSpec(), Role: embedclient.QueryRole, Inputs: []string{formatted}}
-	requestCtx, cancel := context.WithTimeout(ctx, time.Duration(resolved.Embedding.Batch.RequestTimeoutMS)*time.Millisecond)
+	requestCtx, cancel := context.WithTimeout(ctx, time.Duration(resolved.Embedding.Request.TimeoutSeconds)*time.Second)
 	defer cancel()
 	response, err := client.Embed(requestCtx, request)
 	if err != nil {

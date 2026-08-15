@@ -83,5 +83,5 @@ func (c EmbeddingCapture) Apply(ctx context.Context, plan CapturePlan) (lab.Capt
 	return collector.Apply(ctx, plan.Raw, plan.Generation, plan.ManifestSHA256)
 }
 func (c EmbeddingCapture) collector() lab.Collector {
-	return lab.Collector{Store: c.Lab, Source: c.Resolved.Embedding.EmbeddingSourceSpec(), SourceProfile: string(c.Resolved.Profiles.Fingerprints.Source), MaxInputs: c.Resolved.Embedding.Batch.MaxInputs, MaxInputTokens: c.Resolved.Embedding.Batch.MaxInputTokens, MaxRetries: c.Resolved.Embedding.Batch.MaxRetries, RequestTimeoutMS: c.Resolved.Embedding.Batch.RequestTimeoutMS}
+	return lab.Collector{Store: c.Lab, Source: c.Resolved.Embedding.EmbeddingSourceSpec(), SourceProfile: string(c.Resolved.Profiles.Fingerprints.Source), MaxInputs: c.Resolved.Embedding.Request.MaxInputs, MaxInputTokens: c.Resolved.Embedding.Request.MaxTotalInputBytes, MaxRetries: c.Resolved.Embedding.Retry.MaxRetries, RequestTimeoutMS: c.Resolved.Embedding.Request.TimeoutSeconds * 1000}
 }

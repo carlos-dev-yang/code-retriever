@@ -126,7 +126,7 @@ func TestProductionV2ToV3PreservesHistoricalFailureAndPointers(t *testing.T) {
 		t.Fatal(err)
 	}
 	active := string(resolved.Profiles.Fingerprints.VectorStorage)
-	valid := validBinary(t, resolved.Embedding.TargetDimensions)
+	valid := validBinary(t, resolved.Embedding.ServingDimensions)
 	for _, statement := range []string{`UPDATE meta SET active_generation=7,manifest_sha256='0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'`, `INSERT INTO files(id,path,language,indexed_sha256,observed_mtime_ns,observed_size) VALUES(1,'historical.go','go','file',0,1)`, `INSERT INTO chunks(id,file_id,kind,symbol,qualified_symbol,signature,start_byte,end_byte,start_line,end_line,source_body) VALUES(1,1,'function','Historical','Historical','',0,1,1,1,x'78')`, `INSERT INTO embedding_failures(source_profile,canonical_input_sha256,classification,attempts,error_class,last_error,last_attempted_at) VALUES('source','input','terminal',4,'provider','safe','2026-01-02T03:04:05Z')`} {
 		if _, err := production.Write.db.ExecContext(ctx, statement); err != nil {
 			t.Fatal(err)
@@ -215,7 +215,7 @@ func TestProductionRejectsSymlinkedStateComponents(t *testing.T) {
 
 func TestProductionAndLabSchemasStaySeparateAndValidateActiveCodec(t *testing.T) {
 	ctx := context.Background()
-	resolved, err := config.Resolve(config.RawConfig{Version: 1, Index: config.RawIndex{Languages: []string{"go"}, MaxSourceFileBytes: 10, MaxChunkBytes: 10, MaxSegmentInputBytes: 10}, Embedding: config.RawEmbedding{TargetDimensions: intPointer(256), Batch: config.RawBatch{MaxInputs: 1, MaxInputTokens: 1, RequestTimeoutMS: 1}}, Search: config.RawSearch{}, MCP: config.RawMCP{HardMaxInlineBytes: 1, MaxReadSpanLines: 1}})
+	resolved, err := config.Resolve(config.RawConfig{Version: 1, Index: config.RawIndex{Languages: []string{"go"}, MaxSourceFileBytes: 10, TargetSegmentBytes: 10}, Embedding: config.RawEmbedding{ServingDimensions: intPointer(256), Request: config.RawRequest{MaxInputs: 1, MaxTotalInputBytes: 1, TimeoutSeconds: 1}}, Search: config.RawSearch{}, MCP: config.RawMCP{HardMaxInlineBytes: 1}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -231,7 +231,7 @@ func TestProductionAndLabSchemasStaySeparateAndValidateActiveCodec(t *testing.T)
 	if containsFloatStorage(definition) {
 		t.Fatalf("production vector schema leaks raw floats: %s", definition)
 	}
-	values := make([]float32, resolved.Embedding.TargetDimensions)
+	values := make([]float32, resolved.Embedding.ServingDimensions)
 	values[0] = 1
 	stored, err := vector.EncodeBinary(values)
 	if err != nil {
@@ -276,7 +276,7 @@ func TestActiveEmbeddingStatesRejectStaleOrInvalidRowsAndSuccessClearsFailure(t 
 	if err := production.RecordEmbeddingFailure(ctx, resolved, testRawSHA, "network", "old failure"); err != nil {
 		t.Fatal(err)
 	}
-	valid := validBinary(t, resolved.Embedding.TargetDimensions)
+	valid := validBinary(t, resolved.Embedding.ServingDimensions)
 	if err := production.UpsertServingVector(ctx, resolved, testRawSHA, string(resolved.Profiles.Fingerprints.VectorStorage), testRawSHA, valid); err != nil {
 		t.Fatal(err)
 	}
@@ -285,7 +285,7 @@ func TestActiveEmbeddingStatesRejectStaleOrInvalidRowsAndSuccessClearsFailure(t 
 	if _, err := production.Write.db.ExecContext(ctx, `INSERT INTO vector_cache(serving_profile,canonical_input_sha256,dimensions,codec_id,codec_version,blob,scale,norm,materialization_fingerprint) VALUES(?,?,?,?,?,?,?,?,?)`, active, "invalid", invalid.Dimensions, invalid.CodecID, invalid.CodecVersion, invalid.Blob, nil, nil, "bad"); err != nil {
 		t.Fatal(err)
 	}
-	wrongCodec, err := vector.EncodeInt8(makeUnitValues(resolved.Embedding.TargetDimensions))
+	wrongCodec, err := vector.EncodeInt8(makeUnitValues(resolved.Embedding.ServingDimensions))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -337,7 +337,7 @@ func TestDesiredEmbeddingStatesUsesInactiveDesiredProfileCache(t *testing.T) {
 	}
 	defer production.Close()
 	dim := 512
-	desired, err := config.Resolve(config.RawConfig{Version: 1, Index: config.RawIndex{Languages: []string{"go"}, MaxSourceFileBytes: 512, MaxChunkBytes: 512, MaxSegmentInputBytes: 256}, Embedding: config.RawEmbedding{TargetDimensions: &dim, Batch: config.RawBatch{MaxInputs: 1, MaxInputTokens: 1, RequestTimeoutMS: 1}}, MCP: config.RawMCP{HardMaxInlineBytes: 1, MaxReadSpanLines: 1}})
+	desired, err := config.Resolve(config.RawConfig{Version: 1, Index: config.RawIndex{Languages: []string{"go"}, MaxSourceFileBytes: 512, TargetSegmentBytes: 256}, Embedding: config.RawEmbedding{ServingDimensions: &dim, Request: config.RawRequest{MaxInputs: 1, MaxTotalInputBytes: 1, TimeoutSeconds: 1}}, MCP: config.RawMCP{HardMaxInlineBytes: 1}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -357,7 +357,7 @@ func TestDesiredEmbeddingStatesUsesInactiveDesiredProfileCache(t *testing.T) {
 
 func testResolvedConfig(t *testing.T) config.ResolvedConfig {
 	t.Helper()
-	resolved, err := config.Resolve(config.RawConfig{Version: 1, Index: config.RawIndex{Languages: []string{"go"}, MaxSourceFileBytes: 512, MaxChunkBytes: 512, MaxSegmentInputBytes: 256}, Embedding: config.RawEmbedding{TargetDimensions: intPointer(256), Batch: config.RawBatch{MaxInputs: 1, MaxInputTokens: 1, RequestTimeoutMS: 1}}, MCP: config.RawMCP{HardMaxInlineBytes: 1, MaxReadSpanLines: 1}})
+	resolved, err := config.Resolve(config.RawConfig{Version: 1, Index: config.RawIndex{Languages: []string{"go"}, MaxSourceFileBytes: 512, TargetSegmentBytes: 256}, Embedding: config.RawEmbedding{ServingDimensions: intPointer(256), Request: config.RawRequest{MaxInputs: 1, MaxTotalInputBytes: 1, TimeoutSeconds: 1}}, MCP: config.RawMCP{HardMaxInlineBytes: 1}})
 	if err != nil {
 		t.Fatal(err)
 	}

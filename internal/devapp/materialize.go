@@ -74,9 +74,9 @@ func (m Materialize) Plan(ctx context.Context) (MaterializationPlan, error) {
 		}
 	}
 	if m.Resolved.Embedding.StorageCodec == config.StorageCodecBinary {
-		plan.ExpectedBytes = plan.RawHits * ((m.Resolved.Embedding.TargetDimensions + 7) / 8)
+		plan.ExpectedBytes = plan.RawHits * ((m.Resolved.Embedding.ServingDimensions + 7) / 8)
 	} else {
-		plan.ExpectedBytes = plan.RawHits * m.Resolved.Embedding.TargetDimensions
+		plan.ExpectedBytes = plan.RawHits * m.Resolved.Embedding.ServingDimensions
 	}
 	return plan, nil
 }

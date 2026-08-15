@@ -63,7 +63,7 @@ func TestServeHandshakeEOFDoesNotCreateLabState(t *testing.T) {
 	root := t.TempDir()
 	git(t, root, "init")
 	dim := 256
-	raw := config.RawConfig{Version: 1, Index: config.RawIndex{Languages: []string{"go"}, MaxSourceFileBytes: 4096, MaxChunkBytes: 4096, MaxSegmentInputBytes: 2048}, Embedding: config.RawEmbedding{TargetDimensions: &dim, Batch: config.RawBatch{MaxInputs: 1, MaxInputTokens: 8192, RequestTimeoutMS: 100}}, MCP: config.RawMCP{HardMaxInlineBytes: 1024, MaxReadSpanLines: 10}}
+	raw := config.RawConfig{Version: 1, Index: config.RawIndex{Languages: []string{"go"}, MaxSourceFileBytes: 4096, TargetSegmentBytes: 2048}, Embedding: config.RawEmbedding{ServingDimensions: &dim, Request: config.RawRequest{MaxInputs: 1, MaxTotalInputBytes: 8192, TimeoutSeconds: 1}}, MCP: config.RawMCP{HardMaxInlineBytes: 1024}}
 	data, err := json.Marshal(raw)
 	if err != nil {
 		t.Fatal(err)

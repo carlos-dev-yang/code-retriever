@@ -181,7 +181,7 @@ func TestDryRunProfileChangeUsesOnlyDesiredFutureKeys(t *testing.T) {
 		t.Fatal(err)
 	}
 	dim := 512
-	desired, err := config.Resolve(config.RawConfig{Version: 1, Index: config.RawIndex{Languages: []string{"go", "typescript", "tsx"}, MaxSourceFileBytes: 1024 * 1024, MaxChunkBytes: 1024 * 1024, MaxSegmentInputBytes: 1024 * 1024}, Embedding: config.RawEmbedding{TargetDimensions: &dim, Batch: config.RawBatch{MaxInputs: 8, MaxInputTokens: 8192, RequestTimeoutMS: 100}}, MCP: config.RawMCP{HardMaxInlineBytes: 1024, MaxReadSpanLines: 10}})
+	desired, err := config.Resolve(config.RawConfig{Version: 1, Index: config.RawIndex{Languages: []string{"go", "typescript", "tsx"}, MaxSourceFileBytes: 1024 * 1024, TargetSegmentBytes: 1024 * 1024}, Embedding: config.RawEmbedding{ServingDimensions: &dim, Request: config.RawRequest{MaxInputs: 8, MaxTotalInputBytes: 8192, TimeoutSeconds: 1}}, MCP: config.RawMCP{HardMaxInlineBytes: 1024}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -452,7 +452,7 @@ func testConfig(t *testing.T) config.ResolvedConfig {
 func testConfigDim(t *testing.T, d int) config.ResolvedConfig {
 	t.Helper()
 	v := 1
-	resolved, err := config.Resolve(config.RawConfig{Version: 1, Index: config.RawIndex{Languages: []string{"go", "typescript", "tsx"}, MaxSourceFileBytes: 1024 * 1024, MaxChunkBytes: 1024 * 1024, MaxSegmentInputBytes: 1024 * 1024}, Embedding: config.RawEmbedding{TargetDimensions: &d, Batch: config.RawBatch{MaxInputs: v, MaxInputTokens: v, RequestTimeoutMS: v}}, MCP: config.RawMCP{HardMaxInlineBytes: v, MaxReadSpanLines: v}})
+	resolved, err := config.Resolve(config.RawConfig{Version: 1, Index: config.RawIndex{Languages: []string{"go", "typescript", "tsx"}, MaxSourceFileBytes: 1024 * 1024, TargetSegmentBytes: 1024 * 1024}, Embedding: config.RawEmbedding{ServingDimensions: &d, Request: config.RawRequest{MaxInputs: v, MaxTotalInputBytes: v, TimeoutSeconds: v}}, MCP: config.RawMCP{HardMaxInlineBytes: v}})
 	if err != nil {
 		t.Fatal(err)
 	}

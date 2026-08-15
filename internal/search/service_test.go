@@ -256,7 +256,7 @@ func TestHybridUsesExactQueryContractAndSharedTransform(t *testing.T) {
 		t.Fatalf("query request=%#v", request)
 	}
 	transformed, err := (vector.Transformer{Spec: resolved.Embedding.TransformSpec()}).Transform(sourceVector())
-	if err != nil || len(transformed) != resolved.Embedding.TargetDimensions {
+	if err != nil || len(transformed) != resolved.Embedding.ServingDimensions {
 		t.Fatalf("transform=%d %v", len(transformed), err)
 	}
 }
@@ -483,16 +483,16 @@ func indexedSearchFixtureHash(t *testing.T, production *store.ProductionStore) (
 }
 
 func searchConfig(t *testing.T, allow bool, codec string) config.ResolvedConfig {
-	return searchConfigTimeout(t, allow, codec, 100)
+	return searchConfigTimeout(t, allow, codec, 1)
 }
 
-func searchConfigTimeout(t *testing.T, allow bool, codec string, timeoutMS int) config.ResolvedConfig {
+func searchConfigTimeout(t *testing.T, allow bool, codec string, timeoutSeconds int) config.ResolvedConfig {
 	t.Helper()
 	dimensions := 256
 	returnK, candidateK, rrfK := 2, 4, 60
 	max := 1024
 	batch := 1
-	resolved, err := config.Resolve(config.RawConfig{Version: 1, Index: config.RawIndex{Languages: []string{"go"}, MaxSourceFileBytes: max, MaxChunkBytes: max, MaxSegmentInputBytes: max}, Embedding: config.RawEmbedding{TargetDimensions: &dimensions, StorageCodec: &codec, Batch: config.RawBatch{MaxInputs: batch, MaxInputTokens: max, RequestTimeoutMS: timeoutMS}}, Search: config.RawSearch{AllowPaidQueryEmbedding: &allow, ReturnK: &returnK, CandidateK: &candidateK, RRFK: &rrfK}, MCP: config.RawMCP{HardMaxInlineBytes: max, MaxReadSpanLines: 10}})
+	resolved, err := config.Resolve(config.RawConfig{Version: 1, Index: config.RawIndex{Languages: []string{"go"}, MaxSourceFileBytes: max, TargetSegmentBytes: max}, Embedding: config.RawEmbedding{ServingDimensions: &dimensions, StorageCodec: &codec, Request: config.RawRequest{MaxInputs: batch, MaxTotalInputBytes: max, TimeoutSeconds: timeoutSeconds}}, Search: config.RawSearch{AllowPaidQueryEmbedding: &allow, ReturnK: &returnK, CandidateK: &candidateK, RRFK: &rrfK}, MCP: config.RawMCP{HardMaxInlineBytes: max}})
 	if err != nil {
 		t.Fatal(err)
 	}

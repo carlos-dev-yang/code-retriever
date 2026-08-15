@@ -75,7 +75,7 @@ func (p PublicEmbedding) PlanWithOptions(ctx context.Context, options PublicEmbe
 	if err != nil {
 		return PublicEmbeddingPlan{}, err
 	}
-	plan, err := embed.BuildPlan(inputs, options.RetryFailed, p.Resolved.Embedding.Batch.MaxInputs, p.Resolved.Embedding.Batch.MaxInputTokens)
+	plan, err := embed.BuildPlan(inputs, options.RetryFailed, p.Resolved.Embedding.Request.MaxInputs, p.Resolved.Embedding.Request.MaxTotalInputBytes)
 	if err != nil {
 		return PublicEmbeddingPlan{}, err
 	}
@@ -187,7 +187,7 @@ func (p PublicEmbedding) Apply(ctx context.Context, plan PublicEmbeddingPlan, ap
 			err = finishErr
 		}
 	}()
-	batches, err := embed.Batches(freshPlan.PaidInputs, p.Resolved.Embedding.Batch.MaxInputs, p.Resolved.Embedding.Batch.MaxInputTokens)
+	batches, err := embed.Batches(freshPlan.PaidInputs, p.Resolved.Embedding.Request.MaxInputs, p.Resolved.Embedding.Request.MaxTotalInputBytes)
 	if err != nil {
 		return result, err
 	}
@@ -211,10 +211,10 @@ func (p PublicEmbedding) Apply(ctx context.Context, plan PublicEmbeddingPlan, ap
 		var response embedclient.EmbeddingResponse
 		var callErr error
 		attempts := 0
-		for attempt := 0; attempt <= p.Resolved.Embedding.Batch.MaxRetries; attempt++ {
+		for attempt := 0; attempt <= p.Resolved.Embedding.Retry.MaxRetries; attempt++ {
 			attempts++
 			result.Requested += len(batch)
-			attemptCtx, cancel := context.WithTimeout(ctx, time.Duration(p.Resolved.Embedding.Batch.RequestTimeoutMS)*time.Millisecond)
+			attemptCtx, cancel := context.WithTimeout(ctx, time.Duration(p.Resolved.Embedding.Request.TimeoutSeconds)*time.Second)
 			response, callErr = apply.Client.Embed(attemptCtx, request)
 			cancel()
 			if errors.Is(callErr, context.DeadlineExceeded) && ctx.Err() == nil {
@@ -300,7 +300,7 @@ func (p PublicEmbedding) currentPlan(ctx context.Context, retryFailed bool) (Pub
 	if err != nil {
 		return PublicEmbeddingPlan{}, embed.Plan{}, err
 	}
-	plan, err := embed.BuildPlan(inputs, retryFailed, p.Resolved.Embedding.Batch.MaxInputs, p.Resolved.Embedding.Batch.MaxInputTokens)
+	plan, err := embed.BuildPlan(inputs, retryFailed, p.Resolved.Embedding.Request.MaxInputs, p.Resolved.Embedding.Request.MaxTotalInputBytes)
 	if err != nil {
 		return PublicEmbeddingPlan{}, embed.Plan{}, err
 	}

@@ -370,7 +370,7 @@ func (s *Service) prepare(ctx context.Context, cfg config.ResolvedConfig, path s
 	if worker == nil {
 		return store.PreparedIndexFile{}, fmt.Errorf("missing %s chunker", language)
 	}
-	out, err := worker.Chunk(ctx, chunk.ChunkRequest{Path: path, Source: body, SegmentationPolicy: chunk.SegmentationPolicy{Version: 1, BoundaryPolicyID: "ast-boundaries-v1", MaxSegmentBytes: cfg.Index.MaxSegmentInputBytes}})
+	out, err := worker.Chunk(ctx, chunk.ChunkRequest{Path: path, Source: body, SegmentationPolicy: chunk.SegmentationPolicy{Version: 1, BoundaryPolicyID: "ast-boundaries-v1", MaxSegmentBytes: cfg.Index.TargetSegmentBytes}})
 	if err != nil {
 		return store.PreparedIndexFile{}, err
 	}

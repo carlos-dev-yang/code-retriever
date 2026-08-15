@@ -1,6 +1,6 @@
 # 02. Configuration, Profiles, and Storage Schemas
 
-- Status: `planned` — pre-R4 implementation is historical; Revision 4 config/profile/wire reconciliation awaits Phase 00 evidence
+- Status: `done` — Revision 4 config/profile/wire reconciliation and main-agent boundary validation are complete; pre-R4 completion evidence remains historical
 - Prerequisite phases: `00-shared-contracts-and-config`, `01-runtime-storage-spike`
 - Downstream phases: `03-go-chunker`, `04-typescript-tsx-chunker`, `05-worktree-index-pipeline`, `08-raw-embedding-lab`
 - Design basis: `local-code-search-mcp-v1-design-r4.md` Sections 4.4, 6, and 9
@@ -378,12 +378,14 @@ Validate the following during implementation; this planning phase adds no test c
 
 ## 11. Completion Evidence
 
-Completion evidence is in [Phase 02 evidence](evidence/phase-02/README.md) and was accepted by the main agent at the Phase 02 commit boundary.
+Historical pre-R4 completion evidence remains in [Phase 02 evidence](evidence/phase-02/README.md). Revision 4 implementation, review remediation, and the one-time main-agent commit-boundary validation are recorded in [the completed R4 reconciliation evidence](evidence/phase-02/revision-4.md).
 
 - Strict immutable `ResolvedConfig`, profile hierarchy/fingerprints, impact planning, separate schemas, active-codec validation, chunk/projection contracts, normalizer, and portable evaluation types are implemented.
 - The canonical-text and embedding-source Phase 00 fixtures reproduce; defaulted and explicit equivalent configs share semantic fingerprints.
 - Production/lab schemas are separately versioned at 1 with atomic user-version migration checks, canonical root matching, and owner-only paths where supported. Production contains no raw f32/f16 storage or lab runtime dependency.
 - Exact successful and intentionally unrun checks, including RFC-8785 finite-number/Unicode conformance, transaction-pinned active state, immutable lab rows, and real strict JSON-Schema validation, are recorded in the evidence file.
+
+Revision 4 reconciles the config/profile/evaluation-wire boundary without changing the production or lab relational schemas. It strictly requires `embedding.serving_dimensions`, defaults and caps source, segment, request, retry, and inline values centrally, removes the chunk/read-span line settings, returns a typed pre-R4 mapping error before a store can open, and changes vector/evaluation JSON to `serving_dimensions`. Existing request executor, segmentation, query retry, filesystem-init, and public CLI work remains owned by Phases 05, 08, 10, 11, and 13.
 
 ## 12. Downstream Handoff
 
@@ -424,4 +426,6 @@ Provide Phases 07 and 12 with the versioned `evalcontract` types/schemas, stable
 | Canonical-input hash | fixed: independent of serving dimension and quantization | Reuse transformations of identical source raw. |
 | Allowed reductions | selected: `prefix-l2-v1` with `l2-v1` | Phase 01 fixed the local source-1024 prefix plus L2 contract. Direct serving-dimension provider requests are excluded. |
 | Runtime dimensions | fixed: `ModelSpec` is the source/allowed-serving authority | Provider and vector packages receive explicit source/transform specs and keep no competing runtime dimension registry. |
+| Revision 4 legacy input | fixed: typed reject before config resolution reaches stores | Removed fields carry exact migration guidance and are never aliases. |
+| Revision 4 operational policy | fixed: defaults plus code-owned ceilings | Request/retry values are resolved centrally but their executor semantics remain later-phase work. |
 | Formal migrations | fixed: fail-closed atomic `user_version` migration | New databases are created transactionally; current schemas are checked; newer or unknown schemas are refused. |

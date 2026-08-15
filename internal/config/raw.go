@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strconv"
 	"unicode/utf8"
 )
 
@@ -17,27 +18,32 @@ type RawConfig struct {
 }
 
 type RawIndex struct {
-	Languages            []string `json:"languages"`
-	MaxSourceFileBytes   int      `json:"max_source_file_bytes"`
-	MaxChunkBytes        int      `json:"max_chunk_bytes"`
-	MaxSegmentInputBytes int      `json:"max_segment_input_bytes"`
+	Languages          []string `json:"languages"`
+	MaxSourceFileBytes int      `json:"max_source_file_bytes,omitempty"`
+	TargetSegmentBytes int      `json:"target_segment_bytes,omitempty"`
 }
 
 type RawEmbedding struct {
-	Model            string   `json:"model"`
-	TargetDimensions *int     `json:"target_dimensions"`
-	Reducer          string   `json:"reducer"`
-	Normalizer       string   `json:"normalizer"`
-	Metric           string   `json:"metric"`
-	StorageCodec     *string  `json:"storage_codec"`
-	Batch            RawBatch `json:"batch"`
+	Model             string     `json:"model"`
+	ServingDimensions *int       `json:"serving_dimensions"`
+	Reducer           string     `json:"reducer"`
+	Normalizer        string     `json:"normalizer"`
+	Metric            string     `json:"metric"`
+	StorageCodec      *string    `json:"storage_codec"`
+	Request           RawRequest `json:"request"`
+	Retry             RawRetry   `json:"retry"`
 }
 
-type RawBatch struct {
-	MaxInputs        int `json:"max_inputs"`
-	MaxInputTokens   int `json:"max_input_tokens"`
-	MaxRetries       int `json:"max_retries"`
-	RequestTimeoutMS int `json:"request_timeout_ms"`
+type RawRequest struct {
+	MaxInputs          int `json:"max_inputs,omitempty"`
+	MaxTotalInputBytes int `json:"max_total_input_bytes,omitempty"`
+	MaxConcurrency     int `json:"max_concurrency,omitempty"`
+	TimeoutSeconds     int `json:"timeout_seconds,omitempty"`
+}
+
+type RawRetry struct {
+	MaxRetries  *int   `json:"max_retries,omitempty"`
+	WaitSeconds *[]int `json:"wait_seconds,omitempty"`
 }
 
 type RawSearch struct {
@@ -57,8 +63,7 @@ type RawFTSWeights struct {
 	Body    *float64 `json:"body"`
 }
 type RawMCP struct {
-	HardMaxInlineBytes int `json:"hard_max_inline_bytes"`
-	MaxReadSpanLines   int `json:"max_read_span_lines"`
+	HardMaxInlineBytes int `json:"hard_max_inline_bytes,omitempty"`
 }
 
 func DecodeRaw(data []byte) (RawConfig, error) {
@@ -66,6 +71,15 @@ func DecodeRaw(data []byte) (RawConfig, error) {
 		return RawConfig{}, fmt.Errorf("config is not valid UTF-8")
 	}
 	if err := rejectDuplicateKeys(data); err != nil {
+		return RawConfig{}, err
+	}
+	if err := detectLegacyFields(data); err != nil {
+		return RawConfig{}, err
+	}
+	if err := rejectExplicitZeroSafetyValues(data); err != nil {
+		return RawConfig{}, err
+	}
+	if err := rejectExplicitRetryWaits(data); err != nil {
 		return RawConfig{}, err
 	}
 	decoder := json.NewDecoder(bytes.NewReader(data))
@@ -78,6 +92,117 @@ func DecodeRaw(data []byte) (RawConfig, error) {
 		return RawConfig{}, fmt.Errorf("config contains trailing JSON value")
 	}
 	return raw, nil
+}
+
+func rejectExplicitZeroSafetyValues(data []byte) error {
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.UseNumber()
+	var value any
+	if err := decoder.Decode(&value); err != nil {
+		return err
+	}
+	root, ok := value.(map[string]any)
+	if !ok {
+		return nil
+	}
+	if mcp, specified := root["mcp"]; specified && mcp == nil {
+		return fmt.Errorf("mcp must not be null when specified")
+	}
+	for _, path := range [][2]string{
+		{"index", "max_source_file_bytes"},
+		{"index", "target_segment_bytes"},
+		{"mcp", "hard_max_inline_bytes"},
+	} {
+		if explicitNull(root, path[0], path[1]) {
+			return fmt.Errorf("%s.%s must not be null when specified", path[0], path[1])
+		}
+		if explicitZero(root, path[0], path[1]) {
+			return fmt.Errorf("%s.%s must be positive when specified", path[0], path[1])
+		}
+	}
+	if embedding, ok := root["embedding"].(map[string]any); ok {
+		requestValue, requestSpecified := embedding["request"]
+		if requestSpecified && requestValue == nil {
+			return fmt.Errorf("embedding.request must not be null when specified")
+		}
+		if request, ok := requestValue.(map[string]any); ok {
+			for _, field := range []string{"max_inputs", "max_total_input_bytes", "max_concurrency", "timeout_seconds"} {
+				if request[field] == nil {
+					if _, specified := request[field]; specified {
+						return fmt.Errorf("embedding.request.%s must not be null when specified", field)
+					}
+				}
+				if number, ok := request[field].(json.Number); ok && jsonNumberIsZero(number) {
+					return fmt.Errorf("embedding.request.%s must be positive when specified", field)
+				}
+			}
+		}
+		retryValue, retrySpecified := embedding["retry"]
+		if retrySpecified && retryValue == nil {
+			return fmt.Errorf("embedding.retry must not be null when specified")
+		}
+		if retry, ok := retryValue.(map[string]any); ok {
+			if retry["max_retries"] == nil {
+				if _, specified := retry["max_retries"]; specified {
+					return fmt.Errorf("embedding.retry.max_retries must not be null when specified")
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func explicitZero(root map[string]any, object, field string) bool {
+	value, ok := root[object].(map[string]any)
+	if !ok {
+		return false
+	}
+	number, ok := value[field].(json.Number)
+	return ok && jsonNumberIsZero(number)
+}
+
+func explicitNull(root map[string]any, object, field string) bool {
+	value, ok := root[object].(map[string]any)
+	if !ok {
+		return false
+	}
+	fieldValue, exists := value[field]
+	return exists && fieldValue == nil
+}
+
+func jsonNumberIsZero(number json.Number) bool {
+	value, err := strconv.ParseInt(number.String(), 10, 64)
+	return err == nil && value == 0
+}
+
+func rejectExplicitRetryWaits(data []byte) error {
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.UseNumber()
+	var value any
+	if err := decoder.Decode(&value); err != nil {
+		return err
+	}
+	root, ok := value.(map[string]any)
+	if !ok {
+		return nil
+	}
+	embedding, ok := root["embedding"].(map[string]any)
+	if !ok {
+		return nil
+	}
+	retry, ok := embedding["retry"].(map[string]any)
+	if !ok {
+		return nil
+	}
+	waits, exists := retry["wait_seconds"]
+	if !exists {
+		return nil
+	}
+	values, ok := waits.([]any)
+	if !ok || len(values) == 0 {
+		return fmt.Errorf("embedding.retry.wait_seconds must be a non-empty array when specified")
+	}
+	return nil
 }
 
 func rejectDuplicateKeys(data []byte) error {

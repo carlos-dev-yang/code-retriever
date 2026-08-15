@@ -171,7 +171,7 @@ func (value ArtifactManifest) requireVersion() error {
 	return nil
 }
 func (value PairedRunControls) valid() bool {
-	return validSHA256(value.CorpusStateSHA256) && validSHA256(value.LabelDigestSHA256) && value.ParserVersion != "" && value.ChunkerVersion != "" && value.FTSSchemaVersion != "" && value.SourceModel != "" && value.SourceDimensions > 0 && value.ReducerID != "" && value.TargetDimensions > 0 && value.CandidatePolicy != "" && value.BodyBudget != "" && value.MCPVersion != ""
+	return validSHA256(value.CorpusStateSHA256) && validSHA256(value.LabelDigestSHA256) && value.ParserVersion != "" && value.ChunkerVersion != "" && value.FTSSchemaVersion != "" && value.SourceModel != "" && value.SourceDimensions > 0 && value.ReducerID != "" && value.ServingDimensions > 0 && value.CandidatePolicy != "" && value.BodyBudget != "" && value.MCPVersion != ""
 }
 func (value SourceSpan) Validate() error {
 	if !validRelativePath(value.Path) || !validSHA256(value.ContentSHA256) || value.QualifiedSymbol == "" || value.StartByte < 0 || value.EndByte <= value.StartByte {

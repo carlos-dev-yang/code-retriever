@@ -84,11 +84,12 @@ func initCommand(args []string, stderr io.Writer) error {
 	if flags.NArg() != 0 {
 		return fmt.Errorf("init accepts no positional arguments")
 	}
-	_, err := config.DefaultRaw(*target, *codec)
-	if errors.Is(err, config.ErrDefaultRawPending) {
-		return ErrInitDefaultsPending
+	if _, err := config.DefaultRaw(*target, *codec); err != nil {
+		return err
 	}
-	return err
+	// Filesystem initialization is deliberately Phase 13 work. This call only
+	// validates the final complete default config constructed by Phase 02.
+	return ErrInitDefaultsPending
 }
 func serve(ctx context.Context, args []string, deps Dependencies) error {
 	flags := flag.NewFlagSet("serve", flag.ContinueOnError)
@@ -195,7 +196,7 @@ func embedCommand(ctx context.Context, args []string, deps Dependencies) error {
 	if key == "" {
 		return fmt.Errorf("VOYAGE_API_KEY_REQUIRED")
 	}
-	result, err := service.Apply(ctx, plan, app.PublicEmbeddingApply{Approved: true, Client: embedclient.VoyageClient{APIKey: key, HTTPClient: &http.Client{Timeout: time.Duration(application.Resolved.Embedding.Batch.RequestTimeoutMS) * time.Millisecond}}})
+	result, err := service.Apply(ctx, plan, app.PublicEmbeddingApply{Approved: true, Client: embedclient.VoyageClient{APIKey: key, HTTPClient: &http.Client{Timeout: time.Duration(application.Resolved.Embedding.Request.TimeoutSeconds) * time.Second}}})
 	if err != nil {
 		return err
 	}

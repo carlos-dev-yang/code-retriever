@@ -55,7 +55,7 @@ func (service ReadSpanService) Read(ctx context.Context, request ReadSpanRequest
 	if !validReadPath(request.Path) || !isDigest(request.ExpectedSHA256) {
 		return ReadSpanResponse{}, ReadSpanError{Code: ReadSpanInvalidPath}
 	}
-	if request.StartLine <= 0 || request.EndLine < request.StartLine || request.EndLine-request.StartLine+1 > service.Resolved.MCP.MaxReadSpanLines {
+	if request.StartLine <= 0 || request.EndLine < request.StartLine {
 		return ReadSpanResponse{}, ReadSpanError{Code: ReadSpanInvalidRange}
 	}
 	if !enabledStatusLanguage(request.Path, service.Resolved.Index.Languages) {
