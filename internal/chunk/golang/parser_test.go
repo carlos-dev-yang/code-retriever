@@ -104,7 +104,7 @@ func TestChunkerIsDeterministicAndHonorsCancellation(t *testing.T) {
 func TestChunkerSegmentsLongFunctionsAtStatementBoundaries(t *testing.T) {
 	source := []byte("package p\nfunc A() {\n\tone()\n\ttwo()\n\tthree()\n}\n")
 	request := request(source)
-	request.SegmentationPolicy.MaxSegmentBytes = 28
+	request.SegmentationPolicy.TargetSegmentBytes = 28
 	result, err := New().Chunk(context.Background(), request)
 	if err != nil {
 		t.Fatal(err)
@@ -124,7 +124,7 @@ func TestChunkerSegmentsLongFunctionsAtStatementBoundaries(t *testing.T) {
 func TestChunkerKeepsOversizeTypeMembersIntact(t *testing.T) {
 	source := []byte("package p\ntype Record struct {\n\tVeryLongFieldName map[string]map[string]string\n}\n")
 	request := request(source)
-	request.SegmentationPolicy.MaxSegmentBytes = 16
+	request.SegmentationPolicy.TargetSegmentBytes = 16
 	result, err := New().Chunk(context.Background(), request)
 	if err != nil {
 		t.Fatal(err)
@@ -171,7 +171,7 @@ func chunkSource(t *testing.T, source []byte) chunk.ChunkResult {
 }
 
 func request(source []byte) chunk.ChunkRequest {
-	return chunk.ChunkRequest{Path: "sample/input.go", Source: source, SegmentationPolicy: chunk.SegmentationPolicy{Version: 1, BoundaryPolicyID: "go-ast-boundaries-v1", MaxSegmentBytes: 64}}
+	return chunk.ChunkRequest{Path: "sample/input.go", Source: source, SegmentationPolicy: chunk.SegmentationPolicy{Version: 1, BoundaryPolicyID: "go-ast-boundaries-v1", TargetSegmentBytes: 64}}
 }
 
 func chunkSymbols(chunks []chunk.SourceChunk) []string {

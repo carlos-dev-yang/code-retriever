@@ -12,7 +12,7 @@ func segmentsFor(ctx context.Context, kind chunk.ChunkKind, start, end int, body
 		return nil, false
 	}
 	length := end - start
-	if length <= policy.MaxSegmentBytes || body == nil {
+	if length <= policy.TargetSegmentBytes || body == nil {
 		return []chunk.SegmentCandidate{{Number: 0, BoundaryKind: boundaryKind(kind), Projections: projections, DisplayRange: chunk.ByteRange{Start: 0, End: length}}}, true
 	}
 	units, completed := boundaryUnits(ctx, kind, body, start)
@@ -29,7 +29,7 @@ func segmentsFor(ctx context.Context, kind chunk.ChunkKind, start, end int, body
 		lastEnd := units[unitStart].End
 		for unitEnd+1 < len(units) {
 			candidateEnd := units[unitEnd+1].End
-			if headerEnd+candidateEnd-units[unitStart].Start > policy.MaxSegmentBytes {
+			if headerEnd+candidateEnd-units[unitStart].Start > policy.TargetSegmentBytes {
 				break
 			}
 			unitEnd++

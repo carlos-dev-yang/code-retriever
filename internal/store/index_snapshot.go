@@ -11,8 +11,16 @@ import (
 // IndexSnapshot is the small, immutable planning view copied under one read
 // transaction. It deliberately contains no database handle or live source.
 type IndexSnapshot struct {
-	Applied config.AppliedProfiles
-	Files   map[string]IndexedFile
+	Applied        config.AppliedProfiles
+	StoredProfiles StoredProfileMetadata
+	Files          map[string]IndexedFile
+}
+
+// StoredProfileMetadata is copied from meta together with the planning
+// fingerprints. It is only evidence for free local reconciliation; callers
+// must not treat these database values as configuration.
+type StoredProfileMetadata struct {
+	CanonicalTextJSON, SourceJSON, VectorSpaceJSON, VectorStorageJSON []byte
 }
 
 // ActiveVectorPlanningSnapshot is the narrow materialization input. It pins
@@ -85,7 +93,7 @@ func (store *ProductionStore) IndexSnapshot(ctx context.Context) (IndexSnapshot,
 	defer tx.Rollback()
 	var result IndexSnapshot
 	var index, canonical, source, space, storage, serving string
-	if err := tx.QueryRowContext(ctx, `SELECT schema_version,active_generation,manifest_sha256,index_profile,canonical_text_profile,source_profile,vector_space_profile,vector_storage_profile,active_serving_profile FROM meta WHERE id=1`).Scan(&result.Applied.SchemaVersion, &result.Applied.ActiveGeneration, &result.Applied.ManifestSHA256, &index, &canonical, &source, &space, &storage, &serving); err != nil {
+	if err := tx.QueryRowContext(ctx, `SELECT schema_version,active_generation,manifest_sha256,index_profile,canonical_text_profile,source_profile,vector_space_profile,vector_storage_profile,active_serving_profile,canonical_text_profile_json,source_profile_json,vector_space_profile_json,vector_storage_profile_json FROM meta WHERE id=1`).Scan(&result.Applied.SchemaVersion, &result.Applied.ActiveGeneration, &result.Applied.ManifestSHA256, &index, &canonical, &source, &space, &storage, &serving, &result.StoredProfiles.CanonicalTextJSON, &result.StoredProfiles.SourceJSON, &result.StoredProfiles.VectorSpaceJSON, &result.StoredProfiles.VectorStorageJSON); err != nil {
 		return result, err
 	}
 	if result.Applied.SchemaVersion != ProductionSchemaVersion || serving == "" {

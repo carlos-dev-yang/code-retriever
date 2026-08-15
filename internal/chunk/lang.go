@@ -36,13 +36,13 @@ type ChunkRequest struct {
 // SegmentationPolicy is injected by the caller and contains no config/profile
 // dependency, allowing Go and TypeScript chunkers to share one contract.
 type SegmentationPolicy struct {
-	Version          int
-	BoundaryPolicyID string
-	MaxSegmentBytes  int
+	Version            int
+	BoundaryPolicyID   string
+	TargetSegmentBytes int
 }
 
 func (value SegmentationPolicy) Valid() bool {
-	return value.Version > 0 && value.BoundaryPolicyID != "" && value.MaxSegmentBytes > 0
+	return value.Version > 0 && value.BoundaryPolicyID != "" && value.TargetSegmentBytes > 0
 }
 
 func (value ChunkRequest) Clone() ChunkRequest {

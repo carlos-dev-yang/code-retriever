@@ -40,7 +40,7 @@ func TestChunkResultAndByteLineCoordinates(t *testing.T) {
 	if err != nil || indexed != second {
 		t.Fatalf("indexed line range = %#v, %v", indexed, err)
 	}
-	request := ChunkRequest{Path: "pkg/f.go", Source: source, SegmentationPolicy: SegmentationPolicy{Version: 1, BoundaryPolicyID: "function-v1", MaxSegmentBytes: 512}}
+	request := ChunkRequest{Path: "pkg/f.go", Source: source, SegmentationPolicy: SegmentationPolicy{Version: 1, BoundaryPolicyID: "function-v1", TargetSegmentBytes: 512}}
 	if !request.Validate() || !request.Clone().Validate() {
 		t.Fatal("valid immutable request rejected")
 	}

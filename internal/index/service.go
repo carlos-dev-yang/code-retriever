@@ -231,39 +231,21 @@ func (s *Service) Execute(ctx context.Context, r Request) (Result, error) {
 		}
 	}
 	result.ManifestSHA256 = manifest
+	futureInputs, err := s.futureCanonicalInputs(ctx, snapshot, p, changed, prepared, updates)
+	if err != nil {
+		return result, err
+	}
+	rekeys, err := s.Store.PlanLegacyServingVectorRekeys(ctx, snapshot, r.Config, futureInputs)
+	if err != nil {
+		return result, err
+	}
 	if r.DryRun {
-		segments, err := s.Store.ReconciliationSegments(ctx, snapshot.Applied.ActiveGeneration)
+		states, err := s.Store.DesiredEmbeddingStates(ctx, r.Config, futureInputs)
 		if err != nil {
 			return result, err
 		}
-		updateByID := map[int64]string{}
-		for _, update := range updates {
-			updateByID[update.ID] = update.CanonicalInputSHA256
-		}
-		keys := map[string]bool{}
-		for _, segment := range segments {
-			if !changed[segment.Path] {
-				if hash, ok := updateByID[segment.ID]; ok {
-					keys[hash] = true
-				} else {
-					keys[segment.CanonicalInputSHA256] = true
-				}
-			}
-		}
-		for _, file := range prepared {
-			for _, chunk := range file.Chunks {
-				for _, segment := range chunk.Segments {
-					keys[segment.CanonicalInputSHA256] = true
-				}
-			}
-		}
-		hashes := make([]string, 0, len(keys))
-		for hash := range keys {
-			hashes = append(hashes, hash)
-		}
-		states, err := s.Store.DesiredEmbeddingStates(ctx, r.Config, hashes)
-		if err != nil {
-			return result, err
+		for _, rekey := range rekeys {
+			states[rekey.CanonicalInputSHA256] = store.EmbeddingReady
 		}
 		for _, state := range states {
 			if state == store.EmbeddingReady {
@@ -287,12 +269,48 @@ func (s *Service) Execute(ctx context.Context, r Request) (Result, error) {
 	if err != nil {
 		return result, err
 	}
-	err = s.Store.PublishIndexGeneration(ctx, store.IndexPublishPlan{BaseGeneration: snapshot.Applied.ActiveGeneration, NextGeneration: snapshot.Applied.ActiveGeneration + 1, ManifestSHA256: manifest, Reason: string(r.Reason), GitCommit: commit, GitDirty: dirty, Desired: r.Config, Deleted: p.Deleted, Changed: prepared, SegmentUpdates: updates})
+	err = s.Store.PublishIndexGeneration(ctx, store.IndexPublishPlan{BaseGeneration: snapshot.Applied.ActiveGeneration, NextGeneration: snapshot.Applied.ActiveGeneration + 1, ManifestSHA256: manifest, Reason: string(r.Reason), GitCommit: commit, GitDirty: dirty, Desired: r.Config, Deleted: p.Deleted, Changed: prepared, SegmentUpdates: updates, ServingVectorRekeys: rekeys})
 	if err != nil {
 		return result, err
 	}
 	result.ActivatedGeneration = snapshot.Applied.ActiveGeneration + 1
 	return result, nil
+}
+func (s *Service) futureCanonicalInputs(ctx context.Context, snapshot store.IndexSnapshot, p Plan, changed map[string]bool, prepared []store.PreparedIndexFile, updates []store.SegmentUpdate) ([]string, error) {
+	updateByID := map[int64]string{}
+	for _, update := range updates {
+		updateByID[update.ID] = update.CanonicalInputSHA256
+	}
+	keys := map[string]struct{}{}
+	if !p.FullRebuildRequired {
+		segments, err := s.Store.ReconciliationSegments(ctx, snapshot.Applied.ActiveGeneration)
+		if err != nil {
+			return nil, err
+		}
+		for _, segment := range segments {
+			if changed[segment.Path] {
+				continue
+			}
+			if hash, ok := updateByID[segment.ID]; ok {
+				keys[hash] = struct{}{}
+			} else {
+				keys[segment.CanonicalInputSHA256] = struct{}{}
+			}
+		}
+	}
+	for _, file := range prepared {
+		for _, chunk := range file.Chunks {
+			for _, segment := range chunk.Segments {
+				keys[segment.CanonicalInputSHA256] = struct{}{}
+			}
+		}
+	}
+	inputs := make([]string, 0, len(keys))
+	for hash := range keys {
+		inputs = append(inputs, hash)
+	}
+	sort.Strings(inputs)
+	return inputs, nil
 }
 func canonicalStored(s store.IndexedSegment) (string, error) {
 	parts := make([][]byte, 0, len(s.Projections))
@@ -370,7 +388,7 @@ func (s *Service) prepare(ctx context.Context, cfg config.ResolvedConfig, path s
 	if worker == nil {
 		return store.PreparedIndexFile{}, fmt.Errorf("missing %s chunker", language)
 	}
-	out, err := worker.Chunk(ctx, chunk.ChunkRequest{Path: path, Source: body, SegmentationPolicy: chunk.SegmentationPolicy{Version: 1, BoundaryPolicyID: "ast-boundaries-v1", MaxSegmentBytes: cfg.Index.TargetSegmentBytes}})
+	out, err := worker.Chunk(ctx, chunk.ChunkRequest{Path: path, Source: body, SegmentationPolicy: chunk.SegmentationPolicy{Version: 1, BoundaryPolicyID: "ast-boundaries-v1", TargetSegmentBytes: cfg.Index.TargetSegmentBytes}})
 	if err != nil {
 		return store.PreparedIndexFile{}, err
 	}

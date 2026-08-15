@@ -1,6 +1,6 @@
 # cidx v1 Implementation Plan Index
 
-- Status: Revision 4 Phase 02 reconciliation complete; Phase 05 is next
+- Status: Revision 4 Phase 05 reconciliation complete; Phase 08 is next
 - Canonical design: [Local Code Search MCP v1 Final Target Contract — Revision 4](../../local-code-search-mcp-v1-design-r4.md)
 - Earlier designs: [original](../../local-code-search-mcp-v1-design.md), [r1](../../local-code-search-mcp-v1-design-r1.md), [r2](../../local-code-search-mcp-v1-design-r2.md), [r3](../../local-code-search-mcp-v1-design-r3.md)
 - Execution protocol: [Implementation Execution and Context-Recovery Guide](EXECUTION-GUIDE.md)
@@ -40,7 +40,7 @@ Allowed states are `planned | in_progress | blocked | done`. A phase becomes `do
 | 02 | done | [Configuration, profiles, and schemas](02-config-profiles-and-schemas.md) | 00, 01 | Revision 4 `ResolvedConfig`, fingerprints, strict legacy handling, and evaluation wire | [R4 evidence](evidence/phase-02/revision-4.md) |
 | 03 | done | [Go chunker](03-go-chunker.md) | 02 | Go function, method, and type chunks/projections | [Evidence](03-go-chunker.md#11-completion-evidence) |
 | 04 | done | [TypeScript and TSX chunker](04-typescript-tsx-chunker.md) | 02 | TS/TSX function, method, and type chunks/projections | [Evidence](04-typescript-tsx-chunker.md#11-completion-evidence) |
-| 05 | planned | [Worktree indexing pipeline](05-worktree-index-pipeline.md) | 03, 04, reconciled 02 | Remove the chunk-cap contract, inject `target_segment_bytes`, and preserve atomic local reindex | [Historical evidence](evidence/phase-05/README.md) |
+| 05 | done | [Worktree indexing pipeline](05-worktree-index-pipeline.md) | 03, 04, reconciled 02 | Remove the chunk-cap contract, inject `target_segment_bytes`, preserve atomic local reindex, and safely rekey proven-equivalent pre-R4 vectors | [R4 evidence](evidence/phase-05/revision-4.md) |
 | 06 | done | [FTS search](06-fts-search.md) | 05 | Contentless FTS, safe queries, BM25 chunk candidates | [Evidence](06-fts-search.md#11-completion-evidence) |
 | 07 | blocked | [Lexical evaluation](07-lexical-evaluation.md) | 06 | Reusable lexical evaluation infrastructure; official labels and baseline evidence await user-selected corpus manifests and bindings | [Evidence](evidence/phase-07/README.md) |
 | 08 | planned | [Initial raw-embedding lab](08-raw-embedding-lab.md) | reconciled 02, 05 | Isolated 1024-dimensional document f32 capture through the shared synchronous request policy | [Historical evidence](evidence/phase-08/README.md) |

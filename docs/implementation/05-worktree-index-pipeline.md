@@ -1,6 +1,6 @@
 # 05. Live Worktree Index Pipeline
 
-- Status: `planned` — pre-R4 index behavior is historical; profile/segment wiring requires targeted reconciliation after Phase 02
+- Status: `done` — Revision 4 index-profile, segment-target, and compatible local vector-rekey reconciliation passed Terra review and main-agent boundary validation
 - Prerequisites: `03-go-chunker`, `04-typescript-tsx-chunker`
 - Follow-up phases: `06-fts-search`, `08-raw-embedding-lab`
 - Design basis: `local-code-search-mcp-v1-design-r4.md` §3, §4, §5, §9
@@ -308,7 +308,7 @@ Only core contract tests authorized for this phase are included; parser syntax c
 
 ## 11. Completion Evidence
 
-Implementation evidence is recorded in [`evidence/phase-05/README.md`](evidence/phase-05/README.md). The focused integration checks cover deterministic Git enumeration, built-in and Git-ignore exclusion, live tracked/untracked preparation, unchanged/change/delete behavior, exact persisted chunks and segment inputs, unsafe source rejection, cancellation before publication, and the existing production-store transactional snapshot boundary. No corpus, provider, paid, FTS-search, CLI, or MCP evidence was run.
+Historical implementation evidence is recorded in [`evidence/phase-05/README.md`](evidence/phase-05/README.md). Revision 4 target-segment, forced local rebuild, and compatible vector-rekey evidence is recorded in [`evidence/phase-05/revision-4.md`](evidence/phase-05/revision-4.md). The focused integration checks cover deterministic Git enumeration, built-in and Git-ignore exclusion, live tracked/untracked preparation, unchanged/change/delete behavior, exact persisted chunks and segment inputs, unsafe source rejection, cancellation before publication, and the production-store transactional snapshot boundary. No corpus, provider, paid, FTS-search, CLI, or MCP evidence was run.
 
 - Report of tracked plus untracked nonignored enumeration and exclusion reasons.
 - Diagnostic evidence that hash, body, and chunks came from identical bytes.
@@ -322,6 +322,10 @@ Implementation evidence is recorded in [`evidence/phase-05/README.md`](evidence/
 Separate scenarios actually executed from platform and load checks that remain unexecuted in the completion report.
 
 ## 12. Follow-up Handoff
+
+### Revision 4 reconciliation checkpoint
+
+Phase 05's active Revision 4 reconciliation injects `TargetSegmentBytes` only as an AST packing target; it does not restore a semantic-parent chunk cap. The changed index profile therefore requires a full free local rebuild. During that same transition, a pre-R4 serving vector may move to the desired serving key only when stored canonical legacy profile JSON reproduces its recorded fingerprints and proves exact source, target-dimension, reducer, normalizer, metric, codec, canonical-input, lineage, timestamp, and blob equivalence. The immutable copy plan is re-proven inside the final publish transaction and is applied atomically with segment links, profile metadata, and the generation switch. All other keys remain pending; Phase 10 does not own this historical rekey transition.
 
 Provide Phase 06 with:
 
@@ -344,3 +348,4 @@ For Phase 08 and later, provide active `canonical_input_sha256` values and proje
 | Perform long preparation outside the DB write transaction | Prevents management work from serializing existing searches | Never for v1; core concurrency contract |
 | Use only a short final publish transaction | Guarantees atomic old/new snapshots | Another storage strategy proves the same invariant |
 | Build canonical inputs locally and never call the embedding API | Preserves the free-index versus paid-embedding boundary | Never for v1; core cost contract |
+| Copy/rekey an inactive pre-R4 serving vector only after strict semantic and blob equivalence is proven | The segment serving-key switch, metadata update, and free local reuse must publish atomically; Phase 10 only fills current-profile misses | The relational storage model or serving-vector identity changes |

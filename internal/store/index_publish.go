@@ -55,6 +55,7 @@ type IndexPublishPlan struct {
 	Deleted                           []string
 	Changed                           []PreparedIndexFile
 	SegmentUpdates                    []SegmentUpdate
+	ServingVectorRekeys               []ServingVectorRekey
 }
 
 func (store *ProductionStore) PublishIndexGeneration(ctx context.Context, p IndexPublishPlan) error {
@@ -67,11 +68,16 @@ func (store *ProductionStore) PublishIndexGeneration(ctx context.Context, p Inde
 	}
 	defer tx.Rollback()
 	var active int64
-	if err := tx.QueryRowContext(ctx, `SELECT active_generation FROM meta WHERE id=1`).Scan(&active); err != nil {
+	var baseCanonical, baseSource, baseSpace, baseStorage, baseServing string
+	var baseCanonicalJSON, baseSourceJSON, baseSpaceJSON, baseStorageJSON []byte
+	if err := tx.QueryRowContext(ctx, `SELECT active_generation,canonical_text_profile,source_profile,vector_space_profile,vector_storage_profile,active_serving_profile,canonical_text_profile_json,source_profile_json,vector_space_profile_json,vector_storage_profile_json FROM meta WHERE id=1`).Scan(&active, &baseCanonical, &baseSource, &baseSpace, &baseStorage, &baseServing, &baseCanonicalJSON, &baseSourceJSON, &baseSpaceJSON, &baseStorageJSON); err != nil {
 		return err
 	}
 	if active != p.BaseGeneration {
 		return fmt.Errorf("BASE_GENERATION_CHANGED")
+	}
+	if len(p.ServingVectorRekeys) != 0 && !config.LegacyServingProfileEquivalent(p.Desired, config.LegacyServingProfileMetadata{CanonicalTextFingerprint: configFingerprint(baseCanonical), CanonicalTextJSON: baseCanonicalJSON, SourceFingerprint: configFingerprint(baseSource), SourceJSON: baseSourceJSON, VectorSpaceFingerprint: configFingerprint(baseSpace), VectorSpaceJSON: baseSpaceJSON, VectorStorageFingerprint: configFingerprint(baseStorage), VectorStorageJSON: baseStorageJSON, ActiveServingProfile: configFingerprint(baseServing)}) {
+		return fmt.Errorf("legacy vector rekey profile proof changed")
 	}
 	for _, path := range p.Deleted {
 		if err := deleteIndexFile(ctx, tx, path); err != nil {
@@ -93,6 +99,28 @@ func (store *ProductionStore) PublishIndexGeneration(ctx context.Context, p Inde
 		}
 		if n, _ := result.RowsAffected(); n != 1 {
 			return fmt.Errorf("segment update missing")
+		}
+	}
+	for _, rekey := range p.ServingVectorRekeys {
+		if rekey.LegacySourceProfile != baseSource || rekey.LegacyVectorSpaceProfile != baseSpace || rekey.LegacyMaterializationFingerprint != baseStorage || rekey.LegacyServingID != baseServing || baseServing != baseStorage {
+			return fmt.Errorf("legacy vector rekey base profile changed")
+		}
+		current, found, err := readLegacyVector(ctx, tx, rekey.LegacyServingID, rekey.CanonicalInputSHA256)
+		if err != nil {
+			return err
+		}
+		if !found || !sameLegacyRekey(current, rekey) {
+			return fmt.Errorf("legacy vector rekey source changed")
+		}
+		var linked int
+		if err := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM embedding_segments WHERE serving_profile=? AND canonical_input_sha256=?)`, string(p.Desired.Profiles.Fingerprints.VectorStorage), rekey.CanonicalInputSHA256).Scan(&linked); err != nil {
+			return err
+		}
+		if linked != 1 {
+			return fmt.Errorf("rekey canonical input is absent from next generation")
+		}
+		if _, err := tx.ExecContext(ctx, `INSERT INTO vector_cache(serving_profile,canonical_input_sha256,dimensions,codec_id,codec_version,blob,scale,norm,materialization_fingerprint,source_profile,vector_space_profile,raw_vector_sha256,materialized_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(serving_profile,canonical_input_sha256) DO UPDATE SET dimensions=excluded.dimensions,codec_id=excluded.codec_id,codec_version=excluded.codec_version,blob=excluded.blob,scale=excluded.scale,norm=excluded.norm,materialization_fingerprint=excluded.materialization_fingerprint,source_profile=excluded.source_profile,vector_space_profile=excluded.vector_space_profile,raw_vector_sha256=excluded.raw_vector_sha256,materialized_at=excluded.materialized_at`, string(p.Desired.Profiles.Fingerprints.VectorStorage), rekey.CanonicalInputSHA256, rekey.Stored.Dimensions, rekey.Stored.CodecID, rekey.Stored.CodecVersion, rekey.Stored.Blob, nullableFloat(rekey.Stored.Scale), nullableFloat(rekey.Stored.Norm), string(p.Desired.Profiles.Fingerprints.VectorStorage), string(p.Desired.Profiles.Fingerprints.Source), string(p.Desired.Profiles.Fingerprints.VectorSpace), rekey.RawVectorSHA256, rekey.MaterializedAt); err != nil {
+			return fmt.Errorf("copy compatible legacy vector: %w", err)
 		}
 	}
 	profiles := p.Desired.Profiles
@@ -139,6 +167,9 @@ func (store *ProductionStore) PublishIndexGeneration(ctx context.Context, p Inde
 		}
 	}
 	return tx.Commit()
+}
+func sameLegacyRekey(left, right ServingVectorRekey) bool {
+	return left.CanonicalInputSHA256 == right.CanonicalInputSHA256 && left.RawVectorSHA256 == right.RawVectorSHA256 && left.MaterializedAt == right.MaterializedAt && left.LegacySourceProfile == right.LegacySourceProfile && left.LegacyVectorSpaceProfile == right.LegacyVectorSpaceProfile && left.LegacyMaterializationFingerprint == right.LegacyMaterializationFingerprint && reflect.DeepEqual(left.Stored, right.Stored)
 }
 func boolInt(v bool) int {
 	if v {
@@ -372,6 +403,19 @@ func (p IndexPublishPlan) validate() error {
 			return fmt.Errorf("duplicate segment update")
 		}
 		updates[u.ID] = struct{}{}
+	}
+	rekeys := map[string]struct{}{}
+	for _, rekey := range p.ServingVectorRekeys {
+		if !hexHash(rekey.CanonicalInputSHA256) || !hexHash(rekey.RawVectorSHA256) || rekey.LegacySourceProfile == "" || rekey.LegacyVectorSpaceProfile == "" || rekey.LegacyMaterializationFingerprint == "" || rekey.LegacyServingID == "" {
+			return fmt.Errorf("invalid legacy vector rekey")
+		}
+		if _, err := time.Parse(time.RFC3339Nano, rekey.MaterializedAt); err != nil || ValidateServingVector(p.Desired, rekey.Stored) != nil {
+			return fmt.Errorf("invalid compatible legacy vector")
+		}
+		if _, ok := rekeys[rekey.CanonicalInputSHA256]; ok {
+			return fmt.Errorf("duplicate legacy vector rekey")
+		}
+		rekeys[rekey.CanonicalInputSHA256] = struct{}{}
 	}
 	return nil
 }

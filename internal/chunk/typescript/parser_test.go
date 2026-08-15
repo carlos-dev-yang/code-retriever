@@ -153,7 +153,7 @@ func TestTypeScriptChunkerOverloadsRecoveryDeterminismAndCancellation(t *testing
 func TestTypeScriptChunkerSegmentsAtASTBoundaries(t *testing.T) {
 	source := []byte("function work() {\n  first()\n  second()\n  third()\n}\n")
 	request := request("sample/input.ts", source)
-	request.SegmentationPolicy.MaxSegmentBytes = 40
+	request.SegmentationPolicy.TargetSegmentBytes = 40
 	result, err := New(chunk.TypeScript).Chunk(context.Background(), request)
 	if err != nil {
 		t.Fatal(err)
@@ -173,7 +173,7 @@ func TestTypeScriptChunkerSegmentsAtASTBoundaries(t *testing.T) {
 func TestTypeScriptChunkerSegmentsArrowBlockAtStatementBoundaries(t *testing.T) {
 	source := []byte("const work = () => {\n  first()\n  second()\n  third()\n}\n")
 	request := request("sample/input.ts", source)
-	request.SegmentationPolicy.MaxSegmentBytes = 42
+	request.SegmentationPolicy.TargetSegmentBytes = 42
 	result, err := New(chunk.TypeScript).Chunk(context.Background(), request)
 	if err != nil {
 		t.Fatal(err)
@@ -197,7 +197,7 @@ func TestTypeScriptChunkerSegmentsArrowBlockAtStatementBoundaries(t *testing.T) 
 func TestTypeScriptChunkerTypeSegmentsRetainOnlyCurrentMembers(t *testing.T) {
 	source := []byte("class Record {\n  firstMember() { first(); first(); }\n  secondMember() { second(); second(); }\n}\n")
 	request := request("sample/input.ts", source)
-	request.SegmentationPolicy.MaxSegmentBytes = 65
+	request.SegmentationPolicy.TargetSegmentBytes = 65
 	result, err := New(chunk.TypeScript).Chunk(context.Background(), request)
 	if err != nil {
 		t.Fatal(err)
@@ -226,7 +226,7 @@ func chunkSource(t *testing.T, language chunk.Language, source []byte) chunk.Chu
 }
 
 func request(path string, source []byte) chunk.ChunkRequest {
-	return chunk.ChunkRequest{Path: path, Source: source, SegmentationPolicy: chunk.SegmentationPolicy{Version: 1, BoundaryPolicyID: "typescript-ast-boundaries-v1", MaxSegmentBytes: 128}}
+	return chunk.ChunkRequest{Path: path, Source: source, SegmentationPolicy: chunk.SegmentationPolicy{Version: 1, BoundaryPolicyID: "typescript-ast-boundaries-v1", TargetSegmentBytes: 128}}
 }
 
 func chunkSymbols(chunks []chunk.SourceChunk) []string {

@@ -11,7 +11,9 @@ import (
 	"testing"
 
 	"cidx/internal/config"
+	"cidx/internal/profile"
 	"cidx/internal/store"
+	"cidx/internal/vector"
 )
 
 func TestLiveWorktreeIndexesTrackedAndUntrackedAndPublishesAtomically(t *testing.T) {
@@ -383,6 +385,166 @@ func TestProfileReconciliationRepublishesServingSegments(t *testing.T) {
 	if afterChunk != chunkID || afterSegment != segmentID || afterFTS != ftsID {
 		t.Fatalf("reconciliation replaced IDs: %d/%d/%d -> %d/%d/%d", chunkID, segmentID, ftsID, afterChunk, afterSegment, afterFTS)
 	}
+}
+
+func TestR4IndexProfileForcesFullLocalRebuildWhileFTSUsesWholeParent(t *testing.T) {
+	ctx, root := context.Background(), t.TempDir()
+	runGit(t, root, "init")
+	mustWrite(t, filepath.Join(root, ".cidx", "config.json"), "{}")
+	const source = "package p\nfunc Big() {\n\tfirst := 1\n\tsecond := first + 1\n\tthird := second + 1\n\t_ = third\n}\n"
+	mustWrite(t, filepath.Join(root, "big.go"), source)
+	runGit(t, root, "add", "big.go")
+	target := 32
+	dim := 256
+	resolved, err := config.Resolve(config.RawConfig{Version: 1, Index: config.RawIndex{Languages: []string{"go"}, MaxSourceFileBytes: 1024 * 1024, TargetSegmentBytes: target}, Embedding: config.RawEmbedding{ServingDimensions: &dim, Request: config.RawRequest{MaxInputs: 1, MaxTotalInputBytes: 1, TimeoutSeconds: 1}}, MCP: config.RawMCP{HardMaxInlineBytes: 1}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, err := store.OpenProduction(ctx, root, resolved)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer p.Close()
+	s := New(p)
+	first, err := s.Execute(ctx, Request{Root: root, Reason: ReasonManual, Config: resolved})
+	if err != nil || first.Chunks != 1 || first.Segments < 2 {
+		t.Fatalf("initial parent/segments=%#v err=%v", first, err)
+	}
+	db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "index.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	var chunks, segments, ftsHits int
+	if err := db.QueryRowContext(ctx, `SELECT count(*),(SELECT count(*) FROM embedding_segments) FROM chunks`).Scan(&chunks, &segments); err != nil || chunks != 1 || segments < 2 {
+		t.Fatalf("semantic parent/segments=%d/%d err=%v", chunks, segments, err)
+	}
+	if err := db.QueryRowContext(ctx, `SELECT count(*) FROM chunk_fts WHERE chunk_fts MATCH 'third'`).Scan(&ftsHits); err != nil || ftsHits != 1 {
+		t.Fatalf("whole parent FTS hit=%d err=%v", ftsHits, err)
+	}
+	if _, err := db.ExecContext(ctx, `UPDATE meta SET index_profile='pre-r4-index-profile'`); err != nil {
+		t.Fatal(err)
+	}
+	plan, err := s.Plan(ctx, Request{Root: root, Reason: ReasonManual, Config: resolved})
+	if err != nil || !plan.FullRebuildRequired || len(plan.Changed) != 1 || len(plan.Reused) != 0 {
+		t.Fatalf("R4 full rebuild plan=%#v err=%v", plan, err)
+	}
+	second, err := s.Execute(ctx, Request{Root: root, Reason: ReasonManual, Config: resolved})
+	if err != nil || second.ActivatedGeneration != 2 || second.Updated != 1 || second.Chunks != 1 || second.Segments < 2 {
+		t.Fatalf("R4 full rebuild result=%#v err=%v", second, err)
+	}
+}
+
+func TestR4LegacyVectorRekeyAppearsInDryRunAndAppliesWithFullRebuild(t *testing.T) {
+	ctx, root := context.Background(), t.TempDir()
+	runGit(t, root, "init")
+	mustWrite(t, filepath.Join(root, ".cidx", "config.json"), "{}")
+	mustWrite(t, filepath.Join(root, "one.go"), "package p\nfunc One() {}\n")
+	mustWrite(t, filepath.Join(root, "two.go"), "package p\nfunc Two() {}\n")
+	runGit(t, root, "add", "one.go", "two.go")
+	resolved := testConfig(t)
+	p, err := store.OpenProduction(ctx, root, resolved)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer p.Close()
+	s := New(p)
+	if _, err := s.Execute(ctx, Request{Root: root, Reason: ReasonManual, Config: resolved}); err != nil {
+		t.Fatal(err)
+	}
+	db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "index.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	legacyProfile := installLegacyProfileForIndexTest(t, db, resolved)
+	rows, err := db.QueryContext(ctx, `SELECT canonical_input_sha256 FROM embedding_segments ORDER BY canonical_input_sha256`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var hashes []string
+	for rows.Next() {
+		var hash string
+		if err := rows.Scan(&hash); err != nil {
+			rows.Close()
+			t.Fatal(err)
+		}
+		hashes = append(hashes, hash)
+	}
+	if err := rows.Close(); err != nil || len(hashes) != 2 {
+		t.Fatalf("hashes=%v err=%v", hashes, err)
+	}
+	stored, err := vector.EncodeBinary(func() []float32 {
+		values := make([]float32, resolved.Embedding.ServingDimensions)
+		values[0] = 1
+		return values
+	}())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.ExecContext(ctx, `INSERT INTO vector_cache(serving_profile,canonical_input_sha256,dimensions,codec_id,codec_version,blob,scale,norm,materialization_fingerprint,source_profile,vector_space_profile,raw_vector_sha256,materialized_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`, legacyProfile.storage, hashes[0], stored.Dimensions, stored.CodecID, stored.CodecVersion, stored.Blob, nil, nil, legacyProfile.storage, legacyProfile.source, legacyProfile.space, hashes[0], "2026-01-02T03:04:05Z"); err != nil {
+		t.Fatal(err)
+	}
+	preview, err := s.Execute(ctx, Request{Root: root, DryRun: true, Reason: ReasonManual, Config: resolved})
+	if err != nil || preview.Updated != 2 || preview.PlannedEmbeddingsReused != 1 || preview.PlannedEmbeddingsPending != 1 {
+		t.Fatalf("dry-run reconciliation=%#v err=%v", preview, err)
+	}
+	applied, err := s.Execute(ctx, Request{Root: root, Reason: ReasonManual, Config: resolved})
+	if err != nil || applied.ActivatedGeneration != 2 || applied.Updated != 2 {
+		t.Fatalf("apply reconciliation=%#v err=%v", applied, err)
+	}
+	var copied, active int
+	if err := db.QueryRowContext(ctx, `SELECT count(*),(SELECT active_generation FROM meta) FROM vector_cache WHERE serving_profile=?`, string(resolved.Profiles.Fingerprints.VectorStorage)).Scan(&copied, &active); err != nil || copied != 1 || active != 2 {
+		t.Fatalf("copied=%d active=%d err=%v", copied, active, err)
+	}
+}
+
+type indexLegacyProfile struct{ source, space, storage profile.Fingerprint }
+
+type indexLegacySpace struct {
+	SourceProfileFingerprint profile.Fingerprint `json:"source_profile_fingerprint"`
+	TargetDimensions         int                 `json:"target_dimensions"`
+	ReducerID                string              `json:"reducer_id"`
+	NormalizerID             string              `json:"normalizer_id"`
+	Metric                   string              `json:"metric"`
+}
+
+func installLegacyProfileForIndexTest(t *testing.T, db *sql.DB, resolved config.ResolvedConfig) indexLegacyProfile {
+	t.Helper()
+	canonical, err := config.CanonicalJSON(resolved.Profiles.CanonicalText)
+	if err != nil {
+		t.Fatal(err)
+	}
+	source, err := config.Fingerprint(resolved.Profiles.Source, config.SourceProfileDomain)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sourceJSON, err := config.CanonicalJSON(resolved.Profiles.Source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	spaceValue := indexLegacySpace{SourceProfileFingerprint: source, TargetDimensions: resolved.Embedding.ServingDimensions, ReducerID: resolved.Embedding.ReducerID, NormalizerID: resolved.Embedding.NormalizerID, Metric: resolved.Embedding.Metric}
+	space, err := config.Fingerprint(spaceValue, config.VectorSpaceDomain)
+	if err != nil {
+		t.Fatal(err)
+	}
+	spaceJSON, err := config.CanonicalJSON(spaceValue)
+	if err != nil {
+		t.Fatal(err)
+	}
+	storageValue := profile.VectorStorageProfile{VectorSpaceProfileFingerprint: space, StorageCodecID: resolved.Profiles.VectorStorage.StorageCodecID}
+	storage, err := config.Fingerprint(storageValue, config.VectorStorageDomain)
+	if err != nil {
+		t.Fatal(err)
+	}
+	storageJSON, err := config.CanonicalJSON(storageValue)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`UPDATE meta SET index_profile='pre-r4-index',canonical_text_profile=?,canonical_text_profile_json=?,source_profile=?,source_profile_json=?,vector_space_profile=?,vector_space_profile_json=?,vector_storage_profile=?,vector_storage_profile_json=?,active_serving_profile=?`, resolved.Profiles.Fingerprints.CanonicalText, canonical, source, sourceJSON, space, spaceJSON, storage, storageJSON, storage); err != nil {
+		t.Fatal(err)
+	}
+	return indexLegacyProfile{source: source, space: space, storage: storage}
 }
 func TestCanonicalOnlyReconciliationPreservesASTAndFTS(t *testing.T) {
 	ctx := context.Background()
