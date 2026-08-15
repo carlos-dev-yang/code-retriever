@@ -115,20 +115,33 @@ digests are `d1fcc6415c6c98a73ebd95b8367fefb804830b75da8b44b45f6f5cc66e1417fc`
 `promotion_eligible=false`, `confirmation_eligible=false`,
 `retrieval_arm=PROVIDER_FREE_LEXICAL_ONLY`, and `paid_provider_calls=0`.
 
-Immutable ignored smoke artifacts `chi-draft-smoke-5` and
-`rhf-draft-smoke-5` were published through `eval.WriteRunArtifact`.
-Their `run.json` digests are respectively
-`721b125ac3f67c39f23aba24855b6c868512256ff74aae50173beb4b6d74bf02`
-and `6587f4ac1b7db9992c47ef21d535fe8177256ecf3ef7de3e4a0fffbea4e812d3`.
-These pre-commit artifacts have `code_commit=b4166456f3aaa8e09bcb54b7e85417ca4b99c322`
-while the lexical implementation was dirty, so they are invalid for clean-code
-provenance and remain execution-only diagnostics. New lexical artifact
-execution now fails closed unless build metadata has a canonical full lowercase
-hex VCS revision (40-character SHA-1 or 64-character SHA-256) and
-`source_modified=false`, and it rejects any non-`draft` review state; this
-smoke command cannot stamp frozen labels as draft authority. Inventory-only
-preparation remains available. A future official baseline is a separate
-follow-up after human review and baseline-policy freeze.
+The reviewed implementation was committed as
+`28d0d6a1d93949c2151ca388a8f4b7739c7edc81`, then rebuilt with
+`-trimpath -buildvcs=true` from a clean worktree. `cidx version --json` and
+`go version -m` both reported that full revision and
+`source_modified=false`. Reindex reused all 78 chi and 237 react-hook-form
+files without changing either generation or manifest.
+
+The clean binary published immutable ignored smoke pairs
+`chi-draft-smoke-28d0d6a-{1,2}` and
+`rhf-draft-smoke-28d0d6a-{1,2}` through `eval.WriteRunArtifact`; every run
+records the exact implementation revision above. The first `run.json` digest
+for each corpus is respectively
+`284c9d07c8bd7bb40a7449a6118398db99a58976a370406b5a589daa742fa723`
+and `003c13c4d0a7e9dbc46abc096e4783244f8b01b97bd4e9c7177451d17ee2dc30`.
+The second-run digests are
+`bdd9c8988c6e806cd0f0151bd5fa0309b5a2e58d2668c136a462ff7b0d32daee`
+and `61ab6cb04c681df3d62b3d28caeed15a56fc5efa8f32b809e87b26600a2c1aac`;
+their clock/run identities differ, while the framed results and summaries are
+byte-identical. Earlier dirty-worktree runs are superseded execution
+diagnostics and are not clean-provenance evidence.
+
+Lexical artifact execution fails closed unless build metadata has a canonical
+full lowercase hex VCS revision (40-character SHA-1 or 64-character SHA-256)
+and `source_modified=false`. It also rejects any non-`draft` review state, so
+this smoke command cannot stamp frozen labels as draft authority.
+Inventory-only preparation remains available. A future official baseline is a
+separate follow-up after human review and baseline-policy freeze.
 
 Repeated runs produced identical diagnostic replay values using exactly
 `sha256(jq -c '{results,summary}' output including LF)`:
@@ -183,6 +196,27 @@ git diff --check
 
 All boundary checks passed. The accepted implementation is committed before
 new smoke artifacts are generated so their `code_commit` is truthful.
+
+The clean post-commit checkpoint then ran:
+
+```text
+test -z "$(git status --porcelain)"
+env -u VOYAGE_API_KEY GOPROXY=off go build -trimpath -buildvcs=true -o /tmp/cidx-phase07-clean ./cmd/cidx
+cidx version --json
+go version -m /tmp/cidx-phase07-clean
+cidx index --root <checkout> --reason manual             # both checkouts
+cidx status --root <checkout> --json                     # both checkouts
+cidx dev retrieval evaluate --mode lexical --inventory-only ...
+cidx dev retrieval evaluate --mode lexical --run-id <fresh-id> ... # two per corpus
+jq -c '{results,summary}' <run.json> | shasum -a 256
+cmp <framed-run-1> <framed-run-2>
+```
+
+The environment omitted `VOYAGE_API_KEY`; no provider or network operation
+was needed. The repeat comparisons and all recorded checksum assertions
+passed. The independent Terra/high reviewer then matched all four clean run
+artifacts, artifact manifests, status counts, replay hashes, and ledger values
+and reported no findings.
 
 `internal/devlab/lexical_test.go` covers the draft-digest framing, lexical
 mode/apply and inventory flag rejection, clean canonical code-provenance and
