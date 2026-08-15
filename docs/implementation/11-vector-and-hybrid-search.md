@@ -1,6 +1,6 @@
 # 11. Vector Scan and Hybrid Search
 
-- Status: `planned` — vector/RRF/body core remains valid; query embedding must adopt the shared Revision 4 request policy
+- Status: `done` — `/root/r4_phase11_executor` implemented, `/root/r4_phase11_review` independently reviewed, and Codex accepted the commit boundary
 - Prerequisites: `06-fts-search`, `09-vector-materialization`, `10-embedding-orchestration-and-reconciliation`
 - Followed by: `12-retrieval-evaluation`, `13-cli-and-mcp`
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 8 and 9.2
@@ -17,13 +17,35 @@ Read the [implementation index](README.md), [execution guide](EXECUTION-GUIDE.md
 - Stop if profile consistency, coverage semantics, query privacy, or snapshot materialization is unresolved. Do not introduce ANN, graph search, caching, or multi-profile serving.
 - Before pausing, update this phase's evidence and decision log, then update [STATUS.md](STATUS.md) with checked scenarios, remaining risks, and the next action.
 
-## Entry Gate Record
+## Historical pre-Revision-4 Entry Gate Record
 
 - Entered: 2026-08-15
 - Owner: Codex (`/root/phase11_hybrid_search`)
 - Prerequisites checked: Phase 06 deterministic lexical search and pinned snapshot handoff; Phase 09 shared transformer/codecs and production-vector validation; Phase 10 active-profile reconciliation and no-transaction provider-wait boundary. Their recorded evidence is [Phase 06](evidence/phase-06/README.md), [Phase 09](evidence/phase-09/README.md), and [Phase 10](evidence/phase-10/README.md).
 - Workspace state: clean before entry; no existing implementation changes were claimed.
 - Intended evidence: focused fake-client/core tests for free FTS isolation, preflight fallbacks, exact query request/transform, snapshot consistency, codec scans, deterministic RRF, and body-packaging fidelity. No real provider, credential, corpus, lab runtime access, or paid operation is permitted.
+
+## Revision 4 Entry Gate Record
+
+- Entered: 2026-08-15 at clean commit `499df39`.
+- Owner: `/root/r4_phase11_executor` (terra/high); Codex owns the one-time commit-boundary validation.
+- Prerequisites checked: accepted [Phase 06](evidence/phase-06/README.md), [Phase 09](evidence/phase-09/README.md), and [Phase 10 Revision 4](evidence/phase-10/revision-4.md) evidence; the full phase, execution, evaluation, status, and canonical Revision 4 documents; and the live search/executor/evaluation wiring.
+- Reconciliation boundary: replace only the direct single query provider call with the accepted `embed.Execute` request/retry policy. Preserve preflight, snapshots, vector scan, collapse, RRF, body packaging, stable fallbacks, query privacy, and Phase 12 arm algorithms.
+- Intended evidence: focused fake-client tests for resolved retry-policy consumption, fallback and caller cancellation, plus unchanged core behavior. No real provider, credential, corpus, API-key, paid, or metric-measurement action is permitted.
+
+## Revision 4 Accepted Checkpoint
+
+- The direct query client call now delegates one ephemeral non-sensitive keyed
+  input to the accepted `embed.Execute` policy using the immutable resolved
+  limits, concurrency, timeout, retries, and waits with `QueryRole`.
+- Response validation remains executor-owned and the existing shared
+  transformer remains the only query-space transformation. Caller
+  cancellation/deadline propagates; provider exhaustion, validation, and
+  transform failures retain their existing classification/fallback boundary.
+- Focused offline checks, a no-findings independent Terra review, and the
+  one-time main-agent boundary validation are recorded in
+  [Phase 11 Revision 4 evidence](evidence/phase-11/revision-4.md). No provider,
+  API-key, network, corpus, paid, or metric-measurement action was performed.
 
 ## 1. Objective
 
@@ -306,3 +328,6 @@ Phase 12 calls this exact transform, scorer, aggregation, RRF, and body-packagin
 - Query-client availability is an injected capability: the core neither reads an API key nor constructs a real provider client. A missing injected client maps to `API_KEY_MISSING` without a provider call.
 - A corrupt active vector row invalidates the whole vector lane for that search, including partial-coverage searches. Missing rows remain ordinary partial coverage.
 - Profile, generation, or manifest movement between an approved query request and the pinned materialization snapshot discards the transient query vector rather than attempting cross-snapshot reuse.
+- Revision 4 query execution uses the accepted shared executor with one
+  request-local `query-0` key; the key is not derived from query text and is
+  never persisted or logged.

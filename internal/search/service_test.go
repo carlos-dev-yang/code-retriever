@@ -3,6 +3,7 @@ package search
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -10,6 +11,7 @@ import (
 	"reflect"
 	"sync"
 	"testing"
+	"time"
 
 	"cidx/internal/config"
 	"cidx/internal/embedclient"
@@ -51,6 +53,109 @@ func (client *fakeQueryClient) count() int {
 	client.mu.Lock()
 	defer client.mu.Unlock()
 	return client.calls
+}
+
+type queryClientFunc func(context.Context, embedclient.EmbeddingRequest) (embedclient.EmbeddingResponse, error)
+
+func (fn queryClientFunc) Embed(ctx context.Context, request embedclient.EmbeddingRequest) (embedclient.EmbeddingResponse, error) {
+	return fn(ctx, request)
+}
+
+func TestQueryEmbeddingUsesResolvedExecutorPolicyAndSharedTransform(t *testing.T) {
+	resolved := searchConfig(t, true, config.StorageCodecInt8)
+	attempts := 0
+	var waits []time.Duration
+	var received embedclient.EmbeddingRequest
+	client := queryClientFunc(func(_ context.Context, request embedclient.EmbeddingRequest) (embedclient.EmbeddingResponse, error) {
+		attempts++
+		received = request
+		if attempts == 1 {
+			return embedclient.EmbeddingResponse{}, embedclient.ProviderError{Class: "http_503", StatusCode: 503, Retryable: true}
+		}
+		return fakeQueryResponse(resolved, sourceVector()), nil
+	})
+	got, err := queryEmbeddingWithWait(context.Background(), client, resolved, "semantic lookup", func(_ context.Context, wait time.Duration) error {
+		waits = append(waits, wait)
+		return nil
+	})
+	if err != nil || attempts != 2 || !reflect.DeepEqual(waits, []time.Duration{10 * time.Second}) {
+		t.Fatalf("attempts=%d waits=%v vector=%d err=%v", attempts, waits, len(got), err)
+	}
+	if received.Role != embedclient.QueryRole || received.Source != resolved.Embedding.EmbeddingSourceSpec() || !reflect.DeepEqual(received.Inputs, []string{"semantic lookup"}) {
+		t.Fatalf("query request=%#v", received)
+	}
+	want, err := (vector.Transformer{Spec: resolved.Embedding.TransformSpec()}).Transform(sourceVector())
+	if err != nil || !reflect.DeepEqual(got, want) {
+		t.Fatalf("got=%v want=%v err=%v", got, want, err)
+	}
+}
+
+func TestQueryEmbeddingKeepsValidationAndTransformFailuresInvariant(t *testing.T) {
+	resolved := searchConfig(t, true, config.StorageCodecBinary)
+	for name, response := range map[string]embedclient.EmbeddingResponse{
+		"invalid response": {Model: resolved.Embedding.Model.Model, Data: []embedclient.EmbeddingDatum{{Index: 0, IndexPresent: true, Values: []float32{1}}}},
+		"zero prefix":      fakeQueryResponse(resolved, make([]float32, 1024)),
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := queryEmbedding(context.Background(), queryClientFunc(func(context.Context, embedclient.EmbeddingRequest) (embedclient.EmbeddingResponse, error) {
+				return response, nil
+			}), resolved, "semantic")
+			var providerErr QueryEmbeddingProviderError
+			if err == nil || errors.As(err, &providerErr) {
+				t.Fatalf("err=%v", err)
+			}
+		})
+	}
+}
+
+func TestQueryEmbeddingClassifiesProviderFailure(t *testing.T) {
+	resolved := searchConfig(t, true, config.StorageCodecBinary)
+	_, err := queryEmbedding(context.Background(), queryClientFunc(func(context.Context, embedclient.EmbeddingRequest) (embedclient.EmbeddingResponse, error) {
+		return embedclient.EmbeddingResponse{}, fmt.Errorf("provider unavailable")
+	}), resolved, "semantic")
+	var providerErr QueryEmbeddingProviderError
+	if err == nil || !errors.As(err, &providerErr) {
+		t.Fatalf("err=%v", err)
+	}
+}
+
+func TestQueryEmbeddingPropagatesCallerCancellationDuringRequestAndWait(t *testing.T) {
+	resolved := searchConfig(t, true, config.StorageCodecBinary)
+	t.Run("request", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		started := make(chan struct{})
+		done := make(chan error, 1)
+		go func() {
+			_, err := queryEmbedding(ctx, queryClientFunc(func(requestCtx context.Context, _ embedclient.EmbeddingRequest) (embedclient.EmbeddingResponse, error) {
+				close(started)
+				<-requestCtx.Done()
+				return embedclient.EmbeddingResponse{}, requestCtx.Err()
+			}), resolved, "semantic")
+			done <- err
+		}()
+		<-started
+		cancel()
+		if err := <-done; !errors.Is(err, context.Canceled) {
+			t.Fatalf("err=%v", err)
+		}
+	})
+	t.Run("wait", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		calls := 0
+		_, err := queryEmbeddingWithWait(ctx, queryClientFunc(func(context.Context, embedclient.EmbeddingRequest) (embedclient.EmbeddingResponse, error) {
+			calls++
+			return embedclient.EmbeddingResponse{}, embedclient.ProviderError{Class: "http_503", StatusCode: 503, Retryable: true}
+		}), resolved, "semantic", func(waitCtx context.Context, _ time.Duration) error {
+			cancel()
+			<-waitCtx.Done()
+			return waitCtx.Err()
+		})
+		if !errors.Is(err, context.Canceled) || calls != 1 {
+			t.Fatalf("calls=%d err=%v", calls, err)
+		}
+	})
 }
 
 func TestFTSAndPreflightFallbacksNeverCallQueryClient(t *testing.T) {
@@ -153,7 +258,7 @@ func TestQueryProviderFailureAndTimeoutFallBackWithoutVectorSnapshot(t *testing.
 	if err != nil || result.FallbackReason != FallbackQueryEmbeddingFailed || result.QueryEmbeddingUsed || result.VectorCoverageObserved {
 		t.Fatalf("provider fallback=%#v err=%v", result, err)
 	}
-	timed := searchConfigTimeout(t, true, config.StorageCodecBinary, 1)
+	timed := searchConfigTimeoutAndRetries(t, true, config.StorageCodecBinary, 1, 0)
 	production2, _ := indexedSearchFixture(t, timed)
 	defer production2.Close()
 	putVector(t, production2, timed)
@@ -487,12 +592,16 @@ func searchConfig(t *testing.T, allow bool, codec string) config.ResolvedConfig 
 }
 
 func searchConfigTimeout(t *testing.T, allow bool, codec string, timeoutSeconds int) config.ResolvedConfig {
+	return searchConfigTimeoutAndRetries(t, allow, codec, timeoutSeconds, 3)
+}
+
+func searchConfigTimeoutAndRetries(t *testing.T, allow bool, codec string, timeoutSeconds, maxRetries int) config.ResolvedConfig {
 	t.Helper()
 	dimensions := 256
 	returnK, candidateK, rrfK := 2, 4, 60
 	max := 1024
 	batch := 1
-	resolved, err := config.Resolve(config.RawConfig{Version: 1, Index: config.RawIndex{Languages: []string{"go"}, MaxSourceFileBytes: max, TargetSegmentBytes: max}, Embedding: config.RawEmbedding{ServingDimensions: &dimensions, StorageCodec: &codec, Request: config.RawRequest{MaxInputs: batch, MaxTotalInputBytes: max, TimeoutSeconds: timeoutSeconds}}, Search: config.RawSearch{AllowPaidQueryEmbedding: &allow, ReturnK: &returnK, CandidateK: &candidateK, RRFK: &rrfK}, MCP: config.RawMCP{HardMaxInlineBytes: max}})
+	resolved, err := config.Resolve(config.RawConfig{Version: 1, Index: config.RawIndex{Languages: []string{"go"}, MaxSourceFileBytes: max, TargetSegmentBytes: max}, Embedding: config.RawEmbedding{ServingDimensions: &dimensions, StorageCodec: &codec, Request: config.RawRequest{MaxInputs: batch, MaxTotalInputBytes: max, TimeoutSeconds: timeoutSeconds}, Retry: config.RawRetry{MaxRetries: &maxRetries}}, Search: config.RawSearch{AllowPaidQueryEmbedding: &allow, ReturnK: &returnK, CandidateK: &candidateK, RRFK: &rrfK}, MCP: config.RawMCP{HardMaxInlineBytes: max}})
 	if err != nil {
 		t.Fatal(err)
 	}
