@@ -130,32 +130,6 @@ func BuildPlan(inputs []Input, retryFailed bool, maxInputs, maxTotalBytes int) (
 	return plan, nil
 }
 
-func Batches(inputs []Input, maxInputs, maxTotalBytes int) ([][]Input, error) {
-	if maxInputs <= 0 || maxTotalBytes <= 0 {
-		return nil, fmt.Errorf("embedding batch limits are required")
-	}
-	var out [][]Input
-	var batch []Input
-	tokens := 0
-	for _, input := range inputs {
-		estimate := ConservativeInputTokenUpperBound(input.Bytes)
-		if estimate > maxTotalBytes {
-			return nil, fmt.Errorf("canonical input exceeds local batch token budget")
-		}
-		if len(batch) == maxInputs || tokens+estimate > maxTotalBytes {
-			out = append(out, batch)
-			batch = nil
-			tokens = 0
-		}
-		batch = append(batch, input)
-		tokens += estimate
-	}
-	if len(batch) > 0 {
-		out = append(out, batch)
-	}
-	return out, nil
-}
-
 func requestGroups(inputs []Input, maxInputs, maxTotalBytes int) ([]RequestGroup, error) {
 	requestInputs := make([]RequestInput, len(inputs))
 	for i, input := range inputs {

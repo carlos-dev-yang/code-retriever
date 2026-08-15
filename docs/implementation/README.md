@@ -1,6 +1,6 @@
 # cidx v1 Implementation Plan Index
 
-- Status: Revision 4 Phase 08 reconciliation complete; Phase 10 is next
+- Status: Revision 4 Phase 10 reconciliation complete; Phase 11 is next
 - Canonical design: [Local Code Search MCP v1 Final Target Contract — Revision 4](../../local-code-search-mcp-v1-design-r4.md)
 - Earlier designs: [original](../../local-code-search-mcp-v1-design.md), [r1](../../local-code-search-mcp-v1-design-r1.md), [r2](../../local-code-search-mcp-v1-design-r2.md), [r3](../../local-code-search-mcp-v1-design-r3.md)
 - Execution protocol: [Implementation Execution and Context-Recovery Guide](EXECUTION-GUIDE.md)
@@ -15,6 +15,13 @@ The existing completion records describe work performed against earlier revision
 Phase 02's completed config/profile/evaluation-wire reconciliation is recorded in [its R4 evidence](evidence/phase-02/revision-4.md). Downstream executor, segmentation, query, and CLI behavior remains in its owning phase.
 
 Phase 08's shared byte-bounded synchronous executor and raw-lab integration are accepted in [its R4 evidence](evidence/phase-08/revision-4.md). Phase 10 owns production document publication integration, and Phase 11 owns request-local query integration.
+
+Phase 10's production adapter consumes that executor with its resolved
+request policy while preserving approval, plan freshness, transform/codec
+publication, and store reproof. Focused offline checks, independent review, and
+the main commit-boundary validation are accepted in [the Phase 10 R4
+evidence](evidence/phase-10/revision-4.md). Phase 11 now owns request-local
+query embedding and fallback integration.
 
 cidx is a **local auxiliary search MCP** used alongside file readers, symbol tools, compilers, and tests. It is not a comprehensive code-knowledge system. The plan is bounded by free local AST/FTS indexing, explicit paid embeddings, a small MCP surface, caller-controlled inline source volume, and one serving-vector profile per repository.
 
@@ -47,7 +54,7 @@ Allowed states are `planned | in_progress | blocked | done`. A phase becomes `do
 | 07 | blocked | [Lexical evaluation](07-lexical-evaluation.md) | 06 | Reusable lexical evaluation infrastructure; official labels and baseline evidence await user-selected corpus manifests and bindings | [Evidence](evidence/phase-07/README.md) |
 | 08 | done | [Initial raw-embedding lab](08-raw-embedding-lab.md) | reconciled 02, 05 | Isolated 1024-dimensional document f32 capture through the shared synchronous request policy | [R4 evidence](evidence/phase-08/revision-4.md) |
 | 09 | done | [Vector materialization](09-vector-materialization.md) | 01, 02, 05, 08 | Shared reduction/normalization, binary/int8 codecs, and selected-profile publish | [Evidence](09-vector-materialization.md#11-completion-evidence) |
-| 10 | planned | [Embedding orchestration and reconciliation](10-embedding-orchestration-and-reconciliation.md) | reconciled 05, 08, existing 09 | Byte-bounded concurrent document requests, shared retry execution, and profile reconciliation | [Historical evidence](evidence/phase-10/README.md) |
+| 10 | done | [Embedding orchestration and reconciliation](10-embedding-orchestration-and-reconciliation.md) | reconciled 05, 08, existing 09 | Byte-bounded concurrent document requests, shared retry execution, and profile reconciliation | [Accepted R4 evidence](evidence/phase-10/revision-4.md) |
 | 11 | planned | [Vector and hybrid search](11-vector-and-hybrid-search.md) | 06, 09, reconciled 10 | Shared query request/retry policy, codec scan, RRF, fallback, and body packaging | [Historical evidence](evidence/phase-11/README.md) |
 | 12 | blocked | [Retrieval evaluation](12-retrieval-evaluation.md) | 07, reconciled 08, 09, 11 | Reconcile the corpus-independent adapter to Revision 4; official promotion remains externally gated | [Historical evidence](evidence/phase-12/README.md) |
 | 13 | planned | [CLI and MCP](13-cli-and-mcp.md) | reconciled 05, 10, 11 and Phase 12 corpus-independent core | Complete Revision 4 CLI defaults, four MCP tools, and concurrent dispatch | [Historical checkpoint](evidence/phase-13/README.md) |

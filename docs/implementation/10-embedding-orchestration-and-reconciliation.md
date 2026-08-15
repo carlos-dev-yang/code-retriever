@@ -1,6 +1,6 @@
 # 10. Embedding Orchestration and Profile Reconciliation
 
-- Status: `planned` — pre-R4 orchestration is historical; byte grouping, bounded concurrency, and staged retry require reconciliation
+- Status: `done` — `/root/r4_phase10_executor` implemented, `/root/r4_phase10_review` independently reviewed, and Codex accepted the commit boundary
 - Prerequisites: `05-worktree-index-pipeline`, `08-raw-embedding-lab`, `09-vector-materialization`
 - Followed by: `11-vector-and-hybrid-search`, `13-cli-and-mcp`
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 4.4, 6, and 7
@@ -74,15 +74,16 @@ Initial development and evaluation use `embeddings capture -> embeddings materia
 
 | Package/file | Responsibility |
 | --- | --- |
-| `internal/embed/plan.go` | Compute a paid plan from active inputs and vector/failure state |
-| `internal/embed/request_groups.go` | Deterministic synchronous request groups within the shared input-count and byte ceilings |
-| `internal/embed/runner.go` | Public document-embedding orchestration |
-| `internal/embed/failure.go` | Retryable and terminal failure classification |
-| `internal/app/embed.go` | CLI use case, confirmation boundary, progress, and result |
-| `internal/app/reconcile.go` | Desired/active profile differences and required actions |
-| `internal/store/embedding_state.go` | Snapshot join of active inputs, valid vectors, and failures |
-| `internal/store/vector_publish.go` | Current-profile incremental upsert and failure removal |
+| `internal/embed/plan.go` | Compute the API-free paid plan and map sorted approved inputs to keyed request inputs |
+| `internal/embed/executor.go` | Accepted Phase 08 byte-bounded synchronous grouping, retries, response validation, cancellation, and serialized completion handler |
+| `internal/app/embed.go` | Public confirmation boundary and production adapter: transform/encode/publish successes, record durable failures, and account runs |
+| `internal/store/embedding_orchestration.go` | Snapshot derivation plus transaction-local generation/profile/key reproof for run, publication, and failure writes |
 | `internal/app/status.go` | Separate free index state from paid vector state |
+
+The earlier aspirational `request_groups.go`, `runner.go`, `failure.go`,
+`embedding_state.go`, and `vector_publish.go` entries are not live files. The
+Revision 4 implementation uses the concrete ownership above; Phase 10 does not
+create a second executor or retry policy.
 
 Core types:
 
@@ -155,7 +156,7 @@ Production inputs are `embedding.model`, `embedding.serving_dimensions`, `embedd
 
 `voyage-code-4` is the v1 default and initially the only validated model. Source dimensions are not configurable: `ModelSpec` resolves `SourceDimensions=1024` and `AllowedServingDimensions={256,512,1024}`. The official endpoint and request semantics belong to the code-owned Voyage adapter.
 
-Use only the regular synchronous Embeddings endpoint, never Voyage Batch Inference or asynchronous polling. The code-owned request policy is at most 128 inputs and 256 KiB total input bytes per request, at most four concurrent requests, and a 30-second timeout. Retry an initial attempt at most three times after 10, 20, and 30 seconds, with a longer provider `Retry-After` taking precedence.
+Use only the regular synchronous Embeddings endpoint, never Voyage Batch Inference or asynchronous polling. The code-owned request policy is at most 128 inputs and 256 KiB total input bytes per request, at most four concurrent requests, and a 30-second timeout. Retry an initial attempt at most three times after 10, 20, and 30 seconds, with a longer provider `Retry-After` taking precedence. Production applies the already-validated `ResolvedConfig` limits, concurrency, timeout, retry count, and waits through the accepted `embed.Execute` executor; it does not restate or implement a serial retry policy.
 
 Freeze config at run start. If desired fingerprints change before publication, reject publication with `CONFIG_CHANGED_DURING_RUN`; never switch only later batches.
 
@@ -168,23 +169,23 @@ Keep these sources of truth separate:
 
 ## 8. Ordered Implementation Checklist
 
-1. Connect profile-independent canonical-input keys to production queries.
-2. Implement derived state across active input, valid vector, and failure rows.
-3. Implement reconciliation and the requirement to run `cidx index` first.
-4. Implement API-free public planning and cost estimation.
-5. Wire the shared `embed.lock` across paid document commands.
-6. Build deterministic synchronous request groups from the captured snapshot.
-7. Build document requests with `input_type=document`, `output_dimension=1024`, `output_dtype=float`, `truncation=false`; omit `encoding_format`; share response validation.
-8. Pass validated f32 to the Phase 09 transformer and codec outside the API boundary.
-9. Prevent an incremental current-profile publish from switching active fingerprints.
-10. Revalidate active references and config fingerprints immediately before each publish.
-11. Atomically write success and delete the applicable failure.
-12. Implement bounded retry, terminal/retryable classes, and `--retry-failed`.
-13. Preserve partial successes and reflect exact state and coverage.
-14. Freeze public plan/apply request, result, and cancellation contracts for Phase 13.
-15. Report free index state, serving coverage, and paid pending separately.
-16. Verify that development raw/materialize is absent from the public dependency path.
-17. Hand off pre-query fallback on profile mismatch to Phase 11.
+1. [x] Connect profile-independent canonical-input keys to production queries.
+2. [x] Implement derived state across active input, valid vector, and failure rows.
+3. [x] Implement reconciliation and the requirement to run `cidx index` first.
+4. [x] Implement API-free public planning and cost estimation.
+5. [x] Wire the shared `embed.lock` across paid document commands.
+6. [x] Build deterministic synchronous request groups from the captured snapshot.
+7. [x] Build document requests with `input_type=document`, `output_dimension=1024`, `output_dtype=float`, `truncation=false`; omit `encoding_format`; share response validation.
+8. [x] Pass validated f32 to the Phase 09 transformer and codec outside the API boundary.
+9. [x] Prevent an incremental current-profile publish from switching active fingerprints.
+10. [x] Revalidate active references and config fingerprints immediately before each publish.
+11. [x] Atomically write success and delete the applicable failure.
+12. [x] Consume the accepted bounded retry/failure classification executor and preserve `--retry-failed` planning.
+13. [x] Preserve partial successes and reflect exact state and coverage.
+14. [x] Freeze public plan/apply request, result, and cancellation contracts for Phase 13.
+15. [x] Report free index state, serving coverage, and paid pending separately.
+16. [x] Verify that development raw/materialize is absent from the public dependency path.
+17. [x] Hand off pre-query fallback on profile mismatch to Phase 11 after Phase 10 review and boundary validation.
 
 ## 9. Failure, Rollback, Concurrency, and Security
 
@@ -232,6 +233,15 @@ Keep these sources of truth separate:
 
 See the resumable [Phase 10 evidence index](evidence/phase-10/README.md) for
 the current executed-check record.
+
+Revision 4 accepted record (2026-08-15): production now delegates only request
+grouping/execution/retries to the accepted `internal/embed/executor.go` and
+keeps public planning, lock/approval, transform/codec publication, failure
+classification, and store reproof in their existing owners. Focused offline
+test/race/vet/build checks, a no-findings independent Terra review, and the
+one-time main-agent boundary validation are recorded in
+[the Revision 4 evidence](evidence/phase-10/revision-4.md). No provider,
+credential, corpus, or paid action was performed.
 
 Implementation handoff record (2026-08-15; accepted at the main-agent boundary):
 

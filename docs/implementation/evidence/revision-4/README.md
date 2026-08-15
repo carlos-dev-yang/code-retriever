@@ -1,6 +1,6 @@
 # Revision 4 Reconciliation and Evidence Supersession
 
-- State: Phase 00, Phase 02, Phase 05, and Phase 08 reconciliation complete; later affected phases pending
+- State: Phase 00, Phase 02, Phase 05, Phase 08, and Phase 10 reconciliation complete; later affected phases pending
 - Date: 2026-08-15
 - Canonical authority: [`local-code-search-mcp-v1-design-r4.md`](../../../../local-code-search-mcp-v1-design-r4.md)
 - Historical checkpoint: `b3a6cb1`
@@ -24,7 +24,7 @@ Revision 4 changes the public config/profile vocabulary and fixed operational re
 | 02 | strict decoding, immutable injection, DB isolation, profile hierarchy | raw/resolved names, defaults, profile JSON, evaluation wire | [strict R4 config, legacy typed error, fingerprints and schema validation](../phase-02/revision-4.md) complete |
 | 05 | live-file and atomic-generation behavior | removed chunk cap and renamed segment target in index profile | [local reindex and compatible vector-rekey evidence](../phase-05/revision-4.md) complete |
 | 08 | raw-bank isolation, response validation, cache-first capture | token-named sequential grouping and immediate retry | [shared byte-bounded synchronous executor and raw-lab evidence](../phase-08/revision-4.md) complete |
-| 10 | plan/apply approval and atomic result publication | request concurrency, staged waits, `Retry-After`, cancellation | deterministic bounded document orchestration evidence |
+| 10 | plan/apply approval and atomic result publication | request concurrency, staged waits, `Retry-After`, cancellation | [deterministic bounded document orchestration evidence](../phase-10/revision-4.md) complete |
 | 11 | vector scan, collapse, RRF, fallback, body packaging | query provider policy | shared request-policy/fallback evidence |
 | 12 | stage metrics, arm orchestration, artifact isolation | `serving_dimensions` wire and R4 request/profile controls | corpus-independent adapter revalidation; official evidence remains externally gated |
 | 13 | CLI/MCP adapters, four tools, stdio concurrency, status/reindex | `init`, config names/defaults, request policy, read-span line cap | final CLI/MCP evidence and phase-scoped acceptance commit |

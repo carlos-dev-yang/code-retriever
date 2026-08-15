@@ -187,10 +187,6 @@ func (p PublicEmbedding) Apply(ctx context.Context, plan PublicEmbeddingPlan, ap
 			err = finishErr
 		}
 	}()
-	batches, err := embed.Batches(freshPlan.PaidInputs, p.Resolved.Embedding.Request.MaxInputs, p.Resolved.Embedding.Request.MaxTotalInputBytes)
-	if err != nil {
-		return result, err
-	}
 	expected := store.EmbeddingWriteExpectation{Generation: fresh.Generation, ManifestSHA256: fresh.ManifestSHA256}
 	source := p.Resolved.Embedding.EmbeddingSourceSpec()
 	transformer := vector.Transformer{Spec: p.Resolved.Embedding.TransformSpec()}
@@ -202,71 +198,21 @@ func (p PublicEmbedding) Apply(ctx context.Context, plan PublicEmbeddingPlan, ap
 	if err != nil {
 		return result, err
 	}
-	for _, batch := range batches {
-		texts := make([]string, len(batch))
-		for i, input := range batch {
-			texts[i] = string(input.Bytes)
-		}
-		request := embedclient.EmbeddingRequest{Source: source, Role: embedclient.DocumentRole, Inputs: texts}
-		var response embedclient.EmbeddingResponse
-		var callErr error
-		attempts := 0
-		for attempt := 0; attempt <= p.Resolved.Embedding.Retry.MaxRetries; attempt++ {
-			attempts++
-			result.Requested += len(batch)
-			attemptCtx, cancel := context.WithTimeout(ctx, time.Duration(p.Resolved.Embedding.Request.TimeoutSeconds)*time.Second)
-			response, callErr = apply.Client.Embed(attemptCtx, request)
-			cancel()
-			if errors.Is(callErr, context.DeadlineExceeded) && ctx.Err() == nil {
-				callErr = embedclient.ProviderError{Class: "timeout", Retryable: true}
-			}
-			if ctx.Err() != nil {
-				return result, ctx.Err()
-			}
-			if callErr == nil || !embedclient.IsRetryable(callErr) {
-				break
-			}
-		}
-		if callErr != nil {
-			classification := "terminal"
-			if embedclient.IsRetryable(callErr) {
-				classification = "retryable"
-			}
-			for _, input := range batch {
-				written, writeErr := p.Production.RecordCurrentEmbeddingFailure(ctx, p.Resolved, expected, input.Hash, classification, "provider", "embedding request failed", attempts)
-				if writeErr != nil {
-					return result, writeErr
-				}
-				if written {
-					result.Failed++
-				} else {
-					result.Discarded++
-				}
-			}
-			continue
-		}
-		values, validationErr := embedclient.ValidateResponse(request, response)
-		if validationErr != nil {
-			for _, input := range batch {
-				written, writeErr := p.Production.RecordCurrentEmbeddingFailure(ctx, p.Resolved, expected, input.Hash, "terminal", "response_validation", "embedding response rejected", 1)
-				if writeErr != nil {
-					return result, writeErr
-				}
-				if written {
-					result.Failed++
-				} else {
-					result.Discarded++
-				}
-			}
-			continue
-		}
-		result.ActualTokens += response.TotalTokens
-		for i, input := range batch {
-			space, transformErr := transformer.Transform(values[i])
+	requestInputs, byKey := embeddingRequestInputs(freshPlan.PaidInputs)
+	outcomes, executeErr := embed.Execute(ctx, apply.Client, source, embedclient.DocumentRole, requestInputs, embed.ExecuteOptions{
+		Limits:         embed.RequestLimits{MaxInputs: p.Resolved.Embedding.Request.MaxInputs, MaxTotalBytes: p.Resolved.Embedding.Request.MaxTotalInputBytes},
+		MaxConcurrency: p.Resolved.Embedding.Request.MaxConcurrency,
+		AttemptTimeout: time.Duration(p.Resolved.Embedding.Request.TimeoutSeconds) * time.Second,
+		MaxRetries:     p.Resolved.Embedding.Retry.MaxRetries,
+		RetryWaits:     resolvedRetryWaits(p.Resolved),
+	}, func(handlerCtx context.Context, outcome embed.Outcome) error {
+		for i, requestInput := range outcome.Group.Inputs {
+			input := byKey[requestInput.Key]
+			space, transformErr := transformer.Transform(outcome.Vectors[i])
 			if transformErr != nil {
-				written, writeErr := p.Production.RecordCurrentEmbeddingFailure(ctx, p.Resolved, expected, input.Hash, "terminal", "transform", "embedding transform rejected", 1)
+				written, writeErr := p.Production.RecordCurrentEmbeddingFailure(handlerCtx, p.Resolved, expected, input.Hash, "terminal", "transform", "embedding transform rejected", outcome.Attempts)
 				if writeErr != nil {
-					return result, writeErr
+					return writeErr
 				}
 				if written {
 					result.Failed++
@@ -277,11 +223,11 @@ func (p PublicEmbedding) Apply(ctx context.Context, plan PublicEmbeddingPlan, ap
 			}
 			stored, encodeErr := codec.Encode(space)
 			if encodeErr != nil {
-				return result, encodeErr
+				return encodeErr
 			}
-			published, publishErr := p.Production.PublishEmbeddedVector(ctx, p.Resolved, expected, input.Hash, rawF32SHA256(values[i]), stored)
+			published, publishErr := p.Production.PublishEmbeddedVector(handlerCtx, p.Resolved, expected, input.Hash, rawF32SHA256(outcome.Vectors[i]), stored)
 			if publishErr != nil {
-				return result, publishErr
+				return publishErr
 			}
 			if published {
 				result.Succeeded++
@@ -289,11 +235,85 @@ func (p PublicEmbedding) Apply(ctx context.Context, plan PublicEmbeddingPlan, ap
 				result.Discarded++
 			}
 		}
+		return nil
+	})
+	for _, outcome := range outcomes {
+		result.Requested += len(outcome.Group.Inputs) * outcome.Attempts
+		if outcome.Err == nil {
+			result.ActualTokens += outcome.Response.TotalTokens
+		}
+	}
+	var handlerErr *embed.HandlerError
+	if errors.As(executeErr, &handlerErr) {
+		return result, executeErr
+	}
+	failureCtx, cancelFailures := context.WithTimeout(context.Background(), publicEmbeddingFailureRecordTimeout)
+	defer cancelFailures()
+	var failureRecordErr error
+	for _, outcome := range outcomes {
+		if outcome.Err == nil {
+			continue
+		}
+		classification, errorClass, message := publicEmbeddingFailure(outcome)
+		for _, requestInput := range outcome.Group.Inputs {
+			input := byKey[requestInput.Key]
+			written, writeErr := p.Production.RecordCurrentEmbeddingFailure(failureCtx, p.Resolved, expected, input.Hash, classification, errorClass, message, outcome.Attempts)
+			if writeErr != nil {
+				failureRecordErr = errors.Join(failureRecordErr, writeErr)
+				continue
+			}
+			if written {
+				result.Failed++
+			} else {
+				result.Discarded++
+			}
+		}
+	}
+	if executeErr != nil {
+		return result, errors.Join(executeErr, failureRecordErr)
+	}
+	if failureRecordErr != nil {
+		return result, failureRecordErr
 	}
 	return result, nil
 }
 
 const embeddingRunFinishTimeout = 2 * time.Second
+const publicEmbeddingFailureRecordTimeout = 2 * time.Second
+
+func embeddingRequestInputs(inputs []embed.Input) ([]embed.RequestInput, map[string]embed.Input) {
+	requestInputs := make([]embed.RequestInput, len(inputs))
+	byKey := make(map[string]embed.Input, len(inputs))
+	for i, input := range inputs {
+		requestInputs[i] = embed.RequestInput{Ordinal: i, Key: input.Hash, Bytes: input.Bytes}
+		byKey[input.Hash] = input
+	}
+	return requestInputs, byKey
+}
+
+func resolvedRetryWaits(resolved config.ResolvedConfig) []time.Duration {
+	waits := make([]time.Duration, len(resolved.Embedding.Retry.WaitSeconds))
+	for i, seconds := range resolved.Embedding.Retry.WaitSeconds {
+		waits[i] = time.Duration(seconds) * time.Second
+	}
+	return waits
+}
+
+func publicEmbeddingFailure(outcome embed.Outcome) (classification, errorClass, message string) {
+	if outcome.ResponseRejected {
+		return "terminal", "response_validation", "embedding response rejected"
+	}
+	// A provider-created attempt timeout is transient provider evidence, even
+	// though it wraps context.DeadlineExceeded. Parent cancellation is a
+	// separate non-terminal local outcome.
+	if embed.Transient(outcome.Err) {
+		return "retryable", "provider", "embedding request failed"
+	}
+	if errors.Is(outcome.Err, context.Canceled) || errors.Is(outcome.Err, context.DeadlineExceeded) {
+		return "retryable", "cancelled", "embedding request cancelled"
+	}
+	return "terminal", "provider", "embedding request failed"
+}
 
 func (p PublicEmbedding) currentPlan(ctx context.Context, retryFailed bool) (PublicEmbeddingPlan, embed.Plan, error) {
 	snapshot, inputs, err := p.reconstructInputs(ctx)
