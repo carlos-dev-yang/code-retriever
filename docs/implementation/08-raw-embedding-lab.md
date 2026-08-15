@@ -1,6 +1,6 @@
 # 08. Raw Document Embedding Lab
 
-- Status: `planned` — isolated raw storage remains valid; synchronous request grouping and retry execution require Revision 4 reconciliation
+- Status: `done` — Revision 4 shared synchronous request execution and raw-lab integration passed independent Terra review and the main-agent commit-boundary validation
 - Prerequisite phases: `02-config-profiles-and-schemas`, `05-worktree-index-pipeline`
 - Follow-up phases: `09-vector-materialization`, `12-retrieval-evaluation`
 - Design basis: `local-code-search-mcp-v1-design-r4.md` §7.1–§7.4, §9.1
@@ -267,7 +267,7 @@ Do not create validation code in this planning-document phase. During implementa
 
 ## 11. Completion Evidence
 
-Implementation evidence is recorded in [Phase 08 evidence](evidence/phase-08/README.md). The focused fake-backed checks validate cache-first plan/apply, all-or-nothing malformed-response rejection, immutable f32 persistence, root isolation, and v1-to-v2 lab migration preservation. Live provider/cost/corpus evidence is **NOT RUN**; no paid operation was authorized or executed.
+Implementation evidence is recorded in [Phase 08 evidence](evidence/phase-08/README.md), including the accepted [Revision 4 reconciliation](evidence/phase-08/revision-4.md). The focused fake-backed checks validate cache-first plan/apply, byte-bounded concurrent execution, staged retry and cancellation behavior, all-or-nothing malformed-response rejection, immutable f32 persistence, root isolation, and v1-to-v2 lab migration preservation. Live provider/cost/corpus evidence is **NOT RUN**; no paid operation was authorized or executed.
 
 - Raw-DB schema dump and migration version.
 - Plan/apply log showing that only the first of two identical inputs incurs a paid call.
@@ -302,3 +302,4 @@ Phase 09 does not connect the raw DB to search. It uses the bank only to create 
 - The provider may offer a 2048-dimensional option, but v1 excludes it from the source profile, runtime capability registry, and evaluation candidates. Do not request or preserve it without a separate decision.
 - The development CLI is an unstable helper, not an MCP or public product contract.
 - Lab schema v2 adds source-run/failure provenance and vector SHA-256. The additive v1 migration preserves raw blob bytes, derives their SHA-256, and retains snapshot-reference-only inputs; production schema remains unchanged.
+- Revision 4 centralizes byte-bounded synchronous grouping, retries, cancellation, and response validation in `internal/embed`. The lab supplies only its raw-first persistence handler; a successful group is durable before another completed group is handled, while independent failed groups retain earlier commits for resume.

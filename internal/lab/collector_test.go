@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
+	"cidx/internal/embed"
 	"cidx/internal/embedclient"
 )
 
@@ -16,6 +18,12 @@ type fakeEmbeddingClient struct {
 type sequenceClient struct {
 	calls    int
 	response embedclient.EmbeddingResponse
+}
+
+type collectorClientFunc func(context.Context, embedclient.EmbeddingRequest) (embedclient.EmbeddingResponse, error)
+
+func (f collectorClientFunc) Embed(ctx context.Context, request embedclient.EmbeddingRequest) (embedclient.EmbeddingResponse, error) {
+	return f(ctx, request)
 }
 
 func (f *sequenceClient) Embed(_ context.Context, _ embedclient.EmbeddingRequest) (embedclient.EmbeddingResponse, error) {
@@ -91,7 +99,7 @@ func TestAttemptTimeoutRetriesButParentCancellationStops(t *testing.T) {
 }
 func testCollector(t *testing.T, store *Store, client embedclient.EmbeddingClient) Collector {
 	t.Helper()
-	return Collector{Store: store, Client: client, Source: embedclient.EmbeddingSourceSpec{Provider: embedclient.ProviderID, Model: embedclient.Model, SourceDimensions: embedclient.SourceDimensions, OutputDType: embedclient.OutputDType, DocumentInputType: "document", QueryInputType: "query", AdapterVersion: embedclient.AdapterVersion}, SourceProfile: "source-fingerprint", MaxInputs: 10, MaxInputTokens: 100000, RequestTimeoutMS: 1000}
+	return Collector{Store: store, Client: client, Source: embedclient.EmbeddingSourceSpec{Provider: embedclient.ProviderID, Model: embedclient.Model, SourceDimensions: embedclient.SourceDimensions, OutputDType: embedclient.OutputDType, DocumentInputType: "document", QueryInputType: "query", AdapterVersion: embedclient.AdapterVersion}, SourceProfile: "source-fingerprint", RequestLimits: embed.RequestLimits{MaxInputs: 10, MaxTotalBytes: 100000}, MaxConcurrency: 1, AttemptTimeout: time.Second, MaxRetries: 3, RetryWaits: []time.Duration{time.Millisecond, time.Millisecond, time.Millisecond}, Wait: func(context.Context, time.Duration) error { return nil }}
 }
 func testInput() CaptureInput {
 	return CaptureInput{InputRecord: InputRecord{InputHash: "hash", CanonicalTextProfile: "text", CanonicalBytes: []byte("path: a.go\nbody:\nfunc A() {}\n"), Generation: 1, ManifestSHA256: "manifest", SegmentID: 1}}
@@ -140,7 +148,7 @@ func TestPartialResumeOnlyRequestsUnpersistedBatch(t *testing.T) {
 	v[0] = 1
 	client := &sequenceClient{response: embedclient.EmbeddingResponse{Model: embedclient.Model, Data: []embedclient.EmbeddingDatum{{Index: 0, IndexPresent: true, Values: v}}}}
 	c := testCollector(t, s, client)
-	c.MaxInputs = 1
+	c.RequestLimits.MaxInputs = 1
 	second := testInput()
 	second.InputHash = "second"
 	second.CanonicalBytes = []byte("second\n")
@@ -175,6 +183,54 @@ func TestCaptureRejectsInvalidBatchBeforeWrite(t *testing.T) {
 	hits, err := store.ExistingKeys(ctx, "source-fingerprint", []string{"hash"})
 	if err != nil || hits["hash"] {
 		t.Fatalf("invalid batch persisted: %#v %v", hits, err)
+	}
+}
+
+func TestCaptureHandlerFailureStillAccountsSuccessfulProviderResponse(t *testing.T) {
+	ctx := context.Background()
+	store, err := OpenStore(ctx, Options{Root: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	values := make([]float32, 1024)
+	values[0] = 1
+	collector := testCollector(t, store, &fakeEmbeddingClient{response: embedclient.EmbeddingResponse{Model: embedclient.Model, TotalTokens: 7, Data: []embedclient.EmbeddingDatum{{Index: 0, IndexPresent: true, Values: values}}}})
+	commitErr := errors.New("durable store unavailable")
+	collector.putSources = func(context.Context, []DocumentRaw, int) error { return commitErr }
+	plan, err := collector.Plan(ctx, []CaptureInput{testInput()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := collector.Apply(ctx, plan, 1, "m")
+	if !errors.Is(err, commitErr) || result.Requested != 1 || result.ActualTokens != 7 || result.Persisted != 0 || result.Failed != 0 {
+		t.Fatalf("result=%#v err=%v", result, err)
+	}
+}
+
+func TestCaptureCancellationFailureRemainsRetryable(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	store, err := OpenStore(context.Background(), Options{Root: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	collector := testCollector(t, store, collectorClientFunc(func(context.Context, embedclient.EmbeddingRequest) (embedclient.EmbeddingResponse, error) {
+		cancel()
+		return embedclient.EmbeddingResponse{}, context.Canceled
+	}))
+	collector.MaxRetries = 0
+	plan, err := collector.Plan(context.Background(), []CaptureInput{testInput()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := collector.Apply(ctx, plan, 1, "m"); !errors.Is(err, context.Canceled) {
+		t.Fatalf("apply error=%v", err)
+	}
+	retryPlan, err := collector.Plan(context.Background(), []CaptureInput{testInput()})
+	if err != nil || retryPlan.PaidMisses != 1 || retryPlan.SkippedTerminal != 0 {
+		t.Fatalf("retry plan=%#v err=%v", retryPlan, err)
 	}
 }
 

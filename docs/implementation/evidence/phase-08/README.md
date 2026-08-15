@@ -1,6 +1,7 @@
 # Phase 08 Raw Embedding Lab Evidence
 
-- Status: accepted at the main-agent commit boundary.
+- Revision 4 reconciliation evidence: [revision-4.md](revision-4.md)
+- Historical pre-Revision-4 status: accepted at its main-agent commit boundary.
 - Paid/provider evidence: **NOT RUN**. No Voyage request, API-key read, corpus selection, corpus checkout, or embedding submission occurred.
 
 ## Executed focused checks

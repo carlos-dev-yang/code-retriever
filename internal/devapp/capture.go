@@ -5,8 +5,10 @@ package devapp
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"cidx/internal/config"
+	"cidx/internal/embed"
 	"cidx/internal/embedclient"
 	"cidx/internal/embedlock"
 	"cidx/internal/index/canonicaltext"
@@ -31,6 +33,9 @@ func (c EmbeddingCapture) Plan(ctx context.Context) (CapturePlan, error) {
 	return c.PlanWithOptions(ctx, CaptureOptions{})
 }
 func (c EmbeddingCapture) PlanWithOptions(ctx context.Context, options CaptureOptions) (CapturePlan, error) {
+	if err := c.Resolved.ValidateIntegrity(); err != nil {
+		return CapturePlan{}, err
+	}
 	if c.Production == nil || c.Lab == nil {
 		return CapturePlan{}, fmt.Errorf("production and lab stores are required")
 	}
@@ -67,6 +72,9 @@ func (c EmbeddingCapture) PlanWithOptions(ctx context.Context, options CaptureOp
 	return CapturePlan{Generation: snapshot.Applied.ActiveGeneration, ManifestSHA256: snapshot.Applied.ManifestSHA256, Raw: plan}, nil
 }
 func (c EmbeddingCapture) Apply(ctx context.Context, plan CapturePlan) (lab.CaptureResult, error) {
+	if err := c.Resolved.ValidateIntegrity(); err != nil {
+		return lab.CaptureResult{}, err
+	}
 	if c.Client == nil {
 		return lab.CaptureResult{}, fmt.Errorf("embedding client is required for paid apply")
 	}
@@ -83,5 +91,14 @@ func (c EmbeddingCapture) Apply(ctx context.Context, plan CapturePlan) (lab.Capt
 	return collector.Apply(ctx, plan.Raw, plan.Generation, plan.ManifestSHA256)
 }
 func (c EmbeddingCapture) collector() lab.Collector {
-	return lab.Collector{Store: c.Lab, Source: c.Resolved.Embedding.EmbeddingSourceSpec(), SourceProfile: string(c.Resolved.Profiles.Fingerprints.Source), MaxInputs: c.Resolved.Embedding.Request.MaxInputs, MaxInputTokens: c.Resolved.Embedding.Request.MaxTotalInputBytes, MaxRetries: c.Resolved.Embedding.Retry.MaxRetries, RequestTimeoutMS: c.Resolved.Embedding.Request.TimeoutSeconds * 1000}
+	waits := make([]time.Duration, len(c.Resolved.Embedding.Retry.WaitSeconds))
+	for i, seconds := range c.Resolved.Embedding.Retry.WaitSeconds {
+		waits[i] = time.Duration(seconds) * time.Second
+	}
+	return lab.Collector{
+		Store: c.Lab, Source: c.Resolved.Embedding.EmbeddingSourceSpec(), SourceProfile: string(c.Resolved.Profiles.Fingerprints.Source),
+		RequestLimits:  embed.RequestLimits{MaxInputs: c.Resolved.Embedding.Request.MaxInputs, MaxTotalBytes: c.Resolved.Embedding.Request.MaxTotalInputBytes},
+		MaxConcurrency: c.Resolved.Embedding.Request.MaxConcurrency, AttemptTimeout: time.Duration(c.Resolved.Embedding.Request.TimeoutSeconds) * time.Second,
+		MaxRetries: c.Resolved.Embedding.Retry.MaxRetries, RetryWaits: waits,
+	}
 }

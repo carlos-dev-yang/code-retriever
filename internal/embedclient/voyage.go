@@ -7,6 +7,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
+	"strings"
+	"time"
 	"unicode/utf8"
 )
 
@@ -48,7 +51,7 @@ func (c VoyageClient) Embed(ctx context.Context, request EmbeddingRequest) (Embe
 		Truncation      bool     `json:"truncation"`
 	}{request.Inputs, request.Source.Model, inputType, request.Source.SourceDimensions, request.Source.OutputDType, request.Source.Truncation})
 	if err != nil {
-		return EmbeddingResponse{}, ProviderError{Class: "transport", Retryable: true}
+		return EmbeddingResponse{}, ProviderError{Class: "transport", Retryable: true, Cause: err}
 	}
 	httpClient := c.HTTPClient
 	if httpClient == nil {
@@ -65,13 +68,13 @@ func (c VoyageClient) Embed(ctx context.Context, request EmbeddingRequest) (Embe
 		if ctx.Err() != nil {
 			return EmbeddingResponse{}, ctx.Err()
 		}
-		return EmbeddingResponse{}, ProviderError{Class: "transport", Retryable: true}
+		return EmbeddingResponse{}, ProviderError{Class: "transport", Retryable: true, Cause: err}
 	}
 	defer response.Body.Close()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, 64<<10))
 		retry := response.StatusCode == http.StatusRequestTimeout || response.StatusCode == http.StatusTooManyRequests || response.StatusCode >= 500
-		return EmbeddingResponse{}, ProviderError{Class: fmt.Sprintf("http_%d", response.StatusCode), Retryable: retry}
+		return EmbeddingResponse{}, ProviderError{Class: fmt.Sprintf("http_%d", response.StatusCode), StatusCode: response.StatusCode, Retryable: retry, RetryAfter: parseRetryAfter(response.Header.Get("Retry-After"), time.Now())}
 	}
 	var wire struct {
 		Model string `json:"model"`
@@ -100,4 +103,38 @@ func (c VoyageClient) Embed(ctx context.Context, request EmbeddingRequest) (Embe
 		out.Data = append(out.Data, item)
 	}
 	return out, nil
+}
+
+func parseRetryAfter(value string, now time.Time) time.Duration {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return 0
+	}
+	if asciiDigits(value) {
+		seconds, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return 0
+		}
+		if seconds <= 0 || seconds > int64((time.Duration(1<<63-1))/time.Second) {
+			return 0
+		}
+		return time.Duration(seconds) * time.Second
+	}
+	when, err := http.ParseTime(value)
+	if err != nil || !when.After(now) {
+		return 0
+	}
+	return when.Sub(now)
+}
+
+func asciiDigits(value string) bool {
+	if value == "" {
+		return false
+	}
+	for i := 0; i < len(value); i++ {
+		if value[i] < '0' || value[i] > '9' {
+			return false
+		}
+	}
+	return true
 }
