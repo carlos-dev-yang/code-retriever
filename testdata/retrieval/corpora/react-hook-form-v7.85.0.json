@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "corpus_id": "react-hook-form-v7.85.0",
+  "upstream_url": "https://github.com/react-hook-form/react-hook-form.git",
+  "pinned_commit": "371432c39271aab739358d19c406793771565ab3",
+  "license_spdx": "MIT",
+  "license_evidence": "LICENSE",
+  "redistribution_notice": "Upstream MIT license; this manifest contains provenance only and no corpus source.",
+  "language_slices": ["typescript", "tsx"],
+  "root_subdir": "src",
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": [],
+  "expected_content_hash": "717caa8346fd5a0b1a7ca69df63bf1ac8477f7c8770f1e67fa7b1fad58df132b",
+  "expected_tree_hash": "688906c5842a0d71051154343e993adb525e688f",
+  "clean_tree_required": true
+}

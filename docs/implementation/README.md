@@ -1,6 +1,6 @@
 # cidx v1 Implementation Plan Index
 
-- Status: the local darwin/arm64 Phase 14 package/operational checkpoint is accepted from clean provenance `a5b2baef9a18e68d6c8b5d4fb62dc2e03727edb4`; Phase 07/12 official evaluation and Phase 14 release-candidate scope remain externally blocked
+- Status: the local darwin/arm64 Phase 14 package/operational checkpoint is accepted from clean provenance `a5b2baef9a18e68d6c8b5d4fb62dc2e03727edb4`; Phase 07 has provider-free verified-corpus draft-smoke evidence but official Phase 07/12 evaluation and Phase 14 release-candidate scope remain externally blocked
 - Canonical design: [Local Code Search MCP v1 Final Target Contract — Revision 4](../../local-code-search-mcp-v1-design-r4.md)
 - Earlier designs: [original](../../local-code-search-mcp-v1-design.md), [r1](../../local-code-search-mcp-v1-design-r1.md), [r2](../../local-code-search-mcp-v1-design-r2.md), [r3](../../local-code-search-mcp-v1-design-r3.md)
 - Execution protocol: [Implementation Execution and Context-Recovery Guide](EXECUTION-GUIDE.md)
@@ -73,7 +73,7 @@ Allowed states are `planned | in_progress | blocked | done`. A phase becomes `do
 | 04 | done | [TypeScript and TSX chunker](04-typescript-tsx-chunker.md) | 02 | TS/TSX function, method, and type chunks/projections | [Evidence](04-typescript-tsx-chunker.md#11-completion-evidence) |
 | 05 | done | [Worktree indexing pipeline](05-worktree-index-pipeline.md) | 03, 04, reconciled 02 | Remove the chunk-cap contract, inject `target_segment_bytes`, preserve atomic local reindex, and safely rekey proven-equivalent pre-R4 vectors | [R4 evidence](evidence/phase-05/revision-4.md) |
 | 06 | done | [FTS search](06-fts-search.md) | 05 | Contentless FTS, safe queries, BM25 chunk candidates | [Evidence](06-fts-search.md#11-completion-evidence) |
-| 07 | blocked | [Lexical evaluation](07-lexical-evaluation.md) | 06 | Reusable lexical evaluation infrastructure; official labels and baseline evidence await user-selected corpus manifests and bindings | [Evidence](evidence/phase-07/README.md) |
+| 07 | blocked | [Lexical evaluation](07-lexical-evaluation.md) | 06 | Provider-free verified-corpus draft smoke is recorded; official labels and deterministic simple-search baseline policy remain blocked | [Evidence](evidence/phase-07/README.md) |
 | 08 | done | [Initial raw-embedding lab](08-raw-embedding-lab.md) | reconciled 02, 05 | Isolated 1024-dimensional document f32 capture through the shared synchronous request policy | [R4 evidence](evidence/phase-08/revision-4.md) |
 | 09 | done | [Vector materialization](09-vector-materialization.md) | 01, 02, 05, 08 | Shared reduction/normalization, binary/int8 codecs, and selected-profile publish | [Evidence](09-vector-materialization.md#11-completion-evidence) |
 | 10 | done | [Embedding orchestration and reconciliation](10-embedding-orchestration-and-reconciliation.md) | reconciled 05, 08, existing 09 | Byte-bounded concurrent document requests, shared retry execution, and profile reconciliation | [Accepted R4 evidence](evidence/phase-10/revision-4.md) |

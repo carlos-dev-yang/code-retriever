@@ -1,6 +1,6 @@
 # 07. Lexical Chunking and Search Evaluation
 
-- Status: `blocked` — corpus-independent infrastructure implemented; official evidence awaits user-selected corpus manifests and local bindings.
+- Status: `blocked` — the user-authorized provider-free corpus smoke is recorded; official frozen baseline evidence remains blocked on label review and baseline policy.
 - Prerequisite phase: `06-fts-search`
 - Follow-up phase: `12-retrieval-evaluation`
 - Design basis: `local-code-search-mcp-v1-design-r4.md` §13, §14
@@ -10,7 +10,7 @@
 
 - Reopen the [implementation index](README.md), [execution guide](EXECUTION-GUIDE.md), [evaluation contract](EVALUATION-CONTRACT.md), and [status ledger](STATUS.md) before continuing.
 - Confirm the Phase 03/04 chunk inventory, Phase 05 deterministic generation and manifest, Phase 06 lexical runner and diagnostics, the reviewed evaluation-dataset schema, and user-selected corpus manifests plus their local bindings are available.
-- Re-check these invariants after any context compaction: the user selects every open-source corpus; the tracked manifest pins identity, provenance, license, language slice, filters, and expected content; an ignored local binding or explicit CLI input alone supplies the checkout path; this phase never selects, downloads, or embeds a corpus; all compared runs record the same reproducibility inputs and report Go, TypeScript, TSX, and mixed denominators separately.
+- Re-check these invariants after any context compaction: the user selects every open-source corpus; the tracked manifest pins identity, provenance, license, language slice, filters, and expected content; an ignored local binding or explicit CLI input alone supplies the checkout path; this phase never selects, downloads, or embeds a corpus absent exact user authorization; all compared runs record the same reproducibility inputs and report Go, TypeScript, TSX, and mixed denominators separately.
 - Stop if a required corpus manifest or local binding is missing, the checkout is dirty or differs from its pinned commit/hash, license or redistribution scope is unclear, an expected target is absent, or generation/config changes would make the run non-reproducible.
 - Before pausing, record executed evidence in §11, capture new architectural choices in §13, and update [STATUS.md](STATUS.md) with the exact next checklist item and unresolved stop condition.
 
@@ -64,7 +64,7 @@ This phase does not copy a passing score or SLA from another project. It builds 
 2. The tracked corpus manifest contains no environment-specific absolute local path.
 3. A local binding maps only `corpus_id` to the user's checkout path and remains ignored; an explicit CLI path is runtime input and is not written into the tracked manifest.
 4. Corpus identity is verified using the pinned commit, clean-tree state, and expected tree/content hash before an official baseline run.
-5. This phase neither chooses nor downloads a corpus, and it never calls an embedding API.
+5. This phase neither chooses nor downloads a corpus absent exact user authorization, and it never calls an embedding API.
 6. A dirty worktree is never ignored. An official baseline fails when dirty; a diagnostic run must be marked explicitly as nonbaseline.
 7. A human reviewer defines ground truth using source-chunk path, kind, and qualified symbol.
 8. Numeric metrics are observations. This document does not create release pass/fail thresholds.
@@ -198,7 +198,7 @@ Do not place a checkout path in this tracked manifest. Resolve `corpus_id` at ex
 
 The resolver canonicalizes the supplied path, confirms it is an existing local checkout, and verifies the commit, clean-tree state, expected hash, root subdirectory, filters, language slice, and license metadata before indexing. It records the portable corpus identity and verified content hash in the run artifact, but does not copy the environment-specific absolute path into tracked artifacts.
 
-This phase consumes only checkouts the user already selected and provided. It does not recommend, choose, clone, download, update, or embed any corpus.
+This phase consumes only checkouts the user selected and provided or explicitly authorized it to acquire by exact repository and commit. It does not recommend, choose, update, or embed any corpus.
 
 ### 6.2 Evaluation dataset
 
@@ -265,7 +265,7 @@ Select experimental variants through an explicit evaluation profile. Do not muta
 
 ## 8. Ordered Implementation Checklist
 
-1. Receive the user-selected open-source corpus manifests; do not select or download a corpus.
+1. Receive the user-selected open-source corpus manifests; do not select or download a corpus absent exact authorization.
 2. Validate every tracked manifest's `corpus_id`, upstream URL, pinned commit, SPDX license, language slices, expected tree/content hash, root subdirectory, and include/exclude rules.
 3. Resolve each `corpus_id` through the ignored local binding file or an explicit CLI input without writing the local path into tracked artifacts.
 4. Verify that the bound checkout is clean and matches the pinned commit, expected content, filters, and declared language slice.
@@ -328,7 +328,7 @@ Select experimental variants through an explicit evaluation profile. Do not muta
 12. Ensure a new execution never modifies an earlier immutable baseline artifact.
 13. Complete lexical evaluation without an API key or network access.
 14. Do not add an automatic SLA judgment when numeric metrics are low or change.
-15. Confirm this phase did not choose, download, update, copy, or embed a corpus.
+15. Confirm this phase did not choose, update, copy, or embed a corpus, and that any acquisition had exact user authorization.
 16. Confirm an aggregate report cannot omit or merge away the Go, TypeScript, TSX, and mixed slice counts.
 17. Confirm calibration results cannot update confirmation labels or margins and confirmation output cannot silently tune FTS weights or candidate limits.
 18. Confirm exact repeat runs produce identical per-query ranking hashes and first-loss records.
@@ -347,7 +347,7 @@ Select experimental variants through an explicit evaluation profile. Do not muta
 - Repeatability record under identical conditions.
 - Evidence that dirty/config-mismatch/generation-change runs cannot be approved as a baseline.
 - Evidence that a new run does not overwrite an existing baseline artifact.
-- Evidence that no corpus was selected, downloaded, copied, or embedded by this phase.
+- Evidence that no corpus was selected, updated, copied, or embedded by this phase, and that any acquisition had exact user authorization.
 - Dataset-size/review record distinguishing smoke, calibration, and promotion-capable confirmation evidence.
 
 Completion reports must not use the metric value itself as a success declaration. They should demonstrate that the evaluation is reproducible and that failures are traceable.
@@ -374,7 +374,7 @@ Phase 12 extends the shared Phase 07 `internal/eval` dataset, ground-truth, metr
 | Build a lexical baseline before retrieval comparisons. | This separates vector improvement from chunking defects; Phase 08 implementation may proceed in parallel. | Never for the Phase 12 prerequisite contract. |
 | The user selects every open-source corpus. | Corpus suitability, licensing, checkout ownership, and download authorization belong to the user. | Product scope explicitly introduces managed corpora. |
 | Separate portable tracked manifests from ignored local bindings. | Reproducibility needs pinned provenance while machine paths must not enter version control. | A dedicated portable workspace resolver is designed. |
-| Never select, download, or embed a corpus in Phase 07. | This phase is a free, local lexical evaluator and a manifest is not authorization for external actions or paid work. | A separate user-authorized acquisition or embedding workflow is designed. |
+| Never select, download, or embed a corpus in Phase 07 without explicit user authorization. | This phase is a free, local lexical evaluator and a manifest alone is not authorization for external actions or paid work. | A separate user-authorized acquisition or embedding workflow is designed. |
 | Observe hit@k/MRR without a numeric gate. | The corpus and product usage pattern are not yet sufficiently settled. | Representative corpora and product requirements accumulate. |
 | Do not use a generative-model judge. | Avoid cost, nondeterminism, and mixing answer definition into scoring. | It is separately designed as supplementary evaluation. |
 | Defer the simple-search baseline policy. | The phase requires a deterministic baseline but does not define its ranking policy; infrastructure must not invent corpus-tuned behavior. | A reviewed corpus and baseline policy are supplied. |
@@ -385,3 +385,4 @@ Phase 12 extends the shared Phase 07 `internal/eval` dataset, ground-truth, metr
 | Use the shared stage scorecard and first-loss model. | A final Hit@5 cannot prove parser correctness or explain where evidence disappeared. | Never. |
 | Freeze calibration separately from confirmation. | Parameter tuning and promotion evidence cannot come from the same queries. | A new versioned evaluation policy is approved. |
 | Keep required failures in denominators. | Dropping failed observations inflates retrieval and operational metrics. | Never. |
+| Acquire only the two explicitly user-authorized public checkouts for this resume. | The user named commits, versions, licenses, and allowed local acquisition; this is a narrowly recorded exception to the default no-download rule. | Any corpus identity, commit, or authorization changes. |

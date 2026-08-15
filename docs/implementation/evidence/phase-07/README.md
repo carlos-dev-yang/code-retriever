@@ -1,7 +1,7 @@
-# Phase 07 Lexical Evaluation Infrastructure Evidence
+# Phase 07 Lexical Evaluation Evidence
 
 - Phase: `07-lexical-evaluation`
-- State: `blocked` — reusable offline infrastructure is implemented; official evidence requires user-selected, tracked corpus manifests and user-provided ignored local bindings.
+- State: `blocked` — reusable offline infrastructure plus a user-authorized provider-free corpus draft smoke are implemented; official evidence requires human label freeze/two review passes and a deterministic simple-search baseline policy.
 - Date: 2026-08-15
 
 ## Implemented infrastructure
@@ -31,13 +31,167 @@ git diff --check
 
 The focused tests cover portable/duplicate-field manifest rejection, local Git binding verification including wrong-content-hash and dirty-worktree rejection, whole-segment glob selection/exclusion safety (including nested `**` and empty excludes), OR/AND multi-span requirements, duplicate-parent max-grade NDCG, wrong indexed-hash rejection, exact hard-negative denominators across answerable and abstainable cases, full language/cohort summaries, retained operation failures and valid abstainable traces, production truth snapshots, inventory preflight, generation drift, caller cancellation, and atomic immutable artifact publication including forged-summary, missing metric, and rank rejection.
 
-## Checks not run and blocker
+## Historical pre-resume checks not run and blocker
 
-- No corpus was selected, downloaded, cloned, bound as an official corpus, indexed, copied, or embedded. No provider, API key, paid operation, network request, CLI, MCP, or public contract change ran.
-- No official run, corpus verification record, lexical baseline, labels, comparison baseline, or repeatability evidence exists because the user has not selected and supplied the corpus manifests and local bindings.
+- No corpus beyond the two explicitly authorized public checkouts was selected, downloaded, cloned, copied, or embedded. No provider, API key, paid operation, or public MCP contract change ran.
+- No official frozen run, human-reviewed labels, simple-search comparison baseline, or promotion evidence exists. The recorded corpus verification and repeatability evidence is draft-smoke-only.
 - A deterministic simple-search baseline is intentionally pending: Phase 07 does not yet define a corpus-independent baseline ranking policy, so this infrastructure does not invent one.
 - The direct `internal/eval` source has no `embedclient`, `lab`, or provider import. A full Go dependency listing still reaches `embedclient` indirectly through the existing shared `config`/`evalcontract` package graph; that pre-existing shared-contract coupling must be split before a strict transitive dependency-boundary claim can be made.
 
 ## Next action
 
-After the user selects the open-source corpora and provides reviewed tracked manifests plus ignored local bindings, verify each existing checkout without modification, create the reviewed dataset, and run the free lexical baseline.
+Have a human reviewer replace or approve the two tracked machine-draft smoke
+datasets in two recorded passes, then freeze a deterministic simple-search
+baseline policy before comparing it with FTS. Any future hard-negative or
+no-answer label needs corpus-wide search evidence and a second review/pass.
+
+## Authorized corpus-resume smoke
+
+The user explicitly authorized acquisition of exactly these public checkouts;
+no other corpus was selected or acquired:
+
+- `go-chi/chi` v5.3.1 at `8b258c7bb28f97a5f2a856ff7ef962578fec9215`,
+  MIT, root tree `7ccb2269b57183ac3a741f269c0da31fd03ad035`;
+- `react-hook-form/react-hook-form` v7.85.0 at
+  `371432c39271aab739358d19c406793771565ab3`, MIT, root tree
+  `688906c5842a0d71051154343e993adb525e688f`.
+
+Tracked portable manifests are
+`testdata/retrieval/corpora/go-chi-chi-v5.3.1.json`
+(`18cd5cf433ee0af47a212e6111dcd1d65f6104baa28bb528b2ec93d9afec36b9`)
+and `testdata/retrieval/corpora/react-hook-form-v7.85.0.json`
+(`e94f0861e6ac0c864524a23edc4bcb0ddc69a3848ef0f9c962f0b675bfde81a8`).
+Their verifier-selected content hashes are respectively
+`892e79de9e8c522fe3ccf6b0731a3798d0f2c67a18f1b4162685c4843245af5d`
+for 78 Go files (largest 58,795 bytes) and
+`717caa8346fd5a0b1a7ca69df63bf1ac8477f7c8770f1e67fa7b1fad58df132b`
+for 237 `src` TypeScript/TSX files (largest 142,806 bytes).
+
+The React Hook Form checkout is full and clean. Its checkout-local ignored
+`.cidxignore` excludes the only outside-`src` TS/TSX roots at this commit:
+`app`, `e2e`, `examples`, `scripts`, and `playwright.config.ts`; `.cidx/`
+and `.cidxignore` are only in that checkout's `.git/info/exclude`. Each
+checkout has an ignored local `.cidx/lab/corpora.local.json` self-binding.
+
+Free local initialization/index/status records:
+
+- chi generation 1: 78 files, 452 chunks, 621 segments, manifest
+  `6bd4db89ee1a9cba70f69e125a803d147dbc0d92c95ef59b44be2dcb54302a29`;
+- react-hook-form generation 1: 237 files, 275 chunks, 416 segments, manifest
+  `54f6b1387ae989b1e49bdf21d3ed96189e76fb5b61b74ca282a2617c57f88b8a`.
+
+`cidx dev retrieval evaluate --mode lexical --inventory-only` wrote ignored,
+source-body-free inventory packets with SHA-256
+`c6a8661e9cde7ff269d69311593411930def0f69a7c1816b9e919bfbce7cadab`
+(chi) and
+`d65595cfa76480278f4e71734d6a4802b8bb4129944a3384c2fccedb3e80781d`
+(react-hook-form). The mode opens `app.OpenLocal` and the production store
+only; it neither opens `lab.Store`, reads `VOYAGE_API_KEY`, contacts a
+provider/network, nor permits `--apply`.
+
+The tracked datasets
+`testdata/retrieval/lexical-go-chi-v5.3.1-draft.json`
+(`e03894820a25eecb5527049ece7d10da39da58f719c629fa3e5bc11f47ca22c4`)
+and `testdata/retrieval/lexical-react-hook-form-v7.85.0-draft.json`
+(`393a7562bffbe5ce3fb018b9438aaf6633c7f5c26ba4418521b74e3c3ae6df80`)
+contain six cases each. Every case is explicitly `review.state=draft` with
+`machine-draft/user-review-pending`; neither file is frozen, official,
+promotion-capable, or usable for tuning. Every draft case digest is the
+SHA-256 of RFC 8785 canonical `EvaluationCase` JSON with its `digest` field
+empty; `internal/devlab.DraftCaseDigest` verifies this preparation framing
+before lexical execution.
+
+Ranking-blind review packets retain corpus/dataset digests, query text,
+class, answerability/cardinality, proposed file/symbol/span/hash and
+alternatives, ambiguity/rationale, accept/reject/revise/adjudicate actions,
+and reviewer/timestamp/independent-source-verification fields. Their packet
+digests are `d1fcc6415c6c98a73ebd95b8367fefb804830b75da8b44b45f6f5cc66e1417fc`
+(chi) and `e6ab27964f0e90f52e496948723eeb518e88911e73273b23233dfa773a3f6f6a`
+(react-hook-form). Both declare `dataset_status=DRAFT`,
+`dataset_role=CALIBRATION_SMOKE`,
+`label_authority=MACHINE_PREPARED_UNREVIEWED`,
+`human_review_status=PENDING`, `run_authority=EXECUTION_ONLY`, and
+`evidence_class=PIPELINE_AND_REPLAY_DIAGNOSTIC`; they also declare
+`promotion_eligible=false`, `confirmation_eligible=false`,
+`retrieval_arm=PROVIDER_FREE_LEXICAL_ONLY`, and `paid_provider_calls=0`.
+
+Immutable ignored smoke artifacts `chi-draft-smoke-5` and
+`rhf-draft-smoke-5` were published through `eval.WriteRunArtifact`.
+Their `run.json` digests are respectively
+`721b125ac3f67c39f23aba24855b6c868512256ff74aae50173beb4b6d74bf02`
+and `6587f4ac1b7db9992c47ef21d535fe8177256ecf3ef7de3e4a0fffbea4e812d3`.
+These pre-commit artifacts have `code_commit=b4166456f3aaa8e09bcb54b7e85417ca4b99c322`
+while the lexical implementation was dirty, so they are invalid for clean-code
+provenance and remain execution-only diagnostics. New lexical artifact
+execution now fails closed unless build metadata has a canonical full lowercase
+hex VCS revision (40-character SHA-1 or 64-character SHA-256) and
+`source_modified=false`, and it rejects any non-`draft` review state; this
+smoke command cannot stamp frozen labels as draft authority. Inventory-only
+preparation remains available. A future official baseline is a separate
+follow-up after human review and baseline-policy freeze.
+
+Repeated runs produced identical diagnostic replay values using exactly
+`sha256(jq -c '{results,summary}' output including LF)`:
+`7b31f9cd6eac758601d99988da5c691ec462ece96b82ceb5efc0eff163242937`
+(chi) and
+`e869a7e0718d693958d5b34878c0604d2ace6d683cf272ee9d10ab22cabf9c3b`
+(react-hook-form). The smoke denominators are 12 total: 6 Go, 4 TypeScript,
+2 TSX, 0 hard-negative, and 0 confirmation. Hard-negative and confirmation
+metrics are `NOT_OBSERVED`, never reported as zero. Observed metrics mean only
+agreement with unreviewed draft labels under a lexical smoke configuration.
+The valid conclusion is limited to provider-free lexical-path execution and
+identical ranking replay for exact draft inputs; this is not a quality claim or
+promotion evidence.
+
+## Resume checks actually run
+
+```text
+go build -o /tmp/cidx-phase07 ./cmd/cidx
+cidx init --serving-dim 256 --codec binary              # each authorized checkout
+cidx index --root <checkout> --reason manual
+cidx status --root <checkout> --json
+cidx dev retrieval evaluate --mode lexical --inventory-only ...
+cidx dev retrieval evaluate --mode lexical --run-id <fresh-id> ... # twice per corpus
+gofmt -w internal/devlab/lexical.go internal/devlab/lexical_test.go
+go test -count=1 ./internal/devlab ./internal/eval ./internal/evalcontract ./internal/search/lexical ./internal/store
+go test -count=1 -race ./internal/devlab ./internal/eval ./internal/evalcontract
+go vet ./internal/devlab ./internal/eval ./internal/evalcontract
+go build -o /tmp/cidx-phase07-provenance ./cmd/cidx
+git diff --check
+```
+
+All listed checks passed. No paid document/query embedding, lab database,
+provider call, API-key read, promotion, simple-search comparison, or official
+evaluation run occurred.
+
+An independent Terra/high review found and rechecked three resume-boundary
+defects: dirty or noncanonical executable provenance, unconditional draft
+authority for non-draft inputs, and packet child-symlink escape. The accepted
+tree fails closed on all three, and the final re-review reported no findings.
+Codex then ran the single final commit-boundary validation:
+
+```text
+env -u VOYAGE_API_KEY GOPROXY=off go test -count=1 ./internal/devlab ./internal/eval ./internal/evalcontract ./internal/search/lexical ./internal/store ./internal/app ./internal/index
+env -u VOYAGE_API_KEY GOPROXY=off go test -count=1 -race ./internal/devlab ./internal/eval ./internal/evalcontract ./internal/search/lexical ./internal/store
+env -u VOYAGE_API_KEY GOPROXY=off go vet ./internal/devlab ./internal/eval ./internal/evalcontract ./internal/search/lexical ./internal/store
+env -u VOYAGE_API_KEY GOPROXY=off go build -trimpath -buildvcs=true -o /tmp/cidx-phase07-boundary ./cmd/cidx
+go mod tidy -diff
+gofmt -l internal/devlab/cli.go internal/devlab/lexical.go internal/devlab/lexical_test.go
+jq -e . testdata/retrieval/corpora/*.json testdata/retrieval/*draft.json
+git diff --check
+```
+
+All boundary checks passed. The accepted implementation is committed before
+new smoke artifacts are generated so their `code_commit` is truthful.
+
+`internal/devlab/lexical_test.go` covers the draft-digest framing, lexical
+mode/apply and inventory flag rejection, clean canonical code-provenance and
+draft-only smoke enforcement, conventional artifact-root validation, and
+descriptor-bound packet writes. The latter uses Go 1.26 `os.OpenRoot` with
+root-relative directory creation, exclusive temporary creation, hard-link
+publication, and reads; both `inventory` and `review` external-child-symlink
+attempts are rejected without an outside write. It also covers atomic
+source-body-free inventory replay/collision handling and review-packet
+decoding for authority/floor fields plus `id`, `text`, `language`, and
+`answer_mode`. The direct lexical source has no `lab.Open`, `VOYAGE_API_KEY`,
+provider, or HTTP dependency.

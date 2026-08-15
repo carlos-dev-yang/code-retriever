@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "corpus_id": "go-chi-chi-v5.3.1",
+  "upstream_url": "https://github.com/go-chi/chi.git",
+  "pinned_commit": "8b258c7bb28f97a5f2a856ff7ef962578fec9215",
+  "license_spdx": "MIT",
+  "license_evidence": "LICENSE",
+  "redistribution_notice": "Upstream MIT license; this manifest contains provenance only and no corpus source.",
+  "language_slices": ["go"],
+  "include": ["**/*.go"],
+  "exclude": [],
+  "expected_content_hash": "892e79de9e8c522fe3ccf6b0731a3798d0f2c67a18f1b4162685c4843245af5d",
+  "expected_tree_hash": "7ccb2269b57183ac3a741f269c0da31fd03ad035",
+  "clean_tree_required": true
+}

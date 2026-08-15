@@ -134,6 +134,9 @@ func retrieval(ctx context.Context, args []string, stdout, stderr io.Writer) err
 	corpusPath := flags.String("corpus-path", "", "approved local corpus checkout (not persisted)")
 	dataset := flags.String("dataset", "", "reviewed dataset")
 	repositoryRoot := flags.String("root", ".", "repository root")
+	mode := flags.String("mode", "retrieval", "retrieval or lexical")
+	inventoryOnly := flags.Bool("inventory-only", false, "write a source-body-free lexical truth-inventory packet without executing a dataset")
+	runID := flags.String("run-id", "", "fresh lexical artifact identifier")
 	apply := flags.Bool("apply", false, "perform explicitly approved paid query embeddings")
 	if err := flags.Parse(args[1:]); err != nil {
 		return err
@@ -141,12 +144,24 @@ func retrieval(ctx context.Context, args []string, stdout, stderr io.Writer) err
 	if flags.NArg() != 0 {
 		return fmt.Errorf("dev retrieval evaluate accepts no positional arguments")
 	}
-	if *manifest == "" || *dataset == "" {
-		return fmt.Errorf("--corpus-manifest and --dataset are required")
+	if *mode != "retrieval" && *mode != "lexical" {
+		return fmt.Errorf("--mode must be retrieval or lexical")
+	}
+	if *manifest == "" || (*dataset == "" && !(*mode == "lexical" && *inventoryOnly)) {
+		return fmt.Errorf("--corpus-manifest and --dataset are required unless --mode lexical --inventory-only is used")
+	}
+	if *mode == "retrieval" && *inventoryOnly {
+		return fmt.Errorf("--inventory-only requires --mode lexical")
+	}
+	if *mode == "lexical" && *apply {
+		return fmt.Errorf("--apply is unavailable in lexical mode")
 	}
 	canonicalRoot, err := root.Repository(ctx, *repositoryRoot)
 	if err != nil {
 		return err
+	}
+	if *mode == "lexical" {
+		return lexicalEvaluation(ctx, lexicalEvaluationOptions{ManifestPath: *manifest, DatasetPath: *dataset, CorpusPath: *corpusPath, RepositoryRoot: canonicalRoot, InventoryOnly: *inventoryOnly, RunID: *runID}, stdout)
 	}
 	if _, err := preflightRetrievalInputs(ctx, canonicalRoot, *manifest, *dataset, *corpusPath); err != nil {
 		return err
