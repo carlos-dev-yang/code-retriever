@@ -21,13 +21,14 @@ import (
 	"cidx/internal/evalcontract"
 	"cidx/internal/index"
 	"cidx/internal/lab"
+	"cidx/internal/search"
 	"cidx/internal/store"
 )
 
 func TestRetrievalAdapterPlanApplyAndArtifactAreLocalSafe(t *testing.T) {
 	ctx, prepared, root, raw := retrievalFixture(t)
 	defer raw.Close()
-	if plan := prepared.Plan(); plan.QueryCount != 1 || plan.QueryProviderCallsPlanned != 1 {
+	if plan := prepared.Plan(); plan.QueryCount != 1 || plan.LogicalQueryOperationsPlanned != 1 {
 		t.Fatalf("plan=%+v", plan)
 	}
 	assertEvaluationRows(t, raw, 0)
@@ -70,6 +71,18 @@ func TestRetrievalAdapterPlanApplyAndArtifactAreLocalSafe(t *testing.T) {
 			t.Fatalf("artifact missing %s: %v", name, err)
 		}
 	}
+	manifestBytes, err := os.ReadFile(filepath.Join(artifactRoot, "run-manifest.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var manifest map[string]any
+	if err := json.Unmarshal(manifestBytes, &manifest); err != nil {
+		t.Fatal(err)
+	}
+	providerUsage, ok := manifest["provider_usage"].(map[string]any)
+	if !ok || providerUsage["logical_query_operations"] != float64(1) || providerUsage["query_operations"] != nil {
+		t.Fatalf("run manifest leaked provider operation detail: %#v", manifest["provider_usage"])
+	}
 	all, err := os.ReadFile(filepath.Join(artifactRoot, "per-query-trace.jsonl"))
 	if err != nil {
 		t.Fatal(err)
@@ -104,6 +117,17 @@ func TestRetrievalAdapterRetainsProviderFailureButAbortsInvariantFailure(t *test
 	if _, err := os.Stat(filepath.Join(root, ".cidx", "lab", filepath.FromSlash(failed.Artifact.Reference), "promotion-result.json")); err != nil {
 		t.Fatal(err)
 	}
+	usageBytes, err := os.ReadFile(filepath.Join(root, ".cidx", "lab", filepath.FromSlash(failed.Artifact.Reference), "provider-usage.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var usage retrievalProviderUsage
+	if err := json.Unmarshal(usageBytes, &usage); err != nil {
+		t.Fatal(err)
+	}
+	if len(usage.QueryOperations) != 1 || usage.QueryOperations[0].TerminalStatus != providerUsageTerminalFailed || usage.QueryOperations[0].ObservedTotalTokens != nil || usage.Aggregate.ObservedTotalTokens != nil || usage.Aggregate.TokenObservedAttempts != 0 {
+		t.Fatalf("terminal failure usage=%+v", usage)
+	}
 	assertEvaluationRows(t, raw, 1)
 
 	_, prepared, _, raw = retrievalFixture(t)
@@ -115,6 +139,147 @@ func TestRetrievalAdapterRetainsProviderFailureButAbortsInvariantFailure(t *test
 	assertEvaluationRows(t, raw, 0)
 }
 
+func TestRetrievalAdapterCancellationDoesNotPublish(t *testing.T) {
+	ctx, prepared, root, raw := retrievalFixture(t)
+	defer raw.Close()
+	cancelled, cancel := context.WithCancel(ctx)
+	cancel()
+	if _, err := prepared.Apply(cancelled, &adapterFakeClient{response: adapterQueryResponse(prepared.application.Resolved)}); !errors.Is(err, context.Canceled) {
+		t.Fatalf("cancellation err=%v", err)
+	}
+	assertEvaluationRows(t, raw, 0)
+	if _, err := os.Stat(filepath.Join(root, ".cidx", "lab", "evaluations")); !os.IsNotExist(err) {
+		t.Fatalf("cancellation published artifact state: %v", err)
+	}
+}
+
+func TestRetrievalAdapterPerAttemptDeadlineRemainsProviderFailure(t *testing.T) {
+	ctx, prepared, root, raw := retrievalFixture(t)
+	defer raw.Close()
+	// Zero retries makes this focused test an exhausted first attempt without
+	// duplicating the shared executor's configured backoff timing matrix.
+	prepared.application.Resolved.Embedding.Retry.MaxRetries = 0
+	prepared.application.Resolved.Embedding.Retry.WaitSeconds = nil
+	deadline := embedclient.ProviderError{Class: "timeout", Retryable: false, Cause: context.DeadlineExceeded}
+	applied, err := prepared.Apply(ctx, &adapterFakeClient{err: deadline})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(applied.Run.Cases) != 1 || applied.Run.Cases[0].Metrics[1].Metrics.FailureStage != evalcontract.FailureStage(evalcontract.StageOperational) {
+		t.Fatalf("attempt deadline did not remain operational evidence: %+v", applied.Run)
+	}
+	usageBytes, err := os.ReadFile(filepath.Join(root, ".cidx", "lab", filepath.FromSlash(applied.Artifact.Reference), "provider-usage.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var usage retrievalProviderUsage
+	if err := json.Unmarshal(usageBytes, &usage); err != nil {
+		t.Fatal(err)
+	}
+	if len(usage.QueryOperations) != 1 || usage.QueryOperations[0].TerminalStatus != providerUsageTerminalFailed || usage.QueryOperations[0].ProviderAttempts != 1 || usage.QueryOperations[0].ObservedTotalTokens != nil {
+		t.Fatalf("attempt deadline usage=%+v", usage)
+	}
+	assertEvaluationRows(t, raw, 1)
+}
+
+func TestProviderUsageOperationAccountingAndWireValidation(t *testing.T) {
+	ctx, prepared, _, raw := retrievalFixture(t)
+	defer raw.Close()
+	applied, err := prepared.Apply(ctx, &adapterFakeClient{response: adapterQueryResponse(prepared.application.Resolved)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	dataset := prepared.dataset
+	second := dataset.Cases[0]
+	second.ID = "q2"
+	dataset.Cases = append(dataset.Cases, second)
+	run := applied.Run
+	secondEvidence := run.Cases[0]
+	secondEvidence.Case.QueryID = "q2"
+	run.Cases = append(run.Cases, secondEvidence)
+
+	zero := 0
+	three := 3
+	usage := newRetrievalProviderUsage(prepared, nil).usage
+	usage.QueryOperations = []retrievalProviderQueryOperation{
+		{LogicalOperationID: 1, QueryID: "q1", LogicalQueryOperations: 1, ProviderAttempts: 1, Retries: 0, ValidatedResponses: 1, FailedAttempts: 0, TerminalStatus: providerUsageTerminalValidated, ObservedTotalTokens: &zero, TokenObservedAttempts: 1, TokenAccountingComplete: true},
+		{LogicalOperationID: 2, QueryID: "q2", LogicalQueryOperations: 1, ProviderAttempts: 2, Retries: 1, ValidatedResponses: 1, FailedAttempts: 1, TerminalStatus: providerUsageTerminalValidated, ObservedTotalTokens: &three, TokenObservedAttempts: 1, TokenAccountingComplete: false},
+	}
+	usage.Aggregate = deriveProviderUsageAggregate(usage.QueryOperations)
+	if err := usage.Validate(prepared, dataset, run); err != nil {
+		t.Fatalf("valid mixed usage rejected: %v", err)
+	}
+	if usage.Aggregate.ObservedTotalTokens == nil || *usage.Aggregate.ObservedTotalTokens != 3 || usage.Aggregate.TokenAccountingComplete || usage.Aggregate.GeneratedResponseTokens != generatedResponseTokensNotApplied {
+		t.Fatalf("mixed aggregate=%+v", usage.Aggregate)
+	}
+	mutations := []func(*retrievalProviderUsage){
+		func(value *retrievalProviderUsage) { value.AttemptTimeoutSeconds++ },
+		func(value *retrievalProviderUsage) {
+			value.QueryOperations[0], value.QueryOperations[1] = value.QueryOperations[1], value.QueryOperations[0]
+		},
+		func(value *retrievalProviderUsage) { value.QueryOperations[1].QueryID = "q1" },
+		func(value *retrievalProviderUsage) { value.QueryOperations[1].LogicalOperationID = 3 },
+		func(value *retrievalProviderUsage) { value.Aggregate.ProviderAttempts++ },
+		func(value *retrievalProviderUsage) { value.QueryOperations[1].ObservedTotalTokens = nil },
+		func(value *retrievalProviderUsage) { value.QueryOperations[1].TokenAccountingComplete = true },
+	}
+	for _, mutate := range mutations {
+		invalid := usage
+		invalid.QueryOperations = append([]retrievalProviderQueryOperation(nil), usage.QueryOperations...)
+		mutate(&invalid)
+		if err := invalid.Validate(prepared, dataset, run); err == nil {
+			t.Fatal("forged provider usage wire accepted")
+		}
+	}
+}
+
+func TestProviderUsageOperationRecordsRetriesFailuresAndPostSuccessAttempts(t *testing.T) {
+	request := embedclient.EmbeddingRequest{}
+	valid := adapterQueryResponse(adapterConfig(t))
+	zeroResponse := valid
+	zeroResponse.TotalTokens = 0
+	immediate := &operationRecordingClient{delegate: &sequenceEmbeddingClient{steps: []sequenceEmbeddingStep{{response: zeroResponse}}}, queryID: "q1"}
+	if _, err := immediate.Embed(context.Background(), request); err != nil {
+		t.Fatal(err)
+	}
+	completed, err := immediate.finalize(context.Background(), nil)
+	if err != nil || completed.ObservedTotalTokens == nil || *completed.ObservedTotalTokens != 0 || !completed.TokenAccountingComplete {
+		t.Fatalf("immediate zero-token success=%+v err=%v", completed, err)
+	}
+	retry := &sequenceEmbeddingClient{steps: []sequenceEmbeddingStep{{err: errors.New("retry")}, {response: valid}}}
+	operation := &operationRecordingClient{delegate: retry, queryID: "q1"}
+	if _, err := operation.Embed(context.Background(), request); err == nil {
+		t.Fatal("first transient failure unexpectedly succeeded")
+	}
+	if _, err := operation.Embed(context.Background(), request); err != nil {
+		t.Fatal(err)
+	}
+	completed, err = operation.finalize(context.Background(), nil)
+	if err != nil || completed.ProviderAttempts != 2 || completed.Retries != 1 || completed.FailedAttempts != 1 || completed.ObservedTotalTokens == nil || *completed.ObservedTotalTokens != 3 || completed.TokenAccountingComplete {
+		t.Fatalf("retry-success accounting=%+v err=%v", completed, err)
+	}
+
+	failed := &operationRecordingClient{delegate: &sequenceEmbeddingClient{steps: []sequenceEmbeddingStep{{err: errors.New("failed")}}}, queryID: "q1"}
+	if _, err := failed.Embed(context.Background(), request); err == nil {
+		t.Fatal("terminal failure unexpectedly succeeded")
+	}
+	completed, err = failed.finalize(context.Background(), search.QueryEmbeddingProviderError{Err: errors.New("failed")})
+	if err != nil || completed.TerminalStatus != providerUsageTerminalFailed || completed.ObservedTotalTokens != nil || completed.TokenObservedAttempts != 0 || completed.TokenAccountingComplete {
+		t.Fatalf("terminal failure accounting=%+v err=%v", completed, err)
+	}
+
+	success := &operationRecordingClient{delegate: &sequenceEmbeddingClient{steps: []sequenceEmbeddingStep{{response: valid}}}, queryID: "q1"}
+	if _, err := success.Embed(context.Background(), request); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := success.Embed(context.Background(), request); err == nil {
+		t.Fatal("attempt after successful response accepted")
+	}
+	if _, err := success.finalize(context.Background(), errors.New("post-success attempt")); err == nil {
+		t.Fatal("post-success attempt did not abort publication")
+	}
+}
+
 var requiredRetrievalArtifactFiles = []string{"run-manifest.json", "per-query-trace.jsonl", "fts-candidates.jsonl", "dense-segment-candidates.jsonl", "collapsed-parent-candidates.jsonl", "rrf-results.jsonl", "inline-body-packages.jsonl", "per-query-metrics.jsonl", "aggregate-metrics.json", "cohort-language-report.json", "first-loss-report.json", "provider-usage.json", "implementation-audit.json", "promotion-contract.json", "promotion-result.json", "report.md", "artifact-checksums.json"}
 
 type adapterFakeClient struct {
@@ -122,6 +287,24 @@ type adapterFakeClient struct {
 	calls    int
 	response embedclient.EmbeddingResponse
 	err      error
+}
+
+type sequenceEmbeddingStep struct {
+	response embedclient.EmbeddingResponse
+	err      error
+}
+
+type sequenceEmbeddingClient struct {
+	steps []sequenceEmbeddingStep
+}
+
+func (client *sequenceEmbeddingClient) Embed(context.Context, embedclient.EmbeddingRequest) (embedclient.EmbeddingResponse, error) {
+	if len(client.steps) == 0 {
+		return embedclient.EmbeddingResponse{}, errors.New("unexpected provider call")
+	}
+	step := client.steps[0]
+	client.steps = client.steps[1:]
+	return step.response, step.err
 }
 
 func (client *adapterFakeClient) Embed(_ context.Context, _ embedclient.EmbeddingRequest) (embedclient.EmbeddingResponse, error) {

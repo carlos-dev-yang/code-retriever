@@ -1,9 +1,9 @@
 # 12. Retrieval Evaluation
 
-- Status: `blocked` — reusable corpus-independent infrastructure exists but needs Revision 4 wire/profile revalidation; official evidence remains separately gated on user-selected corpus inputs and paid-query approval.
+- Status: `blocked` — the corpus-independent Revision 4 accounting/migration boundary is accepted; official corpus evaluation and promotion await external, user-controlled inputs.
 - Prerequisites: `07-lexical-evaluation`, `08-raw-embedding-lab`, `09-vector-materialization`, `11-vector-and-hybrid-search`
 - Followed by: `13-cli-and-mcp`, `14-packaging-and-host-integration`
-- Design source: `local-code-search-mcp-v1-design-r4.md` sections 7.4 and 14
+- Design source: `local-code-search-mcp-v1-design-r4.md` sections 5, 6, and 9
 - Evaluation authority: [EVALUATION-CONTRACT.md](EVALUATION-CONTRACT.md)
 
 ## Context Recovery Checklist
@@ -18,6 +18,15 @@ Read the [implementation index](README.md), [execution guide](EXECUTION-GUIDE.md
 - Re-check the frozen calibration/confirmation split, exact denominators, required-group labels, first-loss enum, FTS/dense lane traces, serving-f32 codec reference, RRF ablations, and promotion contract before any applied run.
 - Stop if corpus approval, license evidence, pinned revision, clean-tree/content hash, ground truth, raw coverage, or fingerprint compatibility is unresolved. Never choose, download, update, index, or embed a corpus on the user's behalf without explicit approval.
 - Before pausing, update run/evidence records and this decision log, then update [STATUS.md](STATUS.md) with approved corpus IDs, checked hashes, incomplete work, and the exact next action.
+
+## Revision 4 Corpus-Independent Entry Gate
+
+- Entered: 2026-08-15 at clean commit `0258872`.
+- Owner: `/root/r4_phase12_executor` (terra/high); Codex owns the one-time commit-boundary validation.
+- Prerequisites checked: blocked-but-implemented [Phase 07](evidence/phase-07/README.md), accepted [Phase 08 Revision 4](evidence/phase-08/revision-4.md), [Phase 09](evidence/phase-09/README.md), and [Phase 11 Revision 4](evidence/phase-11/revision-4.md) evidence; the full canonical, execution, evaluation, phase, and historical Phase 12 records; and the live adapter/artifact/lab schema.
+- Reconciliation boundary: distinguish one logical evaluation query from its actual provider attempts/retries, preserve partial token observability without inventing zero usage, and migrate vector-free lab provenance from v4 to v5. Freeze retrieval metrics, stage traces, search ranking/body algorithms, shared executor, and normative evaluation schemas.
+- Metrics advisory: the user-directed `kb-guide` review confirmed that provider attempts are never retrieval denominators, failed-attempt token usage remains unobserved, configured retry policy is not an executed timing trace, and synthetic work may claim only accounting, serialization, stage isolation, and retry invariants.
+- External blocker: no corpus selection/access, provider/API-key/network call, paid query, quality measurement, candidate selection, or promotion action is authorized.
 
 ## 1. Objective
 
@@ -354,6 +363,8 @@ Corpus manifest and dataset paths are development inputs. Artifact location is f
 - Human decision record for selected config and rationale.
 - Frozen `promotion-contract.json`, `scope=core_retrieval` `promotion-result.json`, first-loss report, implementation audit, and artifact checksums.
 
+The corpus-independent subset is accepted in [Revision 4 evidence](evidence/phase-12/revision-4.md): logical query operations and actual provider attempts are separated, token observability is conservative, the ordered local usage artifact is deterministic, and lab schema v5 preserves pre-R4 counters only as legacy provenance. This does not satisfy the official corpus, quality, selection, or promotion items above.
+
 ## 12. Handoff
 
 Write the selected `embedding.serving_dimensions`, reducer, normalizer, and metric to the single project config authority only after human review. Keep `storage_codec=binary` unless the user explicitly chooses the supported `int8` alternative after reviewing the comparison. Then run `cidx index` to reconcile serving keys and either development materialize activation or public embed apply to prepare rows before Phase 13 and Phase 14 verification.
@@ -363,7 +374,14 @@ If results are inconclusive, record candidates, why they remain undecided, and w
 ## 13. Decision Log
 
 - The corpus-independent core lives in `internal/eval/retrieval.go`. Phase 13 must adapt its injected arm executor to the actual Phase 11 lanes, preserving all eight arms and one request-local query-vector digest; it must not recreate ranking, fidelity, fusion, body, or core-promotion calculations.
-- This implementation records no corpus, labels, raw coverage, provider usage, query vector, promotion result, or score. The phase remains blocked until the user supplies approved manifests and bindings, reviewed calibration/confirmation datasets, compatible raw coverage, and separate authorization for any paid query apply.
+- Historical pre-R4 infrastructure recorded no corpus, labels, raw coverage,
+  provider usage, query vector, promotion result, or score. The R4 local
+  adapter records only vector-free provider-operation accounting after an
+  explicitly applied synthetic run; it still creates no official corpus,
+  quality, or promotion evidence. The phase remains blocked until the user
+  supplies approved manifests and bindings, reviewed calibration/confirmation
+  datasets, compatible raw coverage, and separate authorization for any paid
+  query apply.
 - Open-source corpora are selected and sampled by the user; tooling only consumes explicitly approved pinned manifests and local bindings.
 - Tracked manifests are portable and contain no local absolute path; ignored bindings map IDs to local checkouts.
 - The initial 1024-f32 document bank is reusable for setup evaluation only, not permanent product workflow.
@@ -378,4 +396,12 @@ If results are inconclusive, record candidates, why they remain undecided, and w
 - Human relevance and serving-f32 codec fidelity are independent references.
 - FTS and dense standalone evidence is mandatory around RRF; fusion cannot admit a broken lane.
 - HNSW/ANN recall, `ef_search`, graph health, and ANN tuning are excluded.
+- Revision 4 corpus-independent reconciliation records one logical dataset
+  operation per query and its actual provider attempts beneath it. Provider
+  attempts are operational evidence, never retrieval denominators. The local
+  artifact records only conservative token observability and the configured
+  policy identity; it does not claim per-attempt timing, statuses, waits, or
+  failed-attempt token values. Lab v5 retains old flat counters only as legacy
+  provenance. Independent Terra review and the one-time commit-boundary
+  validation are accepted; it is still not official evaluation evidence.
 - Activation follows evaluation and never substitutes for it.

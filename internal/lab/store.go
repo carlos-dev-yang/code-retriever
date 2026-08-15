@@ -65,7 +65,11 @@ type EvaluationRunRecord struct {
 	Generation                                                                             int64
 	IndexManifestSHA256, QueryManifestSHA256, CandidateProfile                             string
 	SourceProfile, VectorSpaceProfile                                                      string
-	QueryCount, RawDocumentInputs, QueryProviderCalls, QueryTokens                         int
+	QueryCount, RawDocumentInputs                                                          int
+	LogicalQueryOperations, ProviderAttempts, ValidatedResponses, FailedAttempts, Retries  int
+	ObservedTotalTokens                                                                    *int
+	TokenObservedAttempts                                                                  int
+	TokenAccountingComplete                                                                bool
 	ArtifactReference, ArtifactChecksum                                                    string
 }
 
@@ -78,10 +82,14 @@ func (s *Store) EvaluationArtifactsRoot(ctx context.Context) (string, error) {
 }
 
 func (s *Store) RecordEvaluationRun(ctx context.Context, record EvaluationRunRecord) (int64, error) {
-	if record.RunID == "" || record.RepositoryIdentity == "" || record.CorpusID == "" || !labSHA256(record.CorpusManifestSHA256) || record.PinnedCommit == "" || !labSHA256(record.ContentSHA256) || record.Generation < 0 || !labSHA256(record.IndexManifestSHA256) || !labSHA256(record.QueryManifestSHA256) || record.CandidateProfile == "" || record.SourceProfile == "" || record.VectorSpaceProfile == "" || record.QueryCount <= 0 || record.RawDocumentInputs <= 0 || record.QueryProviderCalls < 0 || record.QueryTokens < 0 || !validArtifactReference(record.ArtifactReference) || !labSHA256(record.ArtifactChecksum) {
+	if record.RunID == "" || record.RepositoryIdentity == "" || record.CorpusID == "" || !labSHA256(record.CorpusManifestSHA256) || record.PinnedCommit == "" || !labSHA256(record.ContentSHA256) || record.Generation < 0 || !labSHA256(record.IndexManifestSHA256) || !labSHA256(record.QueryManifestSHA256) || record.CandidateProfile == "" || record.SourceProfile == "" || record.VectorSpaceProfile == "" || record.QueryCount <= 0 || record.RawDocumentInputs <= 0 || record.LogicalQueryOperations != record.QueryCount || record.ProviderAttempts < record.LogicalQueryOperations || record.ValidatedResponses < 0 || record.ValidatedResponses > record.LogicalQueryOperations || record.FailedAttempts != record.ProviderAttempts-record.ValidatedResponses || record.Retries != record.ProviderAttempts-record.LogicalQueryOperations || record.TokenObservedAttempts != record.ValidatedResponses || (record.ObservedTotalTokens == nil && (record.TokenObservedAttempts != 0 || record.TokenAccountingComplete)) || (record.ObservedTotalTokens != nil && (*record.ObservedTotalTokens < 0 || record.TokenObservedAttempts == 0)) || (record.TokenAccountingComplete && (record.ValidatedResponses != record.LogicalQueryOperations || record.FailedAttempts != 0)) || !validArtifactReference(record.ArtifactReference) || !labSHA256(record.ArtifactChecksum) {
 		return 0, fmt.Errorf("invalid evaluation run record")
 	}
-	result, err := s.db.ExecContext(ctx, `INSERT INTO evaluation_runs(run_id,repository_identity,corpus_id,corpus_manifest_sha256,pinned_commit,content_sha256,generation,index_manifest_sha256,query_manifest_sha256,query_count,candidate_profile,source_profile,vector_space_profile,raw_document_inputs,query_provider_calls,query_tokens,artifact_reference,artifact_checksum,status) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'complete')`, record.RunID, record.RepositoryIdentity, record.CorpusID, record.CorpusManifestSHA256, record.PinnedCommit, record.ContentSHA256, record.Generation, record.IndexManifestSHA256, record.QueryManifestSHA256, record.QueryCount, record.CandidateProfile, record.SourceProfile, record.VectorSpaceProfile, record.RawDocumentInputs, record.QueryProviderCalls, record.QueryTokens, record.ArtifactReference, record.ArtifactChecksum)
+	complete := 0
+	if record.TokenAccountingComplete {
+		complete = 1
+	}
+	result, err := s.db.ExecContext(ctx, `INSERT INTO evaluation_runs(run_id,repository_identity,corpus_id,corpus_manifest_sha256,pinned_commit,content_sha256,generation,index_manifest_sha256,query_manifest_sha256,query_count,candidate_profile,source_profile,vector_space_profile,raw_document_inputs,logical_query_operations,provider_attempts,validated_responses,failed_attempts,retries,observed_total_tokens,token_observed_attempts,token_accounting_complete,artifact_reference,artifact_checksum,status) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'complete')`, record.RunID, record.RepositoryIdentity, record.CorpusID, record.CorpusManifestSHA256, record.PinnedCommit, record.ContentSHA256, record.Generation, record.IndexManifestSHA256, record.QueryManifestSHA256, record.QueryCount, record.CandidateProfile, record.SourceProfile, record.VectorSpaceProfile, record.RawDocumentInputs, record.LogicalQueryOperations, record.ProviderAttempts, record.ValidatedResponses, record.FailedAttempts, record.Retries, record.ObservedTotalTokens, record.TokenObservedAttempts, complete, record.ArtifactReference, record.ArtifactChecksum)
 	if err != nil {
 		return 0, err
 	}

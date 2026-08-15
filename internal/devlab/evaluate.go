@@ -10,7 +10,6 @@ import (
 	"math"
 	"os"
 	"path/filepath"
-	"sync"
 
 	"cidx/internal/app"
 	"cidx/internal/embed"
@@ -26,20 +25,20 @@ import (
 // preflight. It intentionally contains no checkout path, source text, raw
 // vector, query vector, credential, or provider usage.
 type RetrievalEvaluationPlan struct {
-	CorpusID                  string `json:"corpus_id"`
-	CorpusManifestSHA256      string `json:"corpus_manifest_sha256"`
-	DatasetSHA256             string `json:"dataset_sha256"`
-	PinnedCommit              string `json:"pinned_commit"`
-	ContentSHA256             string `json:"content_sha256"`
-	IndexGeneration           int64  `json:"index_generation"`
-	IndexManifestSHA256       string `json:"index_manifest_sha256"`
-	RawDocumentInputs         int    `json:"raw_document_inputs"`
-	QueryCount                int    `json:"query_count"`
-	EstimatedQueryTokens      int    `json:"estimated_query_tokens"`
-	ServingProfile            string `json:"serving_profile"`
-	QueryProviderCallsPlanned int    `json:"query_provider_calls_planned"`
-	CostEstimateAvailable     bool   `json:"cost_estimate_available"`
-	CostEstimateReason        string `json:"cost_estimate_reason"`
+	CorpusID                      string `json:"corpus_id"`
+	CorpusManifestSHA256          string `json:"corpus_manifest_sha256"`
+	DatasetSHA256                 string `json:"dataset_sha256"`
+	PinnedCommit                  string `json:"pinned_commit"`
+	ContentSHA256                 string `json:"content_sha256"`
+	IndexGeneration               int64  `json:"index_generation"`
+	IndexManifestSHA256           string `json:"index_manifest_sha256"`
+	RawDocumentInputs             int    `json:"raw_document_inputs"`
+	QueryCount                    int    `json:"query_count"`
+	EstimatedQueryTokens          int    `json:"estimated_query_tokens"`
+	ServingProfile                string `json:"serving_profile"`
+	LogicalQueryOperationsPlanned int    `json:"logical_query_operations_planned"`
+	CostEstimateAvailable         bool   `json:"cost_estimate_available"`
+	CostEstimateReason            string `json:"cost_estimate_reason"`
 }
 
 type retrievalPrepared struct {
@@ -182,7 +181,7 @@ func PrepareRetrievalEvaluation(ctx context.Context, application *app.Applicatio
 	if _, err := application.Search.StartEvaluationSession(ctx, dataset.Cases[0].Text); err != nil {
 		return retrievalPrepared{}, err
 	}
-	return retrievalPrepared{plan: RetrievalEvaluationPlan{CorpusID: manifest.CorpusID, CorpusManifestSHA256: manifestFingerprint, DatasetSHA256: datasetFingerprint, PinnedCommit: verified.PinnedCommit, ContentSHA256: verified.ContentSHA256, IndexGeneration: inventory.Generation, IndexManifestSHA256: inventory.ManifestSHA256, RawDocumentInputs: len(required), QueryCount: len(dataset.Cases), EstimatedQueryTokens: estimatedTokens, ServingProfile: string(application.Resolved.Profiles.Fingerprints.VectorStorage), QueryProviderCallsPlanned: len(dataset.Cases), CostEstimateAvailable: false, CostEstimateReason: "no dated provider price has been frozen for this run"}, dataset: dataset, application: application, raw: raw, required: required}, nil
+	return retrievalPrepared{plan: RetrievalEvaluationPlan{CorpusID: manifest.CorpusID, CorpusManifestSHA256: manifestFingerprint, DatasetSHA256: datasetFingerprint, PinnedCommit: verified.PinnedCommit, ContentSHA256: verified.ContentSHA256, IndexGeneration: inventory.Generation, IndexManifestSHA256: inventory.ManifestSHA256, RawDocumentInputs: len(required), QueryCount: len(dataset.Cases), EstimatedQueryTokens: estimatedTokens, ServingProfile: string(application.Resolved.Profiles.Fingerprints.VectorStorage), LogicalQueryOperationsPlanned: len(dataset.Cases), CostEstimateAvailable: false, CostEstimateReason: "no dated provider price has been frozen for this run"}, dataset: dataset, application: application, raw: raw, required: required}, nil
 }
 
 func (prepared retrievalPrepared) Plan() RetrievalEvaluationPlan { return prepared.plan }
@@ -206,48 +205,29 @@ func (prepared retrievalPrepared) Apply(ctx context.Context, client embedclient.
 	if err != nil {
 		return RetrievalEvaluationApplied{}, err
 	}
-	usageClient := &recordingEmbeddingClient{delegate: client}
-	executor := &retrievalExecutor{application: prepared.application, client: usageClient, documents: documents, sessions: map[string]search.EvaluationSession{}, arms: map[string]search.EvaluationVectorArms{}, queries: map[string]queryVector{}, failures: map[string]error{}}
+	usage := newRetrievalProviderUsage(prepared, client)
+	executor := &retrievalExecutor{application: prepared.application, usage: usage, documents: documents, sessions: map[string]search.EvaluationSession{}, arms: map[string]search.EvaluationVectorArms{}, queries: map[string]queryVector{}, failures: map[string]error{}}
 	run, err := eval.RunRetrievalEvaluation(ctx, prepared.dataset, eval.DefaultRetrievalPlan([]int{prepared.application.Resolved.Search.ReturnK}), executor)
 	if err != nil {
 		return RetrievalEvaluationApplied{}, err
 	}
-	usage := usageClient.Usage()
-	artifact, err := publishRetrievalArtifact(ctx, prepared, run, usage)
+	providerUsage, err := usage.Finalize(prepared, prepared.dataset, run)
 	if err != nil {
 		return RetrievalEvaluationApplied{}, err
 	}
-	if _, err := prepared.raw.RecordEvaluationRun(ctx, lab.EvaluationRunRecord{RunID: artifact.RunID, RepositoryIdentity: prepared.plan.ContentSHA256, CorpusID: prepared.plan.CorpusID, CorpusManifestSHA256: prepared.plan.CorpusManifestSHA256, PinnedCommit: prepared.plan.PinnedCommit, ContentSHA256: prepared.plan.ContentSHA256, Generation: prepared.plan.IndexGeneration, IndexManifestSHA256: prepared.plan.IndexManifestSHA256, QueryManifestSHA256: prepared.plan.DatasetSHA256, QueryCount: prepared.plan.QueryCount, CandidateProfile: prepared.plan.ServingProfile, SourceProfile: string(prepared.application.Resolved.Profiles.Fingerprints.Source), VectorSpaceProfile: string(prepared.application.Resolved.Profiles.Fingerprints.VectorSpace), RawDocumentInputs: prepared.plan.RawDocumentInputs, QueryProviderCalls: usage.QueryProviderCalls, QueryTokens: usage.QueryTokens, ArtifactReference: artifact.Reference, ArtifactChecksum: artifact.Checksum}); err != nil {
+	artifact, err := publishRetrievalArtifact(ctx, prepared, run, providerUsage)
+	if err != nil {
+		return RetrievalEvaluationApplied{}, err
+	}
+	if err := providerUsage.Validate(prepared, prepared.dataset, run); err != nil {
+		_ = removeRetrievalArtifact(context.Background(), prepared, artifact)
+		return RetrievalEvaluationApplied{}, err
+	}
+	if _, err := prepared.raw.RecordEvaluationRun(ctx, lab.EvaluationRunRecord{RunID: artifact.RunID, RepositoryIdentity: prepared.plan.ContentSHA256, CorpusID: prepared.plan.CorpusID, CorpusManifestSHA256: prepared.plan.CorpusManifestSHA256, PinnedCommit: prepared.plan.PinnedCommit, ContentSHA256: prepared.plan.ContentSHA256, Generation: prepared.plan.IndexGeneration, IndexManifestSHA256: prepared.plan.IndexManifestSHA256, QueryManifestSHA256: prepared.plan.DatasetSHA256, QueryCount: prepared.plan.QueryCount, CandidateProfile: prepared.plan.ServingProfile, SourceProfile: string(prepared.application.Resolved.Profiles.Fingerprints.Source), VectorSpaceProfile: string(prepared.application.Resolved.Profiles.Fingerprints.VectorSpace), RawDocumentInputs: prepared.plan.RawDocumentInputs, LogicalQueryOperations: providerUsage.Aggregate.LogicalQueryOperations, ProviderAttempts: providerUsage.Aggregate.ProviderAttempts, ValidatedResponses: providerUsage.Aggregate.ValidatedResponses, FailedAttempts: providerUsage.Aggregate.FailedAttempts, Retries: providerUsage.Aggregate.Retries, ObservedTotalTokens: providerUsage.Aggregate.ObservedTotalTokens, TokenObservedAttempts: providerUsage.Aggregate.TokenObservedAttempts, TokenAccountingComplete: providerUsage.Aggregate.TokenAccountingComplete, ArtifactReference: artifact.Reference, ArtifactChecksum: artifact.Checksum}); err != nil {
 		_ = removeRetrievalArtifact(context.Background(), prepared, artifact)
 		return RetrievalEvaluationApplied{}, err
 	}
 	return RetrievalEvaluationApplied{Run: run, Artifact: artifact}, nil
-}
-
-type recordingEmbeddingClient struct {
-	delegate embedclient.EmbeddingClient
-	mu       sync.Mutex
-	usage    retrievalProviderUsage
-}
-
-func (client *recordingEmbeddingClient) Embed(ctx context.Context, request embedclient.EmbeddingRequest) (embedclient.EmbeddingResponse, error) {
-	response, err := client.delegate.Embed(ctx, request)
-	client.mu.Lock()
-	defer client.mu.Unlock()
-	client.usage.QueryProviderCalls++
-	if err != nil {
-		client.usage.FailedCalls++
-		return embedclient.EmbeddingResponse{}, err
-	}
-	client.usage.SuccessfulCalls++
-	client.usage.QueryTokens += response.TotalTokens
-	return response, nil
-}
-
-func (client *recordingEmbeddingClient) Usage() retrievalProviderUsage {
-	client.mu.Lock()
-	defer client.mu.Unlock()
-	return client.usage
 }
 
 func (prepared retrievalPrepared) targetDocuments(ctx context.Context) (map[string][]float32, error) {
@@ -285,7 +265,7 @@ type queryVector struct {
 
 type retrievalExecutor struct {
 	application *app.Application
-	client      embedclient.EmbeddingClient
+	usage       *retrievalProviderUsageRecorder
 	documents   map[string][]float32
 	sessions    map[string]search.EvaluationSession
 	arms        map[string]search.EvaluationVectorArms
@@ -368,7 +348,15 @@ func (executor *retrievalExecutor) vectorArms(ctx context.Context, item evalcont
 	if err, ok := executor.failures[item.ID]; ok {
 		return search.EvaluationVectorArms{}, queryVector{}, err
 	}
-	query, err := search.EmbedEvaluationQuery(ctx, executor.client, executor.application.Resolved, item.Text)
+	recorder, err := executor.usage.Start(item.ID)
+	if err != nil {
+		return search.EvaluationVectorArms{}, queryVector{}, err
+	}
+	query, embedErr := search.EmbedEvaluationQuery(ctx, recorder, executor.application.Resolved, item.Text)
+	if err := executor.usage.Finish(ctx, recorder, embedErr); err != nil {
+		return search.EvaluationVectorArms{}, queryVector{}, err
+	}
+	err = embedErr
 	if err != nil {
 		executor.failures[item.ID] = err
 		return search.EvaluationVectorArms{}, queryVector{}, err

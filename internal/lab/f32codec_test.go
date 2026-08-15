@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"testing"
 )
@@ -148,7 +149,7 @@ func TestLabMigrationIsAtomicAndFailsClosed(t *testing.T) {
 	if err := migrate(ctx, db); err != nil {
 		t.Fatalf("current schema did not validate: %v", err)
 	}
-	if _, err := db.ExecContext(ctx, `PRAGMA user_version=5`); err != nil {
+	if _, err := db.ExecContext(ctx, `PRAGMA user_version=6`); err != nil {
 		t.Fatal(err)
 	}
 	if err := migrate(ctx, db); err == nil {
@@ -169,6 +170,71 @@ func TestLabMigrationIsAtomicAndFailsClosed(t *testing.T) {
 	var unknownVersion int
 	if err := unknownDB.QueryRowContext(ctx, `PRAGMA user_version`).Scan(&unknownVersion); err != nil || unknownVersion != 0 {
 		t.Fatalf("failed migration stamped version=%d err=%v", unknownVersion, err)
+	}
+}
+
+func TestV4ToV5EvaluationUsageMigrationPreservesLegacyAccounting(t *testing.T) {
+	ctx := context.Background()
+	db, err := sql.Open("sqlite", filepath.Join(t.TempDir(), "v4.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if err := migrate(ctx, db); err != nil {
+		t.Fatal(err)
+	}
+	for _, statement := range []string{
+		`ALTER TABLE lab_meta RENAME TO lab_meta_v5`,
+		labMetaV4TableStatement,
+		`INSERT INTO lab_meta(id,schema_version,canonical_root,created_at,last_successful_collection_at) SELECT id,4,canonical_root,created_at,last_successful_collection_at FROM lab_meta_v5`,
+		`DROP TABLE lab_meta_v5`,
+		`ALTER TABLE evaluation_runs RENAME TO evaluation_runs_v5`,
+		evaluationRunsV4TableStatement,
+		`INSERT INTO evaluation_runs(id,run_id,repository_identity,corpus_id,corpus_manifest_sha256,pinned_commit,content_sha256,generation,index_manifest_sha256,query_manifest_sha256,query_count,candidate_profile,source_profile,vector_space_profile,raw_document_inputs,query_provider_calls,query_tokens,artifact_reference,artifact_checksum,status,created_at) VALUES(9,'run','identity','corpus','manifest','commit','content',7,'index','queries',2,'candidate','source','space',3,4,0,'evaluations/run','checksum','complete','then')`,
+		`DROP TABLE evaluation_runs_v5`,
+		`PRAGMA user_version=4`,
+	} {
+		if _, err := db.ExecContext(ctx, statement); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := migrate(ctx, db); err != nil {
+		t.Fatal(err)
+	}
+	var status string
+	var legacyCalls, legacyTokens int
+	var logical, observed any
+	var created string
+	if err := db.QueryRowContext(ctx, `SELECT status,legacy_query_provider_calls,legacy_query_tokens,logical_query_operations,observed_total_tokens,created_at FROM evaluation_runs WHERE id=9`).Scan(&status, &legacyCalls, &legacyTokens, &logical, &observed, &created); err != nil {
+		t.Fatal(err)
+	}
+	if status != "legacy" || legacyCalls != 4 || legacyTokens != 0 || logical != nil || observed != nil || created != "then" {
+		t.Fatalf("v4 preservation status=%q calls=%d tokens=%d logical=%v observed=%v created=%q", status, legacyCalls, legacyTokens, logical, observed, created)
+	}
+}
+
+func TestRecordEvaluationRunV5AccountingAndSQLChecks(t *testing.T) {
+	ctx := context.Background()
+	store, err := OpenStore(ctx, Options{Root: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	zero := 0
+	hash := strings.Repeat("a", 64)
+	record := EvaluationRunRecord{RunID: "run", RepositoryIdentity: "identity", CorpusID: "corpus", CorpusManifestSHA256: hash, PinnedCommit: "commit", ContentSHA256: hash, Generation: 1, IndexManifestSHA256: hash, QueryManifestSHA256: hash, QueryCount: 1, CandidateProfile: "candidate", SourceProfile: "source", VectorSpaceProfile: "space", RawDocumentInputs: 1, LogicalQueryOperations: 1, ProviderAttempts: 1, ValidatedResponses: 1, FailedAttempts: 0, Retries: 0, ObservedTotalTokens: &zero, TokenObservedAttempts: 1, TokenAccountingComplete: true, ArtifactReference: "evaluations/run", ArtifactChecksum: hash}
+	if _, err := store.RecordEvaluationRun(ctx, record); err != nil {
+		t.Fatal(err)
+	}
+	var observed int
+	var complete int
+	if err := store.db.QueryRowContext(ctx, `SELECT observed_total_tokens,token_accounting_complete FROM evaluation_runs WHERE run_id='run'`).Scan(&observed, &complete); err != nil || observed != 0 || complete != 1 {
+		t.Fatalf("v5 row observed=%d complete=%d err=%v", observed, complete, err)
+	}
+	record.RunID, record.ArtifactReference = "bad", "evaluations/bad"
+	record.ObservedTotalTokens = nil
+	if _, err := store.RecordEvaluationRun(ctx, record); err == nil {
+		t.Fatal("incomplete token accounting accepted as complete")
 	}
 }
 

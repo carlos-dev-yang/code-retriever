@@ -1,6 +1,6 @@
 # cidx v1 Implementation Plan Index
 
-- Status: Revision 4 Phase 11 reconciliation complete; Phase 12 corpus-independent adapter is next
+- Status: Revision 4 Phase 12 corpus-independent boundary accepted; official evaluation remains blocked; Phase 13 is next
 - Canonical design: [Local Code Search MCP v1 Final Target Contract — Revision 4](../../local-code-search-mcp-v1-design-r4.md)
 - Earlier designs: [original](../../local-code-search-mcp-v1-design.md), [r1](../../local-code-search-mcp-v1-design-r1.md), [r2](../../local-code-search-mcp-v1-design-r2.md), [r3](../../local-code-search-mcp-v1-design-r3.md)
 - Execution protocol: [Implementation Execution and Context-Recovery Guide](EXECUTION-GUIDE.md)
@@ -28,6 +28,12 @@ accepted executor. Its snapshot, codec scan, collapse, RRF, fallback, and
 body-packaging algorithms remain frozen at the historical accepted boundary.
 Focused offline checks, independent review, and main boundary validation are
 accepted in [the Phase 11 R4 evidence](evidence/phase-11/revision-4.md).
+
+Phase 12's corpus-independent provider-usage accounting, artifact wire, and
+isolated lab migration are accepted in [its Revision 4 evidence](evidence/phase-12/revision-4.md).
+Retrieval algorithms and normative evaluation schemas remain frozen. Official
+corpus evidence and promotion remain blocked, but Phase 13 is eligible without
+a corpus, provider, paid, or metric run.
 
 cidx is a **local auxiliary search MCP** used alongside file readers, symbol tools, compilers, and tests. It is not a comprehensive code-knowledge system. The plan is bounded by free local AST/FTS indexing, explicit paid embeddings, a small MCP surface, caller-controlled inline source volume, and one serving-vector profile per repository.
 
@@ -62,7 +68,7 @@ Allowed states are `planned | in_progress | blocked | done`. A phase becomes `do
 | 09 | done | [Vector materialization](09-vector-materialization.md) | 01, 02, 05, 08 | Shared reduction/normalization, binary/int8 codecs, and selected-profile publish | [Evidence](09-vector-materialization.md#11-completion-evidence) |
 | 10 | done | [Embedding orchestration and reconciliation](10-embedding-orchestration-and-reconciliation.md) | reconciled 05, 08, existing 09 | Byte-bounded concurrent document requests, shared retry execution, and profile reconciliation | [Accepted R4 evidence](evidence/phase-10/revision-4.md) |
 | 11 | done | [Vector and hybrid search](11-vector-and-hybrid-search.md) | 06, 09, reconciled 10 | Shared query request/retry policy, codec scan, RRF, fallback, and body packaging | [Accepted R4 evidence](evidence/phase-11/revision-4.md) |
-| 12 | blocked | [Retrieval evaluation](12-retrieval-evaluation.md) | 07, reconciled 08, 09, 11 | Reconcile the corpus-independent adapter to Revision 4; official promotion remains externally gated | [Historical evidence](evidence/phase-12/README.md) |
+| 12 | blocked | [Retrieval evaluation](12-retrieval-evaluation.md) | 07, reconciled 08, 09, 11 | Accepted Revision 4 corpus-independent adapter; official corpus evaluation and promotion remain externally gated | [Accepted R4 core evidence](evidence/phase-12/revision-4.md) |
 | 13 | planned | [CLI and MCP](13-cli-and-mcp.md) | reconciled 05, 10, 11 and Phase 12 corpus-independent core | Complete Revision 4 CLI defaults, four MCP tools, and concurrent dispatch | [Historical checkpoint](evidence/phase-13/README.md) |
 | 14 | planned | [Packaging and host integration](14-packaging-and-host-integration.md) | 13 | Distributable binary, project-scoped host examples, paired marginal assistant-use evidence, and scoped release-candidate result | [Evidence](14-packaging-and-host-integration.md#11-completion-evidence) |
 

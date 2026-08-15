@@ -1,6 +1,6 @@
 # Revision 4 Reconciliation and Evidence Supersession
 
-- State: Phase 00, Phase 02, Phase 05, Phase 08, Phase 10, and Phase 11 reconciliation complete; later affected phases pending
+- State: Phase 00, Phase 02, Phase 05, Phase 08, Phase 10, Phase 11, and the Phase 12 corpus-independent boundary are accepted; official Phase 12 remains externally blocked; Phase 13 is next
 - Date: 2026-08-15
 - Canonical authority: [`local-code-search-mcp-v1-design-r4.md`](../../../../local-code-search-mcp-v1-design-r4.md)
 - Historical checkpoint: `b3a6cb1`
@@ -26,7 +26,7 @@ Revision 4 changes the public config/profile vocabulary and fixed operational re
 | 08 | raw-bank isolation, response validation, cache-first capture | token-named sequential grouping and immediate retry | [shared byte-bounded synchronous executor and raw-lab evidence](../phase-08/revision-4.md) complete |
 | 10 | plan/apply approval and atomic result publication | request concurrency, staged waits, `Retry-After`, cancellation | [deterministic bounded document orchestration evidence](../phase-10/revision-4.md) complete |
 | 11 | vector scan, collapse, RRF, fallback, body packaging | query provider policy | [shared request-policy/fallback evidence](../phase-11/revision-4.md) complete |
-| 12 | stage metrics, arm orchestration, artifact isolation | `serving_dimensions` wire and R4 request/profile controls | corpus-independent adapter revalidation; official evidence remains externally gated |
+| 12 | stage metrics, arm orchestration, artifact isolation | `serving_dimensions`, retry-attempt usage, and R4 request/profile controls | [corpus-independent accounting/migration evidence](../phase-12/revision-4.md) accepted after review/remediation and one boundary validation; official evidence remains externally gated |
 | 13 | CLI/MCP adapters, four tools, stdio concurrency, status/reindex | `init`, config names/defaults, request policy, read-span line cap | final CLI/MCP evidence and phase-scoped acceptance commit |
 
 Phases 03/04 retain their AST-boundary and oversize-segment evidence, Phase 06 retains its free FTS evidence, and Phase 09 retains its transform/codec evidence. Their connections to the new `ResolvedConfig` and fingerprints are checked at the affected owning phase boundaries rather than reopening unchanged algorithms.

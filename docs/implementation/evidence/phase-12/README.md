@@ -1,5 +1,9 @@
 # Phase 12 Retrieval Evaluation Infrastructure Evidence
 
+> Historical pre-Revision-4 implementation evidence. The current
+> corpus-independent reconciliation is recorded separately in
+> [Revision 4 evidence](revision-4.md); official evaluation remains blocked.
+
 - Phase: `12-retrieval-evaluation`
 - State: `blocked` — reusable corpus-independent infrastructure is implemented; official evaluation and promotion evidence require external, user-controlled inputs.
 - Date: 2026-08-15
