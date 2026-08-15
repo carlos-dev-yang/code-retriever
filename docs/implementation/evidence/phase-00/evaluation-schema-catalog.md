@@ -44,7 +44,7 @@ The primary retrieval first loss is `PROVIDER_UNION_MISS` only when neither prov
 ## Metric ownership
 
 - Human relevance owns Hit/Recall/MRR/NDCG, requirement coverage, complete hit, known-hard-negative hits, and assistant usefulness.
-- Exhaustive target-dimension f32 owns binary/int8 representation fidelity: retention, missing candidates, displacement, inversion, and ties.
+- Exhaustive serving-dimension f32 owns binary/int8 representation fidelity: retention, missing candidates, displacement, inversion, and ties.
 - FTS, dense, union, collapse, RRF, body, and assistant stages keep separate denominators and first-loss attribution.
 - BM25, cosine, binary, int8, and RRF raw scores are never compared directly or interpreted as confidence.
 - No weighted total exists.

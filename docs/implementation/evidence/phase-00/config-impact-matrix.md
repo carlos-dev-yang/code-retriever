@@ -11,7 +11,7 @@ The change planner compares fully resolved desired profiles with applied databas
 | Canonical formatter implementation with identical produced bytes | canonical input hash and paid raw key | canonical-text profile fingerprint | rebuild/reconcile and verify actual hashes | no for identical bytes |
 | Canonical input bytes changed | none for affected input | canonical input, raw/source and serving keys | local reindex then explicit paid document embedding or compatible raw lookup | yes |
 | Model/provider/source-role/dtype/truncation/adapter semantic contract | index and canonical bytes | source, vector-space, storage, serving keys | reconciliation and explicit paid document embedding | yes |
-| Target dimension | index, canonical input, paid source raw | vector-space, storage, serving keys | local reconciliation then rematerialize compatible raw or embed | conditional |
+| Serving dimension | index, canonical input, paid source raw | vector-space, storage, serving keys | local reconciliation then rematerialize compatible raw or embed | conditional |
 | Reducer/normalizer/metric | index, canonical input, paid source raw | vector-space, storage, serving keys | local reconciliation then rematerialize compatible raw | no when raw exists |
 | `binary` to `int8` or reverse | index, canonical input, source and vector-space | storage and serving keys | local reconciliation then rematerialize compatible raw or normal embed | conditional |
 | Database schema version | semantic identity depends on migration contents, not version number alone | schema compatibility | offline/startup migration with rollback | no |
@@ -26,4 +26,10 @@ The change planner compares fully resolved desired profiles with applied databas
 6. Refuse paid embed/materialize/hybrid work until required reconciliation is complete.
 7. Keep FTS available throughout vector mismatch or partial vector coverage.
 
-Changing target dimension or codec never causes the runtime to open the lab automatically. The explicit development materializer may use compatible raw only after current config and active segment keys agree.
+Changing serving dimension or codec never causes the runtime to open the lab automatically. The explicit development materializer may use compatible raw only after current config and active segment keys agree.
+
+## Pre-Revision-4 transition
+
+- Removed config fields are not aliases. A legacy shape fails with a typed field-mapping error before database open.
+- Existing SQLite schemas remain intact. New canonical profile JSON produces new fingerprints rather than mutating historical profile identity.
+- The index-profile change requires a local reindex. An existing serving vector is rekeyed only after exact legacy/new semantic equivalence and blob integrity are proved; otherwise use compatible raw rematerialization or a separately approved paid embedding.

@@ -11,7 +11,7 @@ These values are centralized registries or named protocol constants. They are no
 | Credential environment name | `VOYAGE_API_KEY` | Voyage adapter/bootstrap |
 | Model | `voyage-code-4` | `ModelSpec` registry |
 | Source dimensions | `1024` | `ModelSpec` registry |
-| Allowed target dimensions | `256,512,1024` | `ModelSpec` registry |
+| Allowed serving dimensions | `256,512,1024` | `ModelSpec` registry |
 | Document/query roles | `document` / `query` | source profile/adapter |
 | Output dtype | provider float response validated as 1024 finite f32 values | source profile/adapter |
 | Truncation | explicit `false` | source profile/adapter |
@@ -34,9 +34,9 @@ These values are centralized registries or named protocol constants. They are no
 
 | Registry | Closed v1 surface | Exact implementation evidence |
 | --- | --- | --- |
-| Reducer | source prefix reduction from 1024 to an allowed target | Phase 01 |
+| Reducer | source prefix reduction from 1024 to an allowed serving dimension | Phase 01 |
 | Normalizer | L2 normalization | Phase 01 |
-| Metric | cosine target-space reference | Phase 01 |
+| Metric | cosine serving-space reference | Phase 01 |
 | Storage codec | `binary|int8`, default `binary` | Phase 01 |
 | Binary codec contract | bit mapping, packing order, padding, query preparation, scorer and version | Phase 01; not yet fixed |
 | int8 codec contract | scale, rounding, clamp, norm, query preparation, scorer and version | Phase 01; not yet fixed |
@@ -48,6 +48,19 @@ Provider-native `output_dtype=binary|int8` is not a cidx codec and must never sh
 
 ## Safety ceilings and error identifiers
 
-The executable owns absolute ceilings for source bytes, chunk/segment bytes, result/candidate counts, inline bytes, read-span lines/bytes, batches, retries, and concurrency. Config may select only a value within those ceilings. Exact numbers are measured and fixed by their owning phase rather than guessed in Phase 00.
+| Contract | Code-owned v1 ceiling/default |
+| --- | --- |
+| Eligible source file | default and absolute ceiling 1 MiB |
+| Semantic chunk | no configurable byte cap |
+| AST-aware segment target | default 1,024 bytes; evaluation candidates 768/1,024/1,536 |
+| Synchronous request inputs | at most 128 |
+| Synchronous request canonical input | at most 256 KiB |
+| Concurrent provider requests | at most 4 |
+| Provider request timeout | 30 seconds |
+| Transient retries | at most 3 after 10/20/30 seconds; longer valid `Retry-After` wins |
+| MCP inline body | default 64 KiB; executable ceiling 1 MiB |
+| `read_span` | no line-count cap; complete byte-bounded response or typed error |
+
+The executable owns these independent ceilings and rejects a config value above them. The two 1 MiB ceilings have different names and purposes even though their numeric values match. A provider token estimate remains cost information and is never substituted for the request byte boundary.
 
 Stable error identifiers are code constants, not parsed message text. At minimum they cover config/schema/profile mismatch, reconciliation/materialization required, paid-query disabled, missing API key, query/document embedding failure, stale/not-found/oversized spans, invalid vector/blob, generation change, corpus approval/license/hash failure, raw coverage incomplete, and incomplete evaluation.

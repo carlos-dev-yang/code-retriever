@@ -1,6 +1,6 @@
 # cidx v1 Implementation Plan Index
 
-- Status: Revision 4 reconciliation resumed; Phase 00 contract evidence is being superseded before implementation changes
+- Status: Revision 4 reconciliation resumed; Phase 00 complete, Phase 02 is next
 - Canonical design: [Local Code Search MCP v1 Final Target Contract — Revision 4](../../local-code-search-mcp-v1-design-r4.md)
 - Earlier designs: [original](../../local-code-search-mcp-v1-design.md), [r1](../../local-code-search-mcp-v1-design-r1.md), [r2](../../local-code-search-mcp-v1-design-r2.md), [r3](../../local-code-search-mcp-v1-design-r3.md)
 - Execution protocol: [Implementation Execution and Context-Recovery Guide](EXECUTION-GUIDE.md)
@@ -33,7 +33,7 @@ Allowed states are `planned | in_progress | blocked | done`. A phase becomes `do
 
 | Phase | Status | Document | Prerequisites | Primary deliverable | Completion evidence |
 | --- | --- | --- | --- | --- | --- |
-| 00 | in_progress | [Shared contracts and configuration](00-shared-contracts-and-config.md) | none | Revision 4 field catalog, profile/hash hierarchy, migration policy, and change-impact rules | [Evidence](evidence/revision-4/README.md) |
+| 00 | done | [Shared contracts and configuration](00-shared-contracts-and-config.md) | none | Revision 4 field catalog, profile/hash hierarchy, migration policy, and change-impact rules | [Evidence](evidence/phase-00/README.md) |
 | 01 | done | [Runtime and storage spike](01-runtime-storage-spike.md) | 00 | SQLite/FTS5/Tree-sitter packaging decisions, generation and codec evidence | [Evidence](01-runtime-storage-spike.md#11-completion-evidence) |
 | 02 | planned | [Configuration, profiles, and schemas](02-config-profiles-and-schemas.md) | 00, 01 | Revision 4 `ResolvedConfig`, fingerprints, strict legacy handling, and evaluation wire | [Historical evidence](evidence/phase-02/README.md) |
 | 03 | done | [Go chunker](03-go-chunker.md) | 02 | Go function, method, and type chunks/projections | [Evidence](03-go-chunker.md#11-completion-evidence) |

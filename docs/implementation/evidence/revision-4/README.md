@@ -1,6 +1,6 @@
 # Revision 4 Reconciliation and Evidence Supersession
 
-- State: in progress
+- State: Phase 00 contract reconciliation complete; implementation phases pending
 - Date: 2026-08-15
 - Canonical authority: [`local-code-search-mcp-v1-design-r4.md`](../../../../local-code-search-mcp-v1-design-r4.md)
 - Historical checkpoint: `b3a6cb1`
@@ -20,7 +20,7 @@ Revision 4 changes the public config/profile vocabulary and fixed operational re
 
 | Phase | Historical evidence that remains useful | Invalidated Revision 4 boundary | Required new evidence |
 | --- | --- | --- | --- |
-| 00 | RFC 8785 method, source/canonical hashes, ownership catalogs | field catalog, vector-space/storage hashes, safety/request constants | corrected catalogs, new hashes, cross-phase terminology review |
+| 00 | RFC 8785 method, source/canonical hashes, ownership catalogs | field catalog, vector-space/storage hashes, safety/request constants | [corrected catalogs and independently reproduced hashes](../phase-00/README.md) complete |
 | 02 | strict decoding, immutable injection, DB isolation, profile hierarchy | raw/resolved names, defaults, profile JSON, evaluation wire | strict R4 config, legacy typed error, fingerprints and schema validation |
 | 05 | live-file and atomic-generation behavior | removed chunk cap and renamed segment target in index profile | local reindex/reconciliation evidence |
 | 08 | raw-bank isolation, response validation, cache-first capture | token-named sequential grouping and immediate retry | shared byte-bounded synchronous executor evidence |

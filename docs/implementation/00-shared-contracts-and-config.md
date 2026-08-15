@@ -1,6 +1,6 @@
 # 00. Shared Contracts and Configuration
 
-- Status: `in_progress` — Revision 4 catalog/hash evidence is being reconciled; pre-R4 evidence remains historical
+- Status: `done` — Revision 4 catalog/hash evidence reconciled on 2026-08-15; pre-R4 evidence remains historical in Git
 - Prerequisite phases: none
 - Downstream phases: all phases 01 through 14
 - Baseline design: [r4](../../local-code-search-mcp-v1-design-r4.md)
@@ -195,7 +195,7 @@ bytes
 -> strict JSON decode
 -> verify supported schema version
 -> apply code defaults
--> resolve provider, model, source dimension, and allowed targets from the model registry
+-> resolve provider, model, source dimension, and allowed serving dimensions from the model registry
 -> cross-field validation
 -> assemble and fingerprint semantic profiles
 -> immutable ResolvedConfig
@@ -370,7 +370,7 @@ This phase creates no test code. It fixes the scenarios Phase 02 must validate.
 2. Changing the codec does not change the canonical-input or source-profile hash, but does change storage and serving fingerprints.
 3. Changing the model cascades through source, vector-space, and storage fingerprints.
 4. Identical canonical input bytes reuse the source raw key even if the formatter implementation version differs.
-5. A target outside the allowed set, an unknown codec, provider or endpoint override fields, and an API key in config are rejected before startup.
+5. A serving dimension outside the allowed set, an unknown codec, provider or endpoint override fields, and an API key in config are rejected before startup.
 6. The production package dependency graph contains no lab package.
 7. FTS and existing production-vector search work without a lab database.
 8. Reusing one evaluation run's query embedding in memory for that config's f32, selected-codec, and hybrid comparison creates no query row in either database. A different candidate profile runs in a separate evaluation run.
@@ -378,6 +378,14 @@ This phase creates no test code. It fixes the scenarios Phase 02 must validate.
 10. A search-policy change creates neither a reindex nor pending embedding work.
 
 ## 11. Completion Evidence
+
+Revision 4 reconciliation, 2026-08-15:
+
+- The field catalog now removes the chunk and read-span line caps, renames the segment and serving-dimension contracts, and separates request bytes from cost-token estimates.
+- The code-constant catalog records the final 1 MiB/1 KiB/64 KiB ceilings and defaults, 128/256 KiB/4/30-second synchronous request policy, and 10/20/30-second retry schedule.
+- The vector-space fixture now uses `serving_dimensions`; its new fingerprint and the dependent storage fingerprint were reproduced independently with `shasum` and OpenSSL.
+- The pre-R4 config/DB/profile transition is fail-closed and preserves historical evidence without accepting legacy aliases.
+- No implementation code, database, provider, corpus, paid action, or generated local state was changed in this documentation phase.
 
 Phase entry record, 2026-08-15:
 
@@ -437,3 +445,5 @@ Provide Phases 03 through 14 with:
 | 2026-08-14 | Define stage-separated evaluation schemas before retrieval runners. | Preserve denominators, first-loss attribution, paired controls, and hard-gate evidence across phases without a weighted total. |
 | 2026-08-15 | Initialize the repository without inventing module, license, remote, or provider credentials. | Git and local-ignore hygiene are prerequisites; unresolved external identifiers remain explicit decisions. |
 | 2026-08-15 | Use RFC 8785 JCS for semantic-profile canonical JSON. | Give profile fingerprints a published cross-language byte contract rather than implementation-dependent map serialization. |
+| 2026-08-15 | Replace pre-R4 config/profile vocabulary strictly rather than accepting aliases. | Avoid two configuration authorities; preserve existing databases and require explicit config migration. |
+| 2026-08-15 | Fix request bytes/concurrency/timeout/retries and independent source/inline ceilings in the Phase 00 catalogs. | Make the user's confirmed operational contract executable before Phase 02 resumes. |

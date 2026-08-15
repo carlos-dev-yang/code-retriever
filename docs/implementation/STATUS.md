@@ -4,15 +4,15 @@ This ledger is the authoritative resumable state for implementation work. Update
 
 ## Current state
 
-- Active phase: `00-shared-contracts-and-config` — Revision 4 evidence reconciliation
-- Active owner: Codex (documentation and evidence only)
+- Active phase: none — Phase 00 Revision 4 reconciliation complete; Phase 02 is next
+- Active owner: none
 - Last updated: 2026-08-15
 - Canonical target: [`local-code-search-mcp-v1-design-r4.md`](../../local-code-search-mcp-v1-design-r4.md)
 - Current blocker: none for Revision 4 implementation reconciliation. Phase 07/12 official evidence separately requires user-selected corpus manifests, local bindings, reviewed labels, compatible raw coverage, and separate paid-query approval.
 - Latest contract change: Revision 4 fixes the 1 MiB source ceiling, AST-aware 1,024-byte segment target, synchronous request grouping, three 10/20/30-second transient retries, 64 KiB inline default, byte-bounded line-cap-free `read_span`, `serving_dimensions` terminology, and FTS/binary defaults.
 - Latest evaluation change: segment candidates are 768/1,024/1,536 bytes; usefulness, codec fidelity, stage loss, and operations stay separate with no weighted total or numeric v1 SLA.
-- Next eligible phase: finish Phase 00 Revision 4 catalogs/hash fixtures, then enter Phase 02.
-- Exact next action: publish the Revision 4 supersession record and corrected Phase 00 config/profile evidence; then assign Phase 02 implementation to a terra/high agent.
+- Next eligible phase: `02-config-profiles-and-schemas`.
+- Exact next action: assign Phase 02 implementation to a terra/high agent, record its entry gate, and implement strict Revision 4 config/profile/evaluation-wire contracts.
 
 Existing phase completion rows and implementation are historical work produced against earlier design revisions. They must not be read as proof that the current code satisfies Revision 4; the implementation remains a prototype until it is explicitly reconciled and revalidated against the final target contract.
 
@@ -20,7 +20,7 @@ Existing phase completion rows and implementation are historical work produced a
 
 | Phase | Status | Owner | Prerequisite evidence checked | Last completed checkpoint | Evidence / blocker | Next action |
 | --- | --- | --- | --- | --- | --- | --- |
-| 00 | in_progress | Codex | Yes — r4 design, execution guide, evaluation contract, implementation index, historical Phase 00 evidence, and clean workspace checked | Revision 4 canonical docs exist; pre-R4 catalogs and vector-space hash fixture identified for supersession | [Revision 4 supersession index](evidence/revision-4/README.md) | Correct Phase 00 catalogs/hash fixture and record independent recomputation |
+| 00 | done | Codex | Yes — r4 design, execution guide, evaluation contract, implementation index, historical Phase 00 evidence, and clean workspace checked | Revision 4 catalogs, compatibility policy, cross-phase review, and independently recomputed vector/storage hash fixtures completed | [Phase 00 evidence index](evidence/phase-00/README.md) and [Revision 4 supersession](evidence/revision-4/README.md) | Enter Phase 02 |
 | 01 | done | terra/high implementation agent; Codex validation | Yes — [Phase 00 evidence](evidence/phase-00/README.md) | Executable spikes and [Phase 01 evidence](evidence/phase-01/README.md) validated | Core, race, vet, build, runner, dependency-boundary, format, and module checks passed | Enter Phase 02 |
 | 02 | planned | — | Historical [Phase 00](evidence/phase-00/README.md), [Phase 01](evidence/phase-01/README.md), and [Phase 02](evidence/phase-02/README.md) evidence inspected; new Phase 00 R4 evidence pending | Pre-R4 implementation is historical; raw/resolved config, profiles, defaults, and evaluation wire still use removed names | [Revision 4 supersession index](evidence/revision-4/README.md) | After Phase 00, implement strict R4 config/profile/wire and legacy-shape handling |
 | 03 | done | terra/high implementation agent; Codex validation | Yes — [Phase 02 evidence](evidence/phase-02/README.md) and `internal/chunk` shared contracts | Go Tree-sitter adapter, exact chunk/projection/segment fixtures, decision log, and [Phase 03 evidence](evidence/phase-03/README.md) accepted | Main focused test, race, vet, build, format, and diff checks passed | Enter Phase 04 |

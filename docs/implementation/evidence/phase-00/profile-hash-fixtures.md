@@ -73,15 +73,15 @@ sha256: 923a0b84bf40d3880b5a081861ed6e17208380a5fa152847d66d2b98f222c0b3
 
 ## Fixture D: vector-space profile
 
-`target_dimensions=512` is a fixture choice, not a project default.
+`serving_dimensions=512` is a fixture choice, not a project default.
 
 ```json
-{"metric":"cosine","normalizer_id":"l2-v1","reducer_id":"prefix-v1","source_profile_fingerprint":"923a0b84bf40d3880b5a081861ed6e17208380a5fa152847d66d2b98f222c0b3","target_dimensions":512}
+{"metric":"cosine","normalizer_id":"l2-v1","reducer_id":"prefix-v1","serving_dimensions":512,"source_profile_fingerprint":"923a0b84bf40d3880b5a081861ed6e17208380a5fa152847d66d2b98f222c0b3"}
 ```
 
 ```text
 domain: cidx/vector-space-profile/v1
-sha256: 7499afe97dad0c21f6bd2aef10a19e2a47036de4490de49b80a4426ce22bdd14
+sha256: 01fd78bd204c5e01b010fba65047e6d6fa565bfcdf6c0d48db9019e709ee91e7
 ```
 
 ## Fixture E: vector-storage profile
@@ -89,12 +89,12 @@ sha256: 7499afe97dad0c21f6bd2aef10a19e2a47036de4490de49b80a4426ce22bdd14
 `fixture-binary-v1` tests framing only. Phase 01 replaces it with the exact production codec/scorer ID after that contract is evidenced.
 
 ```json
-{"storage_codec_id":"fixture-binary-v1","vector_space_profile_fingerprint":"7499afe97dad0c21f6bd2aef10a19e2a47036de4490de49b80a4426ce22bdd14"}
+{"storage_codec_id":"fixture-binary-v1","vector_space_profile_fingerprint":"01fd78bd204c5e01b010fba65047e6d6fa565bfcdf6c0d48db9019e709ee91e7"}
 ```
 
 ```text
 domain: cidx/vector-storage-profile/v1
-sha256: 80f910329088b323e1834e5cc44431c78562f71d8f231405712b5f3c164db007
+sha256: e2a6f905948719066e69817c9a82590f32ab1d1105a987233d2cf092a3abdbfa
 ```
 
 ## Required conformance cases for Phase 02
@@ -108,4 +108,4 @@ sha256: 80f910329088b323e1834e5cc44431c78562f71d8f231405712b5f3c164db007
 
 ## Independent recomputation record
 
-On 2026-08-15, one recursive sorted-object JSON/Digest implementation and a separate `printf` plus system `shasum -a 256` pipeline produced the same five digests above. No repository file, secret, provider call, or environment path entered the payloads.
+On 2026-08-15, the original fixtures were independently reproduced. During Revision 4 reconciliation, the renamed vector-space payload and dependent storage payload were recomputed independently with `shasum -a 256` and OpenSSL SHA-256; both implementations produced `01fd78...91e7` and `e2a6f9...dbfa`. No repository file, secret, provider call, or environment path entered the payloads.
