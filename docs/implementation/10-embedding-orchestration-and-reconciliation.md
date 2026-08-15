@@ -1,6 +1,6 @@
 # 10. Embedding Orchestration and Profile Reconciliation
 
-- Status: `done`
+- Status: `planned` — pre-R4 orchestration is historical; byte grouping, bounded concurrency, and staged retry require reconciliation
 - Prerequisites: `05-worktree-index-pipeline`, `08-raw-embedding-lab`, `09-vector-materialization`
 - Followed by: `11-vector-and-hybrid-search`, `13-cli-and-mcp`
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 4.4, 6, and 7

@@ -1,6 +1,6 @@
 # 02. Configuration, Profiles, and Storage Schemas
 
-- Status: `done`
+- Status: `planned` — pre-R4 implementation is historical; Revision 4 config/profile/wire reconciliation awaits Phase 00 evidence
 - Prerequisite phases: `00-shared-contracts-and-config`, `01-runtime-storage-spike`
 - Downstream phases: `03-go-chunker`, `04-typescript-tsx-chunker`, `05-worktree-index-pipeline`, `08-raw-embedding-lab`
 - Design basis: `local-code-search-mcp-v1-design-r4.md` Sections 4.4, 6, and 9

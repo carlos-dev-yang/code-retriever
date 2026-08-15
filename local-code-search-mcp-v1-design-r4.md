@@ -1,6 +1,6 @@
 # Local Code Search MCP v1 — Final Target Contract (Revision 4)
 
-- Status: final implementation target; implementation is paused until explicitly resumed
+- Status: final implementation target; Revision 4 reconciliation is in progress
 - Date: 2026-08-15
 - Binary name: `cidx`
 - Previous canonical draft: [`local-code-search-mcp-v1-design-r3.md`](local-code-search-mcp-v1-design-r3.md)

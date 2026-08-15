@@ -1,6 +1,6 @@
 # 12. Retrieval Evaluation
 
-- Status: `blocked` — reusable corpus-independent infrastructure is implemented; official evidence remains gated on user-selected corpus inputs and separate paid-query approval.
+- Status: `blocked` — reusable corpus-independent infrastructure exists but needs Revision 4 wire/profile revalidation; official evidence remains separately gated on user-selected corpus inputs and paid-query approval.
 - Prerequisites: `07-lexical-evaluation`, `08-raw-embedding-lab`, `09-vector-materialization`, `11-vector-and-hybrid-search`
 - Followed by: `13-cli-and-mcp`, `14-packaging-and-host-integration`
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 7.4 and 14

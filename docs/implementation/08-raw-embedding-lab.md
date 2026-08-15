@@ -1,6 +1,6 @@
 # 08. Raw Document Embedding Lab
 
-- Status: `done`
+- Status: `planned` — isolated raw storage remains valid; synchronous request grouping and retry execution require Revision 4 reconciliation
 - Prerequisite phases: `02-config-profiles-and-schemas`, `05-worktree-index-pipeline`
 - Follow-up phases: `09-vector-materialization`, `12-retrieval-evaluation`
 - Design basis: `local-code-search-mcp-v1-design-r4.md` §7.1–§7.4, §9.1

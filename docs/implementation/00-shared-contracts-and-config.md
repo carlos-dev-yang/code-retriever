@@ -1,6 +1,6 @@
 # 00. Shared Contracts and Configuration
 
-- Status: done
+- Status: `in_progress` — Revision 4 catalog/hash evidence is being reconciled; pre-R4 evidence remains historical
 - Prerequisite phases: none
 - Downstream phases: all phases 01 through 14
 - Baseline design: [r4](../../local-code-search-mcp-v1-design-r4.md)

@@ -1,6 +1,6 @@
 # cidx v1 Implementation Plan Index
 
-- Status: target documentation finalized; implementation paused by user pending an explicit resume and Revision 4 reconciliation
+- Status: Revision 4 reconciliation resumed; Phase 00 contract evidence is being superseded before implementation changes
 - Canonical design: [Local Code Search MCP v1 Final Target Contract — Revision 4](../../local-code-search-mcp-v1-design-r4.md)
 - Earlier designs: [original](../../local-code-search-mcp-v1-design.md), [r1](../../local-code-search-mcp-v1-design-r1.md), [r2](../../local-code-search-mcp-v1-design-r2.md), [r3](../../local-code-search-mcp-v1-design-r3.md)
 - Execution protocol: [Implementation Execution and Context-Recovery Guide](EXECUTION-GUIDE.md)
@@ -33,20 +33,20 @@ Allowed states are `planned | in_progress | blocked | done`. A phase becomes `do
 
 | Phase | Status | Document | Prerequisites | Primary deliverable | Completion evidence |
 | --- | --- | --- | --- | --- | --- |
-| 00 | done | [Shared contracts and configuration](00-shared-contracts-and-config.md) | none | Boundaries, typed config, profile/hash hierarchy, change-impact rules | [Evidence](00-shared-contracts-and-config.md#11-completion-evidence) |
+| 00 | in_progress | [Shared contracts and configuration](00-shared-contracts-and-config.md) | none | Revision 4 field catalog, profile/hash hierarchy, migration policy, and change-impact rules | [Evidence](evidence/revision-4/README.md) |
 | 01 | done | [Runtime and storage spike](01-runtime-storage-spike.md) | 00 | SQLite/FTS5/Tree-sitter packaging decisions, generation and codec evidence | [Evidence](01-runtime-storage-spike.md#11-completion-evidence) |
-| 02 | done | [Configuration, profiles, and schemas](02-config-profiles-and-schemas.md) | 00, 01 | `ResolvedConfig`, fingerprints, production/lab migrations | [Evidence](02-config-profiles-and-schemas.md#11-completion-evidence) |
+| 02 | planned | [Configuration, profiles, and schemas](02-config-profiles-and-schemas.md) | 00, 01 | Revision 4 `ResolvedConfig`, fingerprints, strict legacy handling, and evaluation wire | [Historical evidence](evidence/phase-02/README.md) |
 | 03 | done | [Go chunker](03-go-chunker.md) | 02 | Go function, method, and type chunks/projections | [Evidence](03-go-chunker.md#11-completion-evidence) |
 | 04 | done | [TypeScript and TSX chunker](04-typescript-tsx-chunker.md) | 02 | TS/TSX function, method, and type chunks/projections | [Evidence](04-typescript-tsx-chunker.md#11-completion-evidence) |
-| 05 | done | [Worktree indexing pipeline](05-worktree-index-pipeline.md) | 03, 04 | Live-file enumeration, incremental plan, atomic generation publish | [Evidence](05-worktree-index-pipeline.md#11-completion-evidence) |
+| 05 | planned | [Worktree indexing pipeline](05-worktree-index-pipeline.md) | 03, 04, reconciled 02 | Remove the chunk-cap contract, inject `target_segment_bytes`, and preserve atomic local reindex | [Historical evidence](evidence/phase-05/README.md) |
 | 06 | done | [FTS search](06-fts-search.md) | 05 | Contentless FTS, safe queries, BM25 chunk candidates | [Evidence](06-fts-search.md#11-completion-evidence) |
 | 07 | blocked | [Lexical evaluation](07-lexical-evaluation.md) | 06 | Reusable lexical evaluation infrastructure; official labels and baseline evidence await user-selected corpus manifests and bindings | [Evidence](evidence/phase-07/README.md) |
-| 08 | done | [Initial raw-embedding lab](08-raw-embedding-lab.md) | 02, 05 | Isolated 1024-dimensional document f32 capture | [Evidence](08-raw-embedding-lab.md#11-completion-evidence) |
+| 08 | planned | [Initial raw-embedding lab](08-raw-embedding-lab.md) | reconciled 02, 05 | Isolated 1024-dimensional document f32 capture through the shared synchronous request policy | [Historical evidence](evidence/phase-08/README.md) |
 | 09 | done | [Vector materialization](09-vector-materialization.md) | 01, 02, 05, 08 | Shared reduction/normalization, binary/int8 codecs, and selected-profile publish | [Evidence](09-vector-materialization.md#11-completion-evidence) |
-| 10 | done | [Embedding orchestration and reconciliation](10-embedding-orchestration-and-reconciliation.md) | 05, 08, 09 | General embedding, cost/failure handling, profile reconciliation | [Evidence](evidence/phase-10/README.md) |
-| 11 | done | [Vector and hybrid search](11-vector-and-hybrid-search.md) | 06, 09, 10 | Query transform, codec-aware scan, segment collapse, RRF, fallback, shared body packaging | [Evidence](evidence/phase-11/README.md) |
-| 12 | blocked | [Retrieval evaluation](12-retrieval-evaluation.md) | 07, 08, 09, 11 | Paired dimension/codec/lane/RRF/package evidence and scoped core-retrieval promotion result | [Evidence](evidence/phase-12/README.md) |
-| 13 | blocked | [CLI and MCP](13-cli-and-mcp.md) | 05, 06, 10, 11, 12 | Stable CLI, four MCP tools, concurrent dispatch | [Evidence](13-cli-and-mcp.md#11-completion-evidence) |
+| 10 | planned | [Embedding orchestration and reconciliation](10-embedding-orchestration-and-reconciliation.md) | reconciled 05, 08, existing 09 | Byte-bounded concurrent document requests, shared retry execution, and profile reconciliation | [Historical evidence](evidence/phase-10/README.md) |
+| 11 | planned | [Vector and hybrid search](11-vector-and-hybrid-search.md) | 06, 09, reconciled 10 | Shared query request/retry policy, codec scan, RRF, fallback, and body packaging | [Historical evidence](evidence/phase-11/README.md) |
+| 12 | blocked | [Retrieval evaluation](12-retrieval-evaluation.md) | 07, reconciled 08, 09, 11 | Reconcile the corpus-independent adapter to Revision 4; official promotion remains externally gated | [Historical evidence](evidence/phase-12/README.md) |
+| 13 | planned | [CLI and MCP](13-cli-and-mcp.md) | reconciled 05, 10, 11 and Phase 12 corpus-independent core | Complete Revision 4 CLI defaults, four MCP tools, and concurrent dispatch | [Historical checkpoint](evidence/phase-13/README.md) |
 | 14 | planned | [Packaging and host integration](14-packaging-and-host-integration.md) | 13 | Distributable binary, project-scoped host examples, paired marginal assistant-use evidence, and scoped release-candidate result | [Evidence](14-packaging-and-host-integration.md#11-completion-evidence) |
 
 `STATUS.md` is the operational ledger. Keep this summary table synchronized with it whenever a phase changes state.
@@ -95,6 +95,7 @@ flowchart TD
 - Phase 07 cannot produce an official baseline until the user has selected open-source corpora and reproducible manifests exist.
 - Phase 12 chooses the initial serving profile from core retrieval evidence. It measures and reports results but does not impose a preselected universal numeric quality threshold.
 - The external corpus gate blocks official Phase 12 evidence and promotion, not the corpus-independent Phase 13 CLI/MCP adapter implementation; those adapters must consume the frozen Phase 12 core rather than recreate it.
+- Phase 13 completion requires the corpus-independent Phase 12 core/API and synthetic adapter parity, not an official corpus run or `core_retrieval` promotion result. Official core promotion is a Phase 14 release-candidate prerequisite.
 - Phase 12 applies the frozen hard-gate contract. Numeric noninferiority margins are calibrated from repeated cidx baselines and frozen before confirmation; no external threshold is copied into the plan.
 - MCP and host integration follow core retrieval evaluation because they are adapters and must not alter ranking behavior. Phase 14 then adds paired assistant-use evidence for cidx's marginal product value beside existing tools.
 
@@ -247,6 +248,7 @@ Users select a supported `storage_codec` ID; they cannot invent an implementatio
 | candidate/return k or RRF | none | reload/restart | none |
 | inline-body or read-span byte policy | none | serve reload/restart | none |
 | schema version | database | migration | none |
+| pre-Revision-4 config/profile shape | new strict config plus new index/vector profile fingerprints | reject legacy config with a typed mapping; preserve the DB; local reindex and compatible local rematerialization/rekey only when equivalence is proven | conditional only when compatible raw/vector evidence is unavailable |
 
 ---
 
@@ -310,3 +312,4 @@ Do not introduce a deferred item implicitly for implementation convenience.
 | 2026-08-14 | Added a cross-phase evaluation and promotion contract based on the kb-metric advisory | Make implementation correctness, codec fidelity, RRF contribution, body survival, marginal assistant usefulness, and hard-gate promotion measurable before coding proceeds |
 | 2026-08-15 | Initialized Git and entered Phase 00 | Establish recoverable repository state and finish shared contracts before implementation code |
 | 2026-08-15 | Fixed RFC 8785 JCS and completed Phase 00 | Make semantic fingerprints reproducible across implementations and unblock runtime/storage decisions |
+| 2026-08-15 | Resumed implementation at the Revision 4 reconciliation boundary | Supersede pre-R4 config/profile evidence without rewriting history, then revalidate only the affected phases |

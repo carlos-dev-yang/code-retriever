@@ -1,7 +1,7 @@
 # 13. CLI and MCP Surface Integration
 
-- Status: `blocked` — implementation paused by user; reconcile Revision 4 before resuming.
-- Prerequisites: `05-worktree-index-pipeline`, `06-fts-search`, `10-embedding-orchestration-and-reconciliation`, `11-vector-and-hybrid-search`, `12-retrieval-evaluation`
+- Status: `planned` — the mixed pre-R4 checkpoint exists; complete after the affected Revision 4 core phases are reconciled.
+- Prerequisites: reconciled `05-worktree-index-pipeline`, `10-embedding-orchestration-and-reconciliation`, and `11-vector-and-hybrid-search`; completed `06-fts-search`; Phase 12 corpus-independent core/API
 - Followed by: `14-packaging-and-host-integration`
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 3, 4, 8, and 10
 - Evaluation authority: [EVALUATION-CONTRACT.md](EVALUATION-CONTRACT.md)
@@ -10,7 +10,7 @@
 
 Read the [implementation index](README.md), [execution guide](EXECUTION-GUIDE.md), [evaluation contract](EVALUATION-CONTRACT.md), and [project status](STATUS.md) before resuming.
 
-- Confirm the Phase 05/06/10/11 application services are stable and Phase 12 has recorded the reviewed initial serving config; this phase adapts them rather than inventing new indexing or ranking logic.
+- Confirm the Phase 05/06/10/11 application services are stable and the Phase 12 corpus-independent core/API plus synthetic adapter parity are available; this phase adapts them rather than inventing new indexing or ranking logic. An official corpus run is not an entry gate.
 - Re-check the exact MCP registry: `status`, `search`, `read_span`, and `reindex`, with no fifth tool and no lab/config/document-embedding tool.
 - Re-check that caller-required `max_inline_bytes` limits bodies only; it cannot change result rank, IDs, order, or count. This phase validates/clamps the request and passes the effective maximum to the Phase 11 shared packager.
 - Re-check stdio purity, bounded concurrent dispatch, request cancellation, one explicit root per process, and the rule that FTS works without `VOYAGE_API_KEY`.
@@ -64,7 +64,7 @@ Completion requires:
 - Phase 06/11 search returns FTS/hybrid results plus fallback metadata.
 - Production embedding and lab paths from Phases 08-11 are package-separated.
 - Phase 11 returns final ranks, packaged indexed source bodies, omission metadata, and freshness inputs through a transport-independent response model.
-- Phase 12 evaluated the real production search path and recorded selected initial config and residual risk.
+- Phase 12 exposes the real production search/evaluation core and synthetic parity seam. Official corpus evaluation, profile promotion, and residual-risk evidence remain Phase 14 release-candidate inputs rather than a Phase 13 implementation blocker.
 - Production and lab connection types are not interchangeable.
 
 ## 4. Invariants
@@ -308,6 +308,8 @@ This file defines an implementation plan and does not add test code.
 14. Root mismatch, traversal, and symlinks fail closed.
 
 ## 11. Completion Evidence
+
+Official Phase 12 corpus/usefulness or `core_retrieval` promotion evidence is not a Phase 13 completion condition. Phase 13 must prove adapter/core parity with the corpus-independent core; Phase 14 later references official core and assistant/host evidence for `release_candidate` scope.
 
 - Public and development CLI help snapshots.
 - Versioned schemas for exactly four tools.

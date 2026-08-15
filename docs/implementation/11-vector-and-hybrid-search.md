@@ -1,6 +1,6 @@
 # 11. Vector Scan and Hybrid Search
 
-- Status: `done`
+- Status: `planned` — vector/RRF/body core remains valid; query embedding must adopt the shared Revision 4 request policy
 - Prerequisites: `06-fts-search`, `09-vector-materialization`, `10-embedding-orchestration-and-reconciliation`
 - Followed by: `12-retrieval-evaluation`, `13-cli-and-mcp`
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 8 and 9.2
@@ -60,7 +60,7 @@ A hybrid query explicitly requests a 1024-dimensional f32 embedding from Voyage 
 - Phase 09 implements the shared `VectorTransformer`, `VectorCodec`, and codec-aware scoring.
 - Phase 10 exposes active `ServingVectorProfile`, valid coverage, and reconciliation state.
 - The Voyage query client is injected separately from document request orchestration.
-- The r3 design defines `max_inline_bytes`, current-source hash checks, and `read_span`. This phase owns the transport-independent body packager so Phase 12 evaluates the same path that MCP later exposes. Phase 13 validates the caller/server maximum, annotates live freshness, and owns `read_span` plus MCP serialization.
+- The Revision 4 design defines `max_inline_bytes`, current-source hash checks, and `read_span`. This phase owns the transport-independent body packager so Phase 12 evaluates the same path that MCP later exposes. Phase 13 validates the caller/server maximum, annotates live freshness, and owns `read_span` plus MCP serialization.
 
 ## 4. Invariants
 

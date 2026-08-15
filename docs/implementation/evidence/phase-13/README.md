@@ -1,6 +1,6 @@
 # Phase 13 CLI and MCP Evidence
 
-- State: in progress; central `init` defaults remain pending user decision. The separately owned local-only retrieval-evaluation adapter is implemented.
+- State: historical mixed pre-R4 checkpoint in `b3a6cb1`; implementation is not accepted as Revision 4 complete. The separately owned local-only retrieval-evaluation adapter is implemented.
 - Date: 2026-08-15.
 
 ## Implemented and validated, except `init` defaults
@@ -20,9 +20,9 @@
 - Public `embed --apply` and unstable document capture use explicit `--apply` plus `VOYAGE_API_KEY`; no external-provider invocation was made during this implementation. Unstable materialization wires the existing local Phase 09 application use case. `cidx dev retrieval evaluate` now strictly validates the portable manifest, local binding/checkout, dataset truth, indexed source slice, active profile, and complete raw coverage before any provider action. Its structured plan reports query count, the conservative local token upper bound, and that a dated cost estimate is not frozen. Planning checks corpus inputs before application opening, uses `app.OpenLocal` (which neither reads `VOYAGE_API_KEY` nor creates a provider client), and uses only an existing read-only lab DB, so it does not create/migrate lab state. Applied execution uses one request-local query f32 per case, reuses the Phase 11 snapshot/collapse/RRF/body-packager for all eight Phase 12 arms, retains typed failed-arm denominators, and discards query/session caches after the final arm. Focused tests use only an in-memory fake client; official evaluation evidence remains gated on the user-approved corpus inputs and paid-query authorization.
 - Applied execution now publishes a checksummed, vector-free Phase 12 execution artifact and a v4 `evaluation_runs` provenance reference. The completion marker explicitly records that it is not promotion evidence; official `CorePromotionEvidence` remains unavailable until the user supplies the approved confirmation corpus/labels and frozen promotion contract. Only client-returned query failures are retained as operational denominator observations; local snapshot, raw, validation, transform, and packaging defects abort the run.
 
-## Current blocker
+## Revision 4 supersession
 
-`cidx init` is intentionally held behind `config.DefaultRaw`. The canonical design leaves operational config defaults, including the hard inline-byte ceiling and its absolute cap, undecided pending measurement. The current central factory returns `DEFAULT_CONFIG_VALUES_PENDING_DECISION` rather than committing arbitrary values. Official Phase 12 evidence remains blocked on user-selected manifests/bindings, reviewed data, raw coverage, and paid-query approval. Phase 13 cannot be marked complete until the approved `init` defaults are recorded.
+`cidx init` is held behind `config.DefaultRaw`, and the current factory returns `DEFAULT_CONFIG_VALUES_PENDING_DECISION`. Revision 4 and the user's confirmed contract now resolve those operational defaults: source 1 MiB, target segment 1 KiB, synchronous 128-input/256-KiB groups, concurrency 4, 30-second timeout, three 10/20/30-second retries, 64-KiB inline default, and independent 1-MiB source/inline ceilings. The remaining work is implementation and revalidation, not a product decision. Official Phase 12 evidence remains separately blocked on user-selected manifests/bindings, reviewed data, raw coverage, and paid-query approval.
 
 The package-boundary decision is now implemented: lab-backed capture and materialization use cases live in `internal/devapp`, while production bootstrap remains in `internal/app`. `go list -deps ./internal/app ./internal/mcp ./internal/search ./internal/store | rg 'cidx/internal/lab'` produced no output. The one `cidx` binary still statically includes development code through its `dev` namespace, which is explicitly allowed; the `serve` runtime assembly has no lab import or lab-store operation.
 
@@ -53,6 +53,6 @@ git diff --check
 
 All follow-up checks passed; the dependency query again produced no output. Added focused fixtures cover canonical active-ID collisions and completed-ID reuse, invalid ID rejection, `_meta`/cursor acceptance, invalid non-object frames, notification request rejection, no-op reindex wiring, unchanged dry-run manifests and embedding plans, configured source eligibility/UTF-8/lowercase-hash read-span rejection, case-insensitive source extensions, bounded index reads, lab worktree dirtiness, typed span-error payload preservation, exact integer parsing, named server-busy code, and stable CLI snake_case encoding.
 
-## Remaining decision
+## Remaining Revision 4 work
 
-The remaining Phase 13 work is user approval and documentation of the central `init` defaults. Official Phase 12 usefulness/promotion evidence remains externally gated and is not claimed here.
+Complete `--serving-dim`, the central default factory and config writer, line-cap-free `read_span`, and the reconciled request/profile contracts after their owning phases finish. Official Phase 12 usefulness/promotion evidence remains externally gated and is not claimed here.

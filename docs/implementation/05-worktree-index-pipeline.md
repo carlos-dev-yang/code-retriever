@@ -1,6 +1,6 @@
 # 05. Live Worktree Index Pipeline
 
-- Status: `done`
+- Status: `planned` — pre-R4 index behavior is historical; profile/segment wiring requires targeted reconciliation after Phase 02
 - Prerequisites: `03-go-chunker`, `04-typescript-tsx-chunker`
 - Follow-up phases: `06-fts-search`, `08-raw-embedding-lab`
 - Design basis: `local-code-search-mcp-v1-design-r4.md` §3, §4, §5, §9
