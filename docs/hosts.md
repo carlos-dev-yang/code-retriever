@@ -9,10 +9,11 @@ current configuration contract uses a trusted repository's
 The local verifier targets `codex-cli 0.148.0-alpha.9`. Its isolated
 `CODEX_HOME/config.toml` trusts only the temporary project with
 `[projects."<absolute-project-path>"]` and `trust_level = "trusted"`; it then
-uses `codex -C <project> mcp get/list --json`. In the verified CLI release,
-`--strict-config` is not supported by `codex mcp`, so the verifier does not
-claim strict MCP parsing. No user project
-or home configuration is read or changed.
+uses the model-free `codex app-server --strict-config --listen stdio://`
+`config/read` protocol with that project's `cwd`. It verifies the effective
+project layer and the exact `cidx` command, args, `cwd`, and `env_vars`, without
+copying the MCP entry into `CODEX_HOME`. No user project or home configuration
+is read or changed.
 
 Use an absolute repository root. This example keeps the binary on `PATH`:
 

@@ -18,7 +18,109 @@ command -v python3 >/dev/null || fail 'python3 is required for structural transc
 profile='(version 1) (deny network*) (allow default)'
 offline() { env -u VOYAGE_API_KEY GOPROXY=off sandbox-exec -p "$profile" "$@"; }
 work=$(mktemp -d "${TMPDIR:-/tmp}/cidx-release.XXXXXX")
-trap 'rm -rf "$work"' EXIT
+work=$(cd "$work" && pwd -P)
+mcp_fd_open=0
+codex_fd_open=0
+cidx_server_pid=
+codex_server_pid=
+is_owned_live_child() {
+  local pid=$1 parent state
+  [ -n "$pid" ] || return 1
+  read -r parent state < <(ps -o ppid= -o stat= -p "$pid" 2>/dev/null) || return 1
+  [ "$parent" = "$$" ] || return 1
+  case "$state" in Z*|*Z*) return 1 ;; esac
+}
+close_owned_fifo_fds() {
+  if [ "$mcp_fd_open" -eq 1 ]; then
+    exec 3>&-
+    mcp_fd_open=0
+  fi
+  if [ "$codex_fd_open" -eq 1 ]; then
+    exec 4>&-
+    codex_fd_open=0
+  fi
+}
+reap_owned_child() {
+  local pid=$1 label=$2 term_ticks=${3:-20} kill_ticks=${4:-20}
+  [ -n "$pid" ] || return 0
+  if is_owned_live_child "$pid"; then
+    kill -TERM "$pid" 2>/dev/null || true
+    while is_owned_live_child "$pid" && [ "$term_ticks" -gt 0 ]; do
+      sleep 0.1
+      term_ticks=$((term_ticks - 1))
+    done
+    if is_owned_live_child "$pid"; then
+      kill -KILL "$pid" 2>/dev/null || true
+      while is_owned_live_child "$pid" && [ "$kill_ticks" -gt 0 ]; do
+        sleep 0.1
+        kill_ticks=$((kill_ticks - 1))
+      done
+    fi
+  fi
+  if is_owned_live_child "$pid"; then
+    printf 'verify-local-release: owned %s process survived bounded cleanup\n' "$label" >&2
+    return 0
+  fi
+  wait "$pid" 2>/dev/null || true
+  printf 'verify-local-release: reaped owned %s process after failure\n' "$label" >&2
+}
+await_owned_shutdown() {
+  local pid=$1 label=$2 graceful_ticks=${3:-50} terminate_ticks=${4:-20} kill_ticks=${5:-20}
+  while is_owned_live_child "$pid" && [ "$graceful_ticks" -gt 0 ]; do
+    sleep 0.1
+    graceful_ticks=$((graceful_ticks - 1))
+  done
+  if is_owned_live_child "$pid"; then
+    printf 'verify-local-release: %s did not stop after stdin closed; terminating owned child\n' "$label" >&2
+    kill -TERM "$pid" 2>/dev/null || true
+    while is_owned_live_child "$pid" && [ "$terminate_ticks" -gt 0 ]; do
+      sleep 0.1
+      terminate_ticks=$((terminate_ticks - 1))
+    done
+    if is_owned_live_child "$pid"; then
+      printf 'verify-local-release: %s ignored TERM; killing owned child\n' "$label" >&2
+      kill -KILL "$pid" 2>/dev/null || true
+      while is_owned_live_child "$pid" && [ "$kill_ticks" -gt 0 ]; do
+        sleep 0.1
+        kill_ticks=$((kill_ticks - 1))
+      done
+    fi
+    is_owned_live_child "$pid" && fail "$label did not stop after bounded shutdown"
+  fi
+  wait "$pid"
+}
+copy_evidence() {
+  local destination=$1 artifact
+  mkdir -p "$destination"
+  for artifact in \
+    version.json status.json index.json index-a.json index-b.json mcp.jsonl mcp.stderr mcp-assertion.stderr \
+    codex-app-server.jsonl codex-app-server.stderr codex-version.txt codex-version.stderr \
+    root-mismatch.stdout root-mismatch.stderr newer-schema.stdout newer-schema.stderr \
+    invalid-config.stdout invalid-config.stderr; do
+    if [ -f "$work/$artifact" ]; then
+      cp "$work/$artifact" "$destination/" || return 1
+    fi
+  done
+  return 0
+}
+cleanup() {
+  local exit_code=$?
+  trap - EXIT
+  set +e
+  close_owned_fifo_fds
+  [ -z "$cidx_server_pid" ] || reap_owned_child "$cidx_server_pid" 'cidx server'
+  [ -z "$codex_server_pid" ] || reap_owned_child "$codex_server_pid" 'Codex app-server'
+  if [ "$exit_code" -ne 0 ] && [ -n "${CIDX_EVIDENCE_DIR:-}" ]; then
+    if copy_evidence "$CIDX_EVIDENCE_DIR"; then
+      printf 'local verifier failed; partial transcripts copied to %s\n' "$CIDX_EVIDENCE_DIR" >&2
+    else
+      printf 'local verifier failed; unable to copy partial transcripts to %s\n' "$CIDX_EVIDENCE_DIR" >&2
+    fi
+  fi
+  rm -rf "$work"
+  exit "$exit_code"
+}
+trap cleanup EXIT
 archive_name=$(basename -- "$archive")
 cp "$archive" "$work/$archive_name"
 cp "$checksums" "$work/checksums.txt"
@@ -78,8 +180,9 @@ sha=$(shasum -a 256 "$repo/main.go" | awk '{print $1}')
 fifo="$work/mcp.stdin"
 mkfifo "$fifo"
 offline "$binary" serve --root "$repo" <"$fifo" >"$work/mcp.jsonl" 2>"$work/mcp.stderr" &
-server=$!
+cidx_server_pid=$!
 exec 3>"$fifo"
+mcp_fd_open=1
 printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"local-release","version":"1"}}}' >&3
 for _ in $(seq 1 50); do
   grep -q '"id":1' "$work/mcp.jsonl" && break
@@ -104,12 +207,14 @@ for _ in $(seq 1 50); do
   sleep 0.1
 done
 exec 3>&-
-wait "$server"
+mcp_fd_open=0
+await_owned_shutdown "$cidx_server_pid" 'cidx server'
+cidx_server_pid=
 awk 'substr($0, 1, 1) != "{" { exit 1 }' "$work/mcp.jsonl" || fail 'serve stdout contained nonprotocol output'
 [ ! -s "$work/mcp.stderr" ] || fail 'successful serve wrote diagnostics to stderr'
 for name in status search read_span reindex; do grep -q "\"name\":\"$name\"" "$work/mcp.jsonl" || fail "MCP tool missing: $name"; done
 grep -q '"id":6' "$work/mcp.jsonl" || fail 'dry reindex response missing'
-python3 - "$work/mcp.jsonl" <<'PY'
+if ! python3 - "$work/mcp.jsonl" 2>"$work/mcp-assertion.stderr" <<'PY'
 import json,sys
 frames=[json.loads(x) for x in open(sys.argv[1]) if x.strip()]
 assert all(isinstance(x,dict) and x.get("jsonrpc") == "2.0" for x in frames)
@@ -125,11 +230,23 @@ for i in range(3,7):
   r=by_id[i]["result"]
   assert not r.get("isError",False), f"application error {i}"
 search=by_id[4]["result"]["structuredContent"]
-assert any(x["path"] == "main.go" and x["symbol"] == "Hello" for x in search["hits"])
+assert search["requested_mode"] == search["effective_mode"] == "fts"
+assert search["requested_max_inline_bytes"] == search["effective_max_inline_bytes"] == 0
+assert search["query_embedding_used"] is False
+results=search["results"]
+hello=next((x for x in results if x["path"] == "main.go" and x["symbol"] == "Hello"), None)
+assert hello is not None, "FTS result did not contain main.go Hello"
+assert hello["score_source"] == "fts" and hello["content_source"] == "indexed_snapshot"
+assert hello["body"] is None and hello["body_complete"] is False and hello["body_bytes"] == 0
+assert hello["body_omission_reason"] == "NO_FITTING_INDEXED_BODY"
 span=by_id[5]["result"]["structuredContent"]
 assert span["body"] == 'package sample\nfunc Hello() string { return "hello" }\n'
 assert by_id[6]["result"]["structuredContent"]["dry_run"] is True
 PY
+then
+  cat "$work/mcp-assertion.stderr" >&2
+  fail 'MCP transcript structural validation failed'
+fi
 
 other="$work/other-root"
 mkdir "$other"
@@ -163,21 +280,53 @@ mkdir -p "$project/.codex" "$work/codex-home"
 printf '[mcp_servers.cidx]\ncommand = "%s"\nargs = ["serve", "--root", "%s"]\ncwd = "%s"\nenv_vars = ["VOYAGE_API_KEY"]\n' "$binary" "$repo" "$repo" >"$project/.codex/config.toml"
 mkdir -p "$work/home"
 printf '[projects."%s"]\ntrust_level = "trusted"\n' "$project" >"$work/codex-home/config.toml"
-HOME="$work/home" CODEX_HOME="$work/codex-home" offline codex -C "$project" mcp get cidx --json >"$work/codex-mcp.json"
-HOME="$work/home" CODEX_HOME="$work/codex-home" offline codex -C "$project" mcp list --json >"$work/codex-mcp-list.json"
-offline codex --version >"$work/codex-version.txt"
-python3 - "$work/codex-mcp.json" "$work/codex-mcp-list.json" "$binary" "$repo" <<'PY'
-import json,sys
-g=json.load(open(sys.argv[1])); l=json.load(open(sys.argv[2])); binary,root=sys.argv[3:]
-assert g["command"] == binary and g["args"] == ["serve","--root",root] and g.get("cwd") == root
-assert g.get("env_vars") == ["VOYAGE_API_KEY"]
-assert isinstance(l,list) and [x.get("name") for x in l] == ["cidx"]
+codex_fifo="$work/codex-app-server.stdin"
+mkfifo "$codex_fifo"
+HOME="$work/home" CODEX_HOME="$work/codex-home" offline codex app-server --disable plugins --strict-config --listen stdio:// <"$codex_fifo" >"$work/codex-app-server.jsonl" 2>"$work/codex-app-server.stderr" &
+codex_server_pid=$!
+exec 4>"$codex_fifo"
+codex_fd_open=1
+printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"clientInfo":{"name":"cidx-local-release","version":"1"},"capabilities":{"experimentalApi":true}}}' >&4
+for _ in $(seq 1 50); do
+  grep -q '"id":1' "$work/codex-app-server.jsonl" && break
+  sleep 0.1
+done
+grep -q '"id":1' "$work/codex-app-server.jsonl" || fail 'Codex app-server initialize response missing'
+printf '{"jsonrpc":"2.0","id":2,"method":"config/read","params":{"cwd":"%s","includeLayers":true}}\n' "$project" >&4
+for _ in $(seq 1 50); do
+  grep -q '"id":2' "$work/codex-app-server.jsonl" && break
+  sleep 0.1
+done
+exec 4>&-
+codex_fd_open=0
+await_owned_shutdown "$codex_server_pid" 'Codex app-server'
+codex_server_pid=
+[ ! -s "$work/codex-app-server.stderr" ] || fail 'Codex app-server wrote diagnostics during project-config verification'
+python3 - "$work/codex-app-server.jsonl" "$project" "$work/codex-home/config.toml" "$binary" "$repo" <<'PY'
+import json,os,sys
+frames=[json.loads(line) for line in open(sys.argv[1]) if line.strip()]
+project,home_config,binary,root=sys.argv[2:]
+responses={frame.get("id"):frame for frame in frames if "id" in frame}
+assert set(responses) == {1,2}
+assert all("error" not in response for response in responses.values())
+config=responses[2]["result"]
+server=config["config"]["mcp_servers"]
+assert list(server) == ["cidx"]
+expected={"command":binary,"args":["serve","--root",root],"cwd":root,"env_vars":["VOYAGE_API_KEY"]}
+assert {key:server["cidx"][key] for key in expected} == expected
+assert server["cidx"]["enabled"] is True
+layers=config["layers"]
+project_layers=[layer for layer in layers if layer.get("name",{}).get("type") == "project"]
+assert len(project_layers) == 1
+layer=project_layers[0]
+assert layer["name"]["dotCodexFolder"] == os.path.join(project,".codex")
+assert layer.get("disabledReason") is None
+assert layer["config"]["mcp_servers"] == {"cidx":expected}
+assert "[mcp_servers" not in open(home_config).read()
 PY
+HOME="$work/home" CODEX_HOME="$work/codex-home" offline codex --version >"$work/codex-version.txt" 2>"$work/codex-version.stderr"
 if [ -n "${CIDX_EVIDENCE_DIR:-}" ]; then
-  mkdir -p "$CIDX_EVIDENCE_DIR"
-  cp "$work/version.json" "$work/status.json" "$work/mcp.jsonl" "$work/mcp.stderr" "$work/codex-mcp.json" "$work/codex-mcp-list.json" "$work/codex-version.txt" \
-    "$work/root-mismatch.stdout" "$work/root-mismatch.stderr" "$work/newer-schema.stdout" "$work/newer-schema.stderr" \
-    "$work/invalid-config.stdout" "$work/invalid-config.stderr" "$CIDX_EVIDENCE_DIR/"
+  copy_evidence "$CIDX_EVIDENCE_DIR"
   printf 'local verifier transcripts copied to %s\n' "$CIDX_EVIDENCE_DIR"
 fi
 printf 'verified local darwin/arm64 archive; no model or assistant invocation was performed\n'

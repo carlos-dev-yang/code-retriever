@@ -4,8 +4,8 @@
   implementation checkpoint remains accepted: its handoff passed independent
   Terra review after remediation and the one main non-artifact commit-boundary
   validation. On 2026-08-15 the owner explicitly selected Apache-2.0; the
-  canonical root `LICENSE` is added for a separate commit before any package
-  or verifier run.
+  canonical root `LICENSE` was committed at `48bd06a` before local artifact
+  generation and verification work.
 - Owner: `/root/r4_phase14_executor` (terra/high).
 - Entry commit: `3030ddd`.
 - Implementation commit: `30748c1`.
@@ -41,8 +41,10 @@ target/CGO facts, linked SQLite and grammar IDs, per-language chunker IDs, FTS/p
   behavior in a Git path containing spaces and non-ASCII text, concurrent
   indexing, structurally validated four direct stdio tools, root/schema/unknown-config failures with
   empty stdout plus actionable stderr, no lab/API-key dependency, and isolated
-  Codex get/list project-config parsing under the CLI's supported options. `CIDX_EVIDENCE_DIR` retains those local stdout/
-  stderr and MCP transcripts when a user runs the verifier. It does not call a
+  Codex app-server strict project-config parsing through `config/read` under
+  the CLI's supported options. `CIDX_EVIDENCE_DIR` retains completed local
+  stdout/stderr and MCP transcripts, including partial transcripts on failure
+  without marking verification successful. It does not call a
   model or assistant.
 - Install, Codex host, manual hook, and upgrade documentation explicitly limit
   claims to this local target and preserve the project-only/no-secret/no-host
@@ -77,28 +79,33 @@ production schema range `1..3`. The injected runtime-fail fixtures prove no
 configured-state runtime failure.
 
 `scripts/package-local.sh` was previously invoked once and correctly stopped
-before any artifact at the then-absent owner project `LICENSE`. On 2026-08-15
-the owner explicitly selected Apache-2.0; the added root text exactly matches
-the official ASF canonical text (SHA-256
+before any artifact at the then-absent owner project `LICENSE`. The owner then
+selected Apache-2.0 and committed the canonical root text at `48bd06a`; it
+exactly matches the official ASF text (SHA-256
 `cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30`).
-No archive, checksum, host transcript, or package/host success is claimed.
+A first local archive verifier run reached its MCP structural check but stopped
+on the verifier's obsolete `hits` field expectation. The reviewed repair has
+not yet been committed or used to rebuild an archive. No package/verifier
+success is claimed.
 
 ## Checks not run
 
-- Package and verifier end-to-end execution: not yet run. They must run only
-  after the Apache-2.0 root `LICENSE` is committed, from that clean commit.
-- Actual Codex CLI project-config parse under the packaged binary: part of the
-  blocked verifier; no user/home config was read or changed by this work.
+- End-to-end package/verifier execution against a rebuilt archive: not yet run
+  after the reviewed verifier/docs repair. It must run from that new clean
+  commit.
+- End-to-end isolated Codex app-server project-config check remains part of
+  that rerun; no user/home config was read or changed by this work.
 - Any non-darwin/arm64 target, code signing, notarization, model/assistant
   invocation, corpus/label/task work, paid query, Phase 12 official core run,
   or immutable `release_candidate` promotion result.
 
 ## Remaining blocker and next action
 
-The implementation checkpoint is committed at `30748c1`. The owner selected
-Apache-2.0 on 2026-08-15; the exact next action is to commit the root
-`LICENSE`, then build and verify the local darwin/arm64 archive from that
-clean commit. This evidence does not claim an artifact or verifier success.
+The implementation checkpoint is committed at `30748c1`, and the owner
+license is committed at `48bd06a`. The exact next action is to commit the
+reviewed verifier/docs repair, then rebuild the local darwin/arm64 archive and
+run the verifier from that new clean commit. This evidence does not claim an
+artifact or verifier success.
 Official release-candidate scope also remains blocked on user-selected corpus/labels/bindings, a compatible Phase 12
 `core_retrieval` result, frozen assistant controls/tasks with all three arms,
 and separate paid-query approval. This record is not a promotion result and

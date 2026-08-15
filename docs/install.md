@@ -27,7 +27,9 @@ linkage evidence, then uses a synthetic Git repository whose path contains
 spaces and non-ASCII characters. It does not use an API key, provider, corpus,
 lab database, model, or assistant invocation. Set `CIDX_EVIDENCE_DIR` to retain
 the local MCP and failure stdout/stderr transcripts instead of only printing the
-result.
+result. If verification fails, it copies every transcript produced before the
+failure and still exits nonzero; a copied transcript is not a successful
+verification claim.
 
 To use a verified binary manually, place it on `PATH` or keep its absolute
 path, then run inside a Git worktree:
