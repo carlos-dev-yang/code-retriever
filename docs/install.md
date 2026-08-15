@@ -4,11 +4,13 @@ Phase 14 currently supports only a locally built and locally verified
 `darwin/arm64` archive. Other operating systems, architectures, signing, and
 notarization are unverified and unsupported.
 
-Before an archive can be redistributed, the repository owner must add a
-project `LICENSE`. The build script refuses to create an archive without it;
-the third-party notices do not choose a license for cidx itself.
+The repository owner selected Apache-2.0 on 2026-08-15; the unmodified
+canonical license text is at the repository root in [`LICENSE`](../LICENSE).
+No copyright holder or project `NOTICE` was inferred. The third-party notices
+remain separate from cidx's own license. The build script still refuses an
+archive without that root `LICENSE`.
 
-After that owner decision, build from a clean committed checkout:
+After the license change is committed, build from that clean committed checkout:
 
 ```sh
 scripts/package-local.sh

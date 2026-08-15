@@ -1,6 +1,6 @@
 # cidx v1 Implementation Plan Index
 
-- Status: Revision 4 Phase 14 corpus-independent implementation is accepted but artifact generation is blocked on an owner-selected project license; official Phase 12 evaluation remains blocked
+- Status: Revision 4 Phase 14 corpus-independent implementation is accepted and artifact generation is in progress after the owner's 2026-08-15 Apache-2.0 choice; official Phase 12 evaluation remains blocked
 - Canonical design: [Local Code Search MCP v1 Final Target Contract — Revision 4](../../local-code-search-mcp-v1-design-r4.md)
 - Earlier designs: [original](../../local-code-search-mcp-v1-design.md), [r1](../../local-code-search-mcp-v1-design-r1.md), [r2](../../local-code-search-mcp-v1-design-r2.md), [r3](../../local-code-search-mcp-v1-design-r3.md)
 - Execution protocol: [Implementation Execution and Context-Recovery Guide](EXECUTION-GUIDE.md)
@@ -40,8 +40,9 @@ Phase 13's narrow provider-free initialization reconciliation is accepted in
 corpus-independent implementation checkpoint keeps the existing
 MCP/search/index/store core frozen and is accepted in
 [the Phase 14 Revision 4 working evidence](evidence/phase-14/revision-4.md).
-Artifact generation awaits an owner-selected project license, and that record
-is not release-candidate evidence.
+The Apache-2.0 text must now be committed before package generation and
+verification can run from that clean commit; this record is not
+release-candidate evidence.
 
 cidx is a **local auxiliary search MCP** used alongside file readers, symbol tools, compilers, and tests. It is not a comprehensive code-knowledge system. The plan is bounded by free local AST/FTS indexing, explicit paid embeddings, a small MCP surface, caller-controlled inline source volume, and one serving-vector profile per repository.
 
@@ -78,7 +79,7 @@ Allowed states are `planned | in_progress | blocked | done`. A phase becomes `do
 | 11 | done | [Vector and hybrid search](11-vector-and-hybrid-search.md) | 06, 09, reconciled 10 | Shared query request/retry policy, codec scan, RRF, fallback, and body packaging | [Accepted R4 evidence](evidence/phase-11/revision-4.md) |
 | 12 | blocked | [Retrieval evaluation](12-retrieval-evaluation.md) | 07, reconciled 08, 09, 11 | Accepted Revision 4 corpus-independent adapter; official corpus evaluation and promotion remain externally gated | [Accepted R4 core evidence](evidence/phase-12/revision-4.md) |
 | 13 | done | [CLI and MCP](13-cli-and-mcp.md) | reconciled 05, 10, 11 and Phase 12 corpus-independent core | Provider-free Revision 4 init plus revalidated four-tool MCP and concurrent dispatch | [Accepted R4 evidence](evidence/phase-13/revision-4.md) |
-| 14 | blocked | [Packaging and host integration](14-packaging-and-host-integration.md) | 13 | Accepted packaging/runtime/host implementation; actual artifact and release-candidate evidence remain gated | [R4 working evidence](evidence/phase-14/revision-4.md) |
+| 14 | in_progress | [Packaging and host integration](14-packaging-and-host-integration.md) | 13 | Accepted packaging/runtime/host implementation; license committed then local artifact verification is pending, and release-candidate evidence remains gated | [R4 working evidence](evidence/phase-14/revision-4.md) |
 
 `STATUS.md` is the operational ledger. Keep this summary table synchronized with it whenever a phase changes state.
 

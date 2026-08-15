@@ -1,6 +1,6 @@
 # 14. Packaging and MCP Host Integration
 
-- Status: `blocked` — corpus-independent implementation accepted; artifact generation awaits an owner-selected project license, and official release-candidate evidence remains externally gated
+- Status: `in_progress` — corpus-independent implementation accepted; the owner selected Apache-2.0 on 2026-08-15, and artifact generation begins after that root license is committed. Official release-candidate evidence remains externally gated.
 - Prerequisite: `13-cli-and-mcp`
 - Followed by: v1 release-candidate validation
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 1–3 and 7–10
@@ -314,5 +314,5 @@ If operational feedback establishes a real requirement for permanent model pinni
 | No speculative vector import format | Avoid unvalidated integrity/security compatibility | A separate ADR and provenance design are approved |
 | Evaluate marginal assistant value | cidx is an auxiliary tool, so existing tools remain the product baseline and cidx use must not be forced | The product role changes |
 | Runtime checks use disposable local state | FTS5/WAL and all embedded grammars must fail before repository mutation or production migration, without downloads or repairs | A future runtime changes the bundled dependency boundary |
-| Local package refuses missing owner license | Third-party notices cannot select cidx's redistribution terms | The repository owner chooses and adds a project license |
+| Owner selected Apache-2.0; local package requires root license | The unmodified root `LICENSE` supplies cidx's terms while third-party notices remain separate | License is committed, package/verifier evidence is recorded, or the owner changes the project terms |
 | CLI-only provenance report | Build facts are needed for package verification, while Phase 13's MCP `serverInfo` and four-tool surface remain frozen | The MCP version contract is separately revised |

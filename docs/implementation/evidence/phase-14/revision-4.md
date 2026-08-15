@@ -1,10 +1,11 @@
 # Phase 14 Revision 4 Corpus-Independent Working Evidence
 
-- Status: `accepted implementation checkpoint`; Phase 14 remains `blocked` at
-  the artifact and official release-candidate boundaries. The handoff passed
-  independent Terra review after remediation and the one main non-artifact
-  commit-boundary validation. Artifact generation awaits an owner-selected
-  cidx project license.
+- Status: `in_progress` for artifact generation. The corpus-independent
+  implementation checkpoint remains accepted: its handoff passed independent
+  Terra review after remediation and the one main non-artifact commit-boundary
+  validation. On 2026-08-15 the owner explicitly selected Apache-2.0; the
+  canonical root `LICENSE` is added for a separate commit before any package
+  or verifier run.
 - Owner: `/root/r4_phase14_executor` (terra/high).
 - Entry commit: `3030ddd`.
 - Implementation commit: `30748c1`.
@@ -75,14 +76,17 @@ production schema range `1..3`. The injected runtime-fail fixtures prove no
 `.cidx` mutation before initialization failure and no production DB open after
 configured-state runtime failure.
 
-`scripts/package-local.sh` was invoked once and correctly stopped before any
-artifact at the absent owner project `LICENSE`. No archive, checksum, host
-transcript, or package/host success is claimed.
+`scripts/package-local.sh` was previously invoked once and correctly stopped
+before any artifact at the then-absent owner project `LICENSE`. On 2026-08-15
+the owner explicitly selected Apache-2.0; the added root text exactly matches
+the official ASF canonical text (SHA-256
+`cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30`).
+No archive, checksum, host transcript, or package/host success is claimed.
 
 ## Checks not run
 
-- Package and verifier end-to-end execution: blocked by the missing owner
-  project `LICENSE`.
+- Package and verifier end-to-end execution: not yet run. They must run only
+  after the Apache-2.0 root `LICENSE` is committed, from that clean commit.
 - Actual Codex CLI project-config parse under the packaged binary: part of the
   blocked verifier; no user/home config was read or changed by this work.
 - Any non-darwin/arm64 target, code signing, notarization, model/assistant
@@ -91,8 +95,10 @@ transcript, or package/host success is claimed.
 
 ## Remaining blocker and next action
 
-The implementation checkpoint is committed at `30748c1`. Public package
-generation needs an explicit owner project-license choice.
+The implementation checkpoint is committed at `30748c1`. The owner selected
+Apache-2.0 on 2026-08-15; the exact next action is to commit the root
+`LICENSE`, then build and verify the local darwin/arm64 archive from that
+clean commit. This evidence does not claim an artifact or verifier success.
 Official release-candidate scope also remains blocked on user-selected corpus/labels/bindings, a compatible Phase 12
 `core_retrieval` result, frozen assistant controls/tasks with all three arms,
 and separate paid-query approval. This record is not a promotion result and
