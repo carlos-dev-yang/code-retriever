@@ -23,14 +23,19 @@ state root explicitly; only the workspace resolver and artifact location differ.
 index has identical source coverage.
 
 The `lexical-*-draft.json` files are the original 12-case exact-identifier
-smoke reference. The `behavior-*-draft-v1.json` files bind the current
-behavior-oriented calibration working set to the corrected generation-3
+smoke reference. The `behavior-*-draft-v2.json` files are the current
+behavior-oriented calibration working set bound to the corrected generation-3
 inventories: 12 Go cases for chi and 12 TypeScript plus 8 TSX cases for RHF.
+Version 2 keeps all 32 questions and cohort assignments unchanged. It records
+only the accepted source-backed corrections: chi G09 adds `walkXFF` as a
+grade-0 hard negative, while RHF T10 makes `PathImpl` and `PathInternal`
+grade-2 direct requirements and `Path` grade-1 support. Version 1 is retained
+as historical exploratory-run input.
 Every behavior case records a deterministic digest, exact file-content hash,
 qualified symbol, byte range, provisional direct/support grade, one `task:*`
 cohort, and one `signal:*` cohort.
 
-All four datasets are deliberately `review.state=draft`. The behavior set is
+All six datasets are deliberately `review.state=draft`. The behavior set is
 source-checked and side-panel-advised, but that does not count as either formal
 human label pass. These files are not frozen, official, promotion-capable, or
 suitable for confirmation tuning. They also do not authorize a paid document

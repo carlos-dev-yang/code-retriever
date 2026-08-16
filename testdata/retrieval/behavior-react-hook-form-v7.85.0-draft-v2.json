@@ -1,0 +1,1606 @@
+{
+  "schema_version": 1,
+  "version": "react-hook-form-v7.85.0-behavior-draft-v2",
+  "corpus_id": "react-hook-form-v7.85.0",
+  "cases": [
+    {
+      "schema_version": 1,
+      "id": "rhf-t01-form-control-lifecycle",
+      "text": "How is one form control created or replaced, subscribed to root form-state changes, and exposed through a proxy that tracks accessed state?",
+      "language": "typescript",
+      "cohorts": [
+        "task:delegated_or_cross_parent_flow",
+        "signal:semantic_only"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "useForm"
+        ],
+        "paths": [
+          "src/useForm.ts"
+        ],
+        "languages": [
+          "typescript"
+        ],
+        "scopes": [
+          "implementation"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "form-control-lifecycle",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/useForm.ts",
+                  "content_sha256": "d64782eff6887719ba1ac5060c30e00c591bc356c229e2b22b631693c2b6e1e4",
+                  "qualified_symbol": "module.useForm",
+                  "start_byte": 561,
+                  "end_byte": 5962
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/useForm.ts",
+            "content_sha256": "d64782eff6887719ba1ac5060c30e00c591bc356c229e2b22b631693c2b6e1e4",
+            "qualified_symbol": "module.useForm",
+            "start_byte": 561,
+            "end_byte": 5962
+          },
+          "grade": 2,
+          "rationale": "Directly coordinates control creation/replacement, subscription, and proxy exposure."
+        },
+        {
+          "span": {
+            "path": "src/logic/createFormControl.ts",
+            "content_sha256": "c66e0a99b2d7c2c12e1db1f0d5509dee31ea4e1a113c1d399d4eedb1dfa45975",
+            "qualified_symbol": "module.createFormControl",
+            "start_byte": 4073,
+            "end_byte": 60356
+          },
+          "grade": 1,
+          "rationale": "Useful support for the control implementation created by useForm."
+        },
+        {
+          "span": {
+            "path": "src/logic/getProxyFormState.ts",
+            "content_sha256": "d43f8711b43d736290617f8b628ce8f9c4509f6aabdb333f4a3aa9e75b359b56",
+            "qualified_symbol": "module.src.logic.getProxyFormState",
+            "start_byte": 129,
+            "end_byte": 915
+          },
+          "grade": 1,
+          "rationale": "Useful support for tracking accessed form-state properties."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "machine-binding",
+            "reviewer": "machine-prepared/side-panel-advised"
+          }
+        ],
+        "rationale": "Behavior question was source-checked and advisory-reviewed; formal human relevance passes remain pending."
+      },
+      "digest": "53623e2afa1c70443ad44226d6dc821c7355d0c4b8c535f69bc01c9f5d29ce35"
+    },
+    {
+      "schema_version": 1,
+      "id": "rhf-t02-controlled-field-lifecycle",
+      "text": "How does a controlled field subscribe to value and form state, translate change and blur events, and unregister or mark itself unmounted?",
+      "language": "typescript",
+      "cohorts": [
+        "task:lifecycle_state_error_or_configuration",
+        "signal:semantic_only"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "useController"
+        ],
+        "paths": [
+          "src/useController.ts"
+        ],
+        "languages": [
+          "typescript"
+        ],
+        "scopes": [
+          "implementation"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "controlled-field-lifecycle",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/useController.ts",
+                  "content_sha256": "b6c0a33d84ed70f326c71d39aca846c108c33a1b285de4d1faa99843d0c12aac",
+                  "qualified_symbol": "module.useController",
+                  "start_byte": 751,
+                  "end_byte": 7323
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/useController.ts",
+            "content_sha256": "b6c0a33d84ed70f326c71d39aca846c108c33a1b285de4d1faa99843d0c12aac",
+            "qualified_symbol": "module.useController",
+            "start_byte": 751,
+            "end_byte": 7323
+          },
+          "grade": 2,
+          "rationale": "Directly owns the controlled-field subscription, event translation, and mount lifecycle."
+        },
+        {
+          "span": {
+            "path": "src/useWatch.ts",
+            "content_sha256": "9b033021ea2306ace0033055a0834ac5570e86775deb337276ad0040afc4c702",
+            "qualified_symbol": "module.useWatch",
+            "start_byte": 509,
+            "end_byte": 11497
+          },
+          "grade": 1,
+          "rationale": "Useful support for the value subscription consumed by useController."
+        },
+        {
+          "span": {
+            "path": "src/useFormState.ts",
+            "content_sha256": "7d84d4e3517d40991d3cf59315e61b6666ca00f1e07af4ab87b1d0cb68eb625a",
+            "qualified_symbol": "module.useFormState",
+            "start_byte": 392,
+            "end_byte": 3557
+          },
+          "grade": 1,
+          "rationale": "Useful support for the form-state subscription consumed by useController."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "machine-binding",
+            "reviewer": "machine-prepared/side-panel-advised"
+          }
+        ],
+        "rationale": "Behavior question was source-checked and advisory-reviewed; formal human relevance passes remain pending."
+      },
+      "digest": "a4c007812d497129ef8c9342862178061489fc0ca266288bed74a610037b5b21"
+    },
+    {
+      "schema_version": 1,
+      "id": "rhf-t03-field-array-ids",
+      "text": "How does the field-array hook keep generated IDs aligned while array operations update control state and subscribers?",
+      "language": "typescript",
+      "cohorts": [
+        "task:lifecycle_state_error_or_configuration",
+        "signal:mixed"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "useFieldArray"
+        ],
+        "paths": [
+          "src/useFieldArray.ts"
+        ],
+        "languages": [
+          "typescript"
+        ],
+        "scopes": [
+          "implementation"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "field-array-id-state",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/useFieldArray.ts",
+                  "content_sha256": "814706de932307676261136828f03714925164990a0d1a389f818af80acbbe40",
+                  "qualified_symbol": "module.useFieldArray",
+                  "start_byte": 1580,
+                  "end_byte": 16479
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/useFieldArray.ts",
+            "content_sha256": "814706de932307676261136828f03714925164990a0d1a389f818af80acbbe40",
+            "qualified_symbol": "module.useFieldArray",
+            "start_byte": 1580,
+            "end_byte": 16479
+          },
+          "grade": 2,
+          "rationale": "Directly owns generated ID alignment, array operations, control updates, and subscriptions."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "machine-binding",
+            "reviewer": "machine-prepared/side-panel-advised"
+          }
+        ],
+        "rationale": "Behavior question was source-checked and advisory-reviewed; formal human relevance passes remain pending."
+      },
+      "digest": "09c0f6a63c68caaccb9d3b9cdd74f08ecff44bd734d45373719747aa800356a0"
+    },
+    {
+      "schema_version": 1,
+      "id": "rhf-t04-dirty-fields",
+      "text": "How are nested dirty fields recursively marked or cleared while registered array leaves remain atomic?",
+      "language": "typescript",
+      "cohorts": [
+        "task:single_parent_behavior",
+        "signal:semantic_only"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "getDirtyFields"
+        ],
+        "paths": [
+          "src/logic/getDirtyFields.ts"
+        ],
+        "languages": [
+          "typescript"
+        ],
+        "scopes": [
+          "implementation"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "dirty-field-recursion",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/logic/getDirtyFields.ts",
+                  "content_sha256": "a5ce4ae9c3afa0c0bccbf9d62308630320210478bbdfffd273fcd0f2833d826b",
+                  "qualified_symbol": "module.getDirtyFields",
+                  "start_byte": 1594,
+                  "end_byte": 2909
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/logic/getDirtyFields.ts",
+            "content_sha256": "a5ce4ae9c3afa0c0bccbf9d62308630320210478bbdfffd273fcd0f2833d826b",
+            "qualified_symbol": "module.getDirtyFields",
+            "start_byte": 1594,
+            "end_byte": 2909
+          },
+          "grade": 2,
+          "rationale": "Directly implements dirty-field recursion and atomic registered-array behavior."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "machine-binding",
+            "reviewer": "machine-prepared/side-panel-advised"
+          }
+        ],
+        "rationale": "Behavior question was source-checked and advisory-reviewed; formal human relevance passes remain pending."
+      },
+      "digest": "de1813142bbfea1834f56d8bebb3da77bf8ea96dc59c5858c0c17a398bebbc58"
+    },
+    {
+      "schema_version": 1,
+      "id": "rhf-t05-deep-equality",
+      "text": "How does deep equality handle cycles, dates, empty custom-prototype objects, arrays, and the special ref key?",
+      "language": "typescript",
+      "cohorts": [
+        "task:single_parent_behavior",
+        "signal:semantic_only"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "deepEqual"
+        ],
+        "paths": [
+          "src/utils/deepEqual.ts"
+        ],
+        "languages": [
+          "typescript"
+        ],
+        "scopes": [
+          "implementation"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "deep-equality-cases",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/utils/deepEqual.ts",
+                  "content_sha256": "23e7814f0a586c5b9db3723e9a156bc0c70bb17611e308cab7b5a8e461117c9e",
+                  "qualified_symbol": "module.deepEqual",
+                  "start_byte": 316,
+                  "end_byte": 1874
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/utils/deepEqual.ts",
+            "content_sha256": "23e7814f0a586c5b9db3723e9a156bc0c70bb17611e308cab7b5a8e461117c9e",
+            "qualified_symbol": "module.deepEqual",
+            "start_byte": 316,
+            "end_byte": 1874
+          },
+          "grade": 2,
+          "rationale": "Directly implements every equality edge case in the question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "machine-binding",
+            "reviewer": "machine-prepared/side-panel-advised"
+          }
+        ],
+        "rationale": "Behavior question was source-checked and advisory-reviewed; formal human relevance passes remain pending."
+      },
+      "digest": "880e68ced02fddb15f0d55a57a7630d3ac30cdb9326f52aa4cd1cb744735d18e"
+    },
+    {
+      "schema_version": 1,
+      "id": "rhf-t06-object-cloning",
+      "text": "Which values are recursively cloned, and which browser or custom objects deliberately retain their original identity?",
+      "language": "typescript",
+      "cohorts": [
+        "task:single_parent_behavior",
+        "signal:semantic_only"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "cloneObject"
+        ],
+        "paths": [
+          "src/utils/cloneObject.ts"
+        ],
+        "languages": [
+          "typescript"
+        ],
+        "scopes": [
+          "implementation"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "clone-identity-policy",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/utils/cloneObject.ts",
+                  "content_sha256": "66ec04fb85b1ba868c881a66cbeaf9c097c5e2fe61739a8a99083513f4f7d000",
+                  "qualified_symbol": "module.cloneObject",
+                  "start_byte": 110,
+                  "end_byte": 767
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/utils/cloneObject.ts",
+            "content_sha256": "66ec04fb85b1ba868c881a66cbeaf9c097c5e2fe61739a8a99083513f4f7d000",
+            "qualified_symbol": "module.cloneObject",
+            "start_byte": 110,
+            "end_byte": 767
+          },
+          "grade": 2,
+          "rationale": "Directly decides recursive cloning versus retained identity."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "machine-binding",
+            "reviewer": "machine-prepared/side-panel-advised"
+          }
+        ],
+        "rationale": "Behavior question was source-checked and advisory-reviewed; formal human relevance passes remain pending."
+      },
+      "digest": "41427945c49b8aeb312f7cd2264084d6b233795ca1caeda889ecbcf9e1e00d74"
+    },
+    {
+      "schema_version": 1,
+      "id": "rhf-t07-field-value",
+      "text": "How is the current value extracted differently for file inputs, radios, multiple selects, checkboxes, and ordinary fields?",
+      "language": "typescript",
+      "cohorts": [
+        "task:single_parent_behavior",
+        "signal:mixed"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "getFieldValue"
+        ],
+        "paths": [
+          "src/logic/getFieldValue.ts"
+        ],
+        "languages": [
+          "typescript"
+        ],
+        "scopes": [
+          "implementation"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "field-value-dispatch",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/logic/getFieldValue.ts",
+                  "content_sha256": "be6f25e6f137772a84e4656e8fbb0ef1c4e91f30595740d1cd96c4b1eb3cf811",
+                  "qualified_symbol": "module.getFieldValue",
+                  "start_byte": 393,
+                  "end_byte": 814
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/logic/getFieldValue.ts",
+            "content_sha256": "be6f25e6f137772a84e4656e8fbb0ef1c4e91f30595740d1cd96c4b1eb3cf811",
+            "qualified_symbol": "module.getFieldValue",
+            "start_byte": 393,
+            "end_byte": 814
+          },
+          "grade": 2,
+          "rationale": "Directly dispatches value extraction by input kind."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "machine-binding",
+            "reviewer": "machine-prepared/side-panel-advised"
+          }
+        ],
+        "rationale": "Behavior question was source-checked and advisory-reviewed; formal human relevance passes remain pending."
+      },
+      "digest": "1f19595653623028824814c397ee17fb39bd61c76f747c462e7071bd0495d12c"
+    },
+    {
+      "schema_version": 1,
+      "id": "rhf-t08-form-control-coordinator",
+      "text": "Where are registration, validation, reset, subject notification, and form-state transitions coordinated for the whole form?",
+      "language": "typescript",
+      "cohorts": [
+        "task:lifecycle_state_error_or_configuration",
+        "signal:semantic_only"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "createFormControl"
+        ],
+        "paths": [
+          "src/logic/createFormControl.ts"
+        ],
+        "languages": [
+          "typescript"
+        ],
+        "scopes": [
+          "implementation"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "form-control-coordinator",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/logic/createFormControl.ts",
+                  "content_sha256": "c66e0a99b2d7c2c12e1db1f0d5509dee31ea4e1a113c1d399d4eedb1dfa45975",
+                  "qualified_symbol": "module.createFormControl",
+                  "start_byte": 4073,
+                  "end_byte": 60356
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/logic/createFormControl.ts",
+            "content_sha256": "c66e0a99b2d7c2c12e1db1f0d5509dee31ea4e1a113c1d399d4eedb1dfa45975",
+            "qualified_symbol": "module.createFormControl",
+            "start_byte": 4073,
+            "end_byte": 60356
+          },
+          "grade": 2,
+          "rationale": "Directly coordinates the full form-control state machine and operations."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "machine-binding",
+            "reviewer": "machine-prepared/side-panel-advised"
+          }
+        ],
+        "rationale": "Behavior question was source-checked and advisory-reviewed; formal human relevance passes remain pending."
+      },
+      "digest": "f8ebd7745e7f3ae8d855734294deed5b423a5f9a3b1cb789df529e1769a80942"
+    },
+    {
+      "schema_version": 1,
+      "id": "rhf-t09-control-contract",
+      "text": "What API contract exposes both public form operations and the internal state, field, subject, validation, and array hooks used by the implementation?",
+      "language": "typescript",
+      "cohorts": [
+        "task:interface_type_or_api_contract",
+        "signal:mixed"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "Control"
+        ],
+        "paths": [
+          "src/types/form.ts"
+        ],
+        "languages": [
+          "typescript"
+        ],
+        "scopes": [
+          "declaration"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "control-api-contract",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/types/form.ts",
+                  "content_sha256": "dd86f62d9836a7adc8ba78224a87d87d55d1eb0d0cbd0dbdd0b8a1d1c37dea60",
+                  "qualified_symbol": "module.Control",
+                  "start_byte": 26455,
+                  "end_byte": 28105
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/types/form.ts",
+            "content_sha256": "dd86f62d9836a7adc8ba78224a87d87d55d1eb0d0cbd0dbdd0b8a1d1c37dea60",
+            "qualified_symbol": "module.Control",
+            "start_byte": 26455,
+            "end_byte": 28105
+          },
+          "grade": 2,
+          "rationale": "Directly declares the complete public and internal control API contract."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "machine-binding",
+            "reviewer": "machine-prepared/side-panel-advised"
+          }
+        ],
+        "rationale": "Behavior question was source-checked and advisory-reviewed; formal human relevance passes remain pending."
+      },
+      "digest": "0c177cca7a503dbb903d764abbba22a537da678644d537ce44e94e8d30116d70"
+    },
+    {
+      "schema_version": 1,
+      "id": "rhf-t10-dotted-path-types",
+      "text": "How does the type system construct dotted field paths recursively while avoiding infinite traversal through already-seen object types?",
+      "language": "typescript",
+      "cohorts": [
+        "task:interface_type_or_api_contract",
+        "signal:semantic_only"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 2,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "PathImpl",
+          "PathInternal"
+        ],
+        "paths": [
+          "src/types/path/eager.ts"
+        ],
+        "languages": [
+          "typescript"
+        ],
+        "scopes": [
+          "declaration"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "dotted-path-construction-and-cycle-guard",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/types/path/eager.ts",
+                  "content_sha256": "40a91e78813f16332c5523d59df44e94e16fd50abdfd902ad24b5a3eb81fb55f",
+                  "qualified_symbol": "module.PathImpl",
+                  "start_byte": 408,
+                  "end_byte": 1042
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "recursive-path-dispatch",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/types/path/eager.ts",
+                  "content_sha256": "40a91e78813f16332c5523d59df44e94e16fd50abdfd902ad24b5a3eb81fb55f",
+                  "qualified_symbol": "module.PathInternal",
+                  "start_byte": 1044,
+                  "end_byte": 1649
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/types/path/eager.ts",
+            "content_sha256": "40a91e78813f16332c5523d59df44e94e16fd50abdfd902ad24b5a3eb81fb55f",
+            "qualified_symbol": "module.PathImpl",
+            "start_byte": 408,
+            "end_byte": 1042
+          },
+          "grade": 2,
+          "rationale": "Directly constructs dotted paths and applies the traversed-type cycle guard."
+        },
+        {
+          "span": {
+            "path": "src/types/path/eager.ts",
+            "content_sha256": "40a91e78813f16332c5523d59df44e94e16fd50abdfd902ad24b5a3eb81fb55f",
+            "qualified_symbol": "module.PathInternal",
+            "start_byte": 1044,
+            "end_byte": 1649
+          },
+          "grade": 2,
+          "rationale": "Directly dispatches tuple, array, and object recursion."
+        },
+        {
+          "span": {
+            "path": "src/types/path/eager.ts",
+            "content_sha256": "40a91e78813f16332c5523d59df44e94e16fd50abdfd902ad24b5a3eb81fb55f",
+            "qualified_symbol": "module.Path",
+            "start_byte": 1651,
+            "end_byte": 2036
+          },
+          "grade": 1,
+          "rationale": "Useful public distributive wrapper around the recursive path implementation."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "machine-binding",
+            "reviewer": "machine-prepared/side-panel-advised"
+          }
+        ],
+        "rationale": "Behavior question was source-checked and advisory-reviewed; formal human relevance passes remain pending."
+      },
+      "digest": "6cb7985bc4b3c56b207492e123b45551e0b14bc0d2bc08e86eaa45dab026aed1"
+    },
+    {
+      "schema_version": 1,
+      "id": "rhf-t11-field-validation",
+      "text": "How are required, min and max, length, pattern, native, and custom validation rules combined for one field, including all-criteria mode?",
+      "language": "typescript",
+      "cohorts": [
+        "task:delegated_or_cross_parent_flow",
+        "signal:semantic_only"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "validateField"
+        ],
+        "paths": [
+          "src/logic/validateField.ts"
+        ],
+        "languages": [
+          "typescript"
+        ],
+        "scopes": [
+          "implementation"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "field-validation-flow",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/logic/validateField.ts",
+                  "content_sha256": "5db8c24a4de1a2e900b69428a4c42134710807a2378d9f0a647c75b6fd986b4d",
+                  "qualified_symbol": "module.src.logic.validateField",
+                  "start_byte": 1130,
+                  "end_byte": 8693
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/logic/validateField.ts",
+            "content_sha256": "5db8c24a4de1a2e900b69428a4c42134710807a2378d9f0a647c75b6fd986b4d",
+            "qualified_symbol": "module.src.logic.validateField",
+            "start_byte": 1130,
+            "end_byte": 8693
+          },
+          "grade": 2,
+          "rationale": "Directly combines every validation mode named in the question."
+        },
+        {
+          "span": {
+            "path": "src/logic/getValidateError.ts",
+            "content_sha256": "7f3485951b4c457ac095a8efbdcf4cc9f19233f4fea48c6f84a3bc9188fe44b0",
+            "qualified_symbol": "module.getValidateError",
+            "start_byte": 152,
+            "end_byte": 500
+          },
+          "grade": 1,
+          "rationale": "Useful support for normalizing custom validation failures."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "machine-binding",
+            "reviewer": "machine-prepared/side-panel-advised"
+          }
+        ],
+        "rationale": "Behavior question was source-checked and advisory-reviewed; formal human relevance passes remain pending."
+      },
+      "digest": "9b92638f45d0af8ad7333417126360981260388aaf7b54ef286927bd47d31016"
+    },
+    {
+      "schema_version": 1,
+      "id": "rhf-t12-subject-observers",
+      "text": "How are observers added, notified, individually unsubscribed, and cleared from the form-state subject?",
+      "language": "typescript",
+      "cohorts": [
+        "task:lifecycle_state_error_or_configuration",
+        "signal:semantic_only"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "createSubject"
+        ],
+        "paths": [
+          "src/utils/createSubject.ts"
+        ],
+        "languages": [
+          "typescript"
+        ],
+        "scopes": [
+          "implementation"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "subject-observer-lifecycle",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/utils/createSubject.ts",
+                  "content_sha256": "776c80a23071d8c5d9ec92180abfee0080d73be53fc16f79e0ca8e237ff2405e",
+                  "qualified_symbol": "module.src.utils.createSubject",
+                  "start_byte": 307,
+                  "end_byte": 902
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/utils/createSubject.ts",
+            "content_sha256": "776c80a23071d8c5d9ec92180abfee0080d73be53fc16f79e0ca8e237ff2405e",
+            "qualified_symbol": "module.src.utils.createSubject",
+            "start_byte": 307,
+            "end_byte": 902
+          },
+          "grade": 2,
+          "rationale": "Directly implements observer addition, notification, individual unsubscribe, and clearing."
+        },
+        {
+          "span": {
+            "path": "src/utils/createSubject.ts",
+            "content_sha256": "776c80a23071d8c5d9ec92180abfee0080d73be53fc16f79e0ca8e237ff2405e",
+            "qualified_symbol": "module.Subject",
+            "start_byte": 153,
+            "end_byte": 305
+          },
+          "grade": 1,
+          "rationale": "Useful support for the subject API contract."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "machine-binding",
+            "reviewer": "machine-prepared/side-panel-advised"
+          }
+        ],
+        "rationale": "Behavior question was source-checked and advisory-reviewed; formal human relevance passes remain pending."
+      },
+      "digest": "ccc7b792baa5d10bc75e5eb66e4c08ca2efaed7856aca792d9abdc3ac05bd7b6"
+    },
+    {
+      "schema_version": 1,
+      "id": "rhf-x01-controller-render-prop",
+      "text": "How does the Controller render-prop component obtain field, field-state, and form-state values for a controlled input?",
+      "language": "tsx",
+      "cohorts": [
+        "task:delegated_or_cross_parent_flow",
+        "signal:semantic_only"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "Controller"
+        ],
+        "paths": [
+          "src/controller.tsx"
+        ],
+        "languages": [
+          "tsx"
+        ],
+        "scopes": [
+          "implementation"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "controller-render-prop",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/controller.tsx",
+                  "content_sha256": "51542a131b33f8873e263e7a1b491c5ec8aa3cdb2062fc0dce9781fe39521234",
+                  "qualified_symbol": "module.Controller",
+                  "start_byte": 122,
+                  "end_byte": 1756
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/controller.tsx",
+            "content_sha256": "51542a131b33f8873e263e7a1b491c5ec8aa3cdb2062fc0dce9781fe39521234",
+            "qualified_symbol": "module.Controller",
+            "start_byte": 122,
+            "end_byte": 1756
+          },
+          "grade": 2,
+          "rationale": "Directly feeds controlled field and state values into the render prop."
+        },
+        {
+          "span": {
+            "path": "src/useController.ts",
+            "content_sha256": "b6c0a33d84ed70f326c71d39aca846c108c33a1b285de4d1faa99843d0c12aac",
+            "qualified_symbol": "module.useController",
+            "start_byte": 751,
+            "end_byte": 7323
+          },
+          "grade": 1,
+          "rationale": "Useful support for the hook that supplies Controller values."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "machine-binding",
+            "reviewer": "machine-prepared/side-panel-advised"
+          }
+        ],
+        "rationale": "Behavior question was source-checked and advisory-reviewed; formal human relevance passes remain pending."
+      },
+      "digest": "ff43a01061cdb432fba74c627af550d325a7d64bf91633357a105b31600d2654"
+    },
+    {
+      "schema_version": 1,
+      "id": "rhf-x02-form-context",
+      "text": "How are all form methods memoized into React context and later retrieved by deeply nested inputs?",
+      "language": "tsx",
+      "cohorts": [
+        "task:delegated_or_cross_parent_flow",
+        "signal:semantic_only"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 2,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "FormProvider",
+          "useFormContext"
+        ],
+        "paths": [
+          "src/useFormContext.tsx"
+        ],
+        "languages": [
+          "tsx"
+        ],
+        "scopes": [
+          "implementation"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "context-provider",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/useFormContext.tsx",
+                  "content_sha256": "45c2e63744c9634fc6b47f2bc15558d07ba96a7545641dab5f3472db59c7abf8",
+                  "qualified_symbol": "module.FormProvider",
+                  "start_byte": 1560,
+                  "end_byte": 3954
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "context-consumer",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/useFormContext.tsx",
+                  "content_sha256": "45c2e63744c9634fc6b47f2bc15558d07ba96a7545641dab5f3472db59c7abf8",
+                  "qualified_symbol": "module.useFormContext",
+                  "start_byte": 314,
+                  "end_byte": 1557
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/useFormContext.tsx",
+            "content_sha256": "45c2e63744c9634fc6b47f2bc15558d07ba96a7545641dab5f3472db59c7abf8",
+            "qualified_symbol": "module.FormProvider",
+            "start_byte": 1560,
+            "end_byte": 3954
+          },
+          "grade": 2,
+          "rationale": "Directly memoizes and provides form methods through React context."
+        },
+        {
+          "span": {
+            "path": "src/useFormContext.tsx",
+            "content_sha256": "45c2e63744c9634fc6b47f2bc15558d07ba96a7545641dab5f3472db59c7abf8",
+            "qualified_symbol": "module.useFormContext",
+            "start_byte": 314,
+            "end_byte": 1557
+          },
+          "grade": 2,
+          "rationale": "Directly retrieves form methods from context for nested consumers."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "machine-binding",
+            "reviewer": "machine-prepared/side-panel-advised"
+          }
+        ],
+        "rationale": "Behavior question was source-checked and advisory-reviewed; formal human relevance passes remain pending."
+      },
+      "digest": "5d9d35b187cef844c3b0e4d27d43f6064f592195830964fc4f10a8fea3a7fd95"
+    },
+    {
+      "schema_version": 1,
+      "id": "rhf-x03-form-submit",
+      "text": "How does the Form component convert submitted values, call a URL or function action, and turn failures into root server errors?",
+      "language": "tsx",
+      "cohorts": [
+        "task:lifecycle_state_error_or_configuration",
+        "signal:semantic_only"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "Form"
+        ],
+        "paths": [
+          "src/form.tsx"
+        ],
+        "languages": [
+          "tsx"
+        ],
+        "scopes": [
+          "implementation"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "form-submission-flow",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/form.tsx",
+                  "content_sha256": "e54f5b91743e34f6febb81dc38c9c670634509cdf714fc84531a1d3aa69bec99",
+                  "qualified_symbol": "module.Form",
+                  "start_byte": 477,
+                  "end_byte": 4138
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/form.tsx",
+            "content_sha256": "e54f5b91743e34f6febb81dc38c9c670634509cdf714fc84531a1d3aa69bec99",
+            "qualified_symbol": "module.Form",
+            "start_byte": 477,
+            "end_byte": 4138
+          },
+          "grade": 2,
+          "rationale": "Directly coordinates submission, action dispatch, and root server-error state."
+        },
+        {
+          "span": {
+            "path": "src/utils/formData.ts",
+            "content_sha256": "2b35a8f9083b300b1ce252b97792c316faf8016f882325a41499b84acc0dfa02",
+            "qualified_symbol": "module.jsonToFormData",
+            "start_byte": 38,
+            "end_byte": 265
+          },
+          "grade": 1,
+          "rationale": "Useful support for submitted-value conversion."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "machine-binding",
+            "reviewer": "machine-prepared/side-panel-advised"
+          }
+        ],
+        "rationale": "Behavior question was source-checked and advisory-reviewed; formal human relevance passes remain pending."
+      },
+      "digest": "4a83f34390895a1e5333076d15c37d56d86b88e133e6c07f15a1c8005b7158b0"
+    },
+    {
+      "schema_version": 1,
+      "id": "rhf-x04-watch-render-prop",
+      "text": "How does the Watch render-prop component subscribe to selected values or a computed result and render the returned value?",
+      "language": "tsx",
+      "cohorts": [
+        "task:delegated_or_cross_parent_flow",
+        "signal:semantic_only"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "Watch"
+        ],
+        "paths": [
+          "src/watch.tsx"
+        ],
+        "languages": [
+          "tsx"
+        ],
+        "scopes": [
+          "implementation"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "watch-render-prop",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/watch.tsx",
+                  "content_sha256": "d78c5bcd0dca441b557b39a35901bcd798f24f083a56b8b1d597cb07684611df",
+                  "qualified_symbol": "module.Watch",
+                  "start_byte": 134,
+                  "end_byte": 1854
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/watch.tsx",
+            "content_sha256": "d78c5bcd0dca441b557b39a35901bcd798f24f083a56b8b1d597cb07684611df",
+            "qualified_symbol": "module.Watch",
+            "start_byte": 134,
+            "end_byte": 1854
+          },
+          "grade": 2,
+          "rationale": "Directly connects useWatch output to the render prop."
+        },
+        {
+          "span": {
+            "path": "src/useWatch.ts",
+            "content_sha256": "9b033021ea2306ace0033055a0834ac5570e86775deb337276ad0040afc4c702",
+            "qualified_symbol": "module.useWatch",
+            "start_byte": 509,
+            "end_byte": 11497
+          },
+          "grade": 1,
+          "rationale": "Useful support for selected-value and computed-result subscriptions."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "machine-binding",
+            "reviewer": "machine-prepared/side-panel-advised"
+          }
+        ],
+        "rationale": "Behavior question was source-checked and advisory-reviewed; formal human relevance passes remain pending."
+      },
+      "digest": "1507c88bf89ab32c358f6cc5b4c4f0c55ef6cdcbe6d2220f1652ea6af8f77fc8"
+    },
+    {
+      "schema_version": 1,
+      "id": "rhf-x05-field-array-component",
+      "text": "How does the FieldArray component obtain field-array operations and pass them to its render callback?",
+      "language": "tsx",
+      "cohorts": [
+        "task:delegated_or_cross_parent_flow",
+        "signal:mixed"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "FieldArray"
+        ],
+        "paths": [
+          "src/fieldArray.tsx"
+        ],
+        "languages": [
+          "tsx"
+        ],
+        "scopes": [
+          "implementation"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "field-array-render-prop",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/fieldArray.tsx",
+                  "content_sha256": "cd51cc768ee956c48af89deec670cbc51059e1ec556a5b9877f863053610a655",
+                  "qualified_symbol": "module.FieldArray",
+                  "start_byte": 376,
+                  "end_byte": 1335
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/fieldArray.tsx",
+            "content_sha256": "cd51cc768ee956c48af89deec670cbc51059e1ec556a5b9877f863053610a655",
+            "qualified_symbol": "module.FieldArray",
+            "start_byte": 376,
+            "end_byte": 1335
+          },
+          "grade": 2,
+          "rationale": "Direct function parent that passes field-array operations to the render callback."
+        },
+        {
+          "span": {
+            "path": "src/useFieldArray.ts",
+            "content_sha256": "814706de932307676261136828f03714925164990a0d1a389f818af80acbbe40",
+            "qualified_symbol": "module.useFieldArray",
+            "start_byte": 1580,
+            "end_byte": 16479
+          },
+          "grade": 1,
+          "rationale": "Useful support for the operations supplied by the component."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "machine-binding",
+            "reviewer": "machine-prepared/side-panel-advised"
+          }
+        ],
+        "rationale": "Behavior question was source-checked and advisory-reviewed; formal human relevance passes remain pending."
+      },
+      "digest": "d4577e8fff1554b0623e230bee1910fcc59cf4acb661bef6a85ac776a621602f"
+    },
+    {
+      "schema_version": 1,
+      "id": "rhf-x06-form-state-component",
+      "text": "How does the FormState render-prop component subscribe only to the requested form-state slice?",
+      "language": "tsx",
+      "cohorts": [
+        "task:delegated_or_cross_parent_flow",
+        "signal:semantic_only"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "FormState"
+        ],
+        "paths": [
+          "src/formStateSubscribe.tsx"
+        ],
+        "languages": [
+          "tsx"
+        ],
+        "scopes": [
+          "implementation"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "form-state-render-prop",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/formStateSubscribe.tsx",
+                  "content_sha256": "e216b25d3e918397274e5c5f0635282eec2db5d941a2eee27bcc7ccca13a1e1d",
+                  "qualified_symbol": "module.FormState",
+                  "start_byte": 531,
+                  "end_byte": 799
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/formStateSubscribe.tsx",
+            "content_sha256": "e216b25d3e918397274e5c5f0635282eec2db5d941a2eee27bcc7ccca13a1e1d",
+            "qualified_symbol": "module.FormState",
+            "start_byte": 531,
+            "end_byte": 799
+          },
+          "grade": 2,
+          "rationale": "Direct function parent that passes the requested form-state slice to the render prop."
+        },
+        {
+          "span": {
+            "path": "src/useFormState.ts",
+            "content_sha256": "7d84d4e3517d40991d3cf59315e61b6666ca00f1e07af4ab87b1d0cb68eb625a",
+            "qualified_symbol": "module.useFormState",
+            "start_byte": 392,
+            "end_byte": 3557
+          },
+          "grade": 1,
+          "rationale": "Useful support for the selective form-state subscription."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "machine-binding",
+            "reviewer": "machine-prepared/side-panel-advised"
+          }
+        ],
+        "rationale": "Behavior question was source-checked and advisory-reviewed; formal human relevance passes remain pending."
+      },
+      "digest": "6a3e60a4e5ff73697c5b9cd134ae077c15b29572d9fa01b593b7df8e41f63eb2"
+    },
+    {
+      "schema_version": 1,
+      "id": "rhf-x07-form-render-mode",
+      "text": "How does Form choose between a headless render callback and a native form element, especially when the action is a function?",
+      "language": "tsx",
+      "cohorts": [
+        "task:single_parent_behavior",
+        "signal:semantic_only"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "Form"
+        ],
+        "paths": [
+          "src/form.tsx"
+        ],
+        "languages": [
+          "tsx"
+        ],
+        "scopes": [
+          "implementation"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "form-render-mode",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/form.tsx",
+                  "content_sha256": "e54f5b91743e34f6febb81dc38c9c670634509cdf714fc84531a1d3aa69bec99",
+                  "qualified_symbol": "module.Form",
+                  "start_byte": 477,
+                  "end_byte": 4138
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/form.tsx",
+            "content_sha256": "e54f5b91743e34f6febb81dc38c9c670634509cdf714fc84531a1d3aa69bec99",
+            "qualified_symbol": "module.Form",
+            "start_byte": 477,
+            "end_byte": 4138
+          },
+          "grade": 2,
+          "rationale": "Directly chooses the headless callback or native form rendering path."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "machine-binding",
+            "reviewer": "machine-prepared/side-panel-advised"
+          }
+        ],
+        "rationale": "Behavior question was source-checked and advisory-reviewed; formal human relevance passes remain pending."
+      },
+      "digest": "ab1273e49a96b350975815c49553ab1c0bd509d2f7a5cb98fc7fd561201038b9"
+    },
+    {
+      "schema_version": 1,
+      "id": "rhf-x08-form-state-props",
+      "text": "What props contract controls the name, exactness, disabled state, control, and render callback of the FormState component?",
+      "language": "tsx",
+      "cohorts": [
+        "task:interface_type_or_api_contract",
+        "signal:mixed"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "FormStateProps"
+        ],
+        "paths": [
+          "src/formStateSubscribe.tsx"
+        ],
+        "languages": [
+          "tsx"
+        ],
+        "scopes": [
+          "declaration"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "form-state-props-contract",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/formStateSubscribe.tsx",
+                  "content_sha256": "e216b25d3e918397274e5c5f0635282eec2db5d941a2eee27bcc7ccca13a1e1d",
+                  "qualified_symbol": "module.FormStateProps",
+                  "start_byte": 209,
+                  "end_byte": 439
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/formStateSubscribe.tsx",
+            "content_sha256": "e216b25d3e918397274e5c5f0635282eec2db5d941a2eee27bcc7ccca13a1e1d",
+            "qualified_symbol": "module.FormStateProps",
+            "start_byte": 209,
+            "end_byte": 439
+          },
+          "grade": 2,
+          "rationale": "Directly declares the complete FormState component props contract."
+        },
+        {
+          "span": {
+            "path": "src/formStateSubscribe.tsx",
+            "content_sha256": "e216b25d3e918397274e5c5f0635282eec2db5d941a2eee27bcc7ccca13a1e1d",
+            "qualified_symbol": "module.FormState",
+            "start_byte": 531,
+            "end_byte": 799
+          },
+          "grade": 1,
+          "rationale": "Useful support showing how the props contract is consumed by the component."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "machine-binding",
+            "reviewer": "machine-prepared/side-panel-advised"
+          }
+        ],
+        "rationale": "Behavior question was source-checked and advisory-reviewed; formal human relevance passes remain pending."
+      },
+      "digest": "49538a1bbf50a4bf1e428dbe6aea96314fe3e15f98838ea508fb11de3578d059"
+    }
+  ]
+}

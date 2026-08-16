@@ -14,6 +14,21 @@ Consumed query-evaluation gate: [chi/RHF query-evaluation approval packet — Re
 
 Current exploratory diagnosis: [chi/RHF exploratory query results — Revision 4](chi-rhf-exploratory-query-results-r4.md).
 
+### 2026-08-16 accepted draft-v2 label boundary
+
+The versioned `behavior-*-draft-v2.json` datasets keep the same 12 chi and 20
+RHF questions, texts, languages, and cohorts. Chi G09 adds only the accepted
+`middleware.walkXFF` grade-0 hard negative; RHF T10 makes `module.PathImpl` and
+`module.PathInternal` grade-2 requirements and public `module.Path` grade-1
+support. The affected RFC 8785-framed case digests are
+`a969ea05c99b2ed5ba1842006db66e7f60acb7af1294ca7d12095fc33ee6674d`
+and `6cb7985bc4b3c56b207492e123b45551e0b14bc0d2bc08e86eaa45dab026aed1`.
+All 32 case digests reproduced; focused devlab/eval/evalcontract tests, vet,
+build, JSON validation, and diff checks passed. An independent Terra review
+reported no findings and confirmed v1 preservation plus the absence of a
+human-pass, freeze, or promotion overclaim. These draft files still require the
+provider-free simple pool and two separated human review passes.
+
 The accepted Phase 04 correction is now reflected in provider-free
 generation-3 indexes: chi has 452 parents/621 segments and RHF has 322
 parents/492 segments; 57 RHF production anonymous default-export functions now
