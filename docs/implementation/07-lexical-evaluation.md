@@ -5,6 +5,7 @@
 - Follow-up phase: `12-retrieval-evaluation`
 - Design basis: `local-code-search-mcp-v1-design-r4.md` §13, §14
 - Evaluation authority: [EVALUATION-CONTRACT.md](EVALUATION-CONTRACT.md)
+- Operational execution companion: [EVALUATION-EMBEDDING-EXECUTION-PLAN.md](EVALUATION-EMBEDDING-EXECUTION-PLAN.md)
 
 ## Context Recovery Checklist
 

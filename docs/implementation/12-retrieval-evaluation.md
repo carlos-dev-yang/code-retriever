@@ -5,6 +5,7 @@
 - Followed by: `13-cli-and-mcp`, `14-packaging-and-host-integration`
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 5, 6, and 9
 - Evaluation authority: [EVALUATION-CONTRACT.md](EVALUATION-CONTRACT.md)
+- Operational execution companion: [EVALUATION-EMBEDDING-EXECUTION-PLAN.md](EVALUATION-EMBEDDING-EXECUTION-PLAN.md)
 
 ## Context Recovery Checklist
 
