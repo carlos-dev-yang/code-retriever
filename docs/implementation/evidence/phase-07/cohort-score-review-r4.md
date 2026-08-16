@@ -7,10 +7,10 @@
 
 ## 1. Measurement basis
 
-No provider request was repeated for this review. It reuses the immutable paid
-exploratory rankings already recorded for 12 chi and 20 RHF questions, together
-with the clean provider-free simple-control runs. The original paid artifacts
-remain unchanged:
+No provider request was repeated for this review. It reuses the immutable
+Voyage embedding-search rankings already recorded for 12 chi and 20 RHF
+questions, together with the clean provider-free simple-control runs. The
+original search artifacts remain unchanged:
 
 - chi: `retrieval-7e5731ed1222a6aa432da84f`;
 - RHF: `retrieval-20417011198b38cad4a1af2b`.
@@ -18,7 +18,7 @@ remain unchanged:
 Together they contain 32/32 validated query responses, 636 observed input
 tokens, zero retries, and zero failed attempts.
 
-The paid rankings were produced before the accepted draft-v2 truth correction.
+The Voyage rankings were produced before the accepted draft-v2 truth correction.
 RHF T10 is therefore reinterpreted offline against the unchanged recorded top
 five: `PathImpl` and `PathInternal` are ranks 2 and 3 in both serving f32 and
 binary, so T10 is complete under current truth. Chi G09's added `walkXFF` hard

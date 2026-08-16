@@ -294,6 +294,6 @@ The later [measured cohort score review](cohort-score-review-r4.md) regroups
 these immutable rankings under the accepted draft-v2 truth without another
 provider request. It retains chi G07 and RHF T01/X01/X08, adds no question, and
 moves only chi G12 to source-corrected draft-v3 wording. Consequently this
-document remains the authority for the historical paid execution, while its
-G12 rank and opened-arm pool must not be represented as a measurement of the
-new v3 query.
+document remains the authority for the historical Voyage embedding-search
+execution, while its G12 rank and opened-arm pool must not be represented as a
+measurement of the new v3 query.

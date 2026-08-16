@@ -405,8 +405,9 @@ simple control plus every draft-v2 truth parent. They contain 133 chi and 175
 RHF query-parent relations, with all labels and lane/rank/score information
 hidden. Two separated human passes remain incomplete.
 
-The later measured cohort review reuses the immutable paid ranks and clean
-simple artifacts without another provider request. Under accepted draft-v2
+The later measured cohort review reuses the immutable Voyage embedding-search
+rankings and clean simple artifacts without another provider request. Under
+accepted draft-v2
 truth, RHF T10 is complete because `PathImpl` and `PathInternal` are recorded
 at ranks 2 and 3. The remaining binary failures are chi G07 and RHF T01/X01/X08;
 all stay because they expose distinct multi-parent, orchestrator, wrapper, and
