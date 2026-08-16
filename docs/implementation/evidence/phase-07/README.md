@@ -318,3 +318,37 @@ source-body-free inventory replay/collision handling and review-packet
 decoding for authority/floor fields plus `id`, `text`, `language`, and
 `answer_mode`. The direct lexical source has no `lab.Open`, `VOYAGE_API_KEY`,
 provider, or HTTP dependency.
+
+## 2026-08-16 authorized exploratory-query checkpoint
+
+The exact approved series ran once from clean implementation commit
+`59b1cd61ec990c56cea275f5ac1b258e7eb5332a`. Clean-binary preflight reproduced
+the frozen portable plan hashes before the first request. The provider returned
+32/32 validated query responses with 32 attempts, zero retries/failures, and
+636 provider-reported total tokens (221 chi and 415 RHF). Query vectors remained
+ephemeral: the lab schema contains document-vector blobs only, while the usage
+artifact stores query IDs, counts, terminal status, and observed tokens.
+
+The immutable ignored run references and entry-list checksums are:
+
+- chi: `evaluations/retrieval-7e5731ed1222a6aa432da84f`,
+  `7a538245b3e74f106cdf318e31843a798670e1c9a9ff095bd1025e9ade812967`;
+- react-hook-form: `evaluations/retrieval-20417011198b38cad4a1af2b`,
+  `8dfd28b7d8e8de082ad9e0a964566758af69aa8e0c08261badf976344637651f`.
+
+All 16 listed files in each artifact passed an independent SHA-256 check, and
+the matching `evaluation_runs` rows are `complete` with the same operation and
+token totals. These are explicitly non-promotion draft/calibration-preparation
+artifacts; no repeat, formal calibration, confirmation, mixed-language, or
+assistant operation is authorized by this checkpoint.
+
+Diagnosis also found an internal trace inconsistency for segmented parents:
+rankings and metrics used semantic-parent identities correctly, but the stage
+trace compared required parent spans with smaller segment byte ranges. A narrow
+Phase 12 correction now uses recorded parent coordinates and is documented in
+its Revision 4 evidence. Focused normal/race tests, vet, build, formatting,
+module, and diff checks passed at this correction boundary.
+The immutable exploratory artifacts are preserved as diagnostic input and are
+not rewritten. Cohort/label freeze now waits on the remaining human decisions;
+it does not require another provider call merely to inspect the already-recorded
+rankings and metrics.

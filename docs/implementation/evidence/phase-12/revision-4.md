@@ -99,3 +99,37 @@ Commit this accepted corpus-independent boundary separately, then enter Phase
 13. Official Phase 12 remains blocked on the documented user-controlled corpus,
 labels, raw coverage, and separate paid-query approval; none is a gate for the
 corpus-independent Phase 13 adapter.
+
+## 2026-08-16 segmented-parent trace correction
+
+The first authorized chi/RHF exploratory run exposed a narrow defect that the
+synthetic corpus-independent boundary did not exercise. Dense retrieval emits
+segment coordinates together with the semantic parent's coordinates. The
+normative stage trace compared required parent spans with the segment's
+`start_byte`/`end_byte`; any relevant parent split into smaller segments could
+therefore be present in exhaustive dense candidates and in the collapsed
+ranking while the trace recorded `DENSE_SEGMENT_MISS` and propagated that false
+loss downstream.
+
+`retrievalSegmentLexicalHits` now projects each segment to its recorded
+`parent_start_byte`/`parent_end_byte` for truth-presence matching. Segment rank
+and score remain unchanged, and no ranking, metric, query execution, provider
+usage, schema, or public wire changes. The existing pre-collapse trace test now
+uses a segment strictly smaller than its truth parent. Against the immutable
+exploratory artifacts, an independent parent-coordinate calculation identified
+the affected recorded dense observations (5 chi queries and 11 RHF queries)
+and showed the corrected parent presence. The old artifacts remain immutable
+diagnostic evidence and are not rewritten or promoted; a future authorized run
+will publish the corrected trace from the committed implementation.
+
+Focused correction-boundary validation passed:
+
+```text
+env -u VOYAGE_API_KEY GOPROXY=off go test -count=1 ./internal/eval ./internal/devlab ./internal/evalcontract
+env -u VOYAGE_API_KEY GOPROXY=off go test -count=1 -race ./internal/eval ./internal/devlab ./internal/evalcontract
+env -u VOYAGE_API_KEY GOPROXY=off go vet ./internal/eval ./internal/devlab ./internal/evalcontract
+env -u VOYAGE_API_KEY GOPROXY=off go build ./internal/eval ./internal/devlab ./internal/evalcontract
+go mod tidy -diff
+gofmt -l internal/eval/retrieval.go internal/eval/eval_test.go  # no output
+git diff --check
+```

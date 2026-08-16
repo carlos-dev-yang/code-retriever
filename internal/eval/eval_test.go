@@ -472,7 +472,7 @@ func TestRetrievalTraceAttributesPreCollapseSegmentLoss(t *testing.T) {
 		}
 		arm := RetrievalArmResult{Ranking: ranking}
 		if variant == VariantServingActiveCodec {
-			arm.Segments = []search.EvaluationSegmentHit{{CanonicalInputSHA256: digest, Path: left.Path, IndexedSHA256: left.ContentSHA256, QualifiedSymbol: left.QualifiedSymbol, ParentStartByte: left.StartByte, ParentEndByte: left.EndByte, StartByte: left.StartByte, EndByte: left.EndByte, Rank: 1, Score: score}}
+			arm.Segments = []search.EvaluationSegmentHit{{CanonicalInputSHA256: digest, Path: left.Path, IndexedSHA256: left.ContentSHA256, QualifiedSymbol: left.QualifiedSymbol, ParentStartByte: left.StartByte, ParentEndByte: left.EndByte, StartByte: left.StartByte + 1, EndByte: left.EndByte - 1, Rank: 1, Score: score}}
 		}
 		if variant == VariantHybridFTSActiveCodec {
 			arm.Packaged = []BodyPackageHit{{Hit: hit, OmissionReason: "INLINE_BUDGET_EXCEEDED"}}

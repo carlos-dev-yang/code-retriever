@@ -770,7 +770,7 @@ func retrievalLexicalHits(values []RetrievalHit) []lexical.Hit {
 func retrievalSegmentLexicalHits(values []search.EvaluationSegmentHit) []lexical.Hit {
 	result := make([]lexical.Hit, 0, len(values))
 	for _, value := range values {
-		result = append(result, lexical.Hit{Path: value.Path, IndexedSHA256: value.IndexedSHA256, QualifiedSymbol: value.QualifiedSymbol, StartByte: value.StartByte, EndByte: value.EndByte})
+		result = append(result, lexical.Hit{Path: value.Path, IndexedSHA256: value.IndexedSHA256, QualifiedSymbol: value.QualifiedSymbol, StartByte: value.ParentStartByte, EndByte: value.ParentEndByte})
 	}
 	return result
 }
