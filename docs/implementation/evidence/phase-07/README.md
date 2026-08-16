@@ -1,7 +1,7 @@
 # Phase 07 Lexical Evaluation Evidence
 
 - Phase: `07-lexical-evaluation`
-- State: `in_progress` — the exact 12 chi + 20 RHF exploratory query series is approved under the recorded $0.01 ceiling after byte-identical provider-free re-preflight; official frozen evidence remains gated on later review and policy freeze.
+- State: `in_progress` — the exact 12 chi + 20 RHF exploratory query series completed once with 32/32 validated responses and its approval is consumed; official frozen evidence remains gated on the recorded label/simple-baseline decisions and review passes.
 - Date: 2026-08-16
 
 Current real-data audit: [chi/RHF structural audit — Revision 4](chi-rhf-structural-audit-r4.md).
@@ -10,7 +10,9 @@ Current cohort-authoring worksheet: [chi/RHF behavior-cohort working set — Rev
 
 Current document-capture gate: [chi/RHF document-capture approval packet — Revision 4](chi-rhf-document-capture-approval-r4.md).
 
-Current query-evaluation gate: [chi/RHF query-evaluation approval packet — Revision 4](chi-rhf-query-evaluation-approval-r4.md).
+Consumed query-evaluation gate: [chi/RHF query-evaluation approval packet — Revision 4](chi-rhf-query-evaluation-approval-r4.md).
+
+Current exploratory diagnosis: [chi/RHF exploratory query results — Revision 4](chi-rhf-exploratory-query-results-r4.md).
 
 The accepted Phase 04 correction is now reflected in provider-free
 generation-3 indexes: chi has 452 parents/621 segments and RHF has 322
@@ -352,3 +354,7 @@ The immutable exploratory artifacts are preserved as diagnostic input and are
 not rewritten. Cohort/label freeze now waits on the remaining human decisions;
 it does not require another provider call merely to inspect the already-recorded
 rankings and metrics.
+
+The complete metrics, stage diagnosis, source-backed label corrections, and
+simple-baseline decision are recorded in
+[`chi-rhf-exploratory-query-results-r4.md`](chi-rhf-exploratory-query-results-r4.md).

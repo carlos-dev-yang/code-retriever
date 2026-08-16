@@ -1,6 +1,6 @@
 # Phase 07 chi/RHF Query-Evaluation Approval Packet — Revision 4
 
-- Status: `approved_for_one_bounded_series`
+- Status: `executed_complete_approval_consumed`
 - Prepared: 2026-08-16
 - Operation covered: query embedding for the 32 draft behavior cases only
 - Document embedding covered: no — complete before this packet
@@ -88,3 +88,19 @@ and `d1c259f40ee262316ee2a7f2008aac057a1efd9828fadf388687ce6513882997`.
 The generation, manifests, dataset digests, raw counts, query counts, token
 ceilings, and serving profile remain unchanged. A clean-provenance binary must
 repeat this same preflight before the first request.
+
+## 6. Execution record
+
+The clean binary from commit
+`59b1cd61ec990c56cea275f5ac1b258e7eb5332a` repeated both exact plan hashes,
+then executed chi and RHF once each. Results:
+
+| Corpus | Logical operations | Provider attempts | Validated | Retries / failed | Observed total tokens | Artifact |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| chi | 12 | 12 | 12 | 0 / 0 | 221 | `evaluations/retrieval-7e5731ed1222a6aa432da84f` |
+| react-hook-form | 20 | 20 | 20 | 0 / 0 | 415 | `evaluations/retrieval-20417011198b38cad4a1af2b` |
+
+Both immutable artifact entry lists and matching `evaluation_runs` rows verify.
+The one-series approval is fully consumed. No repeat, changed dataset/profile,
+formal calibration, confirmation, mixed-language, or assistant operation is
+authorized by this packet.

@@ -42,7 +42,8 @@ retrieval quality or supports promotion. The current blockers remain:
 - the deterministic simple-search baseline has not been frozen;
 - the canonical `voyage-code-4` model/price, complete document raw bank, and
   1024/binary materialization are confirmed; the exact 12 chi + 20 RHF
-  exploratory series is approved once under a $0.01 ceiling;
+  exploratory series completed once under its $0.01 ceiling and its approval
+  is consumed;
 - the two repositories do not contain a genuine cross-language Go/TypeScript/TSX behavior path;
 - the confirmation-size and review floor has not been satisfied.
 
@@ -660,7 +661,7 @@ Provider-free actions 1–4 below are complete. The immediate sequence is:
 
 The deterministic simple baseline must still freeze before official frozen-label lexical scoring, but it is not on the critical path to the document capture above. Mixed-language corpus selection and promotion confirmation are deliberately deferred until chi/RHF calibration closure.
 
-The one current exploratory query series is explicitly approved after compatible raw document coverage and local candidate materializations were proved. Any repeat or later pool/calibration/confirmation apply requires its own approval. Formal confirmation approval is requested only after the selected policy, final pooled confirmation labels, margins, denominators, arms, and promotion contract are sealed.
+The one current exploratory query series completed after compatible raw document coverage and local candidate materializations were proved; its one-series approval is consumed. Any repeat or later pool/calibration/confirmation apply requires its own approval. Formal confirmation approval is requested only after the selected policy, final pooled confirmation labels, margins, denominators, arms, and promotion contract are sealed.
 
 ## 16. Adviser reconciliation
 
