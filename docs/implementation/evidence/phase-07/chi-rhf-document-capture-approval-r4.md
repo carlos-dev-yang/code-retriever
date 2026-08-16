@@ -1,7 +1,9 @@
 # Phase 07 chi/RHF Document-Capture Approval Packet — Revision 4
 
-- Status: `awaiting_user_decision`
+- Status: `approved_for_document_capture`
 - Prepared: 2026-08-16
+- Approved: 2026-08-16 by the user, with a $5 account billing limit and an
+  explicit instruction to proceed
 - Operation covered: document embedding only
 - Query embedding covered: no
 - Provider calls made while preparing this packet: `0`
@@ -84,16 +86,18 @@ therefore $1.00. If the account still has its published free allowance, the
 actual billed amount should be $0; provider-reported usage and account billing
 remain the final operational evidence.
 
-## 5. Decision required
+## 5. Approval recorded
 
-The user must explicitly approve the canonical `voyage-code-4` document-only
-capture of 1,111 inputs / 1,279,822 conservative tokens / 10 planned synchronous
-requests under the proposed $1.00 ceiling before any provider call. Query
-embedding is excluded and requires a later separate approval.
+The user approved the canonical `voyage-code-4` document-only capture of 1,111
+inputs / 1,279,822 conservative tokens / 10 planned synchronous requests on
+2026-08-16. The account billing limit is $5; this packet's theoretical
+four-full-attempt estimate is $0.61431456. The apply must stop before a provider
+call if the generation, manifest, input, byte, request, profile, or retry plan
+differs from this packet. Query embedding is excluded and requires a later
+separate approval.
 
-Supplying an API key alone is not approval. Until the bounded approval is
-recorded, the command remains plan-only and no code or query text is sent to
-Voyage.
+Supplying an API key alone was not approval; the user's explicit instruction is
+the approval authority for this bounded operation.
 
 ## 6. Post-approval sequence
 
@@ -110,4 +114,5 @@ Voyage.
 7. Freeze labels only after exploratory pooling and the required formal review
    passes; mixed-language work remains deferred until chi/RHF closure.
 
-This packet is not promotion evidence and authorizes no operation by itself.
+This packet is not promotion evidence. It authorizes only the bounded document
+capture above and does not authorize query embedding.
