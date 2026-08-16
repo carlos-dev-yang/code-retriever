@@ -1,6 +1,6 @@
 # cidx v1 Implementation Plan Index
 
-- Status: Phase 07's provider-free FTS loop is closed; production remains AND, safe OR 5:1 is a fingerprinted evaluation-only comparator, and one clean 12+20 Voyage stage run will refresh the blind pool before human label passes
+- Status: Phase 07's provider-free FTS loop, clean 12+20 Voyage stage run, refreshed blind pools, and dual-AI advisory replays are complete; production remains AND, OR fusion is rejected for serving, and formal freeze waits on separated human source review
 - Canonical design: [Local Code Search MCP v1 Final Target Contract — Revision 4](../../local-code-search-mcp-v1-design-r4.md)
 - Earlier designs: [original](../../local-code-search-mcp-v1-design.md), [r1](../../local-code-search-mcp-v1-design-r1.md), [r2](../../local-code-search-mcp-v1-design-r2.md), [r3](../../local-code-search-mcp-v1-design-r3.md)
 - Execution protocol: [Implementation Execution and Context-Recovery Guide](EXECUTION-GUIDE.md)
@@ -74,7 +74,7 @@ Allowed states are `planned | in_progress | blocked | done`. A phase becomes `do
 | 04 | done | [TypeScript and TSX chunker](04-typescript-tsx-chunker.md) | 02 | Accepted path-derived retrieval labels and real-corpus overload correction; versioned full reindex handoff | [Evidence](evidence/phase-04/README.md) |
 | 05 | done | [Worktree indexing pipeline](05-worktree-index-pipeline.md) | 03, 04, reconciled 02 | Remove the chunk-cap contract, inject `target_segment_bytes`, preserve atomic local reindex, and safely rekey proven-equivalent pre-R4 vectors | [R4 evidence](evidence/phase-05/revision-4.md) |
 | 06 | done | [FTS search](06-fts-search.md) | 05 | Contentless FTS, safe queries, BM25 chunk candidates | [Evidence](06-fts-search.md#11-completion-evidence) |
-| 07 | in_progress | [Lexical evaluation](07-lexical-evaluation.md) | 06, corrected 04 inventory | Close the provider-free FTS loop, run one provenance-bound 32-query Voyage comparator over the fixed 1,024/binary profile, and refresh the blind pool before two-pass human review | [Evidence](evidence/phase-07/README.md) |
+| 07 | in_progress | [Lexical evaluation](07-lexical-evaluation.md) | 06, corrected 04 inventory | Completed FTS/Voyage/AI-advisory measurement; preserve immutable ranks and complete the required separated human source review before label freeze | [Evidence](evidence/phase-07/README.md) |
 | 08 | done | [Initial raw-embedding lab](08-raw-embedding-lab.md) | reconciled 02, 05 | Isolated 1024-dimensional document f32 capture through the shared synchronous request policy | [R4 evidence](evidence/phase-08/revision-4.md) |
 | 09 | done | [Vector materialization](09-vector-materialization.md) | 01, 02, 05, 08 | Shared reduction/normalization, binary/int8 codecs, and selected-profile publish | [Evidence](09-vector-materialization.md#11-completion-evidence) |
 | 10 | done | [Embedding orchestration and reconciliation](10-embedding-orchestration-and-reconciliation.md) | reconciled 05, 08, existing 09 | Byte-bounded concurrent document requests, shared retry execution, and profile reconciliation | [Accepted R4 evidence](evidence/phase-10/revision-4.md) |
@@ -126,7 +126,7 @@ flowchart TD
 
 - Phases 03 and 04 may run in parallel after Phase 02 because their file ownership is disjoint.
 - The free lexical path in Phases 06–07 and the optional embedding path in Phases 08–10 may partially overlap after Phase 05 when prerequisites and ownership permit.
-- Phase 07 cannot produce an official baseline until the user has selected open-source corpora and reproducible manifests exist.
+- Phase 07 has selected, pinned, and measured chi/RHF corpora, but cannot produce an official baseline until the required separated human source review freezes the labels.
 - Phase 12 chooses the initial serving profile from core retrieval evidence. It measures and reports results but does not impose a preselected universal numeric quality threshold.
 - The external corpus gate blocks official Phase 12 evidence and promotion, not the corpus-independent Phase 13 CLI/MCP adapter implementation; those adapters must consume the frozen Phase 12 core rather than recreate it.
 - Phase 13 completion requires the corpus-independent Phase 12 core/API and synthetic adapter parity, not an official corpus run or `core_retrieval` promotion result. Official core promotion is a Phase 14 release-candidate prerequisite.

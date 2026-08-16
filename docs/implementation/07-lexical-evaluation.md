@@ -426,6 +426,34 @@ thin-type boundaries. No new question is added. Chi G12 alone moves to
 iteration order across Go map keys. See
 [`cohort-score-review-r4.md`](evidence/phase-07/cohort-score-review-r4.md).
 
+On 2026-08-17 the provenance-bound comparator at clean commit
+`70bbf1c3b67aa79eaaff4fba495ddbc4e805b6df` ran all 12 chi and 20 RHF
+queries freshly through Voyage query embedding plus FTS, exhaustive target
+f32, active binary, parent collapse, RRF, ablation, and body packaging. All
+32 responses validated with zero retry/failure, 646 provider-reported tokens,
+USD `0.00007752` accounted cost, zero document provider operations, and no
+query-vector persistence. The run showed real fusion rescues and regressions;
+OR fusion is rejected as a serving candidate and production AND is unchanged.
+
+The refreshed blind unions contain 191 chi and 281 RHF relations. Two AI
+reviewers independently covered every relation with rank, score, arm, prior
+label, and experiment result hidden. These are supplementary advisory reviews,
+not the two effective human judgments required above. Chi has a complete
+reconciled advisory label map. RHF direct relevance is fully reconciled and
+matches all 22 existing draft direct parents, while 101 grade-0/grade-1 support
+differences remain deliberately separate. RHF NDCG is reported as the two
+support-map endpoints and their min/max label-sensitivity range, not a
+confidence interval or midpoint. Completeness and first loss continue to use
+the unchanged draft required-group topology. The exact run, packet, pass,
+reconciliation, and replay hashes are recorded in
+[`measured-retrieval-loop-r4.md`](evidence/phase-07/measured-retrieval-loop-r4.md).
+
+Formal Phase 07 completion is still blocked on the separated human source
+passes. A human may adopt a digest-bound batch plus explicit exceptions, but
+must cover every relation, attest source inspection, and leave zero unresolved
+human disagreement. If only labels change, rescore the immutable rankings
+provider-free; do not call Voyage again.
+
 Completion reports must not use the metric value itself as a success declaration. They should demonstrate that the evaluation is reproducible and that failures are traceable.
 
 ## 12. Follow-up Handoff
@@ -438,6 +466,8 @@ Provide Phases 08–12 with:
 - the evaluator contract used to compare f32, binary, and int8 at the same serving dimension; and
 - the fixed `candidate_k`, `return_k`, and RRF input conditions used by hybrid comparison.
 - frozen calibration/confirmation digests and the lexical baseline that later lanes must protect.
+- the AI-advisory direct map and support-label sensitivity endpoints as review
+  preparation only, never as frozen human truth or policy-selection evidence.
 
 Embedding phases must not silently modify dataset answers. If a correction is required, increment the dataset version and record the annotation reason. They also must not infer corpus download or embedding authorization from the existence of a manifest or local binding.
 
@@ -452,9 +482,12 @@ Phase 12 extends the shared Phase 07 `internal/eval` dataset, ground-truth, metr
 | Separate portable tracked manifests from ignored local bindings. | Reproducibility needs pinned provenance while machine paths must not enter version control. | A dedicated portable workspace resolver is designed. |
 | Never select, download, or embed a corpus in Phase 07 without explicit user authorization. | This phase is a free, local lexical evaluator and a manifest alone is not authorization for external actions or paid work. | A separate user-authorized acquisition or embedding workflow is designed. |
 | Observe hit@k/MRR without a numeric gate. | The corpus and product usage pattern are not yet sufficiently settled. | Representative corpora and product requirements accumulate. |
-| Do not use a generative-model judge. | Avoid cost, nondeterminism, and mixing answer definition into scoring. | It is separately designed as supplementary evaluation. |
+| Use generative-model judgments only as supplementary blind-review preparation. | The user explicitly delegated sanitized public-corpus review to ChatGPT and Grok, but the evaluation contract still requires effective human judgments. AI outputs may expose ambiguity and produce sensitivity endpoints; they cannot freeze labels, select policy, or satisfy promotion gates. | The human-review authority contract is explicitly versioned and changed. |
 | Use the accepted deterministic simple-search policy as an evaluation-only control. | On 2026-08-16 the user accepted a corpus-independent `ANY` normalized-token admission rule over the authoritative semantic-parent snapshot, followed by exact qualified/symbol, path, matched-token, and stable identity ordering. It adds no alias, BM25, embedding, boost, public wire, or production-ranking change. | A later evaluation-contract revision explicitly replaces the control. |
 | Stop FTS micro-tuning and carry safe OR 5:1 only as a provenance-bound development comparator. | Repeated AND/OR, minimum-two-token, and 5:1/5:5 experiments showed that aggregate gains can conceal lost required Go/TSX parents. One coherent 32-query Voyage run now provides the missing f32, binary, fusion, and body evidence while production remains AND. | The blinded two-pass pool review is complete and a measured structural change is justified without cross-slice correctness regression. |
+| Reject OR fusion as a serving candidate under the current draft evidence. | The coherent Voyage run showed lower complete-required@5 than pure dense for both corpora, with no chi rescue and concrete chi/RHF required-parent regressions despite isolated RHF rescues. Aggregate RHF also concealed a TypeScript decline and TSX rise. | Human-frozen labels plus a new structural fusion design show no required-group regression in every protected slice. |
+| Report RHF support relevance as a two-endpoint NDCG sensitivity range. | The two complete blind AI passes agree on direct truth after reconciliation but differ on 101 subjective grade-0/grade-1 relations. A single forced label map or midpoint would manufacture precision; Hit/Recall/MRR use the reconciled direct map and completeness/first loss use unchanged draft groups. | Compliant human review resolves every support relation. |
+| Do not repeat Voyage when only labels change. | The corpus, query texts, profiles, document bank, query vectors' resulting immutable ranks, and retrieval policies are already bound and complete; rescoring new labels is provider-free. | Any bound corpus, question, embedding, or retrieval-policy identity changes. |
 | Prefer representative cohort intents and reject quota-padding edge cases. | The user wants questions that expose material failure modes, not detail added only to reach a count. Difficult cases remain valuable when they isolate a real parser, parent-collapse, type/wrapper, codec, or retrieval distinction. | New evidence shows a missing material failure mode that cannot be covered by a representative question. |
 | Use measured cohort failures before revising questions; keep G07/T01/X01/X08 and narrow only G12. | Repeated advisory grading was slower and less decisive than the existing real rankings. The four misses each retain a distinct source-backed diagnostic boundary, while G12 alone contained wording broader than the Go source contract. | A new measured run or source change invalidates one of those distinct boundaries. |
 | Accept the T10 and G09 source-backed label revisions. | `PathImpl` and `PathInternal` directly implement T10 while public `Path` is useful support; `walkXFF` is a reviewed misleading implementation for the deprecated G09 contract. | Pinned source identity or the question intent changes. |

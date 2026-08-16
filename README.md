@@ -4,6 +4,13 @@ cidx is a lightweight local code-search MCP server under active v1 implementatio
 
 The Revision 4 core through Phase 13 and the Phase 14 corpus-independent implementation checkpoint are accepted. The local darwin/arm64 package and operational checkpoint were accepted from clean provenance `a5b2baef9a18e68d6c8b5d4fb62dc2e03727edb4`; Phase 14 remains blocked only for its official evaluation and release-candidate scope. Consult the status ledger for the exact boundary.
 
+The current Phase 07 chi/RHF checkpoint includes the clean 32-query Voyage
+embedding-search run and dual-AI advisory replays. It rejects OR fusion as a
+serving candidate and leaves production AND unchanged. The advisory labels are
+not human label authority; formal calibration still waits on the required
+separated human source review, after which the immutable ranks can be replayed
+without another Voyage call.
+
 ## Product boundary
 
 - Local indexing and FTS search never require an API key or network access.

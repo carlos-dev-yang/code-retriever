@@ -1,7 +1,7 @@
 # Phase 07 Lexical Evaluation Evidence
 
 - Phase: `07-lexical-evaluation`
-- State: `in_progress` — three repeated provider-free FTS comparisons rejected minimum-two-token admission and 5:5 weighting; safe OR 5:1 is now only the provenance-bound comparator for one fresh 32-query Voyage embedding-search pool-building run, while production remains AND.
+- State: `in_progress` — the fresh 32-query Voyage embedding-search run and two complete AI-advisory blind passes are recorded; OR fusion is rejected for serving, production remains AND, and formal label freeze is blocked only on the required separated human review.
 - Date: 2026-08-17
 
 Current real-data audit: [chi/RHF structural audit — Revision 4](chi-rhf-structural-audit-r4.md).
@@ -18,7 +18,7 @@ Current measured cohort decision: [chi/RHF cohort score review — Revision 4](c
 
 Current measured retrieval loop: [provider-free FTS decisions and provenance-safe Voyage comparator — Revision 4](measured-retrieval-loop-r4.md).
 
-### 2026-08-17 measured FTS loop and bounded Voyage handoff
+### 2026-08-17 historical pre-run FTS decision boundary
 
 Repeated AND/OR, OR/minimum-two-token, and OR 5:1/5:5 experiments are now
 closed. Safe OR 5:1 materially opens the natural-language pool but saturates
@@ -28,12 +28,38 @@ candidate advances. The linked evidence records the complete paired metrics,
 rollback reasons, metric-advisor guidance, and independent final-direction
 review.
 
-The next run uses one explicit development-only OR policy whose fingerprint
-covers every lexical control. The new manifest binds clean executable/code,
+At this boundary, the planned run used one explicit development-only OR policy
+whose fingerprint covered every lexical control. The new manifest bound clean executable/code,
 corpus/query/document-bank/profile/materialization/retry/retrieval identities,
 zero document calls or historical rank reuse, the USD cap and pricing identity,
 actual usage/cost, and all planned/observed stages. Public Search, CLI, and MCP
-remain unchanged. The implementation checkpoint made no provider call.
+remained unchanged. The implementation checkpoint itself made no provider call;
+the completed run is recorded immediately below.
+
+### 2026-08-17 completed Voyage run and AI-advisory replay
+
+The clean comparator at commit `70bbf1c3b67aa79eaaff4fba495ddbc4e805b6df`
+ran 12 chi and 20 RHF queries once with `voyage-code-4`, source/serving 1,024,
+and binary storage. All 32 responses validated with zero retry or failure, 646
+provider-reported tokens, USD `0.00007752` accounted cost, zero document
+provider operations, and no query-vector persistence. Exact run IDs, artifact
+hashes, stage metrics, language/cohort exchanges, and the rejected fusion
+decision are in the linked measured-loop evidence.
+
+The refreshed rank/score/arm-hidden pools contain 191 chi and 281 RHF
+relations. ChatGPT and Grok independently covered both pools completely. Chi
+has one complete reconciled AI-advisory label map; all existing direct truth
+parents remain direct. RHF has a complete reconciled direct map matching all
+22 existing direct parents and two unreconciled grade-0/grade-1 support maps.
+Its NDCG is therefore reported as a two-endpoint label-sensitivity range at
+query, language, cohort, and global levels. No midpoint or single RHF
+full-label digest is emitted.
+
+These outputs are `AI_ADVISORY_CALIBRATION_REPLAY` only. User delegation
+authorized review execution and sanitized public-data exchange, not human
+label adoption. Formal freeze, calibration selection, confirmation, promotion,
+and release authority remain false. No additional Voyage call is required if
+only human labels change.
 
 ### 2026-08-16 measured cohort review and chi draft-v3 boundary
 
@@ -255,11 +281,13 @@ The focused tests cover portable/duplicate-field manifest rejection, local Git b
 
 ## Next action
 
-Commit and clean-build the provenance-safe comparator, verify both dry plans,
-then run one fresh 12-query chi and 20-query RHF Voyage embedding-search series.
-Use the resulting candidate union to refresh the blind review packet before
-the two separated human passes. Any future hard-negative or no-answer label
-still needs corpus-wide search evidence and a second review/pass.
+Hand the digest-bound refreshed chi/RHF packets to the required separated human
+passes. Hash-bound batch adoption plus explicit exceptions is allowed, but
+every relation must be source-inspected and covered. After a compliant human
+freeze, replay the already immutable rankings provider-free; do not call
+Voyage again while corpus, questions, retrieval policies, and embeddings are
+unchanged. Any future hard-negative or no-answer label still needs corpus-wide
+search evidence and a second review/pass.
 
 The ignored source-link review views are
 `.cidx/test/states/chi/evaluations/review/pass1-v2-chi-review.md` and
