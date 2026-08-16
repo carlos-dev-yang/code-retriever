@@ -226,6 +226,11 @@ then perform a separated second pass and adjudicate every disagreement. Any
 future hard-negative or no-answer
 label needs corpus-wide search evidence and a second review/pass.
 
+The ignored source-link review views are
+`.cidx/test/states/chi/evaluations/review/pass1-v2-chi-review.md` and
+`.cidx/test/states/react-hook-form/evaluations/review/pass1-v2-rhf-review.md`.
+They contain no machine grades, lane names, scores, or original ranks.
+
 ## Authorized corpus-resume smoke
 
 The user explicitly authorized acquisition of exactly these public checkouts;

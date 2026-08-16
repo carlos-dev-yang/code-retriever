@@ -215,6 +215,19 @@ Ignored local packets:
 - RHF: `.cidx/test/states/react-hook-form/evaluations/review/pool-v2-rhf-calibration-top5.json`,
   SHA-256 `7dee4ee2af94ad610d9d1b194c6c8a00ce289fceeb123630a6c0dd8634fcbb5a`.
 
+Ignored human-readable pass-1 views bind those exact pool digests and expose
+only blind candidate tokens, kind, qualified symbol, declaration, and exact
+local source links:
+
+- chi: `.cidx/test/states/chi/evaluations/review/pass1-v2-chi-review.md`,
+  SHA-256 `eeb2c75f58ee671052a396c97dbb4dbd97d655b6709b98951757b16d26d9a995`;
+- RHF: `.cidx/test/states/react-hook-form/evaluations/review/pass1-v2-rhf-review.md`,
+  SHA-256 `d9c29e6aff9763bcbad123d42c768b99877e3a44331d78dadd76e8d15c16f7cf`.
+
+These views are convenience material, not label authority. A pass becomes
+effective only when its digest-bound decisions, reviewer, source-verification
+attestation, and review time are recorded.
+
 Both packets are `MACHINE_PREPARED_UNREVIEWED`, contain null decisions, and
 are non-promotional. They deliberately include all 308 query-parent relations:
 every opened-arm top-5 parent plus every draft-v2 truth parent, including truth
