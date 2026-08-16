@@ -125,6 +125,17 @@ direct/support judgment resolves to exactly one production parent. The files
 remain `draft`; the advisory question review is not either formal human label
 pass, and no hard-negative or confirmation denominator is claimed yet.
 
+## Clean provider-free FTS observation
+
+A clean build from `2a08df7d465f72c939a3b0e85b28d8b5ca000cdf` ran each
+dataset once through the production lexical path. Chi returned no candidate for
+all 12 cases; RHF returned no candidate for all 20 cases. All 32 first losses
+were `FTS_CANDIDATE_MISS`. The immutable `run.json` hashes are
+`1134ef35cdcc0cbd7c415feb7c2ab6f849e76dc15cd224b133f1554dfe1a928d`
+and `31ba8d90986b838fe6a95e9f514795c57b4d11bc04c5e56ca2fb8623f8acac84`
+respectively. This preserves a useful lexical control; it does not evaluate
+dense retrieval and does not change the draft judgments.
+
 ## Side-panel advisory review and accepted corrections
 
 The 32 rows were submitted, without hashes, source bodies, local paths, or

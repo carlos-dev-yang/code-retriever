@@ -45,6 +45,25 @@ No repository-wide test, corpus mutation after generation 3, provider call,
 API-key read, query embedding, materialization, label freeze, or promotion run
 occurred.
 
+### 2026-08-16 clean provider-free behavior baseline
+
+The clean build at commit `2a08df7d465f72c939a3b0e85b28d8b5ca000cdf`
+ran the production FTS path once against each new behavior dataset. Both runs
+completed without operation failures, but natural-language behavior questions
+returned no candidates: chi was 0/12 at Hit@5 and RHF was 0/20 at Hit@5, with
+every first loss recorded as `FTS_CANDIDATE_MISS`. This is the lexical baseline,
+not a dense or hybrid result and not a reason to tune an unfrozen simple-search
+policy before the separately approved document/query embedding stages.
+
+| Run | Cases | Mean returned | Hit@5 | `run.json` SHA-256 |
+| --- | ---: | ---: | ---: | --- |
+| `chi-behavior-fts-g3-1` | 12 Go | 0 | 0 | `1134ef35cdcc0cbd7c415feb7c2ab6f849e76dc15cd224b133f1554dfe1a928d` |
+| `rhf-behavior-fts-g3-1` | 12 TypeScript + 8 TSX | 0 | 0 | `31ba8d90986b838fe6a95e9f514795c57b4d11bc04c5e56ca2fb8623f8acac84` |
+
+The ignored immutable artifacts remain under each checkout's
+`.cidx/lab/evaluations/runs/` directory. No provider, API key, query embedding,
+or label freeze was involved.
+
 ## Implemented infrastructure
 
 - `internal/eval` owns strict portable corpus-manifest and evaluation-dataset JSON loading, RFC 8785 canonical fingerprints, and validation of corpus provenance, complete commits, SPDX-form license declarations, language slices, repository-relative roots, selection patterns, and deterministic selected-content hashes.

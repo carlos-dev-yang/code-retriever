@@ -279,8 +279,11 @@ boundary. No provider/network operation ran at either boundary.
 
 ## Next gate
 
-1. Bind the reviewed behavior cohort against the generation-3 parent universe
-   with exact paths, content hashes, byte ranges, kinds, and digests.
-2. Finalize the spend ceiling from current official provider pricing.
-3. Return for explicit document-capture approval only after the exact final
-   inputs, bytes, request count, and spend ceiling are known.
+1. Decide whether to preserve canonical `voyage-code-4` using authoritative
+   account-side availability/pricing evidence or explicitly reopen the model
+   contract to a currently documented model.
+2. Finalize a dollar ceiling and obtain explicit document-capture approval for
+   the already exact 1,111-input/1,279,822-byte/10-request plan.
+3. After document capture, request paid-query approval separately and compare
+   dense/hybrid behavior against the clean all-miss FTS control before either
+   human label-freeze pass.
