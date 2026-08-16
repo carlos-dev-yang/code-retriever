@@ -1,6 +1,6 @@
 # cidx v1 Implementation Plan Index
 
-- Status: Phase 07's exact 12 chi + 20 RHF exploratory query series and segmented-parent trace correction are complete; ranking-blind packets cover 205 retrieved-or-truth query-parent judgments, with three user decisions and the provider-free simple-pool addition remaining before two-pass label freeze
+- Status: Phase 07's exact 12 chi + 20 RHF exploratory query series, segmented-parent trace correction, accepted draft-v2 labels, and provider-free simple-control implementation are complete; run the simple control on both corpora and add its candidates before two-pass label freeze
 - Canonical design: [Local Code Search MCP v1 Final Target Contract — Revision 4](../../local-code-search-mcp-v1-design-r4.md)
 - Earlier designs: [original](../../local-code-search-mcp-v1-design.md), [r1](../../local-code-search-mcp-v1-design-r1.md), [r2](../../local-code-search-mcp-v1-design-r2.md), [r3](../../local-code-search-mcp-v1-design-r3.md)
 - Execution protocol: [Implementation Execution and Context-Recovery Guide](EXECUTION-GUIDE.md)

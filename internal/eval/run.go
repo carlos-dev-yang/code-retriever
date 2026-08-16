@@ -368,7 +368,10 @@ func completeFiniteMetricMap(values map[int]float64, ks []int) bool {
 }
 
 func artifactEntries(root string) ([]evalcontract.ArtifactEntry, error) {
-	names := []string{"run.json", "summary.md"}
+	return artifactEntriesNamed(root, []string{"run.json", "summary.md"})
+}
+
+func artifactEntriesNamed(root string, names []string) ([]evalcontract.ArtifactEntry, error) {
 	entries := make([]evalcontract.ArtifactEntry, 0, len(names))
 	for _, name := range names {
 		data, err := os.ReadFile(filepath.Join(root, name))

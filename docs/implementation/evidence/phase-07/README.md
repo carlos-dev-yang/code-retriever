@@ -14,6 +14,37 @@ Consumed query-evaluation gate: [chi/RHF query-evaluation approval packet — Re
 
 Current exploratory diagnosis: [chi/RHF exploratory query results — Revision 4](chi-rhf-exploratory-query-results-r4.md).
 
+### 2026-08-16 provider-free simple-control implementation checkpoint
+
+The accepted evaluation-only simple control is implemented but has not run
+against either draft-v2 corpus dataset. `ProductionStore.SemanticParentsSnapshot`
+copies the active generation, manifest, and the authoritative semantic-parent
+stored fields (path, indexed hash, language, kind, symbol, qualified symbol,
+signature, exact source body, and ranges) in one read transaction, closes that
+transaction, and only then permits local control evaluation. The control uses
+the stable-deduplicated union of `symbol.ClassifyQuery` identifier tokens then
+text tokens under the resolved query limits. A parent is admitted when any token is
+present in the normalized path/symbol/qualified-symbol/signature/body union.
+It orders admitted parents by exact normalized qualified symbol, exact
+normalized symbol, path-token match, distinct matched-token count, then
+normalized path, ranges, raw qualified symbol, indexed content hash, then raw
+repository-relative path in bytewise UTF-8/Go-string ascending order. Its
+versioned fingerprint seals those exact fields, admission, rank,
+tie, and the authoritative `config.SymbolNormalizerID` normalizer policy.
+
+`cidx dev retrieval evaluate --mode simple` is provider-free, requires a
+manifest and draft dataset, and rejects both `--apply` and `--inventory-only`.
+It reproves the all-file `IndexSnapshot` generation, manifest, production
+schema, and index profile against the semantic-parent snapshot and resolved
+config before corpus-file verification, so parentless files cannot be omitted.
+It writes only a separate immutable ignored simple-control artifact with
+complete finite per-case metric maps and mutually consistent corpus/label and
+algorithm-bound candidate-policy controls. Every artifact case must retain
+exactly `min(admitted_candidate_count, candidate_k)` ranked hits, and every
+metric depth is bounded by the captured `return_k`. It emits no FTS `StageTrace` or FTS
+first-loss semantics. It does not change public MCP/schema, production FTS,
+BM25, aliases, weights, embeddings, or corpus state.
+
 ### 2026-08-16 accepted draft-v2 label boundary
 
 The versioned `behavior-*-draft-v2.json` datasets keep the same 12 chi and 20
@@ -122,6 +153,39 @@ or label freeze was involved.
 
 ## Checks actually run
 
+The focused simple-control implementation boundary passed on 2026-08-16:
+
+```text
+gofmt -w internal/store/search_snapshot.go internal/store/search_snapshot_test.go internal/symbol/normalize.go internal/eval/run.go internal/eval/simple.go internal/eval/simple_artifact.go internal/eval/simple_test.go internal/devlab/cli.go internal/devlab/lexical.go internal/devlab/lexical_test.go
+go test -count=1 -race ./internal/store ./internal/eval ./internal/devlab ./internal/symbol
+go vet ./internal/store ./internal/eval ./internal/devlab ./internal/symbol
+go build ./cmd/cidx ./internal/store ./internal/eval ./internal/devlab ./internal/symbol
+gofmt -l internal/store/search_snapshot.go internal/store/search_snapshot_test.go internal/symbol/normalize.go internal/eval/run.go internal/eval/simple.go internal/eval/simple_artifact.go internal/eval/simple_test.go internal/devlab/cli.go internal/devlab/lexical.go internal/devlab/lexical_test.go
+git diff --check
+```
+
+The focused cases cover stable query-token deduplication and query-limit
+rejection, `ANY` admission across every permitted normalized field, exact/path/
+matched-token/stable-identity ordering including raw-qualified and normalized-path
+collision fixtures,
+admitted-count versus returned-cap behavior, generation/manifest pin
+propagation and all-file/profile/schema parity, sealed exact fingerprint
+stability, signature-only admission, separate artifact immutability plus forged
+metric-map, contradictory-control, incomplete-pool, and over-depth rejection,
+source-body snapshot copying,
+and simple-mode rejection of `--apply` and `--inventory-only`. No corpus state, provider,
+network, API key, embedding, lab, production FTS, MCP, or public schema action
+ran.
+
+The independent Terra/high review initially found missing DB-profile reproof,
+contradictory artifact-control acceptance, an under-specified fingerprint,
+incomplete captured-pool validation, and missing focused field coverage. The
+implementation now reproves schema/index profile, cross-checks every artifact
+pin, seals token construction and the total tie order, requires exactly
+`min(admitted,candidate_k)` hits at bounded metric depths, and carries the
+corresponding fixtures. Final re-review and the main focused boundary commands
+above reported no findings.
+
 Codex repeated the focused boundary validation on 2026-08-15 before the
 infrastructure commit. All commands below passed.
 
@@ -146,10 +210,10 @@ The focused tests cover portable/duplicate-field manifest rejection, local Git b
 
 ## Next action
 
-Have a human reviewer replace or approve the two tracked machine-draft smoke
-datasets in two recorded passes, then freeze a deterministic simple-search
-baseline policy before comparing it with FTS. Any future hard-negative or
-no-answer label needs corpus-wide search evidence and a second review/pass.
+Run the accepted simple control against both draft-v2 datasets from clean
+provenance, pool its returned parents into the ranking-blind review material,
+then complete two recorded review passes. Any future hard-negative or no-answer
+label needs corpus-wide search evidence and a second review/pass.
 
 ## Authorized corpus-resume smoke
 

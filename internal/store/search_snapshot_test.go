@@ -60,4 +60,11 @@ func TestTruthSnapshotPinsAuthoritativeChunks(t *testing.T) {
 	if snapshot.Generation != 1 || snapshot.ManifestSHA256 != fixtureHash("truth") || len(snapshot.Chunks) != 1 || snapshot.Chunks[0].IndexedSHA256 != file.SHA256 || snapshot.Chunks[0].Path != "a.go" {
 		t.Fatalf("truth snapshot=%#v", snapshot)
 	}
+	semantic, err := production.SemanticParentsSnapshot(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if semantic.Generation != snapshot.Generation || semantic.ManifestSHA256 != snapshot.ManifestSHA256 || len(semantic.Parents) != 1 || semantic.Parents[0].Path != "a.go" || semantic.Parents[0].SourceBody != string(file.Chunks[0].SourceBody) || semantic.Parents[0].Symbol == "" || semantic.Parents[0].Signature == "" {
+		t.Fatalf("semantic snapshot=%#v", semantic)
+	}
 }

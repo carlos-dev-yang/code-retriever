@@ -21,7 +21,9 @@ import (
 	"cidx/internal/config"
 	"cidx/internal/eval"
 	"cidx/internal/evalcontract"
+	"cidx/internal/profile"
 	"cidx/internal/search/lexical"
+	"cidx/internal/store"
 	"cidx/internal/workspace"
 )
 
@@ -98,6 +100,13 @@ type lexicalArtifactReference struct {
 	RunID     string                        `json:"run_id"`
 	Reference string                        `json:"reference"`
 	Manifest  evalcontract.ArtifactManifest `json:"artifact_manifest"`
+}
+
+type simpleEvaluationResult struct {
+	Mode      string                    `json:"mode"`
+	Inventory lexicalInventoryReference `json:"inventory"`
+	Artifact  *lexicalArtifactReference `json:"artifact,omitempty"`
+	Summary   *eval.SimpleSummary       `json:"summary,omitempty"`
 }
 
 func lexicalEvaluation(ctx context.Context, options lexicalEvaluationOptions, stdout io.Writer) error {
@@ -209,6 +218,135 @@ func lexicalEvaluation(ctx context.Context, options lexicalEvaluationOptions, st
 	result.Artifact = &lexicalArtifactReference{RunID: runID, Reference: filepath.ToSlash(filepath.Join(".", runID)), Manifest: manifest}
 	result.Summary = &run.Summary
 	return json.NewEncoder(stdout).Encode(result)
+}
+
+// simpleEvaluation runs the accepted provider-free comparison control over a
+// single copied semantic-parent snapshot. It does not call the FTS service or
+// create an FTS stage trace.
+func simpleEvaluation(ctx context.Context, options lexicalEvaluationOptions, stdout io.Writer) error {
+	if options.SourceRoot == "" {
+		options.SourceRoot = options.RepositoryRoot
+	}
+	if options.ControllerRoot == "" {
+		options.ControllerRoot = options.SourceRoot
+	}
+	if options.StateRoot == "" {
+		options.StateRoot = filepath.Join(options.SourceRoot, ".cidx")
+	}
+	inputs, err := lexicalInputs(ctx, options)
+	if err != nil {
+		return err
+	}
+	application, err := app.OpenWorkspaceLocal(ctx, workspace.Layout{SourceRoot: options.SourceRoot, StateRoot: options.StateRoot})
+	if err != nil {
+		return err
+	}
+	defer application.Close()
+
+	snapshot, err := application.Store.SemanticParentsSnapshot(ctx)
+	if err != nil {
+		return err
+	}
+	inventory := semanticInventory(snapshot)
+	indexed, err := application.Store.IndexSnapshot(ctx)
+	if err != nil {
+		return err
+	}
+	indexedFiles, err := simpleIndexedFiles(snapshot, indexed, application.Resolved.Profiles.Fingerprints.Index, store.ProductionSchemaVersion)
+	if err != nil {
+		return err
+	}
+	if err := eval.VerifyIndexedFiles(ctx, inputs.manifest, application.Root, indexedFiles); err != nil {
+		return err
+	}
+	if err := eval.ValidateTruthMapping(inputs.dataset, inventory); err != nil {
+		return err
+	}
+	if err := validateLexicalCodeProvenance(buildinfo.Current()); err != nil {
+		return err
+	}
+	if err := validateDraftCaseDigests(inputs.dataset); err != nil {
+		return err
+	}
+	manifestFingerprint, err := inputs.manifest.Fingerprint()
+	if err != nil {
+		return err
+	}
+	datasetFingerprint, err := inputs.dataset.Fingerprint()
+	if err != nil {
+		return err
+	}
+	artifactRoot, err := lexicalArtifactRoot(application.StateRoot)
+	if err != nil {
+		return err
+	}
+	if err := prepareLexicalArtifactRoot(application.StateRoot); err != nil {
+		return err
+	}
+	inventoryReference, err := writeLexicalInventory(artifactRoot, inputs.verified, manifestFingerprint, inventory)
+	if err != nil {
+		return err
+	}
+	result := simpleEvaluationResult{Mode: "simple", Inventory: inventoryReference}
+	run, err := (eval.SimpleRunner{SnapshotSource: eval.FixedSemanticParentSnapshot{Value: snapshot}, Resolved: application.Resolved, Ks: []int{1, application.Resolved.Search.ReturnK}}).Run(ctx, inputs.dataset)
+	if err != nil {
+		return err
+	}
+	if run.Generation != snapshot.Generation || run.ManifestSHA256 != snapshot.ManifestSHA256 {
+		return fmt.Errorf("NON_REPRODUCIBLE_RUN")
+	}
+	runID := options.RunID
+	if runID == "" {
+		runID = "simple-" + time.Now().UTC().Format("20060102t150405.000000000z")
+	}
+	artifact := eval.SimplePortableRunArtifact{
+		SchemaVersion:             evalcontract.SchemaVersion,
+		RunID:                     runID,
+		CreatedAt:                 time.Now().UTC().Format(time.RFC3339Nano),
+		ControlAlgorithm:          eval.SimpleControlAlgorithm,
+		AlgorithmFingerprint:      run.AlgorithmFingerprint,
+		Manifest:                  simpleRunManifest(application, manifestFingerprint, datasetFingerprint, inputs.verified, run),
+		Corpus:                    inputs.verified,
+		CorpusManifestFingerprint: manifestFingerprint,
+		DatasetFingerprint:        datasetFingerprint,
+		ExpectedQueryIDs:          lexicalQueryIDs(inputs.dataset),
+		Generation:                run.Generation,
+		ManifestSHA256:            run.ManifestSHA256,
+		CandidateK:                application.Resolved.Search.CandidateK,
+		ReturnK:                   application.Resolved.Search.ReturnK,
+		Ks:                        run.Ks,
+		Results:                   run.Results,
+		Summary:                   run.Summary,
+	}
+	manifest, err := eval.WriteSimpleRunArtifact(artifactRoot, artifact)
+	if err != nil {
+		return err
+	}
+	result.Artifact = &lexicalArtifactReference{RunID: runID, Reference: filepath.ToSlash(filepath.Join(".", runID)), Manifest: manifest}
+	result.Summary = &run.Summary
+	return json.NewEncoder(stdout).Encode(result)
+}
+
+func semanticInventory(snapshot store.SemanticParentSnapshot) eval.TruthInventorySnapshot {
+	result := eval.TruthInventorySnapshot{Generation: snapshot.Generation, ManifestSHA256: snapshot.ManifestSHA256, Chunks: make([]eval.IndexedTruth, 0, len(snapshot.Parents))}
+	for _, parent := range snapshot.Parents {
+		result.Chunks = append(result.Chunks, eval.IndexedTruth{Path: parent.Path, IndexedSHA256: parent.IndexedSHA256, QualifiedSymbol: parent.QualifiedSymbol, Kind: parent.Kind, StartByte: parent.StartByte, EndByte: parent.EndByte})
+	}
+	return result
+}
+
+// simpleIndexedFiles reproves that the separately copied all-file inventory
+// belongs to the same generation and manifest as the semantic-parent snapshot.
+// Files without a semantic parent remain part of corpus verification.
+func simpleIndexedFiles(snapshot store.SemanticParentSnapshot, indexed store.IndexSnapshot, expectedIndex profile.Fingerprint, expectedSchema int) (map[string]string, error) {
+	if indexed.Applied.ActiveGeneration != snapshot.Generation || indexed.Applied.ManifestSHA256 != snapshot.ManifestSHA256 || indexed.Applied.Fingerprints.Index != expectedIndex || indexed.Applied.SchemaVersion != expectedSchema {
+		return nil, fmt.Errorf("NON_REPRODUCIBLE_RUN")
+	}
+	files := make(map[string]string, len(indexed.Files))
+	for path, file := range indexed.Files {
+		files[path] = file.SHA256
+	}
+	return files, nil
 }
 
 // validateLexicalCodeProvenance keeps immutable execution artifacts from
@@ -464,6 +602,11 @@ func writeLexicalReviewPacket(root string, corpus eval.VerifiedCorpus, corpusFin
 func lexicalRunManifest(application *app.Application, corpusFingerprint, datasetFingerprint string, corpus eval.VerifiedCorpus, run eval.LexicalRun) evalcontract.EvaluationRunManifest {
 	candidatePolicy := fmt.Sprintf("mode=lexical;candidate_k=%d;return_k=%d;fts_symbol_weight=%g;fts_body_weight=%g", application.Resolved.Search.CandidateK, application.Resolved.Search.ReturnK, application.Resolved.Search.FTSSymbolWeight, application.Resolved.Search.FTSBodyWeight)
 	return evalcontract.EvaluationRunManifest{SchemaVersion: evalcontract.SchemaVersion, CorpusManifestSHA256: corpusFingerprint, QueryManifestSHA256: datasetFingerprint, CodeCommit: buildinfo.Current().Commit, ProfileFingerprint: string(application.Resolved.Profiles.Fingerprints.Index), Generation: run.Generation, CandidatePolicy: candidatePolicy, Platform: runtime.GOOS + "/" + runtime.GOARCH, PairedControls: evalcontract.PairedRunControls{CorpusStateSHA256: corpus.ContentSHA256, LabelDigestSHA256: datasetFingerprint, ParserVersion: fmt.Sprintf("index-chunker-v%d", config.IndexChunkerVersion), ChunkerVersion: fmt.Sprintf("index-chunker-v%d", config.IndexChunkerVersion), FTSSchemaVersion: fmt.Sprintf("fts-v%d", config.FTSSchemaVersion), SourceModel: "not-used-lexical", SourceDimensions: 1, ReducerID: "not-used-lexical", ServingDimensions: 1, CandidatePolicy: candidatePolicy, BodyBudget: "not-used-lexical", MCPVersion: "not-used-lexical"}}
+}
+
+func simpleRunManifest(application *app.Application, corpusFingerprint, datasetFingerprint string, corpus eval.VerifiedCorpus, run eval.SimpleRun) evalcontract.EvaluationRunManifest {
+	candidatePolicy := eval.SimpleCandidatePolicy(run.AlgorithmFingerprint, application.Resolved.Search.CandidateK, application.Resolved.Search.ReturnK)
+	return evalcontract.EvaluationRunManifest{SchemaVersion: evalcontract.SchemaVersion, CorpusManifestSHA256: corpusFingerprint, QueryManifestSHA256: datasetFingerprint, CodeCommit: buildinfo.Current().Commit, ProfileFingerprint: string(application.Resolved.Profiles.Fingerprints.Index), Generation: run.Generation, CandidatePolicy: candidatePolicy, Platform: runtime.GOOS + "/" + runtime.GOARCH, PairedControls: evalcontract.PairedRunControls{CorpusStateSHA256: corpus.ContentSHA256, LabelDigestSHA256: datasetFingerprint, ParserVersion: fmt.Sprintf("index-chunker-v%d", config.IndexChunkerVersion), ChunkerVersion: fmt.Sprintf("index-chunker-v%d", config.IndexChunkerVersion), FTSSchemaVersion: fmt.Sprintf("fts-v%d", config.FTSSchemaVersion), SourceModel: "not-used-simple-control", SourceDimensions: 1, ReducerID: "not-used-simple-control", ServingDimensions: 1, CandidatePolicy: candidatePolicy, BodyBudget: "not-used-simple-control", MCPVersion: "not-used-simple-control"}}
 }
 
 func lexicalQueryIDs(dataset eval.EvaluationDataset) []string {

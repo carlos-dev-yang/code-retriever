@@ -213,7 +213,7 @@ func retrieval(ctx context.Context, args []string, stdout, stderr io.Writer) err
 	repositoryRoot := flags.String("root", ".", "repository root")
 	sourceDir := flags.String("source-dir", "", "source checkout relative to the controlling project")
 	stateDir := flags.String("state-dir", "", "state namespace below .cidx/test/states")
-	mode := flags.String("mode", "retrieval", "retrieval or lexical")
+	mode := flags.String("mode", "retrieval", "retrieval, lexical, or simple")
 	inventoryOnly := flags.Bool("inventory-only", false, "write a source-body-free lexical truth-inventory packet without executing a dataset")
 	runID := flags.String("run-id", "", "fresh lexical artifact identifier")
 	apply := flags.Bool("apply", false, "perform explicitly approved paid query embeddings")
@@ -223,17 +223,17 @@ func retrieval(ctx context.Context, args []string, stdout, stderr io.Writer) err
 	if flags.NArg() != 0 {
 		return fmt.Errorf("dev retrieval evaluate accepts no positional arguments")
 	}
-	if *mode != "retrieval" && *mode != "lexical" {
-		return fmt.Errorf("--mode must be retrieval or lexical")
+	if *mode != "retrieval" && *mode != "lexical" && *mode != "simple" {
+		return fmt.Errorf("--mode must be retrieval, lexical, or simple")
 	}
 	if *manifest == "" || (*dataset == "" && !(*mode == "lexical" && *inventoryOnly)) {
 		return fmt.Errorf("--corpus-manifest and --dataset are required unless --mode lexical --inventory-only is used")
 	}
-	if *mode == "retrieval" && *inventoryOnly {
+	if (*mode == "retrieval" || *mode == "simple") && *inventoryOnly {
 		return fmt.Errorf("--inventory-only requires --mode lexical")
 	}
-	if *mode == "lexical" && *apply {
-		return fmt.Errorf("--apply is unavailable in lexical mode")
+	if (*mode == "lexical" || *mode == "simple") && *apply {
+		return fmt.Errorf("--apply is unavailable in %s mode", *mode)
 	}
 	var sourceRoot, stateRoot, controllerRoot string
 	customWorkspace := *sourceDir != "" || *stateDir != ""
@@ -259,6 +259,9 @@ func retrieval(ctx context.Context, args []string, stdout, stderr io.Writer) err
 	}
 	if *mode == "lexical" {
 		return lexicalEvaluation(ctx, lexicalEvaluationOptions{ManifestPath: *manifest, DatasetPath: *dataset, CorpusPath: *corpusPath, ControllerRoot: controllerRoot, SourceRoot: sourceRoot, StateRoot: stateRoot, InventoryOnly: *inventoryOnly, RunID: *runID}, stdout)
+	}
+	if *mode == "simple" {
+		return simpleEvaluation(ctx, lexicalEvaluationOptions{ManifestPath: *manifest, DatasetPath: *dataset, CorpusPath: *corpusPath, ControllerRoot: controllerRoot, SourceRoot: sourceRoot, StateRoot: stateRoot, RunID: *runID}, stdout)
 	}
 	if _, err := preflightRetrievalInputs(ctx, controllerRoot, sourceRoot, *manifest, *dataset, *corpusPath); err != nil {
 		return err

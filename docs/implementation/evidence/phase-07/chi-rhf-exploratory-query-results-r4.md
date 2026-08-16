@@ -185,8 +185,11 @@ proposal. Query tokens are the stable-deduplicated union from the existing
 use the same tokenizer. Exact symbol checks compare fully normalized strings;
 path match means any query token occurs in the normalized path; matched-token
 count is distinct across the union of all five fields. The stable tie tuple is
-normalized path, start byte, end byte, qualified symbol, then indexed content
-hash. The fingerprint seals those definitions. A development-only,
+normalized path, start byte, end byte, raw qualified symbol, indexed content
+hash, then raw repository-relative path in bytewise UTF-8 order as the final
+normalized-path-collision fallback. The `kb-guide` follow-up confirmed that
+last field is a mechanical completion of the accepted stable-parent-identity
+rule rather than a tuning change. The fingerprint seals those definitions. A development-only,
 generation-pinned read snapshot supplies authoritative parents and stored
 bodies; no public FTS, MCP, schema, or production-ranking change is proposed.
 
@@ -257,3 +260,15 @@ judgments. No further provider operation is required. Next create the new
 working-dataset digest, generate blinded provider-free simple/FTS pool
 additions, complete two separated label-review passes, and freeze the chi/RHF
 calibration digest. A later paid calibration apply remains a separate approval.
+
+The `kb-guide` measurement-contract follow-up confirmed the practical review
+boundary. A difficult case stays only when a recorded source basis and removal
+effect show that it uniquely exposes a material failure boundary; difficulty or
+low score alone is insufficient. All pooled relations still need two effective
+human judgments, but pass 2 may use a digest-bound batch approval plus explicit
+exceptions. Pass 1 remains machine-label-blind, and the final materialized map
+must contain per-relation grade, rationale, group assignment, and source
+verification. Missing coverage remains `UNREVIEWED`, never grade 0. The current
+32 questions and every choice informed by them are calibration-only; later
+confirmation intents must be independently authored rather than paraphrases of
+these observed failures.

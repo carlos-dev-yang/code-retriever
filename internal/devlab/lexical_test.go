@@ -8,8 +8,11 @@ import (
 	"testing"
 
 	"cidx/internal/buildinfo"
+	"cidx/internal/config"
 	"cidx/internal/eval"
 	"cidx/internal/evalcontract"
+	"cidx/internal/profile"
+	"cidx/internal/store"
 )
 
 func TestDraftCaseDigestFraming(t *testing.T) {
@@ -140,10 +143,33 @@ func TestLexicalModeRejectsApplyAndInventoryFlags(t *testing.T) {
 	for _, args := range [][]string{
 		{"retrieval", "evaluate", "--mode", "lexical", "--apply", "--corpus-manifest", "manifest", "--dataset", "dataset"},
 		{"retrieval", "evaluate", "--mode", "retrieval", "--inventory-only", "--corpus-manifest", "manifest", "--dataset", "dataset"},
+		{"retrieval", "evaluate", "--mode", "simple", "--apply", "--corpus-manifest", "manifest", "--dataset", "dataset"},
+		{"retrieval", "evaluate", "--mode", "simple", "--inventory-only", "--corpus-manifest", "manifest", "--dataset", "dataset"},
 	} {
 		if err := (CLI{}).Run(context.Background(), args, os.Stdout, os.Stderr); err == nil {
 			t.Fatalf("unsafe flag combination accepted: %v", args)
 		}
+	}
+}
+
+func TestSimpleIndexedFilesIncludesParentlessFilesAndRejectsDrift(t *testing.T) {
+	snapshot := store.SemanticParentSnapshot{Generation: 7, ManifestSHA256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
+	indexFingerprint := profile.Fingerprint("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd")
+	indexed := store.IndexSnapshot{Applied: config.AppliedProfiles{SchemaVersion: store.ProductionSchemaVersion, ActiveGeneration: 7, ManifestSHA256: snapshot.ManifestSHA256, Fingerprints: profile.ProfileFingerprints{Index: indexFingerprint}}, Files: map[string]store.IndexedFile{"empty.go": {Path: "empty.go", SHA256: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}}}
+	files, err := simpleIndexedFiles(snapshot, indexed, indexFingerprint, store.ProductionSchemaVersion)
+	if err != nil || files["empty.go"] == "" || len(files) != 1 {
+		t.Fatalf("all-file parity=%v err=%v", files, err)
+	}
+	indexed.Applied.ManifestSHA256 = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+	if _, err := simpleIndexedFiles(snapshot, indexed, indexFingerprint, store.ProductionSchemaVersion); err == nil {
+		t.Fatal("generation/manifest drift accepted")
+	}
+	indexed.Applied.ManifestSHA256 = snapshot.ManifestSHA256
+	if _, err := simpleIndexedFiles(snapshot, indexed, profile.Fingerprint("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"), store.ProductionSchemaVersion); err == nil {
+		t.Fatal("index-profile drift accepted")
+	}
+	if _, err := simpleIndexedFiles(snapshot, indexed, indexFingerprint, store.ProductionSchemaVersion+1); err == nil {
+		t.Fatal("schema drift accepted")
 	}
 }
 

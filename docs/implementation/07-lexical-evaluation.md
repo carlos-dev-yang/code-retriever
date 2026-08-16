@@ -235,6 +235,40 @@ Create separate calibration and confirmation splits. A promotion-capable confirm
 
 Every frozen query receives human review. Record two independent approvals when possible. Solo development records two separated review passes and the single-reviewer limitation. No-answer and hard-negative labels require corpus-wide search evidence and a second independent review/pass. Pool unique top results from simple search, FTS, and later f32/binary/int8/RRF arms before final label freeze.
 
+Before retaining a difficult calibration question, record its real
+`source_basis`, nearest existing query IDs, the distinct parser/chunker,
+semantic-parent, language-construct, codec, or retrieval boundary it exercises,
+the concrete distinguishing observation, and the diagnostic coverage lost if
+the case is removed. Mark it `KEEP`, `RESERVE`, or `REJECT` with reviewer/pass
+identity. Difficulty or a poor score alone is not sufficient to keep a case.
+
+One case contributes once to the global query denominator, once to its language
+slice, once to its single `task:*` cohort, once to its single `signal:*` cohort,
+and to every genuinely applicable `diag:*` projection. Overlapping cohort
+denominators are reported separately and are never summed to reconstruct the
+global denominator.
+
+Every pooled `(query_id, semantic_parent_id)` relation must receive two final
+effective human judgments. Pass 1 remains machine-label-blind. Pass 2 or final
+reconciliation may use a hash-bound batch approval plus exceptions instead of
+individual clicks, but the record must enumerate every covered relation and
+include packet digest, reviewer, timestamps, source-inspection attestation,
+default decision, exceptions, and machine-overlay digest/provenance. The
+materialized result still stores grade, rationale, required-group assignment,
+and `source_verified` per relation. Compare complete pass maps and adjudicate
+every disagreement; an uncovered relation is `UNREVIEWED`, never implicit
+grade 0.
+
+The final pool is the semantic-parent-deduplicated union, at the frozen pooling
+depth, of every opened arm plus existing truth parents. Before label freeze,
+require zero unreviewed relations in both passes, zero unresolved disagreements,
+zero duplicate/conflicting judgments, zero missing source verifications, and
+zero invalid grade-2 group assignments. Bind that proof to corpus, generation,
+dataset, arm set, scoring depth, simple-policy fingerprint, shuffle seed, and
+final pool digest. A previously unseen parent added by a later arm reopens both
+passes for that relation. Int8 may remain explicitly unopened/out of scope for
+the current 1,024/binary grid; it must not be silently described as pooled.
+
 Metric calculations record denominators, negative-query handling, and failure states. Preflight-invalid data makes the run incomplete. A required query execution failure remains in the run denominator with zero retrieval metrics and an explicit operation-failure state; an optional unrequested downstream stage is `NOT_OBSERVED`.
 
 Because v1 has no abstention threshold, an `ABSTAINABLE` query is not failed merely because top-k metadata is nonempty. Report returned count and rank/score diagnostics, count only reviewed misleading parents in `KnownHardNegativeHit@k`, and leave assistant false-lead measurement to the paired product-usefulness stage.

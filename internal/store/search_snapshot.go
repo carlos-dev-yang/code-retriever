@@ -39,6 +39,27 @@ type TruthChunk struct {
 	StartByte, EndByte                         int
 }
 
+// SemanticParentSnapshot is a development-evaluation-only copy of the same
+// authoritative semantic-parent inventory used by FTS. The transaction is
+// deliberately closed before a control evaluates local text so it never holds
+// a SQLite read snapshot while doing query work.
+type SemanticParentSnapshot struct {
+	Generation     int64
+	ManifestSHA256 string
+	Parents        []SemanticParent
+}
+
+// SemanticParent contains every stored parent field the deterministic simple
+// control is permitted to inspect. It is copied from SQLite; it is not a
+// second authority or a production search result.
+type SemanticParent struct {
+	Path, IndexedSHA256, Language, Kind string
+	Symbol, QualifiedSymbol, Signature  string
+	SourceBody                          string
+	StartByte, EndByte                  int
+	StartLine, EndLine                  int
+}
+
 func (store *ProductionStore) TruthSnapshot(ctx context.Context) (TruthSnapshot, error) {
 	tx, err := store.Read.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
@@ -66,6 +87,48 @@ func (store *ProductionStore) TruthSnapshot(ctx context.Context) (TruthSnapshot,
 	}
 	if err := tx.Commit(); err != nil {
 		return TruthSnapshot{}, err
+	}
+	return result, nil
+}
+
+// SemanticParentsSnapshot pins active generation, manifest, and all stored
+// semantic parents in one read transaction, then returns a detached copy.
+// Local evaluation must not reuse the transaction after this method returns.
+func (store *ProductionStore) SemanticParentsSnapshot(ctx context.Context) (SemanticParentSnapshot, error) {
+	tx, err := store.Read.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return SemanticParentSnapshot{}, err
+	}
+	defer tx.Rollback()
+	var result SemanticParentSnapshot
+	if err := tx.QueryRowContext(ctx, `SELECT active_generation,manifest_sha256 FROM meta WHERE id=1`).Scan(&result.Generation, &result.ManifestSHA256); err != nil {
+		return SemanticParentSnapshot{}, err
+	}
+	rows, err := tx.QueryContext(ctx, `
+		SELECT f.path,f.indexed_sha256,f.language,c.kind,c.symbol,c.qualified_symbol,c.signature,c.source_body,
+		       c.start_byte,c.end_byte,c.start_line,c.end_line
+		FROM chunks c JOIN files f ON f.id=c.file_id
+		ORDER BY f.path,c.start_byte,c.end_byte,c.qualified_symbol,f.indexed_sha256,c.id`)
+	if err != nil {
+		return SemanticParentSnapshot{}, err
+	}
+	for rows.Next() {
+		var parent SemanticParent
+		if err := rows.Scan(&parent.Path, &parent.IndexedSHA256, &parent.Language, &parent.Kind, &parent.Symbol, &parent.QualifiedSymbol, &parent.Signature, &parent.SourceBody, &parent.StartByte, &parent.EndByte, &parent.StartLine, &parent.EndLine); err != nil {
+			rows.Close()
+			return SemanticParentSnapshot{}, err
+		}
+		result.Parents = append(result.Parents, parent)
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return SemanticParentSnapshot{}, err
+	}
+	if err := rows.Close(); err != nil {
+		return SemanticParentSnapshot{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return SemanticParentSnapshot{}, err
 	}
 	return result, nil
 }
