@@ -2,6 +2,7 @@ package typescript
 
 import (
 	"context"
+	pathpkg "path"
 	"strings"
 
 	"cidx/internal/chunk"
@@ -15,6 +16,7 @@ type extractedDeclarations struct {
 	source      []byte
 	language    chunk.Language
 	policy      chunk.SegmentationPolicy
+	path        string
 }
 
 type callableDeclaration struct {
@@ -27,10 +29,11 @@ type callableDeclaration struct {
 	bodyless    bool
 	classField  bool
 	overloadKey string
+	qualified   string
 }
 
-func extractDeclarations(ctx context.Context, root *treesitter.Node, source []byte, language chunk.Language, policy chunk.SegmentationPolicy) extractedDeclarations {
-	result := extractedDeclarations{lines: chunk.NewLineIndex(source), source: source, language: language, policy: policy}
+func extractDeclarations(ctx context.Context, root *treesitter.Node, path string, source []byte, language chunk.Language, policy chunk.SegmentationPolicy) extractedDeclarations {
+	result := extractedDeclarations{lines: chunk.NewLineIndex(source), source: source, language: language, policy: policy, path: path}
 	result.extractScope(ctx, root, nil)
 	return result
 }
@@ -56,7 +59,7 @@ func (result *extractedDeclarations) extractScope(ctx context.Context, parent *t
 			index++
 			continue
 		}
-		if callable := topLevelCallable(decl, anchor, owner, result.source); callable != nil {
+		if callable := topLevelCallable(decl, anchor, owner, result.path, result.source); callable != nil {
 			group, next := result.collectCallableGroup(parent, index, owner, callable)
 			result.appendCallableGroup(ctx, group)
 			index = next
@@ -106,53 +109,107 @@ func (result *extractedDeclarations) extractModule(ctx context.Context, node, an
 	result.extractScope(ctx, body, append(append([]string(nil), owner...), string(result.source[name.StartByte():name.EndByte()])))
 }
 
-func topLevelCallable(node, anchor *treesitter.Node, owner []string, source []byte) *callableDeclaration {
+func topLevelCallable(node, anchor *treesitter.Node, owner []string, filePath string, source []byte) *callableDeclaration {
 	switch node.Kind() {
 	case nodeFunctionDeclaration, nodeGeneratorFunctionDeclaration, nodeFunctionSignature:
 		name := node.ChildByFieldName(fieldName)
-		if name == nil || name.HasError() || name.Kind() != nodeIdentifier {
-			return nil
+		if name != nil && !name.HasError() && name.Kind() == nodeIdentifier {
+			body := node.ChildByFieldName(fieldBody)
+			return &callableDeclaration{node: node, anchor: anchor, body: body, name: string(source[name.StartByte():name.EndByte()]), owner: append([]string(nil), owner...), kind: chunk.Function, bodyless: body == nil, overloadKey: callableOverloadKey(anchor, name, source)}
 		}
-		return &callableDeclaration{node: node, anchor: anchor, body: node.ChildByFieldName(fieldBody), name: string(source[name.StartByte():name.EndByte()]), owner: append([]string(nil), owner...), kind: chunk.Function, bodyless: node.Kind() == nodeFunctionSignature}
+		return anonymousDefaultCallable(node, anchor, owner, filePath, source)
+	case nodeArrowFunction, nodeFunctionExpression, nodeGeneratorFunction:
+		return anonymousDefaultCallable(node, anchor, owner, filePath, source)
 	default:
 		return nil
 	}
 }
 
+func anonymousDefaultCallable(node, anchor *treesitter.Node, owner []string, filePath string, source []byte) *callableDeclaration {
+	if len(owner) != 0 || node == nil || anchor == nil || node.HasError() || anchor.Kind() != nodeExportStatement || node.ChildByFieldName(fieldName) != nil || !isDefaultExport(anchor, node, source) {
+		return nil
+	}
+	body := functionValueBody(node)
+	if body == nil && (node.Kind() == nodeFunctionDeclaration || node.Kind() == nodeGeneratorFunctionDeclaration) {
+		body = node.ChildByFieldName(fieldBody)
+	}
+	if body == nil || body.HasError() {
+		return nil
+	}
+	symbol, qualified, ok := defaultExportLabels(filePath)
+	if !ok {
+		return nil
+	}
+	return &callableDeclaration{node: node, anchor: anchor, body: body, name: symbol, kind: chunk.Function, qualified: qualified}
+}
+
+func isDefaultExport(anchor, node *treesitter.Node, source []byte) bool {
+	if anchor.StartByte() > node.StartByte() || node.StartByte() > uint(len(source)) {
+		return false
+	}
+	return normalizedText(source[anchor.StartByte():node.StartByte()]) == "export default"
+}
+
+func defaultExportLabels(filePath string) (string, string, bool) {
+	clean := pathpkg.Clean(filePath)
+	if clean == "." || clean == ".." || pathpkg.IsAbs(clean) || strings.HasPrefix(clean, "../") {
+		return "", "", false
+	}
+	extension := pathpkg.Ext(clean)
+	if extension != ".ts" && extension != ".tsx" {
+		return "", "", false
+	}
+	modulePath := strings.TrimSuffix(clean, extension)
+	symbol := pathpkg.Base(modulePath)
+	if symbol == "" || symbol == "." || symbol == ".." {
+		return "", "", false
+	}
+	return symbol, moduleOwner + "." + strings.ReplaceAll(modulePath, "/", "."), true
+}
+
+func callableOverloadKey(anchor, name *treesitter.Node, source []byte) string {
+	if anchor == nil || name == nil || anchor.StartByte() > name.StartByte() || name.StartByte() > uint(len(source)) {
+		return ""
+	}
+	return normalizedText(source[anchor.StartByte():name.StartByte()])
+}
+
 func (result *extractedDeclarations) collectCallableGroup(parent *treesitter.Node, start uint, owner []string, first *callableDeclaration) ([]*callableDeclaration, uint) {
 	group := []*callableDeclaration{first}
-	for index := start + 1; index < parent.NamedChildCount(); index++ {
-		next, anchor := unwrapDeclaration(parent.NamedChild(index))
-		candidate := topLevelCallable(next, anchor, owner, result.source)
-		if candidate == nil || candidate.name != first.name || candidate.kind != first.kind || !contiguousCallables(group[len(group)-1], candidate, result.source) {
+	for index := start + 1; index < parent.NamedChildCount(); {
+		candidateIndex := index
+		for candidateIndex < parent.NamedChildCount() && parent.NamedChild(candidateIndex).Kind() == nodeComment {
+			candidateIndex++
+		}
+		if candidateIndex >= parent.NamedChildCount() {
+			return group, index
+		}
+		next, anchor := unwrapDeclaration(parent.NamedChild(candidateIndex))
+		candidate := topLevelCallable(next, anchor, owner, result.path, result.source)
+		if candidate == nil || candidate.name != first.name || candidate.kind != first.kind || candidate.overloadKey != first.overloadKey || !contiguousOverload(group[len(group)-1], candidate, result.source) {
 			return group, index
 		}
 		group = append(group, candidate)
+		index = candidateIndex + 1
 	}
 	return group, parent.NamedChildCount()
 }
 
-func contiguousDeclarations(left, right *treesitter.Node, source []byte) bool {
-	for _, value := range source[left.EndByte():right.StartByte()] {
+func contiguousOverload(left, right *callableDeclaration, source []byte) bool {
+	if left == nil || right == nil || !left.bodyless || left.anchor == nil || right.anchor == nil {
+		return false
+	}
+	start := int(left.anchor.EndByte())
+	end := associatedDocStart(right.anchor, source)
+	if start > end || end > len(source) {
+		return false
+	}
+	for _, value := range source[start:end] {
 		if value != ' ' && value != '\t' && value != '\r' && value != '\n' && value != ';' && value != ',' {
 			return false
 		}
 	}
 	return true
-}
-
-func contiguousCallables(left, right *callableDeclaration, source []byte) bool {
-	if contiguousDeclarations(left.node, right.node, source) {
-		return true
-	}
-	if !left.bodyless {
-		return false
-	}
-	// Tree-sitter signature nodes omit their separator and a following
-	// implementation starts after its declaration keyword/modifiers. Those are
-	// grammar punctuation, not a distant declaration boundary.
-	gap := strings.NewReplacer(" ", "", "\t", "", "\r", "", "\n", "", ";", "", ",", "", "declare", "", "export", "", "async", "", "function", "", "*", "").Replace(string(source[left.node.EndByte():right.node.StartByte()]))
-	return gap == ""
 }
 
 func (result *extractedDeclarations) appendVariableFunctions(ctx context.Context, declaration, anchor *treesitter.Node, owner []string) {
@@ -342,18 +399,27 @@ func methodCallable(node *treesitter.Node, owner []string, source []byte) *calla
 	if name == nil || name.HasError() || (name.Kind() != nodePropertyIdentifier && name.Kind() != nodePrivatePropertyIdentifier) {
 		return nil
 	}
+	body := node.ChildByFieldName(fieldBody)
 	modifier := normalizedText(source[node.StartByte():name.StartByte()])
-	return &callableDeclaration{node: node, anchor: node, body: node.ChildByFieldName(fieldBody), name: string(source[name.StartByte():name.EndByte()]), owner: append([]string(nil), owner...), kind: chunk.Method, bodyless: node.Kind() != nodeMethodDefinition, overloadKey: modifier}
+	return &callableDeclaration{node: node, anchor: node, body: body, name: string(source[name.StartByte():name.EndByte()]), owner: append([]string(nil), owner...), kind: chunk.Method, bodyless: body == nil, overloadKey: modifier}
 }
 
 func (result *extractedDeclarations) collectMethodGroup(parent *treesitter.Node, start uint, owner []string, first *callableDeclaration) ([]*callableDeclaration, uint) {
 	group := []*callableDeclaration{first}
-	for index := start + 1; index < parent.NamedChildCount(); index++ {
-		candidate := methodCallable(parent.NamedChild(index), owner, result.source)
-		if candidate == nil || candidate.name != first.name || candidate.overloadKey != first.overloadKey || !contiguousDeclarations(group[len(group)-1].node, candidate.node, result.source) {
+	for index := start + 1; index < parent.NamedChildCount(); {
+		candidateIndex := index
+		for candidateIndex < parent.NamedChildCount() && parent.NamedChild(candidateIndex).Kind() == nodeComment {
+			candidateIndex++
+		}
+		if candidateIndex >= parent.NamedChildCount() {
+			return group, index
+		}
+		candidate := methodCallable(parent.NamedChild(candidateIndex), owner, result.source)
+		if candidate == nil || candidate.name != first.name || candidate.overloadKey != first.overloadKey || !contiguousOverload(group[len(group)-1], candidate, result.source) {
 			return group, index
 		}
 		group = append(group, candidate)
+		index = candidateIndex + 1
 	}
 	return group, parent.NamedChildCount()
 }
@@ -433,7 +499,11 @@ func (result *extractedDeclarations) appendCallableGroup(ctx context.Context, gr
 	if !completed {
 		return
 	}
-	value := chunk.SourceChunk{Language: result.language, Kind: implementation.kind, Symbol: implementation.name, QualifiedSymbol: qualifiedSymbol(implementation.owner, implementation.name), Signature: signature, SourceRange: sourceRange, LineRange: lineRange, SourceBody: append([]byte(nil), result.source[start:end]...), Projections: projections, Segments: segments}
+	qualified := implementation.qualified
+	if qualified == "" {
+		qualified = qualifiedSymbol(implementation.owner, implementation.name)
+	}
+	value := chunk.SourceChunk{Language: result.language, Kind: implementation.kind, Symbol: implementation.name, QualifiedSymbol: qualified, Signature: signature, SourceRange: sourceRange, LineRange: lineRange, SourceBody: append([]byte(nil), result.source[start:end]...), Projections: projections, Segments: segments}
 	if err := value.Validate(); err != nil {
 		result.unsafeDeclaration(implementation.node)
 		return

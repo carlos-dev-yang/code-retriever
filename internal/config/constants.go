@@ -4,7 +4,7 @@ const (
 	SchemaVersion                     = 1
 	CanonicalTextFormatterID          = "cidx-canonical-text"
 	CanonicalTextFormatterVer         = 1
-	IndexChunkerVersion               = 1
+	IndexChunkerVersion               = 2
 	IndexProjectionVersion            = 1
 	IndexSegmentVersion               = 1
 	SymbolNormalizerID                = "identifier-split-lower-v1"

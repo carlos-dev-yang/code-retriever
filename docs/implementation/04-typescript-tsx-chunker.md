@@ -1,6 +1,6 @@
 # 04. TypeScript and TSX Chunker and Projections
 
-- Status: `done` — implementation and main-agent completion validation accepted on 2026-08-15
+- Status: `done` — Revision 4 correction and main-agent boundary validation accepted on 2026-08-16
 - Prerequisite phase: `02-config-profiles-and-schemas`
 - Downstream phases: `05-worktree-index-pipeline`, `06-fts-search`, `08-raw-embedding-lab`
 - Parallel phase: `03-go-chunker`
@@ -71,7 +71,7 @@ Each result contains:
 5. A type `source_body` preserves the original contiguous declaration. Its projection excludes nested method and constructor bodies while retaining their signatures.
 6. Export status never promotes a const/var into a chunk.
 7. A variable-bound function becomes a named function chunk only when one function value is assigned directly to one identifier.
-8. Never invent synthetic symbols for expressions without stable names, including anonymous callbacks, destructuring bindings, and computed properties.
+8. Never invent synthetic symbols for expressions without stable names, including anonymous callbacks, destructuring bindings, and computed properties. The one versioned exception is a top-level anonymous default-export function-like declaration: its existing `symbol` and `qualified_symbol` retrieval fields use deterministic path-derived labels while the exact source remains unnamed.
 9. When overload signatures connect to one implementation, do not create multiple source chunks that occupy duplicate result slots.
 10. Segments use only complete AST-guaranteed boundaries such as statements, declarations, or JSX elements.
 11. Identical source, grammar selection, and index profile produce identical ordered semantic output.
@@ -154,7 +154,22 @@ When one declaration statement contains several declarators, decide before imple
 
 Relative path and source range must always be available for persistence identity. Never use qualified symbol alone as a unique key.
 
-Decide the v1 policy for anonymous default-export functions before implementation. If included, use a stable `default` display plus path/range identity; never insert a fake function name into source. If excluded, count it under explicitly unsupported declarations rather than emitting a diagnostic.
+Top-level anonymous default-export function-like declarations are included under
+a narrow path-derived retrieval-label exception:
+
+```text
+symbol            = filename stem
+qualified_symbol  = module.<repository-relative path without extension>
+source identity   = path + indexed content hash + byte range
+```
+
+Path separators in `qualified_symbol` become dots. These values occupy the
+existing retrieval/display fields; no alias field or persistence schema is
+added. The source body and signature remain exact source projections and never
+receive an inserted function name. Named default-export functions retain their
+source-declared name. The exception does not apply to anonymous callbacks,
+destructuring bindings, computed properties, IIFEs, or other unnamed
+expressions.
 
 ### 6.4 Overloads and declaration files
 
@@ -210,7 +225,7 @@ Manage function/method/type node names, export/modifier handling, and the suppor
 3. Extract named function and generator declarations.
 4. Extract module/file-scope variable-bound arrow functions and function expressions.
 5. Extract class methods, constructors, getters, and setters.
-6. Fix v1 policies for class-field functions and anonymous default exports with fixture evidence.
+6. Fix v1 policies for class-field functions and the path-derived retrieval labels for top-level anonymous default-export function-like declarations with fixture evidence.
 7. Extract class, abstract class, interface, type alias, and enum as type chunks.
 8. Group overload signatures and implementations by lexical adjacency and owner.
 9. Implement bodyless callable policy for `.d.ts`.
@@ -248,7 +263,7 @@ Validate these fixtures and scenarios during implementation; writing this docume
 - Class type projection retains method signatures and removes bodies.
 - Safe segment boundaries for a TSX component function with a long JSX return or body
 - Nested callbacks and object-literal methods remain excluded according to policy.
-- Fixed policies for anonymous default-export functions and class-field arrows
+- Fixed policies for path-labeled anonymous default-export functions and class-field arrows
 - Decorators, comments, multiline signatures, and semicolon-free syntax
 - Byte and line accuracy for CRLF and multibyte UTF-8 source
 - Safe declarations survive near parse errors while damaged declarations are excluded.
@@ -258,9 +273,10 @@ Validate these fixtures and scenarios during implementation; writing this docume
 
 ### 2026-08-15 implementation evidence (pending main-agent validation)
 
-- Adapter: `internal/chunk/typescript` implements the Phase 02 `chunk.Chunker` contract using the embedded Tree-sitter TypeScript and TSX grammars selected only by `typescript.New(chunk.TypeScript)` or `typescript.New(chunk.TSX)`. `ChunkerVersion` is `typescript-tsx-tree-sitter-0.23.2-jsdoc-class-fields-v1`.
-- Supported chunks: named `function_declaration` and `generator_function_declaration`; top-level identifier-bound `arrow_function`, `function_expression`, and generator function values; named class methods, getters, setters, constructors, and class-field function values; and class/abstract-class/interface/type-alias/enum declarations. Ordinary variable values, nested callbacks, object-literal methods, computed names, and anonymous default-export expressions are excluded.
-- Fixed policies: contiguous same-owner overload signatures combine with an implementation into one chunk; a top-level bodyless signature group remains one function chunk; interface and abstract/bodyless class signatures remain only in the containing type projection; identifier-bound class-field function values are method-like chunks and only their executable function-body ranges are excluded from the class type projection; anonymous default exports are excluded rather than assigned a synthetic name.
+- Adapter at the original boundary: `internal/chunk/typescript` implements the Phase 02 `chunk.Chunker` contract using the embedded Tree-sitter TypeScript and TSX grammars selected only by `typescript.New(chunk.TypeScript)` or `typescript.New(chunk.TSX)`. The current corrected `ChunkerVersion` is `typescript-tsx-tree-sitter-0.23.2-jsdoc-class-fields-path-defaults-overloads-v2`.
+- Supported chunks at the original 2026-08-15 boundary: named `function_declaration` and `generator_function_declaration`; top-level identifier-bound `arrow_function`, `function_expression`, and generator function values; named class methods, getters, setters, constructors, and class-field function values; and class/abstract-class/interface/type-alias/enum declarations. Ordinary variable values, nested callbacks, object-literal methods, computed names, and anonymous default-export expressions were excluded.
+- Original fixed policies: contiguous same-owner overload signatures combine with an implementation into one chunk; a top-level bodyless signature group remains one function chunk; interface and abstract/bodyless class signatures remain only in the containing type projection; identifier-bound class-field function values are method-like chunks and only their executable function-body ranges are excluded from the class type projection; anonymous default exports were excluded rather than assigned a synthetic name.
+- 2026-08-16 Revision 4 correction accepted: real RHF evidence found 57 production anonymous default-export functions were absent; 51 were in files with no other semantic parent and six were in files that already had a type parent. The user accepted deterministic path-derived values in the existing `symbol` and `qualified_symbol` retrieval fields, with no alias/schema expansion. The same boundary corrected bodyless/associated-comment overload grouping for `useWatch`, `insert`, and `mockZodResolver`, incremented the executable chunker/index version, and completed a full provider-free generation-3 reindex before Phase 07 resumed.
 - Function-value chunks keep the binding, parameters, return annotation, and arrow/function token in `Signature`; their actual Tree-sitter `body` node supplies body projection and AST segmentation. Type signatures are normalized declaration headers ending at the semantic content start (`body` for class/interface/enum and `value` for type aliases), never a full declaration that would reintroduce member bodies.
 - JSDoc rule: include only immediately preceding contiguous `comment` siblings whose gaps contain horizontal whitespace and at most one line break. This is part of the versioned chunker rule.
 - Exactness fixtures cover TypeScript functions, generics, variable-bound arrow/function expressions, ordinary-variable exclusion, class methods/constructors/getters/setters, class-field functions, overload collapsing, interface/abstract bodyless non-duplication, class/interface/type-alias/enum chunks, TSX JSX bytes, CRLF/UTF-8 ranges, deterministic output, cancellation, invalid UTF-8, malformed-input recovery, and statement/member-boundary segmentation with later type segments excluding earlier member text.
@@ -308,5 +324,5 @@ Provide FTS and embedding phases with:
 | Overload handling | fixed: logical signature-plus-implementation group | Avoid duplicate results while preserving signatures. |
 | Independent interface-method chunk | fixed: exclude independent bodyless method chunks | Interface and abstract/bodyless class signatures remain in their parent type projection, avoiding duplicate result slots. |
 | Class-field arrow | fixed: direct identifier-bound values are method-like | Emit a method chunk and exclude only its exact executable body range from the class projection. |
-| Anonymous default-export function | fixed: excluded | It has no stable named identity in v1, so no synthetic `default` symbol is emitted. |
+| Anonymous default-export function-like declaration | fixed: include only at top level with path-derived labels in existing `symbol`/`qualified_symbol` fields | Real RHF evidence showed 57 production function bodies were otherwise absent, including 51 files with no other parent. Filename/module-path labels are deterministic retrieval metadata; exact source identity remains path + indexed content hash + byte range, and no name is inserted into source. |
 | Segment threshold and overlap | later evaluation values | Manage through config and the index profile. |

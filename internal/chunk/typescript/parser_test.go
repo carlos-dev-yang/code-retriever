@@ -40,7 +40,7 @@ enum Level { Low, High }
 export default () => 1
 `)
 	result := chunkSource(t, chunk.TypeScript, source)
-	wantSymbols := []string{"identity", "handler", "expression", "Box", "handler", "constructor", "current", "current", "build", "render", "Base", "API", "Result", "Level"}
+	wantSymbols := []string{"identity", "handler", "expression", "Box", "handler", "constructor", "current", "current", "build", "render", "Base", "API", "Result", "Level", "input"}
 	if got := chunkSymbols(result.Chunks); !reflect.DeepEqual(got, wantSymbols) {
 		t.Fatalf("symbols = %#v, want %#v", got, wantSymbols)
 	}
@@ -90,6 +90,16 @@ export default () => 1
 	if got := countQualifiedSymbol(result.Chunks, "module.Base.render"); got != 0 {
 		t.Fatalf("abstract bodyless signature emitted %d chunks, want 0", got)
 	}
+	defaultExport := result.Chunks[len(result.Chunks)-1]
+	if got, want := defaultExport.QualifiedSymbol, "module.sample.input"; got != want {
+		t.Fatalf("default-export qualified symbol = %q, want %q", got, want)
+	}
+	if got := string(defaultExport.SourceBody); got != "export default () => 1" {
+		t.Fatalf("default-export source body = %q", got)
+	}
+	if got := defaultExport.Signature; got != "() =>" {
+		t.Fatalf("default-export signature = %q", got)
+	}
 }
 
 func TestTSXChunkerPreservesJSXAndExactCRLFUTF8Ranges(t *testing.T) {
@@ -122,17 +132,38 @@ func TestTSXChunkerPreservesJSXAndExactCRLFUTF8Ranges(t *testing.T) {
 }
 
 func TestTypeScriptChunkerOverloadsRecoveryDeterminismAndCancellation(t *testing.T) {
-	source := []byte("declare function lookup(value: string): string\ndeclare function lookup(value: number): string\nfunction combine(value: string): string\nfunction combine(value: number): string\nfunction combine(value: string | number) { return String(value) }\nfunction Good() { return lookup(1) }\nfunction Broken( {\n")
+	source := []byte(`declare function lookup(value: string): string
+declare function lookup(value: number): string
+function combine(value: string): string
+function combine(value: number): string
+function combine(value: string | number) { return String(value) }
+/** string overload */
+export function watched(value: string): string
+/** number overload */
+export function watched(value: number): string
+export function watched(value: string | number) { return String(value) }
+export default function insert<T>(data: T[], index: number): T[]
+export default function insert<T>(data: T[], index: number, value: T): T[]
+export default function insert<T>(data: T[], index: number, value?: T) { return data }
+function Good() { return lookup(1) }
+function Broken( {
+`)
 	first := chunkSource(t, chunk.TypeScript, source)
 	second := chunkSource(t, chunk.TypeScript, source)
 	if !reflect.DeepEqual(first, second) {
 		t.Fatalf("chunk output is not deterministic\nfirst=%#v\nsecond=%#v", first, second)
 	}
-	if got, want := chunkSymbols(first.Chunks), []string{"lookup", "combine", "Good"}; !reflect.DeepEqual(got, want) {
+	if got, want := chunkSymbols(first.Chunks), []string{"lookup", "combine", "watched", "insert", "Good"}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("recovered symbols = %#v, want %#v", got, want)
 	}
 	if got := countSymbol(first.Chunks, "combine"); got != 1 {
 		t.Fatalf("top-level overload emitted %d chunks, want 1", got)
+	}
+	if got := countSymbol(first.Chunks, "watched"); got != 1 {
+		t.Fatalf("comment-separated overload emitted %d chunks, want 1", got)
+	}
+	if got := countSymbol(first.Chunks, "insert"); got != 1 {
+		t.Fatalf("default-export overload emitted %d chunks, want 1", got)
 	}
 	if !hasDiagnostic(first.Diagnostics, diagnosticParseError, true) {
 		t.Fatalf("missing recoverable parse diagnostic: %#v", first.Diagnostics)

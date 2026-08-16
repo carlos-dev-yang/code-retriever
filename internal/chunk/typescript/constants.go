@@ -4,7 +4,7 @@ package typescript
 const (
 	// ChunkerVersion changes whenever extraction, JSDoc association, or class
 	// projection rules change. Both embedded grammars share these rules.
-	ChunkerVersion = "typescript-tsx-tree-sitter-0.23.2-jsdoc-class-fields-v1"
+	ChunkerVersion = "typescript-tsx-tree-sitter-0.23.2-jsdoc-class-fields-path-defaults-overloads-v2"
 
 	parserID       = ChunkerVersion
 	grammarVersion = "0.23.2"

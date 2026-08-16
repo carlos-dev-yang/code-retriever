@@ -63,7 +63,7 @@ func (value *Chunker) Chunk(ctx context.Context, request chunk.ChunkRequest) (ch
 	result := chunk.ChunkResult{Parser: metadata}
 	result.Parser.RootKind = root.Kind()
 	result.Parser.HasError = root.HasError()
-	extracted := extractDeclarations(ctx, root, source, value.language, request.SegmentationPolicy)
+	extracted := extractDeclarations(ctx, root, request.Path, source, value.language, request.SegmentationPolicy)
 	if err := ctx.Err(); err != nil {
 		return chunk.ChunkResult{}, err
 	}
