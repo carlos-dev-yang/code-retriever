@@ -1,7 +1,7 @@
 # Phase 07 Lexical Evaluation Evidence
 
 - Phase: `07-lexical-evaluation`
-- State: `in_progress` — the exact 12 chi + 20 RHF exploratory query series completed once with 32/32 validated responses and its approval is consumed; accepted draft-v2, clean provider-free simple-control measurement, and final five-arm blind pools are complete, while two human review passes remain pending.
+- State: `in_progress` — the existing 12 chi + 20 RHF measured rankings were regrouped by cohort, all four current binary failures remain deliberate diagnostic cases, and chi G12 alone advances to draft-v3 wording before pool refresh; no provider request was repeated.
 - Date: 2026-08-16
 
 Current real-data audit: [chi/RHF structural audit — Revision 4](chi-rhf-structural-audit-r4.md).
@@ -13,6 +13,21 @@ Current document-capture gate: [chi/RHF document-capture approval packet — Rev
 Consumed query-evaluation gate: [chi/RHF query-evaluation approval packet — Revision 4](chi-rhf-query-evaluation-approval-r4.md).
 
 Current exploratory diagnosis: [chi/RHF exploratory query results — Revision 4](chi-rhf-exploratory-query-results-r4.md).
+
+Current measured cohort decision: [chi/RHF cohort score review — Revision 4](cohort-score-review-r4.md).
+
+### 2026-08-16 measured cohort review and chi draft-v3 boundary
+
+The immutable exploratory ranks and clean simple-control runs were regrouped
+without another provider request. The accepted RHF T10 truth correction makes
+its recorded f32/binary ranks 2 and 3 complete, leaving four binary failures:
+chi G07 and RHF T01/X01/X08. All four remain because they separately expose a
+real multi-parent, orchestrator, wrapper, or thin-type retrieval boundary; no
+new question is added. Chi G12 alone receives source-faithful draft-v3 wording
+that removes the unsupported implication of global ordering across Go map
+keys. The old v2 G12 ranking and pool remain historical and must not be claimed
+as a v3 measurement. Exact cohort tables, failure decisions, dataset hash, and
+next refresh boundary are recorded in the linked review.
 
 ### 2026-08-16 provider-free simple-control implementation and measurement checkpoint
 
@@ -446,9 +461,12 @@ Phase 12 correction now uses recorded parent coordinates and is documented in
 its Revision 4 evidence. Focused normal/race tests, vet, build, formatting,
 module, and diff checks passed at this correction boundary.
 The immutable exploratory artifacts are preserved as diagnostic input and are
-not rewritten. The three material T10/G09/simple-policy decisions are accepted;
-cohort/label freeze now waits on two separated human passes. It does not require another provider call
-merely to inspect the already-recorded rankings and metrics.
+not rewritten. At that draft-v2 checkpoint the three material
+T10/G09/simple-policy decisions were accepted and only two separated human
+passes remained. The measured cohort review above now supersedes the G12
+question boundary: chi v3 needs its provider-free simple/opened-arm refresh
+before those passes. No provider call is required merely to inspect the
+already-recorded rankings and metrics.
 
 The final opened-arm top-5 results were pooled into ranking-blind ignored
 pass-1 packets. Chi contributes 91 unique parents and 133 query-parent

@@ -1,6 +1,6 @@
 # 07. Lexical Chunking and Search Evaluation
 
-- Status: `in_progress` — the exact one-series 12 chi + 20 RHF exploratory query run completed once; the accepted T10/G09 draft-v2 corrections and deterministic evaluation-only simple control have been measured from clean provenance, and the final five-arm ranking-blind pools are complete. Two human review passes, formal calibration, confirmation, and promotion remain separately gated.
+- Status: `in_progress` — the existing 12 chi + 20 RHF measured rankings are regrouped by cohort; all four current binary failures remain deliberate diagnostic cases, no case is added, and chi G12 alone advances to draft-v3 wording before its simple/opened-arm pool refresh. Formal label freeze, calibration, confirmation, and promotion remain separately gated.
 - Prerequisite phase: `06-fts-search`
 - Follow-up phase: `12-retrieval-evaluation`
 - Design basis: `local-code-search-mcp-v1-design-r4.md` §13, §14
@@ -405,6 +405,16 @@ simple control plus every draft-v2 truth parent. They contain 133 chi and 175
 RHF query-parent relations, with all labels and lane/rank/score information
 hidden. Two separated human passes remain incomplete.
 
+The later measured cohort review reuses the immutable paid ranks and clean
+simple artifacts without another provider request. Under accepted draft-v2
+truth, RHF T10 is complete because `PathImpl` and `PathInternal` are recorded
+at ranks 2 and 3. The remaining binary failures are chi G07 and RHF T01/X01/X08;
+all stay because they expose distinct multi-parent, orchestrator, wrapper, and
+thin-type boundaries. No new question is added. Chi G12 alone moves to
+`behavior-go-chi-v5.3.1-draft-v3.json` with wording that does not imply stable
+iteration order across Go map keys. See
+[`cohort-score-review-r4.md`](evidence/phase-07/cohort-score-review-r4.md).
+
 Completion reports must not use the metric value itself as a success declaration. They should demonstrate that the evaluation is reproducible and that failures are traceable.
 
 ## 12. Follow-up Handoff
@@ -434,6 +444,7 @@ Phase 12 extends the shared Phase 07 `internal/eval` dataset, ground-truth, metr
 | Do not use a generative-model judge. | Avoid cost, nondeterminism, and mixing answer definition into scoring. | It is separately designed as supplementary evaluation. |
 | Use the accepted deterministic simple-search policy as an evaluation-only control. | On 2026-08-16 the user accepted a corpus-independent `ANY` normalized-token admission rule over the authoritative semantic-parent snapshot, followed by exact qualified/symbol, path, matched-token, and stable identity ordering. It adds no alias, BM25, embedding, boost, public wire, or production-ranking change. | A later evaluation-contract revision explicitly replaces the control. |
 | Prefer representative cohort intents and reject quota-padding edge cases. | The user wants questions that expose material failure modes, not detail added only to reach a count. Difficult cases remain valuable when they isolate a real parser, parent-collapse, type/wrapper, codec, or retrieval distinction. | New evidence shows a missing material failure mode that cannot be covered by a representative question. |
+| Use measured cohort failures before revising questions; keep G07/T01/X01/X08 and narrow only G12. | Repeated advisory grading was slower and less decisive than the existing real rankings. The four misses each retain a distinct source-backed diagnostic boundary, while G12 alone contained wording broader than the Go source contract. | A new measured run or source change invalidates one of those distinct boundaries. |
 | Accept the T10 and G09 source-backed label revisions. | `PathImpl` and `PathInternal` directly implement T10 while public `Path` is useful support; `walkXFF` is a reviewed misleading implementation for the deprecated G09 contract. | Pinned source identity or the question intent changes. |
 | Use human-reviewed path/kind/symbol targets as ground truth. | These map directly to the code-search unit. | Multi-hop task evaluation is added separately. |
 | Preserve failure taxonomy alongside metrics. | It identifies which implementation layer should change next. | Never. |

@@ -28,8 +28,8 @@ inputs:
 
 The current behavior-oriented calibration drafts are:
 
-- [12-case chi behavior draft](../../testdata/retrieval/behavior-go-chi-v5.3.1-draft-v1.json)
-- [20-case react-hook-form behavior draft](../../testdata/retrieval/behavior-react-hook-form-v7.85.0-draft-v1.json)
+- [12-case chi behavior draft v3](../../testdata/retrieval/behavior-go-chi-v5.3.1-draft-v3.json)
+- [20-case react-hook-form behavior draft v2](../../testdata/retrieval/behavior-react-hook-form-v7.85.0-draft-v2.json)
 
 The behavior set comprises 12 Go, 12 TypeScript, and 8 TSX cases. It is bound
 to exact generation-3 content hashes, qualified symbols, and byte ranges, but
@@ -39,11 +39,14 @@ evaluator, artifact, and replay path works. Neither set proves semantic
 retrieval quality or supports promotion. The current blockers remain:
 
 - two recorded human label-review passes are incomplete;
-- the deterministic simple-search baseline has not been frozen;
+- the deterministic simple-search baseline is frozen and measured for v2, but
+  chi G12's source-corrected v3 wording requires its simple/opened-arm pool
+  refresh before those passes begin;
 - the canonical `voyage-code-4` model/price, complete document raw bank, and
   1024/binary materialization are confirmed; the exact 12 chi + 20 RHF
   exploratory series completed once under its $0.01 ceiling and its approval
-  is consumed;
+  is consumed; those immutable rankings were regrouped by cohort without a
+  repeat, while the new chi v3 wording is not yet a measured query;
 - the two repositories do not contain a genuine cross-language Go/TypeScript/TSX behavior path;
 - the confirmation-size and review floor has not been satisfied.
 
@@ -429,9 +432,11 @@ Entry: a compatible `core_retrieval` result exists.
 
 Assistant tasks, controls, host integration, false leads, requirement coverage, and paired product-usefulness evidence are frozen and evaluated separately under Phase 14. Retrieval success alone never implies `release_candidate` readiness.
 
-## 7. Deterministic simple-search decision gate
+## 7. Deterministic simple-search frozen control
 
-Phase 07 still requires a frozen simple-search baseline. The recommended policy is deliberately weak and language-neutral:
+On 2026-08-16 the user accepted the deliberately weak, language-neutral v1
+simple-search policy below. It is implemented, fingerprinted, and measured as
+an evaluation-only control:
 
 1. Search the same frozen semantic-parent inventory used by FTS.
 2. Normalize query, path, symbol, signature, and body using one versioned identifier/text normalizer.
@@ -440,7 +445,7 @@ Phase 07 still requires a frozen simple-search baseline. The recommended policy 
 5. Break all remaining ties by normalized path, parent start byte, and stable parent identity.
 6. Record returned-count behavior and exact algorithm fingerprint.
 
-For executable precision, the proposed v1 baseline defines those terms as
+For executable precision, the accepted v1 baseline defines those terms as
 follows:
 
 - query tokens are the stable-deduplicated union returned by the existing
@@ -454,7 +459,7 @@ follows:
 - distinct matched-token count is computed once across the union of all five
   fields, not added once per field;
 - the final stable identity order is normalized path, start byte, end byte,
-  qualified symbol, and indexed content hash;
+  raw qualified symbol, indexed content hash, and raw UTF-8 path byte order;
 - the policy fingerprint covers the algorithm version, normalizer ID, field
   list, `ANY` admission rule, rank tuple, and tie tuple.
 
@@ -464,9 +469,11 @@ exact stored bodies to an internal evaluator. It does not change the public
 lexical searcher, MCP search, database schema, FTS weights, or production
 ranking.
 
-This is a proposed contract, not recorded acceptance. Phase 07 remains at this
-decision gate until the user accepts this policy verbatim or replaces it with
-another deterministic policy before the official run.
+The clean draft-v2 chi and RHF control artifacts are accepted preparation
+evidence, not official promotion evidence. Chi G12's source-corrected draft-v3
+query changes its dataset digest, so its provider-free simple result and
+opened-arm pool must be refreshed from clean provenance before human label
+review. The algorithm itself is not reopened by that refresh.
 
 ## 8. Required retrieval arms
 
