@@ -10,8 +10,11 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"sort"
 
 	"cidx/internal/app"
+	"cidx/internal/buildinfo"
+	"cidx/internal/config"
 	"cidx/internal/embed"
 	"cidx/internal/embedclient"
 	"cidx/internal/eval"
@@ -25,28 +28,59 @@ import (
 // preflight. It intentionally contains no checkout path, source text, raw
 // vector, query vector, credential, or provider usage.
 type RetrievalEvaluationPlan struct {
-	CorpusID                      string `json:"corpus_id"`
-	CorpusManifestSHA256          string `json:"corpus_manifest_sha256"`
-	DatasetSHA256                 string `json:"dataset_sha256"`
-	PinnedCommit                  string `json:"pinned_commit"`
-	ContentSHA256                 string `json:"content_sha256"`
-	IndexGeneration               int64  `json:"index_generation"`
-	IndexManifestSHA256           string `json:"index_manifest_sha256"`
-	RawDocumentInputs             int    `json:"raw_document_inputs"`
-	QueryCount                    int    `json:"query_count"`
-	EstimatedQueryTokens          int    `json:"estimated_query_tokens"`
-	ServingProfile                string `json:"serving_profile"`
-	LogicalQueryOperationsPlanned int    `json:"logical_query_operations_planned"`
-	CostEstimateAvailable         bool   `json:"cost_estimate_available"`
-	CostEstimateReason            string `json:"cost_estimate_reason"`
+	CorpusID                      string                      `json:"corpus_id"`
+	CorpusManifestSHA256          string                      `json:"corpus_manifest_sha256"`
+	DatasetSHA256                 string                      `json:"dataset_sha256"`
+	PinnedCommit                  string                      `json:"pinned_commit"`
+	ContentSHA256                 string                      `json:"content_sha256"`
+	IndexGeneration               int64                       `json:"index_generation"`
+	IndexManifestSHA256           string                      `json:"index_manifest_sha256"`
+	RawDocumentInputs             int                         `json:"raw_document_inputs"`
+	QueryCount                    int                         `json:"query_count"`
+	EstimatedQueryTokens          int                         `json:"estimated_query_tokens"`
+	ServingProfile                string                      `json:"serving_profile"`
+	LogicalQueryOperationsPlanned int                         `json:"logical_query_operations_planned"`
+	CostEstimateAvailable         bool                        `json:"cost_estimate_available"`
+	CostEstimateReason            string                      `json:"cost_estimate_reason"`
+	FTSPolicy                     *search.EvaluationFTSPolicy `json:"fts_policy,omitempty"`
+	ExperimentSeriesID            string                      `json:"experiment_series_id,omitempty"`
+	EvidenceClass                 string                      `json:"evidence_class,omitempty"`
+	PromotionEligible             bool                        `json:"promotion_eligible"`
+	LabelState                    string                      `json:"label_state,omitempty"`
+	QueryExecutionMode            string                      `json:"query_execution_mode,omitempty"`
+	SeriesQueryOperationsPlanned  int                         `json:"series_query_operations_planned,omitempty"`
+	DocumentProviderOperations    int                         `json:"document_provider_operations_planned"`
+	ReusedQueryVectors            int                         `json:"reused_query_vectors"`
+	ReusedDenseRankings           int                         `json:"reused_dense_rankings"`
+	QueryVectorPersisted          bool                        `json:"query_vector_persisted"`
+	AuthorizationReference        string                      `json:"authorization_reference,omitempty"`
+	USDCap                        float64                     `json:"usd_cap,omitempty"`
+	PricingTableIdentity          string                      `json:"pricing_table_identity,omitempty"`
+	USDPerMillionTokens           float64                     `json:"usd_per_million_tokens,omitempty"`
+	PlannedMaximumCostUSD         float64                     `json:"planned_maximum_cost_usd,omitempty"`
+	CodeCommit                    string                      `json:"code_commit,omitempty"`
+	SourceModified                string                      `json:"source_modified,omitempty"`
+	EvaluationExecutableSHA256    string                      `json:"evaluation_executable_sha256,omitempty"`
+}
+
+type RetrievalExperimentOptions struct {
+	FTSPolicy                    *search.EvaluationFTSPolicy
+	ExperimentSeriesID           string
+	SeriesQueryOperationsPlanned int
+	AuthorizationReference       string
+	USDCap                       float64
+	PricingTableIdentity         string
+	USDPerMillionTokens          float64
 }
 
 type retrievalPrepared struct {
-	plan        RetrievalEvaluationPlan
-	dataset     eval.EvaluationDataset
-	application *app.Application
-	raw         *lab.Store
-	required    []string
+	plan                    RetrievalEvaluationPlan
+	dataset                 eval.EvaluationDataset
+	application             *app.Application
+	raw                     *lab.Store
+	required                []string
+	experiment              RetrievalExperimentOptions
+	documentBankFingerprint string
 }
 
 type retrievalInputs struct {
@@ -109,6 +143,10 @@ func PrepareRetrievalEvaluation(ctx context.Context, application *app.Applicatio
 }
 
 func PrepareRetrievalEvaluationAt(ctx context.Context, application *app.Application, raw *lab.Store, bindingRoot, manifestPath, datasetPath, explicitCorpusPath string) (retrievalPrepared, error) {
+	return PrepareRetrievalEvaluationExperimentAt(ctx, application, raw, bindingRoot, manifestPath, datasetPath, explicitCorpusPath, RetrievalExperimentOptions{})
+}
+
+func PrepareRetrievalEvaluationExperimentAt(ctx context.Context, application *app.Application, raw *lab.Store, bindingRoot, manifestPath, datasetPath, explicitCorpusPath string, experiment RetrievalExperimentOptions) (retrievalPrepared, error) {
 	if application == nil || application.Store == nil || application.Search == nil || raw == nil {
 		return retrievalPrepared{}, fmt.Errorf("production application, search service, and lab store are required")
 	}
@@ -178,13 +216,98 @@ func PrepareRetrievalEvaluationAt(ctx context.Context, application *app.Applicat
 		}
 		estimatedTokens += estimate
 	}
+	if err := validateRetrievalExperiment(application, experiment, len(dataset.Cases), estimatedTokens); err != nil {
+		return retrievalPrepared{}, err
+	}
 	// This is the exact Phase 11 no-provider snapshot preflight. It rejects a
 	// profile mismatch, corrupt row, or incomplete current materialization
 	// before --apply can request even the first query vector.
-	if _, err := application.Search.StartEvaluationSession(ctx, dataset.Cases[0].Text); err != nil {
+	preflightSession, err := startRetrievalEvaluationSession(ctx, application, dataset.Cases[0].Text, experiment.FTSPolicy)
+	if err != nil {
 		return retrievalPrepared{}, err
 	}
-	return retrievalPrepared{plan: RetrievalEvaluationPlan{CorpusID: manifest.CorpusID, CorpusManifestSHA256: manifestFingerprint, DatasetSHA256: datasetFingerprint, PinnedCommit: verified.PinnedCommit, ContentSHA256: verified.ContentSHA256, IndexGeneration: inventory.Generation, IndexManifestSHA256: inventory.ManifestSHA256, RawDocumentInputs: len(required), QueryCount: len(dataset.Cases), EstimatedQueryTokens: estimatedTokens, ServingProfile: string(application.Resolved.Profiles.Fingerprints.VectorStorage), LogicalQueryOperationsPlanned: len(dataset.Cases), CostEstimateAvailable: false, CostEstimateReason: "no dated provider price has been frozen for this run"}, dataset: dataset, application: application, raw: raw, required: required}, nil
+	if err := preflightSession.ValidateSnapshot(inventory.Generation, inventory.ManifestSHA256); err != nil {
+		return retrievalPrepared{}, err
+	}
+	plan := RetrievalEvaluationPlan{CorpusID: manifest.CorpusID, CorpusManifestSHA256: manifestFingerprint, DatasetSHA256: datasetFingerprint, PinnedCommit: verified.PinnedCommit, ContentSHA256: verified.ContentSHA256, IndexGeneration: inventory.Generation, IndexManifestSHA256: inventory.ManifestSHA256, RawDocumentInputs: len(required), QueryCount: len(dataset.Cases), EstimatedQueryTokens: estimatedTokens, ServingProfile: string(application.Resolved.Profiles.Fingerprints.VectorStorage), LogicalQueryOperationsPlanned: len(dataset.Cases), CostEstimateAvailable: false, CostEstimateReason: "no dated provider price has been frozen for this run"}
+	if experiment.FTSPolicy != nil {
+		info := buildinfo.Current()
+		if err := validateLexicalCodeProvenance(info); err != nil {
+			return retrievalPrepared{}, err
+		}
+		executableSHA256, err := currentExecutableSHA256()
+		if err != nil {
+			return retrievalPrepared{}, err
+		}
+		attempts := application.Resolved.Embedding.Retry.MaxRetries + 1
+		plannedMaximumCost := float64(estimatedTokens*attempts) * experiment.USDPerMillionTokens / 1_000_000
+		plan.FTSPolicy = experiment.FTSPolicy
+		plan.ExperimentSeriesID = experiment.ExperimentSeriesID
+		plan.EvidenceClass = "CALIBRATION_POOL_BUILDING"
+		plan.PromotionEligible = false
+		plan.LabelState = "DRAFT_TWO_PASS_PENDING"
+		plan.QueryExecutionMode = "LIVE_ALL_QUERIES"
+		plan.SeriesQueryOperationsPlanned = experiment.SeriesQueryOperationsPlanned
+		plan.DocumentProviderOperations = 0
+		plan.ReusedQueryVectors = 0
+		plan.ReusedDenseRankings = 0
+		plan.QueryVectorPersisted = false
+		plan.AuthorizationReference = experiment.AuthorizationReference
+		plan.USDCap = experiment.USDCap
+		plan.PricingTableIdentity = experiment.PricingTableIdentity
+		plan.USDPerMillionTokens = experiment.USDPerMillionTokens
+		plan.PlannedMaximumCostUSD = plannedMaximumCost
+		plan.CodeCommit = info.Commit
+		plan.SourceModified = info.SourceModified
+		plan.EvaluationExecutableSHA256 = executableSHA256
+		plan.CostEstimateAvailable = true
+		plan.CostEstimateReason = "conservative query-token upper bound times maximum attempts and frozen USD-per-million-token rate"
+	}
+	return retrievalPrepared{plan: plan, dataset: dataset, application: application, raw: raw, required: required, experiment: experiment}, nil
+}
+
+func validateRetrievalExperiment(application *app.Application, experiment RetrievalExperimentOptions, queryCount, estimatedTokens int) error {
+	if experiment.FTSPolicy == nil {
+		if experiment != (RetrievalExperimentOptions{}) {
+			return fmt.Errorf("experimental metadata requires an evaluation FTS policy")
+		}
+		return nil
+	}
+	if err := experiment.FTSPolicy.Validate(application.Resolved); err != nil {
+		return err
+	}
+	if experiment.ExperimentSeriesID == "" || experiment.SeriesQueryOperationsPlanned != 32 || queryCount <= 0 || experiment.AuthorizationReference == "" || experiment.USDCap <= 0 || experiment.PricingTableIdentity == "" || experiment.USDPerMillionTokens <= 0 {
+		return fmt.Errorf("incomplete retrieval experiment authority or pricing controls")
+	}
+	maxCost := float64(estimatedTokens*(application.Resolved.Embedding.Retry.MaxRetries+1)) * experiment.USDPerMillionTokens / 1_000_000
+	if !isFinitePositive(experiment.USDCap) || !isFinitePositive(experiment.USDPerMillionTokens) || maxCost > experiment.USDCap {
+		return fmt.Errorf("retrieval experiment exceeds USD cap")
+	}
+	return nil
+}
+
+func startRetrievalEvaluationSession(ctx context.Context, application *app.Application, query string, policy *search.EvaluationFTSPolicy) (search.EvaluationSession, error) {
+	if policy == nil {
+		return application.Search.StartEvaluationSession(ctx, query)
+	}
+	return application.Search.StartEvaluationSessionWithFTSPolicy(ctx, query, *policy)
+}
+
+func isFinitePositive(value float64) bool {
+	return value > 0 && !math.IsNaN(value) && !math.IsInf(value, 0)
+}
+
+func currentExecutableSHA256() (string, error) {
+	path, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	sum := sha256.Sum256(contents)
+	return hex.EncodeToString(sum[:]), nil
 }
 
 func (prepared retrievalPrepared) Plan() RetrievalEvaluationPlan { return prepared.plan }
@@ -204,14 +327,21 @@ func (prepared retrievalPrepared) Apply(ctx context.Context, client embedclient.
 	if client == nil {
 		return RetrievalEvaluationApplied{}, fmt.Errorf("query embedding client is required")
 	}
-	documents, err := prepared.targetDocuments(ctx)
+	documents, documentBankFingerprint, err := prepared.targetDocuments(ctx)
 	if err != nil {
 		return RetrievalEvaluationApplied{}, err
 	}
+	prepared.documentBankFingerprint = documentBankFingerprint
+	if err := prepared.validateCurrentRetrievalState(ctx); err != nil {
+		return RetrievalEvaluationApplied{}, err
+	}
 	usage := newRetrievalProviderUsage(prepared, client)
-	executor := &retrievalExecutor{application: prepared.application, usage: usage, documents: documents, sessions: map[string]search.EvaluationSession{}, arms: map[string]search.EvaluationVectorArms{}, queries: map[string]queryVector{}, failures: map[string]error{}}
+	executor := &retrievalExecutor{application: prepared.application, usage: usage, documents: documents, ftsPolicy: prepared.experiment.FTSPolicy, expectedGeneration: prepared.plan.IndexGeneration, expectedManifestSHA256: prepared.plan.IndexManifestSHA256, sessions: map[string]search.EvaluationSession{}, arms: map[string]search.EvaluationVectorArms{}, queries: map[string]queryVector{}, failures: map[string]error{}}
 	run, err := eval.RunRetrievalEvaluation(ctx, prepared.dataset, eval.DefaultRetrievalPlan([]int{prepared.application.Resolved.Search.ReturnK}), executor)
 	if err != nil {
+		return RetrievalEvaluationApplied{}, err
+	}
+	if err := prepared.validateCurrentRetrievalState(ctx); err != nil {
 		return RetrievalEvaluationApplied{}, err
 	}
 	providerUsage, err := usage.Finalize(prepared, prepared.dataset, run)
@@ -233,32 +363,58 @@ func (prepared retrievalPrepared) Apply(ctx context.Context, client embedclient.
 	return RetrievalEvaluationApplied{Run: run, Artifact: artifact}, nil
 }
 
-func (prepared retrievalPrepared) targetDocuments(ctx context.Context) (map[string][]float32, error) {
+func (prepared retrievalPrepared) targetDocuments(ctx context.Context) (map[string][]float32, string, error) {
 	raws, err := prepared.raw.RawDocuments(ctx, string(prepared.application.Resolved.Profiles.Fingerprints.Source), prepared.required)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	if len(raws) != len(prepared.required) {
-		return nil, fmt.Errorf("RAW_COVERAGE_INCOMPLETE")
+		return nil, "", fmt.Errorf("RAW_COVERAGE_INCOMPLETE")
 	}
 	transformer := vector.Transformer{Spec: prepared.application.Resolved.Embedding.TransformSpec()}
 	result := make(map[string][]float32, len(raws))
-	for _, key := range prepared.required {
+	entries := make([]documentBankEntry, 0, len(raws))
+	ordered := append([]string(nil), prepared.required...)
+	sort.Strings(ordered)
+	for _, key := range ordered {
 		raw, ok := raws[key]
 		if !ok || raw.Dimensions != prepared.application.Resolved.Embedding.Model.SourceDimensions {
-			return nil, fmt.Errorf("RAW_COVERAGE_INCOMPLETE")
+			return nil, "", fmt.Errorf("RAW_COVERAGE_INCOMPLETE")
 		}
 		decoded, err := lab.DecodeF32(raw.VectorF32LE, raw.Dimensions, raw.Checksum)
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 		space, err := transformer.Transform(decoded.Values)
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 		result[key] = space
+		entries = append(entries, documentBankEntry{CanonicalInputSHA256: key, SourceDimensions: raw.Dimensions, RawVectorSHA256: raw.VectorSHA256})
 	}
-	return result, nil
+	fingerprint, err := config.Fingerprint(entries, "cidx/evaluation-document-bank/v1")
+	if err != nil {
+		return nil, "", err
+	}
+	return result, string(fingerprint), nil
+}
+
+type documentBankEntry struct {
+	CanonicalInputSHA256 string `json:"canonical_input_sha256"`
+	SourceDimensions     int    `json:"source_dimensions"`
+	RawVectorSHA256      string `json:"raw_vector_sha256"`
+}
+
+func (prepared retrievalPrepared) validateCurrentRetrievalState(ctx context.Context) error {
+	active, err := prepared.application.Store.ActiveVectorPlanningSnapshot(ctx)
+	if err != nil {
+		return err
+	}
+	fingerprints := prepared.application.Resolved.Profiles.Fingerprints
+	if active.Applied.ActiveGeneration != prepared.plan.IndexGeneration || active.Applied.ManifestSHA256 != prepared.plan.IndexManifestSHA256 || active.Applied.Fingerprints.Source != fingerprints.Source || active.Applied.Fingerprints.VectorSpace != fingerprints.VectorSpace || active.Applied.Fingerprints.VectorStorage != fingerprints.VectorStorage || active.Applied.ActiveServingProfile != fingerprints.VectorStorage {
+		return fmt.Errorf("NON_REPRODUCIBLE_RUN")
+	}
+	return nil
 }
 
 type queryVector struct {
@@ -267,13 +423,16 @@ type queryVector struct {
 }
 
 type retrievalExecutor struct {
-	application *app.Application
-	usage       *retrievalProviderUsageRecorder
-	documents   map[string][]float32
-	sessions    map[string]search.EvaluationSession
-	arms        map[string]search.EvaluationVectorArms
-	queries     map[string]queryVector
-	failures    map[string]error
+	application            *app.Application
+	usage                  *retrievalProviderUsageRecorder
+	documents              map[string][]float32
+	ftsPolicy              *search.EvaluationFTSPolicy
+	expectedGeneration     int64
+	expectedManifestSHA256 string
+	sessions               map[string]search.EvaluationSession
+	arms                   map[string]search.EvaluationVectorArms
+	queries                map[string]queryVector
+	failures               map[string]error
 }
 
 func (executor *retrievalExecutor) EvaluateArm(ctx context.Context, item evalcontract.EvaluationCase, variant eval.RetrievalVariant) (eval.RetrievalArmResult, error) {
@@ -336,8 +495,11 @@ func (executor *retrievalExecutor) session(ctx context.Context, item evalcontrac
 	if value, ok := executor.sessions[item.ID]; ok {
 		return value, nil
 	}
-	value, err := executor.application.Search.StartEvaluationSession(ctx, item.Text)
+	value, err := startRetrievalEvaluationSession(ctx, executor.application, item.Text, executor.ftsPolicy)
 	if err != nil {
+		return search.EvaluationSession{}, err
+	}
+	if err := value.ValidateSnapshot(executor.expectedGeneration, executor.expectedManifestSHA256); err != nil {
 		return search.EvaluationSession{}, err
 	}
 	executor.sessions[item.ID] = value

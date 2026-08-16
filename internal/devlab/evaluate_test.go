@@ -93,6 +93,37 @@ func TestRetrievalAdapterPlanApplyAndArtifactAreLocalSafe(t *testing.T) {
 	assertEvaluationRows(t, raw, 1)
 }
 
+func TestRetrievalExperimentControlsRequireCompleteFingerprintAndBudget(t *testing.T) {
+	_, prepared, _, raw := retrievalFixture(t)
+	defer raw.Close()
+	policy, err := search.SafeTokenOREvaluationPolicy(prepared.application.Resolved)
+	if err != nil {
+		t.Fatal(err)
+	}
+	valid := RetrievalExperimentOptions{FTSPolicy: &policy, ExperimentSeriesID: "series-1", SeriesQueryOperationsPlanned: 32, AuthorizationReference: "user-thread-authorization", USDCap: 5, PricingTableIdentity: "voyage-code-4-price-2026-08-16", USDPerMillionTokens: 0.12}
+	if err := validateRetrievalExperiment(prepared.application, valid, 12, 10_000); err != nil {
+		t.Fatalf("valid experiment rejected: %v", err)
+	}
+	incomplete := valid
+	incomplete.AuthorizationReference = ""
+	if err := validateRetrievalExperiment(prepared.application, incomplete, 12, 10_000); err == nil {
+		t.Fatal("incomplete experiment authority accepted")
+	}
+	forged := valid
+	forged.FTSPolicy = &search.EvaluationFTSPolicy{}
+	if err := validateRetrievalExperiment(prepared.application, forged, 12, 10_000); err == nil {
+		t.Fatal("forged FTS policy accepted")
+	}
+	overBudget := valid
+	overBudget.USDCap = 0.000001
+	if err := validateRetrievalExperiment(prepared.application, overBudget, 12, 10_000); err == nil {
+		t.Fatal("over-budget experiment accepted")
+	}
+	if err := validateRetrievalExperiment(prepared.application, RetrievalExperimentOptions{ExperimentSeriesID: "metadata-without-policy"}, 12, 10_000); err == nil {
+		t.Fatal("experiment metadata without FTS policy accepted")
+	}
+}
+
 func TestRetrievalArtifactCompensationRejectsMalformedRunID(t *testing.T) {
 	ctx, prepared, root, raw := retrievalFixture(t)
 	defer raw.Close()

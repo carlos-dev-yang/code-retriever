@@ -3,13 +3,108 @@ package search
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"sort"
+	"strings"
 
 	"cidx/internal/config"
 	"cidx/internal/embedclient"
 	"cidx/internal/store"
 	"cidx/internal/vector"
 )
+
+const evaluationFTSPolicyDomain = "cidx/evaluation-fts-policy/v1"
+
+// EvaluationFTSPolicy is a development-only, fully fingerprinted lexical
+// policy. Public Search never accepts this type; production continues to use
+// the resolved query builder directly.
+type EvaluationFTSPolicy struct {
+	Scope                     string   `json:"scope"`
+	PolicyID                  string   `json:"policy_id"`
+	PolicySHA256              string   `json:"policy_sha256"`
+	MatchOperator             string   `json:"match_operator"`
+	QueryBuilderID            string   `json:"query_builder_id"`
+	QueryBuilderVersion       int      `json:"query_builder_version"`
+	NormalizerID              string   `json:"normalizer_id"`
+	NormalizerVersion         int      `json:"normalizer_version"`
+	FTSTokenizerID            string   `json:"fts_tokenizer_id"`
+	FTSTokenizerOptions       string   `json:"fts_tokenizer_options"`
+	FTSSchemaVersion          int      `json:"fts_schema_version"`
+	Fields                    []string `json:"fields"`
+	SymbolWeight              float64  `json:"symbol_weight"`
+	BodyWeight                float64  `json:"body_weight"`
+	CandidateK                int      `json:"candidate_k"`
+	ReturnK                   int      `json:"return_k"`
+	ExactSymbolPolicyID       string   `json:"exact_symbol_policy_id"`
+	TiePolicyID               string   `json:"tie_policy_id"`
+	ProductionPolicyUnchanged bool     `json:"production_policy_unchanged"`
+}
+
+type evaluationFTSPolicyPayload struct {
+	Scope                     string   `json:"scope"`
+	PolicyID                  string   `json:"policy_id"`
+	MatchOperator             string   `json:"match_operator"`
+	QueryBuilderID            string   `json:"query_builder_id"`
+	QueryBuilderVersion       int      `json:"query_builder_version"`
+	NormalizerID              string   `json:"normalizer_id"`
+	NormalizerVersion         int      `json:"normalizer_version"`
+	FTSTokenizerID            string   `json:"fts_tokenizer_id"`
+	FTSTokenizerOptions       string   `json:"fts_tokenizer_options"`
+	FTSSchemaVersion          int      `json:"fts_schema_version"`
+	Fields                    []string `json:"fields"`
+	SymbolWeight              float64  `json:"symbol_weight"`
+	BodyWeight                float64  `json:"body_weight"`
+	CandidateK                int      `json:"candidate_k"`
+	ReturnK                   int      `json:"return_k"`
+	ExactSymbolPolicyID       string   `json:"exact_symbol_policy_id"`
+	TiePolicyID               string   `json:"tie_policy_id"`
+	ProductionPolicyUnchanged bool     `json:"production_policy_unchanged"`
+}
+
+// SafeTokenOREvaluationPolicy returns the one admitted Revision-4 calibration
+// candidate. Its weights and depths are taken from the validated resolved
+// policy so the experiment cannot silently diverge on any second axis.
+func SafeTokenOREvaluationPolicy(resolved config.ResolvedConfig) (EvaluationFTSPolicy, error) {
+	if err := resolved.ValidateIntegrity(); err != nil {
+		return EvaluationFTSPolicy{}, err
+	}
+	payload := evaluationFTSPolicyPayload{
+		Scope: "evaluation_only", PolicyID: "safe-token-or-v1", MatchOperator: "OR",
+		QueryBuilderID: "cidx-safe-quoted-normalized-query", QueryBuilderVersion: 1,
+		NormalizerID: config.SymbolNormalizerID, NormalizerVersion: 1,
+		FTSTokenizerID: config.FTSTokenizerID, FTSTokenizerOptions: "sqlite-fts5-default-unicode61",
+		FTSSchemaVersion: config.FTSSchemaVersion, Fields: []string{"symbols", "body"},
+		SymbolWeight: resolved.Search.FTSSymbolWeight, BodyWeight: resolved.Search.FTSBodyWeight,
+		CandidateK: resolved.Search.CandidateK, ReturnK: resolved.Search.ReturnK,
+		ExactSymbolPolicyID: "original-qualified-symbol-exact-v1",
+		TiePolicyID:         "bm25-exact-path-qualified-symbol-chunk-v1", ProductionPolicyUnchanged: true,
+	}
+	fingerprint, err := config.Fingerprint(payload, evaluationFTSPolicyDomain)
+	if err != nil {
+		return EvaluationFTSPolicy{}, err
+	}
+	return EvaluationFTSPolicy{
+		Scope: payload.Scope, PolicyID: payload.PolicyID, PolicySHA256: string(fingerprint), MatchOperator: payload.MatchOperator,
+		QueryBuilderID: payload.QueryBuilderID, QueryBuilderVersion: payload.QueryBuilderVersion,
+		NormalizerID: payload.NormalizerID, NormalizerVersion: payload.NormalizerVersion,
+		FTSTokenizerID: payload.FTSTokenizerID, FTSTokenizerOptions: payload.FTSTokenizerOptions,
+		FTSSchemaVersion: payload.FTSSchemaVersion, Fields: append([]string(nil), payload.Fields...),
+		SymbolWeight: payload.SymbolWeight, BodyWeight: payload.BodyWeight, CandidateK: payload.CandidateK, ReturnK: payload.ReturnK,
+		ExactSymbolPolicyID: payload.ExactSymbolPolicyID, TiePolicyID: payload.TiePolicyID,
+		ProductionPolicyUnchanged: payload.ProductionPolicyUnchanged,
+	}, nil
+}
+
+func (policy EvaluationFTSPolicy) Validate(resolved config.ResolvedConfig) error {
+	expected, err := SafeTokenOREvaluationPolicy(resolved)
+	if err != nil {
+		return err
+	}
+	if !reflect.DeepEqual(policy, expected) {
+		return fmt.Errorf("evaluation FTS policy fingerprint or fields do not match")
+	}
+	return nil
+}
 
 // EvaluationSession is a development-only view over the same production
 // snapshot, collapse, RRF, and body-packaging implementation used by Search.
@@ -19,6 +114,16 @@ type EvaluationSession struct {
 	snapshot   store.HybridSearchSnapshot
 	resolved   config.ResolvedConfig
 	candidateK int
+}
+
+// ValidateSnapshot binds a development run to the generation and manifest
+// that passed its provider-free preflight. It exposes identities only; no
+// source, vector, or production mutation is reachable through this method.
+func (session EvaluationSession) ValidateSnapshot(generation int64, manifestSHA256 string) error {
+	if session.snapshot.Applied.ActiveGeneration != generation || session.snapshot.Applied.ManifestSHA256 != manifestSHA256 {
+		return fmt.Errorf("NON_REPRODUCIBLE_RUN")
+	}
+	return nil
 }
 
 // EvaluationRankedHit is a portable parent result for the evaluation adapter.
@@ -75,6 +180,24 @@ func (service *Service) ValidateEvaluationQuery(query string) error {
 // from Search so evaluation never writes a query vector or changes fallback
 // policy in the public request path.
 func (service *Service) StartEvaluationSession(ctx context.Context, query string) (EvaluationSession, error) {
+	return service.startEvaluationSession(ctx, query, nil)
+}
+
+// StartEvaluationSessionWithFTSPolicy is reachable only from the internal
+// development evaluator. It shares the production snapshot, vector, collapse,
+// RRF, and body code while keeping the experimental query operator out of the
+// public CLI/MCP search path.
+func (service *Service) StartEvaluationSessionWithFTSPolicy(ctx context.Context, query string, policy EvaluationFTSPolicy) (EvaluationSession, error) {
+	if service == nil {
+		return EvaluationSession{}, fmt.Errorf("search service is required")
+	}
+	if err := policy.Validate(service.resolved); err != nil {
+		return EvaluationSession{}, err
+	}
+	return service.startEvaluationSession(ctx, query, &policy)
+}
+
+func (service *Service) startEvaluationSession(ctx context.Context, query string, policy *EvaluationFTSPolicy) (EvaluationSession, error) {
 	if service == nil {
 		return EvaluationSession{}, fmt.Errorf("search service is required")
 	}
@@ -82,7 +205,15 @@ func (service *Service) StartEvaluationSession(ctx context.Context, query string
 	if err != nil {
 		return EvaluationSession{}, err
 	}
-	request := store.HybridSnapshotRequest{FTS: store.FTSSearchRequest{MatchExpression: normalized.MatchExpression, CandidateK: service.resolved.Search.CandidateK, SymbolWeight: service.resolved.Search.FTSSymbolWeight, BodyWeight: service.resolved.Search.FTSBodyWeight, ExactNormalizedSymbol: normalized.ExactSymbolCandidate}}
+	matchExpression := normalized.MatchExpression
+	candidateK := service.resolved.Search.CandidateK
+	symbolWeight := service.resolved.Search.FTSSymbolWeight
+	bodyWeight := service.resolved.Search.FTSBodyWeight
+	if policy != nil {
+		matchExpression = strings.ReplaceAll(matchExpression, " AND ", " OR ")
+		candidateK, symbolWeight, bodyWeight = policy.CandidateK, policy.SymbolWeight, policy.BodyWeight
+	}
+	request := store.HybridSnapshotRequest{FTS: store.FTSSearchRequest{MatchExpression: matchExpression, CandidateK: candidateK, SymbolWeight: symbolWeight, BodyWeight: bodyWeight, ExactNormalizedSymbol: normalized.ExactSymbolCandidate}}
 	snapshot, err := service.store.HybridSearchSnapshot(ctx, service.resolved, request)
 	if err != nil {
 		return EvaluationSession{}, err
@@ -96,7 +227,7 @@ func (service *Service) StartEvaluationSession(ctx context.Context, query string
 	if len(snapshot.Vectors) == 0 || snapshot.CoverageNumerator != snapshot.CoverageDenominator {
 		return EvaluationSession{}, fmt.Errorf("MATERIALIZATION_REQUIRED")
 	}
-	return EvaluationSession{snapshot: snapshot, resolved: service.resolved, candidateK: service.resolved.Search.CandidateK}, nil
+	return EvaluationSession{snapshot: snapshot, resolved: service.resolved, candidateK: candidateK}, nil
 }
 
 // EmbedEvaluationQuery shares the Phase 11 request formatting, timeout,

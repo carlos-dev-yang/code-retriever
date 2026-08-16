@@ -1,13 +1,13 @@
 # cidx v1 Implementation Plan Index
 
-- Status: Phase 07's existing 12 chi + 20 RHF rankings are now listed by cohort; four source-backed failure cases remain, no case is added, and chi G12 alone moves to draft-v3 wording before its pool refresh and human label passes
+- Status: Phase 07's provider-free FTS loop is closed; production remains AND, safe OR 5:1 is a fingerprinted evaluation-only comparator, and one clean 12+20 Voyage stage run will refresh the blind pool before human label passes
 - Canonical design: [Local Code Search MCP v1 Final Target Contract — Revision 4](../../local-code-search-mcp-v1-design-r4.md)
 - Earlier designs: [original](../../local-code-search-mcp-v1-design.md), [r1](../../local-code-search-mcp-v1-design-r1.md), [r2](../../local-code-search-mcp-v1-design-r2.md), [r3](../../local-code-search-mcp-v1-design-r3.md)
 - Execution protocol: [Implementation Execution and Context-Recovery Guide](EXECUTION-GUIDE.md)
 - Evaluation and promotion contract: [cidx v1 Evaluation and Promotion Contract](EVALUATION-CONTRACT.md)
 - Evaluation execution: [Retrieval Evaluation and Embedding Execution Plan](EVALUATION-EMBEDDING-EXECUTION-PLAN.md)
 - Persistent state: [Phase Status Ledger](STATUS.md)
-- Last updated: 2026-08-16
+- Last updated: 2026-08-17
 
 This directory is the executable implementation plan for cidx v1. It decomposes the canonical product contract into phase-owned packages, schemas, CLIs, validation work, and completion evidence. A design change must update this index, every affected phase, the dependency graph, the change-impact table, and the persistent status ledger together.
 
@@ -74,7 +74,7 @@ Allowed states are `planned | in_progress | blocked | done`. A phase becomes `do
 | 04 | done | [TypeScript and TSX chunker](04-typescript-tsx-chunker.md) | 02 | Accepted path-derived retrieval labels and real-corpus overload correction; versioned full reindex handoff | [Evidence](evidence/phase-04/README.md) |
 | 05 | done | [Worktree indexing pipeline](05-worktree-index-pipeline.md) | 03, 04, reconciled 02 | Remove the chunk-cap contract, inject `target_segment_bytes`, preserve atomic local reindex, and safely rekey proven-equivalent pre-R4 vectors | [R4 evidence](evidence/phase-05/revision-4.md) |
 | 06 | done | [FTS search](06-fts-search.md) | 05 | Contentless FTS, safe queries, BM25 chunk candidates | [Evidence](06-fts-search.md#11-completion-evidence) |
-| 07 | in_progress | [Lexical evaluation](07-lexical-evaluation.md) | 06, corrected 04 inventory | Existing 32-query rankings regrouped by cohort; keep four measured failure cases, add none, and refresh the chi G12 draft-v3 simple/opened-arm pool before two-pass human review | [Evidence](evidence/phase-07/README.md) |
+| 07 | in_progress | [Lexical evaluation](07-lexical-evaluation.md) | 06, corrected 04 inventory | Close the provider-free FTS loop, run one provenance-bound 32-query Voyage comparator over the fixed 1,024/binary profile, and refresh the blind pool before two-pass human review | [Evidence](evidence/phase-07/README.md) |
 | 08 | done | [Initial raw-embedding lab](08-raw-embedding-lab.md) | reconciled 02, 05 | Isolated 1024-dimensional document f32 capture through the shared synchronous request policy | [R4 evidence](evidence/phase-08/revision-4.md) |
 | 09 | done | [Vector materialization](09-vector-materialization.md) | 01, 02, 05, 08 | Shared reduction/normalization, binary/int8 codecs, and selected-profile publish | [Evidence](09-vector-materialization.md#11-completion-evidence) |
 | 10 | done | [Embedding orchestration and reconciliation](10-embedding-orchestration-and-reconciliation.md) | reconciled 05, 08, existing 09 | Byte-bounded concurrent document requests, shared retry execution, and profile reconciliation | [Accepted R4 evidence](evidence/phase-10/revision-4.md) |

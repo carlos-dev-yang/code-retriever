@@ -400,6 +400,51 @@ func TestBodyBudgetDoesNotChangeRankingOrInventFTSExcerpt(t *testing.T) {
 	}
 }
 
+func TestEvaluationOnlySafeTokenORLeavesProductionANDUnchanged(t *testing.T) {
+	ctx := context.Background()
+	resolved := searchConfig(t, false, config.StorageCodecBinary)
+	production, _ := indexedSearchFixture(t, resolved)
+	defer production.Close()
+	putAllVectors(t, production, resolved)
+	service, err := New(production, resolved, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	query := "FindThing tokenabsentfromcorpus"
+	productionSession, err := service.StartEvaluationSession(ctx, query)
+	if err != nil {
+		t.Fatal(err)
+	}
+	productionHits, err := productionSession.FTS(resolved.Search.ReturnK)
+	if err != nil {
+		t.Fatal(err)
+	}
+	publicResult, err := service.Search(ctx, Request{Query: query, Mode: ModeFTS, EffectiveMaxInlineBytes: 0})
+	if err != nil {
+		t.Fatal(err)
+	}
+	policy, err := SafeTokenOREvaluationPolicy(resolved)
+	if err != nil {
+		t.Fatal(err)
+	}
+	evaluationSession, err := service.StartEvaluationSessionWithFTSPolicy(ctx, query, policy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	evaluationHits, err := evaluationSession.FTS(resolved.Search.ReturnK)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(productionHits) != 0 || len(publicResult.Hits) != 0 || len(evaluationHits) == 0 || evaluationHits[0].QualifiedSymbol != "sample.FindThing" {
+		t.Fatalf("production=%+v public=%+v evaluation=%+v", productionHits, publicResult.Hits, evaluationHits)
+	}
+	mutated := policy
+	mutated.BodyWeight++
+	if _, err := service.StartEvaluationSessionWithFTSPolicy(ctx, query, mutated); err == nil {
+		t.Fatal("mutated evaluation FTS policy was accepted")
+	}
+}
+
 func TestDeterministicCodecScanRRFAndSharedKeyCollapse(t *testing.T) {
 	query := []float32{1, 0, 0, 0}
 	for _, codec := range []string{vector.BinaryCodecID, vector.Int8CodecID} {
@@ -570,6 +615,53 @@ func putVector(t *testing.T, production *store.ProductionStore, resolved config.
 	}
 	if err := production.UpsertServingVector(context.Background(), resolved, hash, string(resolved.Profiles.Fingerprints.VectorStorage), "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", stored); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func putAllVectors(t *testing.T, production *store.ProductionStore, resolved config.ResolvedConfig) {
+	t.Helper()
+	db, err := sql.Open("sqlite", filepath.Join(production.StateRoot, "db", "index.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows, err := db.Query(`SELECT DISTINCT canonical_input_sha256 FROM embedding_segments ORDER BY canonical_input_sha256`)
+	if err != nil {
+		db.Close()
+		t.Fatal(err)
+	}
+	var hashes []string
+	for rows.Next() {
+		var hash string
+		if err := rows.Scan(&hash); err != nil {
+			rows.Close()
+			db.Close()
+			t.Fatal(err)
+		}
+		hashes = append(hashes, hash)
+	}
+	if err := rows.Close(); err != nil {
+		db.Close()
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	transformed, err := (vector.Transformer{Spec: resolved.Embedding.TransformSpec()}).Transform(sourceVector())
+	if err != nil {
+		t.Fatal(err)
+	}
+	codec, err := vector.CodecForID(resolved.Profiles.VectorStorage.StorageCodecID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stored, err := codec.Encode(transformed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, hash := range hashes {
+		if err := production.UpsertServingVector(context.Background(), resolved, hash, string(resolved.Profiles.Fingerprints.VectorStorage), "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", stored); err != nil {
+			t.Fatal(err)
+		}
 	}
 }
 

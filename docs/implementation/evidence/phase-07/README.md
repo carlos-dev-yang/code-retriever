@@ -1,8 +1,8 @@
 # Phase 07 Lexical Evaluation Evidence
 
 - Phase: `07-lexical-evaluation`
-- State: `in_progress` — the existing 12 chi + 20 RHF measured rankings were regrouped by cohort, all four current binary failures remain deliberate diagnostic cases, and chi G12 alone advances to draft-v3 wording before pool refresh; no provider request was repeated.
-- Date: 2026-08-16
+- State: `in_progress` — three repeated provider-free FTS comparisons rejected minimum-two-token admission and 5:5 weighting; safe OR 5:1 is now only the provenance-bound comparator for one fresh 32-query Voyage embedding-search pool-building run, while production remains AND.
+- Date: 2026-08-17
 
 Current real-data audit: [chi/RHF structural audit — Revision 4](chi-rhf-structural-audit-r4.md).
 
@@ -15,6 +15,25 @@ Consumed query-evaluation gate: [chi/RHF query-evaluation approval packet — Re
 Current exploratory diagnosis: [chi/RHF exploratory query results — Revision 4](chi-rhf-exploratory-query-results-r4.md).
 
 Current measured cohort decision: [chi/RHF cohort score review — Revision 4](cohort-score-review-r4.md).
+
+Current measured retrieval loop: [provider-free FTS decisions and provenance-safe Voyage comparator — Revision 4](measured-retrieval-loop-r4.md).
+
+### 2026-08-17 measured FTS loop and bounded Voyage handoff
+
+Repeated AND/OR, OR/minimum-two-token, and OR 5:1/5:5 experiments are now
+closed. Safe OR 5:1 materially opens the natural-language pool but saturates
+candidate depth; minimum-two-token admission provides no required-group gain,
+and 5:5 exchanges Go/TSX correctness for a few TypeScript gains. Neither
+candidate advances. The linked evidence records the complete paired metrics,
+rollback reasons, metric-advisor guidance, and independent final-direction
+review.
+
+The next run uses one explicit development-only OR policy whose fingerprint
+covers every lexical control. The new manifest binds clean executable/code,
+corpus/query/document-bank/profile/materialization/retry/retrieval identities,
+zero document calls or historical rank reuse, the USD cap and pricing identity,
+actual usage/cost, and all planned/observed stages. Public Search, CLI, and MCP
+remain unchanged. The implementation checkpoint made no provider call.
 
 ### 2026-08-16 measured cohort review and chi draft-v3 boundary
 
@@ -236,10 +255,11 @@ The focused tests cover portable/duplicate-field manifest rejection, local Git b
 
 ## Next action
 
-Complete a machine-label-blind first pass over both digest-bound v2 pools,
-then perform a separated second pass and adjudicate every disagreement. Any
-future hard-negative or no-answer
-label needs corpus-wide search evidence and a second review/pass.
+Commit and clean-build the provenance-safe comparator, verify both dry plans,
+then run one fresh 12-query chi and 20-query RHF Voyage embedding-search series.
+Use the resulting candidate union to refresh the blind review packet before
+the two separated human passes. Any future hard-negative or no-answer label
+still needs corpus-wide search evidence and a second review/pass.
 
 The ignored source-link review views are
 `.cidx/test/states/chi/evaluations/review/pass1-v2-chi-review.md` and

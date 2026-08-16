@@ -277,7 +277,14 @@ Because v1 has no abstention threshold, an `ABSTAINABLE` query is not failed mer
 
 This phase implements the shared dataset/corpus loaders and free `LexicalEvaluationRunner`, but it does not own final development-CLI flag semantics. During implementation it may run through a Go package runner or temporary development harness. Phase 12 combines retrieval variants with the paid-query plan, and Phase 13 connects `cidx dev retrieval evaluate`.
 
-There is no `--apply` in this phase. Each execution creates a new immutable run artifact with fingerprints and never overwrites an existing result. Adoption of a run as a comparison baseline is recorded in artifacts and decisions; v1 does not add a separate CLI contract for updating an approval pointer.
+The provider-free lexical and simple-control arms have no `--apply`. During
+pre-freeze pool building, the already accepted Phase 12/13 development runner
+may execute a separately authorized Voyage query embedding search. That path
+must be explicit, non-promotable, and fully provenance-bound; it may not alter
+production FTS, expose an experimental policy through public CLI/MCP, embed a
+document, persist a query vector, or reuse historical query rankings. Each
+execution creates a new immutable run artifact and never overwrites an earlier
+result.
 
 Any later CLI path argument is only a local binding for a manifest's existing `corpus_id`; it must not create an untracked corpus choice or bypass manifest verification.
 
@@ -354,7 +361,10 @@ Select experimental variants through an explicit evaluation profile. Do not muta
 - Canonicalize the locally supplied checkout path, but do not place it in tracked manifests or portable results.
 - Do not copy corpus source into this repository or include full source bodies in reports by default.
 - Do not upload private-repository corpora externally.
-- Phase 07 neither reads an API key nor accesses the network.
+- The Phase 07 lexical/simple paths neither read an API key nor access the
+  network. A separately authorized pool-building retrieval invocation reads
+  `VOYAGE_API_KEY` only after its provider-free plan, provenance, and cost gates
+  pass; credentials never enter plans, logs, or artifacts.
 - Queries may contain secrets, so logs retain only the dataset ID and the minimum necessary normalized diagnostics.
 - Preserve upstream license notices and do not claim redistribution rights beyond the recorded license.
 
@@ -444,6 +454,7 @@ Phase 12 extends the shared Phase 07 `internal/eval` dataset, ground-truth, metr
 | Observe hit@k/MRR without a numeric gate. | The corpus and product usage pattern are not yet sufficiently settled. | Representative corpora and product requirements accumulate. |
 | Do not use a generative-model judge. | Avoid cost, nondeterminism, and mixing answer definition into scoring. | It is separately designed as supplementary evaluation. |
 | Use the accepted deterministic simple-search policy as an evaluation-only control. | On 2026-08-16 the user accepted a corpus-independent `ANY` normalized-token admission rule over the authoritative semantic-parent snapshot, followed by exact qualified/symbol, path, matched-token, and stable identity ordering. It adds no alias, BM25, embedding, boost, public wire, or production-ranking change. | A later evaluation-contract revision explicitly replaces the control. |
+| Stop FTS micro-tuning and carry safe OR 5:1 only as a provenance-bound development comparator. | Repeated AND/OR, minimum-two-token, and 5:1/5:5 experiments showed that aggregate gains can conceal lost required Go/TSX parents. One coherent 32-query Voyage run now provides the missing f32, binary, fusion, and body evidence while production remains AND. | The blinded two-pass pool review is complete and a measured structural change is justified without cross-slice correctness regression. |
 | Prefer representative cohort intents and reject quota-padding edge cases. | The user wants questions that expose material failure modes, not detail added only to reach a count. Difficult cases remain valuable when they isolate a real parser, parent-collapse, type/wrapper, codec, or retrieval distinction. | New evidence shows a missing material failure mode that cannot be covered by a representative question. |
 | Use measured cohort failures before revising questions; keep G07/T01/X01/X08 and narrow only G12. | Repeated advisory grading was slower and less decisive than the existing real rankings. The four misses each retain a distinct source-backed diagnostic boundary, while G12 alone contained wording broader than the Go source contract. | A new measured run or source change invalidates one of those distinct boundaries. |
 | Accept the T10 and G09 source-backed label revisions. | `PathImpl` and `PathInternal` directly implement T10 while public `Path` is useful support; `walkXFF` is a reviewed misleading implementation for the deprecated G09 contract. | Pinned source identity or the question intent changes. |

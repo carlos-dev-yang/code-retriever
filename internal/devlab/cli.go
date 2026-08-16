@@ -20,6 +20,7 @@ import (
 	"cidx/internal/index"
 	"cidx/internal/lab"
 	"cidx/internal/root"
+	"cidx/internal/search"
 	"cidx/internal/workspace"
 )
 
@@ -106,7 +107,7 @@ func capture(ctx context.Context, args []string, stdout, stderr io.Writer) error
 	root := flags.String("root", ".", "repository root")
 	sourceDir := flags.String("source-dir", "", "source checkout relative to the controlling project")
 	stateDir := flags.String("state-dir", "", "state namespace below .cidx/test/states")
-	apply := flags.Bool("apply", false, "perform explicitly approved paid document capture")
+	apply := flags.Bool("apply", false, "perform authorized Voyage document embedding capture")
 	retry := flags.Bool("retry-failed", false, "retry terminal failures")
 	if err := flags.Parse(args); err != nil {
 		return err
@@ -216,7 +217,14 @@ func retrieval(ctx context.Context, args []string, stdout, stderr io.Writer) err
 	mode := flags.String("mode", "retrieval", "retrieval, lexical, or simple")
 	inventoryOnly := flags.Bool("inventory-only", false, "write a source-body-free lexical truth-inventory packet without executing a dataset")
 	runID := flags.String("run-id", "", "fresh lexical artifact identifier")
-	apply := flags.Bool("apply", false, "perform explicitly approved paid query embeddings")
+	apply := flags.Bool("apply", false, "perform authorized Voyage query embedding search")
+	ftsPolicyID := flags.String("fts-policy", "production", "production or safe-token-or-v1 (development retrieval evaluation only)")
+	experimentSeriesID := flags.String("experiment-series", "", "immutable experiment-series identity")
+	seriesQueryOperations := flags.Int("series-query-operations", 0, "total logical query operations across the experiment series")
+	authorizationReference := flags.String("authorization-reference", "", "non-secret authorization identity")
+	usdCap := flags.Float64("usd-cap", 0, "maximum authorized USD cost for the experiment series")
+	pricingTableIdentity := flags.String("pricing-table-identity", "", "dated provider pricing-table identity")
+	usdPerMillionTokens := flags.Float64("usd-per-million-tokens", 0, "frozen USD rate per million input tokens")
 	if err := flags.Parse(args[1:]); err != nil {
 		return err
 	}
@@ -234,6 +242,16 @@ func retrieval(ctx context.Context, args []string, stdout, stderr io.Writer) err
 	}
 	if (*mode == "lexical" || *mode == "simple") && *apply {
 		return fmt.Errorf("--apply is unavailable in %s mode", *mode)
+	}
+	experimentalFlagsSet := *ftsPolicyID != "production" || *experimentSeriesID != "" || *seriesQueryOperations != 0 || *authorizationReference != "" || *usdCap != 0 || *pricingTableIdentity != "" || *usdPerMillionTokens != 0
+	if *mode != "retrieval" && experimentalFlagsSet {
+		return fmt.Errorf("retrieval experiment flags require --mode retrieval")
+	}
+	if *ftsPolicyID != "production" && *ftsPolicyID != "safe-token-or-v1" {
+		return fmt.Errorf("--fts-policy must be production or safe-token-or-v1")
+	}
+	if *ftsPolicyID == "production" && experimentalFlagsSet {
+		return fmt.Errorf("experiment metadata requires --fts-policy safe-token-or-v1")
 	}
 	var sourceRoot, stateRoot, controllerRoot string
 	customWorkspace := *sourceDir != "" || *stateDir != ""
@@ -287,7 +305,15 @@ func retrieval(ctx context.Context, args []string, stdout, stderr io.Writer) err
 		return err
 	}
 	defer raw.Close()
-	prepared, err := PrepareRetrievalEvaluationAt(ctx, application, raw, controllerRoot, *manifest, *dataset, *corpusPath)
+	experiment := RetrievalExperimentOptions{}
+	if *ftsPolicyID == "safe-token-or-v1" {
+		policy, err := search.SafeTokenOREvaluationPolicy(application.Resolved)
+		if err != nil {
+			return err
+		}
+		experiment = RetrievalExperimentOptions{FTSPolicy: &policy, ExperimentSeriesID: *experimentSeriesID, SeriesQueryOperationsPlanned: *seriesQueryOperations, AuthorizationReference: *authorizationReference, USDCap: *usdCap, PricingTableIdentity: *pricingTableIdentity, USDPerMillionTokens: *usdPerMillionTokens}
+	}
+	prepared, err := PrepareRetrievalEvaluationExperimentAt(ctx, application, raw, controllerRoot, *manifest, *dataset, *corpusPath, experiment)
 	if err != nil {
 		return err
 	}

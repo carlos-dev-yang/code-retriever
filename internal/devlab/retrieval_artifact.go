@@ -14,6 +14,8 @@ import (
 	"sync"
 	"time"
 
+	"cidx/internal/buildinfo"
+	"cidx/internal/config"
 	"cidx/internal/embedclient"
 	"cidx/internal/eval"
 	"cidx/internal/evalcontract"
@@ -29,6 +31,7 @@ type RetrievalArtifactReference struct {
 const (
 	retrievalProviderUsageKind        = "cidx.phase12.provider_usage.v2"
 	retrievalRetryPolicyIdentity      = "cidx.shared_query_embedding_executor.v1"
+	retrievalExperimentSchemaVersion  = 2
 	providerUsageTerminalValidated    = "VALIDATED"
 	providerUsageTerminalFailed       = "FAILED"
 	generatedResponseTokensNotApplied = "NOT_APPLICABLE"
@@ -325,6 +328,74 @@ type retrievalArtifactManifest struct {
 	BodyBudget             int                             `json:"body_budget"`
 	PromotionEvidenceState string                          `json:"promotion_evidence_state"`
 	ProviderUsage          retrievalProviderUsageAggregate `json:"provider_usage"`
+	Experiment             *retrievalExperimentManifest    `json:"experiment,omitempty"`
+}
+
+type retrievalExperimentManifest struct {
+	ExperimentSeriesID           string                      `json:"experiment_series_id"`
+	EvidenceClass                string                      `json:"evidence_class"`
+	PromotionEligible            bool                        `json:"promotion_eligible"`
+	LabelState                   string                      `json:"label_state"`
+	QueryExecutionMode           string                      `json:"query_execution_mode"`
+	SeriesQueryOperationsPlanned int                         `json:"series_query_operations_planned"`
+	CorpusCleanVerified          bool                        `json:"corpus_clean_verified"`
+	FTSPolicy                    search.EvaluationFTSPolicy  `json:"fts_policy"`
+	Queries                      []retrievalExperimentQuery  `json:"queries"`
+	BuildInfo                    buildinfo.Info              `json:"build_info"`
+	EvaluationExecutableSHA256   string                      `json:"evaluation_executable_sha256"`
+	Profiles                     retrievalExperimentProfiles `json:"profiles"`
+	DocumentBankSHA256           string                      `json:"document_bank_sha256"`
+	SourceDimensions             int                         `json:"source_dimensions"`
+	ServingDimensions            int                         `json:"serving_dimensions"`
+	StorageCodec                 string                      `json:"storage_codec"`
+	DocumentProviderOperations   int                         `json:"document_provider_operations"`
+	ReusedQueryVectors           int                         `json:"reused_query_vectors"`
+	ReusedDenseRankings          int                         `json:"reused_dense_rankings"`
+	QueryVectorPersisted         bool                        `json:"query_vector_persisted"`
+	QueryVectorSHA256Recorded    bool                        `json:"query_vector_sha256_recorded"`
+	RetrievalPolicy              retrievalExperimentPolicy   `json:"retrieval_policy"`
+	RetryPolicySHA256            string                      `json:"retry_policy_sha256"`
+	AuthorizationReference       string                      `json:"authorization_reference"`
+	USDCap                       float64                     `json:"usd_cap"`
+	PricingTableIdentity         string                      `json:"pricing_table_identity"`
+	USDPerMillionTokens          float64                     `json:"usd_per_million_tokens"`
+	PlannedMaximumCostUSD        float64                     `json:"planned_maximum_cost_usd"`
+	ActualAccountedCostUSD       float64                     `json:"actual_accounted_cost_usd"`
+	StageStatuses                []retrievalExperimentStage  `json:"stage_statuses"`
+	ValidationState              string                      `json:"validation_state"`
+}
+
+type retrievalExperimentQuery struct {
+	QueryID    string `json:"query_id"`
+	TextSHA256 string `json:"text_sha256"`
+}
+
+type retrievalExperimentProfiles struct {
+	Index         string `json:"index"`
+	CanonicalText string `json:"canonical_text"`
+	Source        string `json:"source"`
+	VectorSpace   string `json:"vector_space"`
+	VectorStorage string `json:"vector_storage"`
+	Policy        string `json:"policy"`
+	Materialized  string `json:"materialized"`
+}
+
+type retrievalExperimentPolicy struct {
+	DenseCandidateK                int    `json:"dense_candidate_k"`
+	ReturnK                        int    `json:"return_k"`
+	RRFK                           int    `json:"rrf_k"`
+	RRFFormulaID                   string `json:"rrf_formula_id"`
+	RRFLaneWeightPolicyID          string `json:"rrf_lane_weight_policy_id"`
+	SegmentParentCollapsePolicyID  string `json:"segment_parent_collapse_policy_id"`
+	SemanticParentIdentityPolicyID string `json:"semantic_parent_identity_policy_id"`
+	BodyBudgetBytes                int    `json:"body_budget_bytes"`
+	BodyPackagingPolicyID          string `json:"body_packaging_policy_id"`
+}
+
+type retrievalExperimentStage struct {
+	Stage   string `json:"stage"`
+	Planned bool   `json:"planned"`
+	Status  string `json:"status"`
 }
 
 type retrievalArtifactChecksums struct {
@@ -346,6 +417,132 @@ type incompletePromotionArtifact struct {
 	Reason                    string                      `json:"reason"`
 }
 
+func buildRetrievalExperimentManifest(prepared retrievalPrepared, run eval.RetrievalEvaluationRun, usage retrievalProviderUsage) (*retrievalExperimentManifest, error) {
+	if prepared.experiment.FTSPolicy == nil {
+		return nil, nil
+	}
+	if prepared.plan.FTSPolicy == nil || prepared.plan.ExperimentSeriesID != prepared.experiment.ExperimentSeriesID || prepared.plan.EvidenceClass != "CALIBRATION_POOL_BUILDING" || prepared.plan.PromotionEligible || prepared.plan.LabelState != "DRAFT_TWO_PASS_PENDING" || prepared.plan.QueryExecutionMode != "LIVE_ALL_QUERIES" || prepared.plan.SeriesQueryOperationsPlanned != 32 || prepared.plan.LogicalQueryOperationsPlanned != len(prepared.dataset.Cases) || prepared.plan.DocumentProviderOperations != 0 || prepared.plan.ReusedQueryVectors != 0 || prepared.plan.ReusedDenseRankings != 0 || prepared.plan.QueryVectorPersisted {
+		return nil, fmt.Errorf("invalid retrieval experiment plan")
+	}
+	if err := prepared.experiment.FTSPolicy.Validate(prepared.application.Resolved); err != nil {
+		return nil, err
+	}
+	if err := prepared.plan.FTSPolicy.Validate(prepared.application.Resolved); err != nil || prepared.plan.FTSPolicy.PolicySHA256 != prepared.experiment.FTSPolicy.PolicySHA256 {
+		return nil, fmt.Errorf("retrieval experiment FTS policy drift")
+	}
+	if !canonicalVCSRevision(prepared.documentBankFingerprint) || len(prepared.documentBankFingerprint) != 64 {
+		return nil, fmt.Errorf("document-bank fingerprint is required")
+	}
+	info := buildinfo.Current()
+	if err := validateLexicalCodeProvenance(info); err != nil || info.Commit != prepared.plan.CodeCommit || info.SourceModified != prepared.plan.SourceModified {
+		return nil, fmt.Errorf("retrieval experiment code provenance changed")
+	}
+	executableSHA256, err := currentExecutableSHA256()
+	if err != nil || executableSHA256 != prepared.plan.EvaluationExecutableSHA256 {
+		return nil, fmt.Errorf("retrieval experiment executable changed")
+	}
+	resolved := prepared.application.Resolved
+	if err := resolved.ValidateIntegrity(); err != nil {
+		return nil, err
+	}
+	if resolved.Embedding.Model.SourceDimensions != 1024 || resolved.Embedding.ServingDimensions != 1024 || resolved.Embedding.StorageCodec != "binary" {
+		return nil, fmt.Errorf("retrieval experiment requires the fixed 1024/binary profile")
+	}
+	if usage.Aggregate.LogicalQueryOperations != len(prepared.dataset.Cases) || usage.Aggregate.ValidatedResponses != len(prepared.dataset.Cases) || usage.Aggregate.FailedAttempts != 0 || usage.Aggregate.Retries != 0 || !usage.Aggregate.TokenAccountingComplete || usage.Aggregate.ObservedTotalTokens == nil {
+		return nil, fmt.Errorf("retrieval experiment provider accounting is incomplete")
+	}
+	if err := validateExperimentQueryVectors(run); err != nil {
+		return nil, err
+	}
+	actualCost := float64(*usage.Aggregate.ObservedTotalTokens) * prepared.plan.USDPerMillionTokens / 1_000_000
+	if !isFinitePositive(prepared.plan.USDCap) || !isFinitePositive(prepared.plan.USDPerMillionTokens) || prepared.plan.PlannedMaximumCostUSD < 0 || prepared.plan.PlannedMaximumCostUSD > prepared.plan.USDCap || actualCost < 0 || actualCost > prepared.plan.USDCap {
+		return nil, fmt.Errorf("retrieval experiment cost is outside its authorization")
+	}
+	queries := make([]retrievalExperimentQuery, 0, len(prepared.dataset.Cases))
+	for _, item := range prepared.dataset.Cases {
+		sum := sha256.Sum256([]byte(item.Text))
+		queries = append(queries, retrievalExperimentQuery{QueryID: item.ID, TextSHA256: hex.EncodeToString(sum[:])})
+	}
+	retryPayload := struct {
+		Identity       string `json:"identity"`
+		MaxAttempts    int    `json:"max_attempts"`
+		WaitSeconds    []int  `json:"wait_seconds"`
+		TimeoutSeconds int    `json:"timeout_seconds"`
+	}{Identity: usage.RetryPolicyIdentity, MaxAttempts: usage.MaxAttempts, WaitSeconds: append([]int(nil), usage.ConfiguredRetryWaitSeconds...), TimeoutSeconds: usage.AttemptTimeoutSeconds}
+	retryFingerprint, err := config.Fingerprint(retryPayload, "cidx/evaluation-retry-policy/v1")
+	if err != nil {
+		return nil, err
+	}
+	fingerprints := resolved.Profiles.Fingerprints
+	return &retrievalExperimentManifest{
+		ExperimentSeriesID: prepared.plan.ExperimentSeriesID, EvidenceClass: prepared.plan.EvidenceClass, PromotionEligible: false,
+		LabelState: prepared.plan.LabelState, QueryExecutionMode: prepared.plan.QueryExecutionMode, SeriesQueryOperationsPlanned: prepared.plan.SeriesQueryOperationsPlanned,
+		CorpusCleanVerified: true, FTSPolicy: *prepared.experiment.FTSPolicy, Queries: queries, BuildInfo: info, EvaluationExecutableSHA256: executableSHA256,
+		Profiles:           retrievalExperimentProfiles{Index: string(fingerprints.Index), CanonicalText: string(fingerprints.CanonicalText), Source: string(fingerprints.Source), VectorSpace: string(fingerprints.VectorSpace), VectorStorage: string(fingerprints.VectorStorage), Policy: string(fingerprints.Policy), Materialized: prepared.plan.ServingProfile},
+		DocumentBankSHA256: prepared.documentBankFingerprint, SourceDimensions: resolved.Embedding.Model.SourceDimensions, ServingDimensions: resolved.Embedding.ServingDimensions, StorageCodec: resolved.Embedding.StorageCodec,
+		DocumentProviderOperations: 0, ReusedQueryVectors: 0, ReusedDenseRankings: 0, QueryVectorPersisted: false, QueryVectorSHA256Recorded: true,
+		RetrievalPolicy:   retrievalExperimentPolicy{DenseCandidateK: resolved.Search.CandidateK, ReturnK: resolved.Search.ReturnK, RRFK: resolved.Search.RRFK, RRFFormulaID: "sum-lane-reciprocal-rank-v1", RRFLaneWeightPolicyID: "equal-unit-lane-weights-v1", SegmentParentCollapsePolicyID: "max-segment-score-per-semantic-parent-v1", SemanticParentIdentityPolicyID: "path-indexed-sha-qualified-symbol-byte-range-v1", BodyBudgetBytes: resolved.MCP.HardMaxInlineBytes, BodyPackagingPolicyID: "rank-preserving-whole-body-byte-budget-v1"},
+		RetryPolicySHA256: string(retryFingerprint), AuthorizationReference: prepared.plan.AuthorizationReference, USDCap: prepared.plan.USDCap, PricingTableIdentity: prepared.plan.PricingTableIdentity, USDPerMillionTokens: prepared.plan.USDPerMillionTokens, PlannedMaximumCostUSD: prepared.plan.PlannedMaximumCostUSD, ActualAccountedCostUSD: actualCost,
+		StageStatuses: retrievalExperimentStageStatuses(run), ValidationState: "VALID_NON_PROMOTABLE_DRAFT",
+	}, nil
+}
+
+func validateExperimentQueryVectors(run eval.RetrievalEvaluationRun) error {
+	for _, item := range run.Cases {
+		var expected string
+		for _, arm := range item.Arms {
+			if arm.Ranking.Variant == eval.VariantFTS || arm.Ranking.Variant == eval.VariantHybridWithoutDense {
+				continue
+			}
+			if arm.FailureStage != "" || len(arm.Ranking.QueryVectorSHA256) != 64 || !canonicalVCSRevision(arm.Ranking.QueryVectorSHA256) {
+				return fmt.Errorf("retrieval experiment query-vector alignment is incomplete")
+			}
+			if expected == "" {
+				expected = arm.Ranking.QueryVectorSHA256
+			} else if expected != arm.Ranking.QueryVectorSHA256 {
+				return fmt.Errorf("retrieval experiment query-vector alignment changed")
+			}
+		}
+		if expected == "" {
+			return fmt.Errorf("retrieval experiment query vector was not observed")
+		}
+	}
+	return nil
+}
+
+func retrievalExperimentStageStatuses(run eval.RetrievalEvaluationRun) []retrievalExperimentStage {
+	status := func(variants ...eval.RetrievalVariant) string {
+		for _, item := range run.Cases {
+			for _, wanted := range variants {
+				found := false
+				for _, arm := range item.Arms {
+					if arm.Ranking.Variant == wanted {
+						found = arm.FailureStage == ""
+						break
+					}
+				}
+				if !found {
+					return "FAILED"
+				}
+			}
+		}
+		return "OBSERVED"
+	}
+	return []retrievalExperimentStage{
+		{Stage: "fts", Planned: true, Status: status(eval.VariantFTS)},
+		{Stage: "target_f32", Planned: true, Status: status(eval.VariantTargetF32)},
+		{Stage: "serving_active_binary", Planned: true, Status: status(eval.VariantServingActiveCodec)},
+		{Stage: "provider_union", Planned: true, Status: status(eval.VariantProviderUnion)},
+		{Stage: "segment_parent_collapse", Planned: true, Status: status(eval.VariantTargetF32, eval.VariantServingActiveCodec)},
+		{Stage: "rrf_target_f32", Planned: true, Status: status(eval.VariantHybridFTSTargetF32)},
+		{Stage: "rrf_active_binary", Planned: true, Status: status(eval.VariantHybridFTSActiveCodec)},
+		{Stage: "body_packaging", Planned: true, Status: status(eval.VariantHybridFTSActiveCodec)},
+		{Stage: "hybrid_without_fts", Planned: true, Status: status(eval.VariantHybridWithoutFTS)},
+		{Stage: "hybrid_without_dense", Planned: true, Status: status(eval.VariantHybridWithoutDense)},
+		{Stage: "assistant_use", Planned: false, Status: "NOT_OBSERVED"},
+	}
+}
+
 // publishRetrievalArtifact creates the Phase 12 immutable, portable artifact
 // directory. It intentionally serializes only identities, hashes, ranks,
 // ranges, score diagnostics, and body digests; no query text/vector, source
@@ -355,6 +552,10 @@ func publishRetrievalArtifact(ctx context.Context, prepared retrievalPrepared, r
 		return RetrievalArtifactReference{}, err
 	}
 	if err := usage.Validate(prepared, prepared.dataset, run); err != nil {
+		return RetrievalArtifactReference{}, err
+	}
+	experimentManifest, err := buildRetrievalExperimentManifest(prepared, run, usage)
+	if err != nil {
 		return RetrievalArtifactReference{}, err
 	}
 	runID, err := newRetrievalRunID()
@@ -381,8 +582,12 @@ func publishRetrievalArtifact(ctx context.Context, prepared retrievalPrepared, r
 	for _, item := range prepared.dataset.Cases {
 		queryIDs = append(queryIDs, item.ID)
 	}
+	manifestSchemaVersion := evalcontract.SchemaVersion
+	if experimentManifest != nil {
+		manifestSchemaVersion = retrievalExperimentSchemaVersion
+	}
 	manifest := retrievalArtifactManifest{
-		SchemaVersion:          evalcontract.SchemaVersion,
+		SchemaVersion:          manifestSchemaVersion,
 		RunID:                  runID,
 		CreatedAt:              time.Now().UTC().Format(time.RFC3339Nano),
 		CorpusID:               prepared.plan.CorpusID,
@@ -401,6 +606,7 @@ func publishRetrievalArtifact(ctx context.Context, prepared retrievalPrepared, r
 		BodyBudget:             prepared.application.Resolved.MCP.HardMaxInlineBytes,
 		PromotionEvidenceState: string(evalcontract.NotPromotionReady),
 		ProviderUsage:          usage.Aggregate,
+		Experiment:             experimentManifest,
 	}
 	if err := writeJSON(filepath.Join(temporary, "run-manifest.json"), manifest); err != nil {
 		return RetrievalArtifactReference{}, err
