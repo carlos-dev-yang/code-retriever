@@ -152,7 +152,7 @@ func TestStatusLanguageEligibilityFollowsResolvedConfig(t *testing.T) {
 func TestWorktreeDirtyExcludesOnlyRuntimeIndexFiles(t *testing.T) {
 	ctx, root := context.Background(), t.TempDir()
 	runGit(t, root, "init")
-	mustWriteFile(t, filepath.Join(root, ".cidx", "index.db"), "runtime")
+	mustWriteFile(t, filepath.Join(root, ".cidx", "db", "index.db"), "runtime")
 	dirty, err := worktreeDirty(ctx, root)
 	if err != nil || dirty {
 		t.Fatalf("runtime index dirty=%t err=%v", dirty, err)

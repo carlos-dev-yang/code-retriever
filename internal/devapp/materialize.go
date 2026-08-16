@@ -42,9 +42,6 @@ func (m Materialize) Plan(ctx context.Context) (MaterializationPlan, error) {
 	if err := m.Resolved.ValidateIntegrity(); err != nil {
 		return MaterializationPlan{}, err
 	}
-	if err := m.sameRepository(ctx); err != nil {
-		return MaterializationPlan{}, err
-	}
 	snapshot, err := m.Production.ActiveVectorPlanningSnapshot(ctx)
 	if err != nil {
 		return MaterializationPlan{}, err
@@ -87,14 +84,11 @@ func (m Materialize) Activate(ctx context.Context, plan MaterializationPlan) (re
 	if plan.MissingRaw != 0 {
 		return result, fmt.Errorf("RAW_COVERAGE_INCOMPLETE")
 	}
-	release, err := embedlock.Acquire(ctx, m.Production.Root)
+	release, err := embedlock.AcquireState(ctx, m.Production.StateRoot)
 	if err != nil {
 		return result, err
 	}
 	defer release()
-	if err = m.sameRepository(ctx); err != nil {
-		return result, err
-	}
 	snapshot, err := m.Production.ActiveVectorPlanningSnapshot(ctx)
 	if err != nil {
 		return result, err
@@ -182,16 +176,6 @@ func (m Materialize) Activate(ctx context.Context, plan MaterializationPlan) (re
 func (m Materialize) currentProfile(applied config.AppliedProfiles) error {
 	if applied.Fingerprints.Source != m.Resolved.Profiles.Fingerprints.Source || applied.Fingerprints.VectorSpace != m.Resolved.Profiles.Fingerprints.VectorSpace || applied.Fingerprints.VectorStorage != m.Resolved.Profiles.Fingerprints.VectorStorage || applied.ActiveServingProfile != m.Resolved.Profiles.Fingerprints.VectorStorage {
 		return fmt.Errorf("PROFILE_RECONCILIATION_REQUIRED")
-	}
-	return nil
-}
-func (m Materialize) sameRepository(ctx context.Context) error {
-	root, err := m.Lab.CanonicalRoot(ctx)
-	if err != nil {
-		return err
-	}
-	if root != m.Production.Root {
-		return fmt.Errorf("lab database belongs to different root")
 	}
 	return nil
 }

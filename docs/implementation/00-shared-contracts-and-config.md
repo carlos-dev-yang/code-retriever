@@ -79,13 +79,14 @@ Voyage documentation describes MRL, or Matryoshka Representation Learning, outpu
 
 ### 4.3 Runtime and lab
 
-1. Production `.cidx/index.db` contains only the active profile's cidx-owned quantized vectors. V1 permits `binary` and `int8`, defaults to `binary`, and never mixes them in one active profile.
-2. The only raw embedding that initial-evaluation `.cidx/lab/embeddings.db` may persist is a 1024-dimensional Voyage f32 vector created with `input_type=document`. Search-invisible derived variants and run provenance may use separate lab tables.
+1. Production `<state_root>/db/index.db` contains only the active profile's cidx-owned quantized vectors. Normal use resolves `state_root` to `<source_root>/.cidx`. V1 permits `binary` and `int8`, defaults to `binary`, and never mixes them in one active profile.
+2. The only raw embedding that initial-evaluation `<state_root>/raw/embeddings.db` may persist is a 1024-dimensional Voyage f32 vector created with `input_type=document`. Search-invisible derived variants and run provenance may use separate lab tables.
 3. Query f32 is never persisted, for either fixed evaluation queries or live queries.
 4. Production `serve`, `search`, `status`, `index`, and normal `embed` never open or attach the lab database.
 5. The lab is neither a continuous runtime vector source nor a fallback.
 6. After initial evaluation, new documents may follow the normal embed path, be converted into the current serving profile, and discard raw f32.
 7. A missing or incomplete lab database must not break production functionality or correctness.
+8. Source and state roots are process-local inputs. SQLite metadata never persists an absolute machine path; portable commit/content/manifest/profile/input identities establish compatibility.
 
 ## 5. Packages, Files, and Types to Implement
 

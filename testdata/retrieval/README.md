@@ -3,11 +3,17 @@
 These portable manifests name the two public repositories explicitly selected
 and authorized by the user. They contain no checkout path or source body.
 
-Local checkout bindings live only in each checkout's ignored
-`.cidx/lab/corpora.local.json`. The verifier checks origin, pinned commit,
-clean status, root tree, the manifest's selected-content SHA-256, root license
-evidence, language slices, and production-index file parity before it opens
-the lexical runner.
+Local checkout bindings live only in the controlling cidx project's ignored
+`.cidx/test/corpora.local.json`. Binding values are project-relative paths
+below `.cidx/test/corpora/`; they are never persisted in a database or tracked
+manifest. The verifier checks origin, pinned commit, clean status, root tree,
+the manifest's selected-content SHA-256, root license evidence, language
+slices, and production-index file parity before it opens the lexical runner.
+
+Development/evaluation state is separate from those disposable checkouts and
+lives below `.cidx/test/states/<corpus>/`. The same application, index, search,
+and SQLite implementations used by normal projects receive the source root and
+state root explicitly; only the workspace resolver and artifact location differ.
 
 `go-chi-chi-v5.3.1` selects all 78 Go files (`<= 58,795` bytes each).
 `react-hook-form-v7.85.0` selects the 237 TypeScript/TSX files below `src`

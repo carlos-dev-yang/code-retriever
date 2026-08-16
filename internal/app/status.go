@@ -99,7 +99,7 @@ func (service StatusService) Get(ctx context.Context) (StatusResponse, error) {
 }
 
 func worktreeDirty(ctx context.Context, root string) (bool, error) {
-	output, err := exec.CommandContext(ctx, "git", "-C", root, "status", "--porcelain", "-z", "--", ".", ":(exclude).cidx/index.db", ":(exclude).cidx/index.db-wal", ":(exclude).cidx/index.db-shm", ":(exclude).cidx/index.lock", ":(exclude).cidx/embed.lock").Output()
+	output, err := exec.CommandContext(ctx, "git", "-C", root, "status", "--porcelain", "-z", "--", ".", ":(exclude).cidx/db", ":(exclude).cidx/db/**", ":(exclude).cidx/index.lock", ":(exclude).cidx/embed.lock").Output()
 	if err != nil {
 		return false, fmt.Errorf("observe Git worktree: %w", err)
 	}

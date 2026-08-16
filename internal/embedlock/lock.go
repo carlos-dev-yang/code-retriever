@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"syscall"
 	"time"
 )
@@ -11,12 +12,16 @@ import (
 // Acquire uses an OS root handle so a `.cidx` or lock-file symlink swap cannot
 // redirect the process outside its repository root.
 func Acquire(ctx context.Context, path string) (func(), error) {
-	root, err := os.OpenRoot(path)
+	return AcquireState(ctx, filepath.Join(path, ".cidx"))
+}
+
+func AcquireState(ctx context.Context, stateRoot string) (func(), error) {
+	root, err := os.OpenRoot(stateRoot)
 	if err != nil {
 		return nil, err
 	}
 	defer root.Close()
-	dir, err := root.Open(".cidx")
+	dir, err := root.Open(".")
 	if err != nil {
 		return nil, err
 	}
@@ -25,7 +30,7 @@ func Acquire(ctx context.Context, path string) (func(), error) {
 	if err != nil || !info.IsDir() {
 		return nil, fmt.Errorf("embed lock state directory invalid")
 	}
-	f, err := root.OpenFile(".cidx/embed.lock", os.O_CREATE|os.O_RDWR, 0o600)
+	f, err := root.OpenFile("embed.lock", os.O_CREATE|os.O_RDWR, 0o600)
 	if err != nil {
 		return nil, err
 	}

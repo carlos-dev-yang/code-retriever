@@ -84,7 +84,7 @@ Do not add provider plugins, vector import formats, model bundles, or speculativ
 - Phase 02 froze production/lab schemas and migration boundary.
 - Phase 13 froze public/development CLI, stdio, and four MCP schemas.
 - Phase 14 owns build/version/schema/FTS and bundled-grammar capability reporting before packaging claims are accepted.
-- `cidx serve --root` fails closed on canonical-root/config/DB mismatch.
+- `cidx serve --root` resolves config and DB below that source project's `.cidx`; portable DB metadata contains no machine-path binding.
 - Exact host names and versions used for verification can be recorded.
 
 ## 4. Invariants
@@ -97,7 +97,7 @@ Do not add provider plugins, vector import formats, model bundles, or speculativ
 6. v1 never edits host files programmatically.
 7. Config and examples contain no API-key literal.
 8. Official support documentation covers project scope only.
-9. Release `serve` neither creates nor opens `.cidx/lab/embeddings.db`.
+9. Release `serve` neither creates nor opens `.cidx/raw/embeddings.db` or any `.cidx/test/` evaluation state.
 10. Unsupported schema/config/profile fails clearly rather than being silently migrated or ignored.
 11. Bad checksum, corrupt archive, or missing execute permission is never reported as success.
 12. Assistant usefulness runs do not require or force a cidx call; no-use is a valid observed outcome.
@@ -125,8 +125,8 @@ checksums.txt
 LICENSE
 THIRD_PARTY_NOTICES
 build-manifest.json
-.cidx/lab/evaluations/<run-id>/assistant-observations.jsonl
-.cidx/lab/evaluations/<run-id>/promotion-result.json
+<state_root>/evaluations/<run-id>/assistant-observations.jsonl
+<state_root>/evaluations/<run-id>/promotion-result.json
 ```
 
 `build-manifest.json` records binary version, source commit, target, Go version, SQLite binding/version/FTS capability, Tree-sitter binding and grammar IDs, and CGO/static-link policy. It contains no credentials, source bodies, or vectors.
@@ -257,7 +257,7 @@ Do not hard-code environment paths or credentials in repository examples. The of
 - Publish archive and checksum within a documented trust boundary and record provenance.
 - Review third-party licenses and source-distribution obligations.
 - Keep secret values out of project examples.
-- Absolute `--root` does not expand authority; canonical-root and path validation still apply.
+- Absolute `--root` does not expand authority; runtime source-root canonicalization and path validation still apply. The canonical path is not persisted in SQLite.
 - Warn about symlink confusion and a writable untrusted PATH.
 - Runtime downloads or executes no arbitrary code, grammar, or model.
 - Provide no undocumented external-vector path into production storage.

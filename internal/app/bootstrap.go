@@ -18,16 +18,18 @@ import (
 	"cidx/internal/runtimecheck"
 	"cidx/internal/search"
 	"cidx/internal/store"
+	"cidx/internal/workspace"
 )
 
 type Application struct {
-	Root     string
-	Resolved config.ResolvedConfig
-	Store    *store.ProductionStore
-	Index    *index.Service
-	Search   *search.Service
-	ReadSpan ReadSpanService
-	Status   StatusService
+	Root      string
+	StateRoot string
+	Resolved  config.ResolvedConfig
+	Store     *store.ProductionStore
+	Index     *index.Service
+	Search    *search.Service
+	ReadSpan  ReadSpanService
+	Status    StatusService
 }
 
 const initialConfigTemporaryName = ".config.json.init"
@@ -54,6 +56,63 @@ func defaultInitializationDependencies() initializationDependencies {
 // an embedding provider.
 func Initialize(ctx context.Context, requestedRoot string, servingDimensions int, codec string) error {
 	return initialize(ctx, requestedRoot, servingDimensions, codec, defaultInitializationDependencies())
+}
+
+// InitializeWorkspace creates an isolated development state namespace while
+// indexing the separately supplied source checkout through the same runtime
+// services used by ordinary projects.
+func InitializeWorkspace(ctx context.Context, layout workspace.Layout, servingDimensions int, codec string) error {
+	source, err := root.SourceRepository(ctx, layout.SourceRoot)
+	if err != nil {
+		return err
+	}
+	if layout.StateRoot == "" {
+		return fmt.Errorf("state root is required")
+	}
+	raw, err := config.DefaultRaw(servingDimensions, codec)
+	if err != nil {
+		return err
+	}
+	resolved, err := config.Resolve(raw)
+	if err != nil {
+		return fmt.Errorf("resolve default config: %w", err)
+	}
+	data, err := json.MarshalIndent(raw, "", "  ")
+	if err != nil {
+		return fmt.Errorf("encode default config: %w", err)
+	}
+	data = append(data, '\n')
+	if _, err := runtimecheck.Check(ctx); err != nil {
+		return fmt.Errorf("runtime capability check: %w", err)
+	}
+	state, err := prepareStateRoot(layout.StateRoot)
+	if err != nil {
+		return err
+	}
+	completed := false
+	defer func() {
+		if !completed {
+			state.cleanup()
+		}
+	}()
+	if err := state.stageConfig(data); err != nil {
+		return err
+	}
+	if err := state.claimProductionDatabase(); err != nil {
+		return err
+	}
+	production, err := store.OpenProductionAt(ctx, source, layout.StateRoot, resolved)
+	if err != nil {
+		return err
+	}
+	if err := production.Close(); err != nil {
+		return err
+	}
+	if err := state.publishConfig(os.Remove); err != nil {
+		return err
+	}
+	completed = true
+	return nil
 }
 
 func initialize(ctx context.Context, requestedRoot string, servingDimensions int, codec string, dependencies initializationDependencies) error {
@@ -109,18 +168,24 @@ func initialize(ctx context.Context, requestedRoot string, servingDimensions int
 }
 
 type initialState struct {
-	cidxDir, temporary, final string
-	createdDir                bool
-	temporaryCreated          bool
-	configPublished           bool
-	claimedDatabase           os.FileInfo
+	cidxDir, dbDir, temporary, final string
+	createdDir                       bool
+	createdDBDir                     bool
+	temporaryCreated                 bool
+	configPublished                  bool
+	claimedDatabase                  os.FileInfo
 }
 
 func prepareInitialState(canonical string) (initialState, error) {
+	return prepareStateRoot(filepath.Join(canonical, ".cidx"))
+}
+
+func prepareStateRoot(stateRoot string) (initialState, error) {
 	state := initialState{
-		cidxDir:   filepath.Join(canonical, ".cidx"),
-		temporary: filepath.Join(canonical, ".cidx", initialConfigTemporaryName),
-		final:     filepath.Join(canonical, ".cidx", "config.json"),
+		cidxDir:   stateRoot,
+		dbDir:     filepath.Join(stateRoot, "db"),
+		temporary: filepath.Join(stateRoot, initialConfigTemporaryName),
+		final:     filepath.Join(stateRoot, "config.json"),
 	}
 	if err := rejectExistingInitialState(state); err != nil {
 		return initialState{}, err
@@ -131,7 +196,7 @@ func prepareInitialState(canonical string) (initialState, error) {
 			return initialState{}, fmt.Errorf("repository state path .cidx must be a real directory")
 		}
 	} else if os.IsNotExist(err) {
-		if err := os.Mkdir(state.cidxDir, 0o700); err != nil {
+		if err := os.MkdirAll(state.cidxDir, 0o700); err != nil {
 			return initialState{}, err
 		}
 		state.createdDir = true
@@ -148,7 +213,9 @@ func prepareInitialState(canonical string) (initialState, error) {
 }
 
 func rejectExistingInitialState(state initialState) error {
-	for _, path := range append([]string{state.final, state.temporary}, productionStatePaths(state.cidxDir)...) {
+	paths := append([]string{state.final, state.temporary}, productionStatePaths(state.cidxDir)...)
+	paths = append(paths, legacyProductionStatePaths(state.cidxDir)...)
+	for _, path := range paths {
 		if _, err := os.Lstat(path); err == nil {
 			if path == state.final {
 				return fmt.Errorf("repository config already exists")
@@ -161,7 +228,7 @@ func rejectExistingInitialState(state initialState) error {
 	return nil
 }
 
-func productionStatePaths(cidxDir string) []string {
+func legacyProductionStatePaths(cidxDir string) []string {
 	return []string{
 		filepath.Join(cidxDir, "index.db"),
 		filepath.Join(cidxDir, "index.db-wal"),
@@ -170,8 +237,28 @@ func productionStatePaths(cidxDir string) []string {
 	}
 }
 
+func productionStatePaths(cidxDir string) []string {
+	return []string{
+		filepath.Join(cidxDir, "db", "index.db"),
+		filepath.Join(cidxDir, "db", "index.db-wal"),
+		filepath.Join(cidxDir, "db", "index.db-shm"),
+		filepath.Join(cidxDir, "db", "index.db-journal"),
+	}
+}
+
 func (state *initialState) claimProductionDatabase() error {
-	path := filepath.Join(state.cidxDir, "index.db")
+	if err := os.Mkdir(state.dbDir, 0o700); err != nil {
+		if !os.IsExist(err) {
+			return err
+		}
+		info, statErr := os.Lstat(state.dbDir)
+		if statErr != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+			return fmt.Errorf("repository state path .cidx/db must be a real directory")
+		}
+	} else {
+		state.createdDBDir = true
+	}
+	path := filepath.Join(state.dbDir, "index.db")
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_RDWR, 0o600)
 	if err != nil {
 		if os.IsExist(err) {
@@ -256,7 +343,12 @@ func (state initialState) cleanup() {
 		_ = os.Remove(paths[0])
 	}
 	if state.createdDir {
+		if state.createdDBDir {
+			_ = os.Remove(state.dbDir)
+		}
 		_ = os.Remove(state.cidxDir)
+	} else if state.createdDBDir {
+		_ = os.Remove(state.dbDir)
 	}
 }
 
@@ -264,7 +356,7 @@ func (state initialState) ownsClaimedDatabase() bool {
 	if state.claimedDatabase == nil {
 		return false
 	}
-	current, err := os.Stat(filepath.Join(state.cidxDir, "index.db"))
+	current, err := os.Stat(filepath.Join(state.dbDir, "index.db"))
 	return err == nil && os.SameFile(state.claimedDatabase, current)
 }
 
@@ -277,6 +369,48 @@ func Open(ctx context.Context, requestedRoot string) (*Application, error) {
 // VOYAGE_API_KEY nor constructs a provider client.
 func OpenLocal(ctx context.Context, requestedRoot string) (*Application, error) {
 	return open(ctx, requestedRoot, false, defaultOpenDependencies())
+}
+
+func OpenWorkspace(ctx context.Context, layout workspace.Layout) (*Application, error) {
+	return openWorkspace(ctx, layout, true)
+}
+
+func OpenWorkspaceLocal(ctx context.Context, layout workspace.Layout) (*Application, error) {
+	return openWorkspace(ctx, layout, false)
+}
+
+func openWorkspace(ctx context.Context, layout workspace.Layout, allowProvider bool) (*Application, error) {
+	source, err := root.SourceRepository(ctx, layout.SourceRoot)
+	if err != nil {
+		return nil, err
+	}
+	state, err := filepath.Abs(layout.StateRoot)
+	if err != nil || state == "" {
+		return nil, fmt.Errorf("state root is required")
+	}
+	resolved, err := config.Load(filepath.Join(state, "config.json"))
+	if err != nil {
+		return nil, fmt.Errorf("load config: %w", err)
+	}
+	if _, err := runtimecheck.Check(ctx); err != nil {
+		return nil, fmt.Errorf("runtime capability check: %w", err)
+	}
+	production, err := store.OpenProductionAt(ctx, source, state, resolved)
+	if err != nil {
+		return nil, err
+	}
+	var client embedclient.EmbeddingClient
+	if allowProvider {
+		if key := os.Getenv("VOYAGE_API_KEY"); key != "" {
+			client = embedclient.VoyageClient{APIKey: key, HTTPClient: &http.Client{Timeout: time.Duration(resolved.Embedding.Request.TimeoutSeconds) * time.Second}}
+		}
+	}
+	searchService, err := search.New(production, resolved, client)
+	if err != nil {
+		_ = production.Close()
+		return nil, err
+	}
+	return &Application{Root: source, StateRoot: production.StateRoot, Resolved: resolved, Store: production, Index: index.New(production), Search: searchService, ReadSpan: ReadSpanService{Root: source, Resolved: resolved}, Status: StatusService{Root: source, Resolved: resolved, Store: production}}, nil
 }
 
 type openDependencies struct {
@@ -315,7 +449,7 @@ func open(ctx context.Context, requestedRoot string, allowProvider bool, depende
 		_ = production.Close()
 		return nil, err
 	}
-	return &Application{Root: canonical, Resolved: resolved, Store: production, Index: index.New(production), Search: searchService, ReadSpan: ReadSpanService{Root: canonical, Resolved: resolved}, Status: StatusService{Root: canonical, Resolved: resolved, Store: production}}, nil
+	return &Application{Root: canonical, StateRoot: production.StateRoot, Resolved: resolved, Store: production, Index: index.New(production), Search: searchService, ReadSpan: ReadSpanService{Root: canonical, Resolved: resolved}, Status: StatusService{Root: canonical, Resolved: resolved, Store: production}}, nil
 }
 
 func (application *Application) Close() error {

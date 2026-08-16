@@ -22,15 +22,18 @@ import (
 	"cidx/internal/eval"
 	"cidx/internal/evalcontract"
 	"cidx/internal/search/lexical"
+	"cidx/internal/workspace"
 )
 
 // lexicalEvaluationOptions limits the provider-free lane to an already
 // manifest-verified production checkout. None of its values are persisted in
 // a portable artifact except the supplied run ID.
 type lexicalEvaluationOptions struct {
-	ManifestPath, DatasetPath, CorpusPath, RepositoryRoot string
-	RunID                                                 string
-	InventoryOnly                                         bool
+	ManifestPath, DatasetPath, CorpusPath string
+	ControllerRoot, SourceRoot, StateRoot string
+	RepositoryRoot                        string // compatibility for ordinary project-local calls
+	RunID                                 string
+	InventoryOnly                         bool
 }
 
 type lexicalInventoryPacket struct {
@@ -98,11 +101,20 @@ type lexicalArtifactReference struct {
 }
 
 func lexicalEvaluation(ctx context.Context, options lexicalEvaluationOptions, stdout io.Writer) error {
+	if options.SourceRoot == "" {
+		options.SourceRoot = options.RepositoryRoot
+	}
+	if options.ControllerRoot == "" {
+		options.ControllerRoot = options.SourceRoot
+	}
+	if options.StateRoot == "" {
+		options.StateRoot = filepath.Join(options.SourceRoot, ".cidx")
+	}
 	inputs, err := lexicalInputs(ctx, options)
 	if err != nil {
 		return err
 	}
-	application, err := app.OpenLocal(ctx, options.RepositoryRoot)
+	application, err := app.OpenWorkspaceLocal(ctx, workspace.Layout{SourceRoot: options.SourceRoot, StateRoot: options.StateRoot})
 	if err != nil {
 		return err
 	}
@@ -127,11 +139,11 @@ func lexicalEvaluation(ctx context.Context, options lexicalEvaluationOptions, st
 	if err != nil {
 		return err
 	}
-	artifactRoot, err := lexicalArtifactRoot(application.Root)
+	artifactRoot, err := lexicalArtifactRoot(application.StateRoot)
 	if err != nil {
 		return err
 	}
-	if err := prepareLexicalArtifactRoot(application.Root); err != nil {
+	if err := prepareLexicalArtifactRoot(application.StateRoot); err != nil {
 		return err
 	}
 	inventoryReference, err := writeLexicalInventory(artifactRoot, inputs.verified, manifestFingerprint, inventory)
@@ -249,10 +261,14 @@ func validateDraftCaseDigests(dataset eval.EvaluationDataset) error {
 	return nil
 }
 
-func lexicalArtifactRoot(repositoryRoot string) (string, error) {
-	base := filepath.Join(repositoryRoot, ".cidx", "lab", "evaluations")
-	current := repositoryRoot
-	for _, component := range []string{".cidx", "lab", "evaluations"} {
+func lexicalArtifactRoot(stateRoot string) (string, error) {
+	info, err := os.Lstat(stateRoot)
+	if err != nil || info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
+		return "", fmt.Errorf("lexical state root is unsafe")
+	}
+	base := filepath.Join(stateRoot, "evaluations")
+	current := stateRoot
+	for _, component := range []string{"evaluations"} {
 		current = filepath.Join(current, component)
 		info, err := os.Lstat(current)
 		if os.IsNotExist(err) {
@@ -272,13 +288,13 @@ func lexicalArtifactRoot(repositoryRoot string) (string, error) {
 // a repository-root descriptor after lexicalArtifactRoot has rejected unsafe
 // existing components. Packet writes then reopen that exact directory as an
 // os.Root, so descendants cannot redirect writes outside it.
-func prepareLexicalArtifactRoot(repositoryRoot string) error {
-	repository, err := os.OpenRoot(repositoryRoot)
+func prepareLexicalArtifactRoot(stateRoot string) error {
+	repository, err := os.OpenRoot(stateRoot)
 	if err != nil {
 		return err
 	}
 	defer repository.Close()
-	return repository.MkdirAll(".cidx/lab/evaluations", 0o700)
+	return repository.MkdirAll("evaluations", 0o700)
 }
 
 type lexicalPreparedInputs struct {
@@ -298,7 +314,7 @@ func lexicalInputs(ctx context.Context, options lexicalEvaluationOptions) (lexic
 	}
 	bindings := eval.CorpusBindings{}
 	if options.CorpusPath == "" {
-		bindings, err = eval.LoadIgnoredCorpusBindings(ctx, options.RepositoryRoot)
+		bindings, err = eval.LoadIgnoredCorpusBindings(ctx, options.ControllerRoot)
 		if err != nil {
 			return lexicalPreparedInputs{}, err
 		}
@@ -307,7 +323,7 @@ func lexicalInputs(ctx context.Context, options lexicalEvaluationOptions) (lexic
 	if err != nil {
 		return lexicalPreparedInputs{}, err
 	}
-	if filepath.Clean(checkout) != filepath.Clean(options.RepositoryRoot) {
+	if filepath.Clean(checkout) != filepath.Clean(options.SourceRoot) {
 		return lexicalPreparedInputs{}, fmt.Errorf("evaluation checkout must be the configured repository root")
 	}
 	verified, err := eval.VerifyCheckout(ctx, manifest, checkout)

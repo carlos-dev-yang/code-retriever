@@ -10,7 +10,7 @@ import (
 	"runtime"
 )
 
-const SchemaVersion = 5
+const SchemaVersion = 6
 
 // OpenStore is the formal lab-only factory. It creates a distinct path/schema
 // and never opens or attaches production index.db.
@@ -19,19 +19,27 @@ func OpenStore(ctx context.Context, options Options) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	root, err := canonicalRoot(options.Root)
+	stateRoot, err := options.ResolvedStateRoot()
 	if err != nil {
 		return nil, err
 	}
-	cidxDir, err := secureDirectoryUnderRoot(root, ".cidx")
+	if info, statErr := os.Lstat(stateRoot); statErr == nil && (info.Mode()&os.ModeSymlink != 0 || !info.IsDir()) {
+		return nil, fmt.Errorf("lab state root must be a real directory")
+	} else if statErr != nil && !os.IsNotExist(statErr) {
+		return nil, statErr
+	}
+	if err := ensureOwnerDirectory(stateRoot); err != nil {
+		return nil, err
+	}
+	stateRoot, err = canonicalRoot(stateRoot)
 	if err != nil {
 		return nil, err
 	}
-	labDir, err := secureDirectoryUnderRoot(cidxDir, "lab")
+	rawDir, err := secureDirectoryUnderRoot(stateRoot, "raw")
 	if err != nil {
 		return nil, err
 	}
-	path = filepath.Join(labDir, "embeddings.db")
+	path = filepath.Join(rawDir, "embeddings.db")
 	if err := ensureOwnerDatabaseFile(path); err != nil {
 		return nil, err
 	}
@@ -43,24 +51,16 @@ func OpenStore(ctx context.Context, options Options) (*Store, error) {
 		_ = store.Close()
 		return nil, err
 	}
-	root, err = canonicalRoot(options.Root)
-	if err != nil {
-		_ = store.Close()
-		return nil, err
-	}
-	var existingRoot string
-	err = store.db.QueryRowContext(ctx, `SELECT canonical_root FROM lab_meta WHERE id=1`).Scan(&existingRoot)
+	var existing int
+	err = store.db.QueryRowContext(ctx, `SELECT id FROM lab_meta WHERE id=1`).Scan(&existing)
 	if err == sql.ErrNoRows {
-		_, err = store.db.ExecContext(ctx, `INSERT INTO lab_meta(id,schema_version,canonical_root) VALUES(1,?,?)`, SchemaVersion, root)
+		_, err = store.db.ExecContext(ctx, `INSERT INTO lab_meta(id,schema_version) VALUES(1,?)`, SchemaVersion)
 	}
 	if err != nil {
 		_ = store.Close()
 		return nil, err
 	}
-	if existingRoot != "" && existingRoot != root {
-		_ = store.Close()
-		return nil, fmt.Errorf("lab database belongs to different root")
-	}
+	store.stateRoot = stateRoot
 	if err := ensureOwnerFile(path); err != nil {
 		_ = store.Close()
 		return nil, err
@@ -76,11 +76,15 @@ func OpenExistingStore(ctx context.Context, options Options) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	root, err := canonicalRoot(options.Root)
+	stateRoot, err := options.ResolvedStateRoot()
 	if err != nil {
 		return nil, err
 	}
-	for _, value := range []string{filepath.Join(root, ".cidx"), filepath.Join(root, ".cidx", "lab")} {
+	stateRoot, err = canonicalRoot(stateRoot)
+	if err != nil {
+		return nil, err
+	}
+	for _, value := range []string{stateRoot, filepath.Join(stateRoot, "raw")} {
 		info, err := os.Lstat(value)
 		if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
 			return nil, fmt.Errorf("existing lab state directory is required")
@@ -104,18 +108,10 @@ func OpenExistingStore(ctx context.Context, options Options) (*Store, error) {
 		_ = db.Close()
 		return nil, err
 	}
-	store := &Store{db: db}
+	store := &Store{db: db, stateRoot: stateRoot}
 	if err := store.RequireSchemaVersion(ctx); err != nil {
 		_ = db.Close()
 		return nil, err
-	}
-	var existingRoot string
-	if err := db.QueryRowContext(ctx, `SELECT canonical_root FROM lab_meta WHERE id=1`).Scan(&existingRoot); err != nil || existingRoot != root {
-		_ = db.Close()
-		if err != nil {
-			return nil, err
-		}
-		return nil, fmt.Errorf("lab database belongs to different root")
 	}
 	return store, nil
 }
@@ -128,11 +124,15 @@ func OpenExistingStoreWritable(ctx context.Context, options Options) (*Store, er
 	if err != nil {
 		return nil, err
 	}
-	root, err := canonicalRoot(options.Root)
+	stateRoot, err := options.ResolvedStateRoot()
 	if err != nil {
 		return nil, err
 	}
-	for _, value := range []string{filepath.Join(root, ".cidx"), filepath.Join(root, ".cidx", "lab")} {
+	stateRoot, err = canonicalRoot(stateRoot)
+	if err != nil {
+		return nil, err
+	}
+	for _, value := range []string{stateRoot, filepath.Join(stateRoot, "raw")} {
 		info, err := os.Lstat(value)
 		if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
 			return nil, fmt.Errorf("existing lab state directory is required")
@@ -150,14 +150,7 @@ func OpenExistingStoreWritable(ctx context.Context, options Options) (*Store, er
 		_ = store.Close()
 		return nil, err
 	}
-	var existingRoot string
-	if err := store.db.QueryRowContext(ctx, `SELECT canonical_root FROM lab_meta WHERE id=1`).Scan(&existingRoot); err != nil || existingRoot != root {
-		_ = store.Close()
-		if err != nil {
-			return nil, err
-		}
-		return nil, fmt.Errorf("lab database belongs to different root")
-	}
+	store.stateRoot = stateRoot
 	return store, nil
 }
 
@@ -178,11 +171,14 @@ func migrate(ctx context.Context, db *sql.DB) error {
 	if version == SchemaVersion {
 		return requireExpectedSchema(ctx, db)
 	}
+	if version == 5 {
+		return migrateV5ToV6(ctx, db)
+	}
 	if version == 4 {
 		if err := migrateV4ToV5(ctx, db); err != nil {
 			return err
 		}
-		return requireExpectedSchema(ctx, db)
+		return migrateV5ToV6(ctx, db)
 	}
 	if version == 3 {
 		if err := migrateV3ToV4(ctx, db); err != nil {
@@ -191,7 +187,7 @@ func migrate(ctx context.Context, db *sql.DB) error {
 		if err := migrateV4ToV5(ctx, db); err != nil {
 			return err
 		}
-		return requireExpectedSchema(ctx, db)
+		return migrateV5ToV6(ctx, db)
 	}
 	if version == 2 {
 		if err := migrateV2ToV3(ctx, db); err != nil {
@@ -203,7 +199,7 @@ func migrate(ctx context.Context, db *sql.DB) error {
 		if err := migrateV4ToV5(ctx, db); err != nil {
 			return err
 		}
-		return requireExpectedSchema(ctx, db)
+		return migrateV5ToV6(ctx, db)
 	}
 	if version == 1 {
 		if err := migrateV1ToV3(ctx, db); err != nil {
@@ -215,7 +211,7 @@ func migrate(ctx context.Context, db *sql.DB) error {
 		if err := migrateV4ToV5(ctx, db); err != nil {
 			return err
 		}
-		return requireExpectedSchema(ctx, db)
+		return migrateV5ToV6(ctx, db)
 	}
 	var tables int
 	if err := db.QueryRowContext(ctx, `SELECT count(*) FROM sqlite_master WHERE type='table'`).Scan(&tables); err != nil {
@@ -234,7 +230,7 @@ func migrate(ctx context.Context, db *sql.DB) error {
 			return err
 		}
 	}
-	if _, err := tx.ExecContext(ctx, `PRAGMA user_version = 5`); err != nil {
+	if _, err := tx.ExecContext(ctx, `PRAGMA user_version = 6`); err != nil {
 		return err
 	}
 	if err := tx.Commit(); err != nil {
@@ -245,7 +241,8 @@ func migrate(ctx context.Context, db *sql.DB) error {
 
 const labMetaV3TableStatement = `CREATE TABLE lab_meta (id INTEGER PRIMARY KEY CHECK(id=1), schema_version INTEGER NOT NULL CHECK(schema_version=3), canonical_root TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), last_successful_collection_at TEXT NOT NULL DEFAULT '')`
 const labMetaV4TableStatement = `CREATE TABLE lab_meta (id INTEGER PRIMARY KEY CHECK(id=1), schema_version INTEGER NOT NULL CHECK(schema_version=4), canonical_root TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), last_successful_collection_at TEXT NOT NULL DEFAULT '')`
-const labMetaTableStatement = `CREATE TABLE lab_meta (id INTEGER PRIMARY KEY CHECK(id=1), schema_version INTEGER NOT NULL CHECK(schema_version=5), canonical_root TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), last_successful_collection_at TEXT NOT NULL DEFAULT '')`
+const labMetaV5TableStatement = `CREATE TABLE lab_meta (id INTEGER PRIMARY KEY CHECK(id=1), schema_version INTEGER NOT NULL CHECK(schema_version=5), canonical_root TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), last_successful_collection_at TEXT NOT NULL DEFAULT '')`
+const labMetaTableStatement = `CREATE TABLE lab_meta (id INTEGER PRIMARY KEY CHECK(id=1), schema_version INTEGER NOT NULL CHECK(schema_version=6), created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), last_successful_collection_at TEXT NOT NULL DEFAULT '')`
 const materializationRunsTableStatement = `CREATE TABLE materialization_runs (id INTEGER PRIMARY KEY, build_id TEXT NOT NULL UNIQUE, generation INTEGER NOT NULL, manifest_sha256 TEXT NOT NULL, source_profile TEXT NOT NULL, vector_space_profile TEXT NOT NULL, storage_profile TEXT NOT NULL, planned_count INTEGER NOT NULL DEFAULT 0, staged_count INTEGER NOT NULL DEFAULT 0, missing_count INTEGER NOT NULL DEFAULT 0, rejected_count INTEGER NOT NULL DEFAULT 0, raw_coverage REAL NOT NULL DEFAULT 0, output_checksum TEXT NOT NULL DEFAULT '', evaluation_run_ref TEXT, status TEXT NOT NULL CHECK(status IN ('planned','building','ready','published','aborted','failed')), started_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), ended_at TEXT NOT NULL DEFAULT '', error TEXT NOT NULL DEFAULT '')`
 const materializedVariantsTableStatement = `CREATE TABLE materialized_variants (materialization_id INTEGER NOT NULL REFERENCES materialization_runs(id), canonical_input_sha256 TEXT NOT NULL, dimensions INTEGER NOT NULL, codec_id TEXT NOT NULL, codec_version INTEGER NOT NULL, blob BLOB NOT NULL, scale REAL, norm REAL, raw_vector_sha256 TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), PRIMARY KEY(materialization_id,canonical_input_sha256))`
 const evaluationRunsV3TableStatement = `CREATE TABLE evaluation_runs (id INTEGER PRIMARY KEY, repository_identity TEXT NOT NULL, generation INTEGER NOT NULL, query_manifest_sha256 TEXT NOT NULL, candidate_profile TEXT NOT NULL, artifact_reference TEXT NOT NULL)`
@@ -303,8 +300,11 @@ func requireExpectedSchema(ctx context.Context, db *sql.DB) error {
 	if err := db.QueryRowContext(ctx, `SELECT sql FROM sqlite_master WHERE type='table' AND name='lab_meta'`).Scan(&metaSQL); err != nil {
 		return err
 	}
-	if !containsSchemaVersionCheck(metaSQL, 5) {
-		return fmt.Errorf("lab v5 meta schema is not recognized")
+	if !containsSchemaVersionCheck(metaSQL, 6) {
+		return fmt.Errorf("lab v6 meta schema is not recognized")
+	}
+	if err := requireExactColumns(ctx, db, "lab_meta", []string{"id", "schema_version", "created_at", "last_successful_collection_at"}); err != nil {
+		return err
 	}
 	return nil
 }
@@ -410,6 +410,34 @@ func requireColumnSet(ctx context.Context, db *sql.DB, table string, columns []s
 		}
 		if found != 1 {
 			return fmt.Errorf("%s missing %s", table, column)
+		}
+	}
+	return nil
+}
+
+func requireExactColumns(ctx context.Context, db *sql.DB, table string, expected []string) error {
+	rows, err := db.QueryContext(ctx, `SELECT name FROM pragma_table_info(?) ORDER BY cid`, table)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	var actual []string
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return err
+		}
+		actual = append(actual, name)
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	if len(actual) != len(expected) {
+		return fmt.Errorf("%s column count mismatch", table)
+	}
+	for i := range expected {
+		if actual[i] != expected[i] {
+			return fmt.Errorf("%s column %d mismatch", table, i)
 		}
 	}
 	return nil
@@ -535,7 +563,7 @@ func migrateV4ToV5(ctx context.Context, db *sql.DB) error {
 	if _, err := tx.ExecContext(ctx, `ALTER TABLE evaluation_runs RENAME TO evaluation_runs_v4`); err != nil {
 		return err
 	}
-	for _, statement := range []string{labMetaTableStatement, evaluationRunsTableStatement} {
+	for _, statement := range []string{labMetaV5TableStatement, evaluationRunsTableStatement} {
 		if _, err := tx.ExecContext(ctx, statement); err != nil {
 			return err
 		}
@@ -555,6 +583,57 @@ func migrateV4ToV5(ctx context.Context, db *sql.DB) error {
 		return err
 	}
 	return tx.Commit()
+}
+
+// migrateV5ToV6 removes the machine-specific checkout path while preserving
+// every raw vector, capture, materialization, and evaluation row.
+func migrateV5ToV6(ctx context.Context, db *sql.DB) error {
+	if err := requireV5Schema(ctx, db); err != nil {
+		return err
+	}
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	for _, statement := range []string{
+		`ALTER TABLE lab_meta RENAME TO lab_meta_v5`,
+		labMetaTableStatement,
+		`INSERT INTO lab_meta(id,schema_version,created_at,last_successful_collection_at) SELECT id,6,created_at,last_successful_collection_at FROM lab_meta_v5`,
+		`DROP TABLE lab_meta_v5`,
+		`PRAGMA user_version = 6`,
+	} {
+		if _, err := tx.ExecContext(ctx, statement); err != nil {
+			return err
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	return requireExpectedSchema(ctx, db)
+}
+
+func requireV5Schema(ctx context.Context, db *sql.DB) error {
+	for _, table := range []string{"lab_meta", "lab_inputs", "raw_document_embeddings", "capture_runs", "capture_failures", "materialization_runs", "materialized_variants", "evaluation_runs"} {
+		var found int
+		if err := db.QueryRowContext(ctx, `SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?`, table).Scan(&found); err != nil {
+			return err
+		}
+		if found != 1 {
+			return fmt.Errorf("lab v5 schema missing %s", table)
+		}
+	}
+	if err := requireColumnSet(ctx, db, "lab_meta", []string{"id", "schema_version", "canonical_root", "created_at", "last_successful_collection_at"}); err != nil {
+		return err
+	}
+	var metaSQL string
+	if err := db.QueryRowContext(ctx, `SELECT sql FROM sqlite_master WHERE type='table' AND name='lab_meta'`).Scan(&metaSQL); err != nil {
+		return err
+	}
+	if !containsSchemaVersionCheck(metaSQL, 5) {
+		return fmt.Errorf("lab v5 meta schema is not recognized")
+	}
+	return nil
 }
 
 // migrateV1ToV3 is additive at the data boundary: immutable raw rows and

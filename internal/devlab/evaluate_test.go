@@ -32,7 +32,7 @@ func TestRetrievalAdapterPlanApplyAndArtifactAreLocalSafe(t *testing.T) {
 		t.Fatalf("plan=%+v", plan)
 	}
 	assertEvaluationRows(t, raw, 0)
-	if _, err := os.Stat(filepath.Join(root, ".cidx", "lab", "evaluations")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(root, ".cidx", "evaluations")); !os.IsNotExist(err) {
 		t.Fatalf("plan created artifact state: %v", err)
 	}
 	client := &adapterFakeClient{response: adapterQueryResponse(prepared.application.Resolved)}
@@ -65,7 +65,7 @@ func TestRetrievalAdapterPlanApplyAndArtifactAreLocalSafe(t *testing.T) {
 	if applied.Artifact.RunID == "" || applied.Artifact.Reference == "" || len(applied.Artifact.Checksum) != 64 {
 		t.Fatalf("artifact=%+v", applied.Artifact)
 	}
-	artifactRoot := filepath.Join(root, ".cidx", "lab", filepath.FromSlash(applied.Artifact.Reference))
+	artifactRoot := filepath.Join(root, ".cidx", filepath.FromSlash(applied.Artifact.Reference))
 	for _, name := range requiredRetrievalArtifactFiles {
 		if _, err := os.Stat(filepath.Join(artifactRoot, name)); err != nil {
 			t.Fatalf("artifact missing %s: %v", name, err)
@@ -99,7 +99,7 @@ func TestRetrievalArtifactCompensationRejectsMalformedRunID(t *testing.T) {
 	if err := removeRetrievalArtifact(ctx, prepared, RetrievalArtifactReference{RunID: "retrieval-../../outside", Reference: "evaluations/retrieval-../../outside"}); err == nil {
 		t.Fatal("malformed compensation target accepted")
 	}
-	if _, err := os.Stat(filepath.Join(root, ".cidx", "lab", "evaluations", "outside")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(root, ".cidx", "evaluations", "outside")); !os.IsNotExist(err) {
 		t.Fatalf("malformed compensation touched outside target: %v", err)
 	}
 }
@@ -114,10 +114,10 @@ func TestRetrievalAdapterRetainsProviderFailureButAbortsInvariantFailure(t *test
 	if len(failed.Run.Cases) != 1 || failed.Run.Cases[0].Metrics[1].Metrics.FailureStage != evalcontract.FailureStage(evalcontract.StageOperational) {
 		t.Fatalf("provider failure did not remain denominator evidence: %+v", failed.Run)
 	}
-	if _, err := os.Stat(filepath.Join(root, ".cidx", "lab", filepath.FromSlash(failed.Artifact.Reference), "promotion-result.json")); err != nil {
+	if _, err := os.Stat(filepath.Join(root, ".cidx", filepath.FromSlash(failed.Artifact.Reference), "promotion-result.json")); err != nil {
 		t.Fatal(err)
 	}
-	usageBytes, err := os.ReadFile(filepath.Join(root, ".cidx", "lab", filepath.FromSlash(failed.Artifact.Reference), "provider-usage.json"))
+	usageBytes, err := os.ReadFile(filepath.Join(root, ".cidx", filepath.FromSlash(failed.Artifact.Reference), "provider-usage.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -148,7 +148,7 @@ func TestRetrievalAdapterCancellationDoesNotPublish(t *testing.T) {
 		t.Fatalf("cancellation err=%v", err)
 	}
 	assertEvaluationRows(t, raw, 0)
-	if _, err := os.Stat(filepath.Join(root, ".cidx", "lab", "evaluations")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(root, ".cidx", "evaluations")); !os.IsNotExist(err) {
 		t.Fatalf("cancellation published artifact state: %v", err)
 	}
 }
@@ -168,7 +168,7 @@ func TestRetrievalAdapterPerAttemptDeadlineRemainsProviderFailure(t *testing.T) 
 	if len(applied.Run.Cases) != 1 || applied.Run.Cases[0].Metrics[1].Metrics.FailureStage != evalcontract.FailureStage(evalcontract.StageOperational) {
 		t.Fatalf("attempt deadline did not remain operational evidence: %+v", applied.Run)
 	}
-	usageBytes, err := os.ReadFile(filepath.Join(root, ".cidx", "lab", filepath.FromSlash(applied.Artifact.Reference), "provider-usage.json"))
+	usageBytes, err := os.ReadFile(filepath.Join(root, ".cidx", filepath.FromSlash(applied.Artifact.Reference), "provider-usage.json"))
 	if err != nil {
 		t.Fatal(err)
 	}

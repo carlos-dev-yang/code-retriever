@@ -47,7 +47,7 @@ func main() {
 }
 
 // isProductionIndexPath refuses any direct or resolved path structurally
-// shaped as .cidx/index.db. This spike command has no repository-root contract,
+// shaped as .cidx/db/index.db. This spike command has no repository-root contract,
 // so the conservative structural guard avoids modifying production state.
 func isProductionIndexPath(path string) bool {
 	if productionIndexShape(filepath.Clean(path)) {

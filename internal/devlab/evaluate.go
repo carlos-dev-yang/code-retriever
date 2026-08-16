@@ -58,7 +58,7 @@ type retrievalInputs struct {
 // preflightRetrievalInputs is intentionally independent of either SQLite
 // store. It lets the CLI reject bad corpus provenance before opening a lab DB
 // that could otherwise need creation or migration.
-func preflightRetrievalInputs(ctx context.Context, repositoryRoot, manifestPath, datasetPath, explicitCorpusPath string) (retrievalInputs, error) {
+func preflightRetrievalInputs(ctx context.Context, bindingRoot, sourceRoot, manifestPath, datasetPath, explicitCorpusPath string) (retrievalInputs, error) {
 	manifestBytes, err := os.ReadFile(manifestPath)
 	if err != nil {
 		return retrievalInputs{}, err
@@ -80,7 +80,7 @@ func preflightRetrievalInputs(ctx context.Context, repositoryRoot, manifestPath,
 	}
 	bindings := eval.CorpusBindings{}
 	if explicitCorpusPath == "" {
-		bindings, err = eval.LoadIgnoredCorpusBindings(ctx, repositoryRoot)
+		bindings, err = eval.LoadIgnoredCorpusBindings(ctx, bindingRoot)
 		if err != nil {
 			return retrievalInputs{}, err
 		}
@@ -89,7 +89,7 @@ func preflightRetrievalInputs(ctx context.Context, repositoryRoot, manifestPath,
 	if err != nil {
 		return retrievalInputs{}, err
 	}
-	if filepath.Clean(checkout) != filepath.Clean(repositoryRoot) {
+	if filepath.Clean(checkout) != filepath.Clean(sourceRoot) {
 		return retrievalInputs{}, fmt.Errorf("evaluation checkout must be the configured repository root")
 	}
 	verified, err := eval.VerifyCheckout(ctx, manifest, checkout)
@@ -102,10 +102,17 @@ func preflightRetrievalInputs(ctx context.Context, repositoryRoot, manifestPath,
 // PrepareRetrievalEvaluation performs every pre-provider check required by
 // the development command. It is read-only and makes zero embedding calls.
 func PrepareRetrievalEvaluation(ctx context.Context, application *app.Application, raw *lab.Store, manifestPath, datasetPath, explicitCorpusPath string) (retrievalPrepared, error) {
+	if application == nil {
+		return retrievalPrepared{}, fmt.Errorf("production application, search service, and lab store are required")
+	}
+	return PrepareRetrievalEvaluationAt(ctx, application, raw, application.Root, manifestPath, datasetPath, explicitCorpusPath)
+}
+
+func PrepareRetrievalEvaluationAt(ctx context.Context, application *app.Application, raw *lab.Store, bindingRoot, manifestPath, datasetPath, explicitCorpusPath string) (retrievalPrepared, error) {
 	if application == nil || application.Store == nil || application.Search == nil || raw == nil {
 		return retrievalPrepared{}, fmt.Errorf("production application, search service, and lab store are required")
 	}
-	inputs, err := preflightRetrievalInputs(ctx, application.Root, manifestPath, datasetPath, explicitCorpusPath)
+	inputs, err := preflightRetrievalInputs(ctx, bindingRoot, application.Root, manifestPath, datasetPath, explicitCorpusPath)
 	if err != nil {
 		return retrievalPrepared{}, err
 	}
@@ -138,10 +145,6 @@ func PrepareRetrievalEvaluation(ctx context.Context, application *app.Applicatio
 	}
 	if err := eval.VerifyIndexedFiles(ctx, manifest, checkout, indexedFiles); err != nil {
 		return retrievalPrepared{}, err
-	}
-	labRoot, err := raw.CanonicalRoot(ctx)
-	if err != nil || labRoot != application.Root {
-		return retrievalPrepared{}, fmt.Errorf("lab database belongs to different root")
 	}
 	required := append([]string(nil), active.CanonicalInputs...)
 	hits, err := raw.ExistingKeys(ctx, string(application.Resolved.Profiles.Fingerprints.Source), required)

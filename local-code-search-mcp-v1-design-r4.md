@@ -1,7 +1,7 @@
 # Local Code Search MCP v1 — Final Target Contract (Revision 4)
 
-- Status: final implementation target; Revision 4 reconciliation is in progress
-- Date: 2026-08-15
+- Status: final implementation target; project-local state-layout reconciliation is accepted
+- Date: 2026-08-16
 - Binary name: `cidx`
 - Previous canonical draft: [`local-code-search-mcp-v1-design-r3.md`](local-code-search-mcp-v1-design-r3.md)
 - Detailed implementation plan: [`docs/implementation/README.md`](docs/implementation/README.md)
@@ -36,7 +36,16 @@ No numeric hit-rate, MRR, p50, p95, or maximum-latency target is a v1 release pr
 
 The MCP host starts `cidx serve` as a small long-lived Go stdio process for one explicit repository root. The process parses JSON-RPC/MCP messages and coordinates bounded work; it is not an HTTP daemon.
 
-SQLite is embedded through the selected Go driver and stored under the repository's `.cidx` directory. Users do not install a separate SQLite service. Persistent AST chunks, FTS rows, segment metadata, active vectors, profiles, and generation metadata live in `.cidx/index.db`.
+SQLite is embedded through the selected Go driver and stored under a caller-resolved project-local state root. Users do not install a separate SQLite service. Normal use binds the source root and state root together and stores persistent AST chunks, FTS rows, segment metadata, active vectors, profiles, and generation metadata in `<source-root>/.cidx/db/index.db`.
+
+Source and state are separate runtime inputs even though normal use resolves them together:
+
+- `source_root` is the Git worktree whose code is indexed and read;
+- `state_root` owns config, SQLite files, locks, and development artifacts;
+- normal commands default `state_root` to `<source_root>/.cidx`;
+- cidx's own development/evaluation commands may explicitly use a relative state namespace below the controlling repository, such as `.cidx/test/states/chi`, while indexing a separately supplied relative source checkout such as `.cidx/test/corpora/chi`.
+
+Only runtime path resolution canonicalizes these inputs. Production and lab schemas do not persist or compare an absolute checkout path. Repository/corpus compatibility is proved by portable commit, content, manifest, profile, and canonical-input identities. A corpus checkout is therefore disposable independently of its preserved evaluation state, and moving the containing project does not require rewriting a database row.
 
 The Go process may hold bounded request buffers, decoded query vectors, and SQLite/OS page-cache state. It must not load the whole corpus or maintain a second authoritative in-memory index. Restarting the process must recover all production state from `index.db`.
 
@@ -113,7 +122,7 @@ Production stores one active cidx-owned codec only:
 - provider-side binary/int8 output is not treated as either cidx codec;
 - production contains no persistent f32/f16 vector column.
 
-The initial development/evaluation workflow may preserve document-role 1024-dimensional f32 in a physically separate lab database. This is a test asset used to rematerialize and compare serving dimensions/codecs without repeated document-embedding charges. Runtime `serve` and `search` never open the lab database, query f32 is never persisted, and the lab is not a permanent multi-profile serving system.
+The initial development/evaluation workflow may preserve document-role 1024-dimensional f32 in a physically separate lab database at `<state_root>/raw/embeddings.db`. This is a test asset used to rematerialize and compare serving dimensions/codecs without repeated document-embedding charges. Runtime `serve` and `search` never open the lab database, query f32 is never persisted, and the lab is not a permanent multi-profile serving system. Evaluation artifacts live below `<state_root>/evaluations`; the cidx development workspace convention is `.cidx/test/states/<name>` for each isolated state.
 
 ## 6. Synchronous request and retry policy
 
@@ -210,6 +219,7 @@ Change impact remains explicit:
 | serving dimensions, reducer/normalizer, binary/int8 codec | local rematerialization when compatible lab raw exists; otherwise paid embedding |
 | request grouping, retry, FTS defaults, RRF, return count, inline byte limits | restart/reload only; no reindex or re-embedding |
 | database schema | explicit migration |
+| source/state location only | reopen from the new relative location; no reindex or re-embedding when portable identity and database contents are unchanged |
 
 ## 9. Evaluation and promotion
 

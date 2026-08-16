@@ -105,7 +105,7 @@ func TestInitCreatesStateAtGitRootFromNestedDirectory(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(repository, ".cidx", "config.json")); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(repository, ".cidx", "index.db")); err != nil {
+	if _, err := os.Stat(filepath.Join(repository, ".cidx", "db", "index.db")); err != nil {
 		t.Fatal(err)
 	}
 }

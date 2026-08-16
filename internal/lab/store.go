@@ -15,12 +15,16 @@ import (
 // Store is a development-only f32 artifact store. It has a distinct factory,
 // file path, and schema from production store and only admits document-role
 // source vectors.
-type Store struct{ db *sql.DB }
+type Store struct {
+	db        *sql.DB
+	stateRoot string
+}
 
 func (s *Store) CanonicalRoot(ctx context.Context) (string, error) {
-	var root string
-	err := s.db.QueryRowContext(ctx, `SELECT canonical_root FROM lab_meta WHERE id=1`).Scan(&root)
-	return root, err
+	if s == nil || s.stateRoot == "" {
+		return "", fmt.Errorf("lab state root is unavailable")
+	}
+	return s.stateRoot, nil
 }
 
 type DocumentRaw struct {
@@ -78,7 +82,7 @@ func (s *Store) EvaluationArtifactsRoot(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return secureDirectoryUnderRoot(root, ".cidx", "lab", "evaluations")
+	return secureDirectoryUnderRoot(root, "evaluations")
 }
 
 func (s *Store) RecordEvaluationRun(ctx context.Context, record EvaluationRunRecord) (int64, error) {
@@ -141,7 +145,7 @@ func openLabDatabase(ctx context.Context, path string) (*Store, error) {
 		_ = db.Close()
 		return nil, fmt.Errorf("lab foreign keys unavailable")
 	}
-	return &Store{db: db}, nil
+	return &Store{db: db, stateRoot: filepath.Dir(filepath.Dir(path))}, nil
 }
 
 func (s *Store) Close() error { return s.db.Close() }

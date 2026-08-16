@@ -42,7 +42,7 @@ func TestLiveWorktreeIndexesTrackedAndUntrackedAndPublishesAtomically(t *testing
 	if result.ActivatedGeneration != 1 || result.Updated != 3 {
 		t.Fatalf("first result=%#v", result)
 	}
-	db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "index.db"))
+	db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "db", "index.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -212,7 +212,7 @@ func TestDryRunCanonicalReconciliationReplacesOldKeyWithoutPublish(t *testing.T)
 	if _, err = service.Execute(ctx, Request{Root: root, Reason: ReasonManual, Config: resolved}); err != nil {
 		t.Fatal(err)
 	}
-	db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "index.db"))
+	db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "db", "index.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -342,7 +342,7 @@ func TestProfileReconciliationRepublishesServingSegments(t *testing.T) {
 	if _, err := s.Execute(ctx, Request{Root: root, Reason: ReasonManual, Config: first}); err != nil {
 		t.Fatal(err)
 	}
-	db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "index.db"))
+	db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "db", "index.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -410,7 +410,7 @@ func TestR4IndexProfileForcesFullLocalRebuildWhileFTSUsesWholeParent(t *testing.
 	if err != nil || first.Chunks != 1 || first.Segments < 2 {
 		t.Fatalf("initial parent/segments=%#v err=%v", first, err)
 	}
-	db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "index.db"))
+	db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "db", "index.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -452,7 +452,7 @@ func TestR4LegacyVectorRekeyAppearsInDryRunAndAppliesWithFullRebuild(t *testing.
 	if _, err := s.Execute(ctx, Request{Root: root, Reason: ReasonManual, Config: resolved}); err != nil {
 		t.Fatal(err)
 	}
-	db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "index.db"))
+	db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "db", "index.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -563,7 +563,7 @@ func TestCanonicalOnlyReconciliationPreservesASTAndFTS(t *testing.T) {
 	if _, err := s.Execute(ctx, Request{Root: root, Reason: ReasonManual, Config: resolved}); err != nil {
 		t.Fatal(err)
 	}
-	db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "index.db"))
+	db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "db", "index.db"))
 	if err != nil {
 		t.Fatal(err)
 	}

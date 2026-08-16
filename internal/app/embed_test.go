@@ -158,7 +158,7 @@ func TestPublicEmbeddingRetainsFirstBatchAfterLaterFailure(t *testing.T) {
 	if err != nil || next.Ready != 1 || next.SkippedTerminal != 1 || next.PaidInputs != 0 {
 		t.Fatalf("next=%#v err=%v", next, err)
 	}
-	db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "index.db"))
+	db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "db", "index.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -272,7 +272,7 @@ func TestPublicEmbeddingCancellationRecordsRetryableFailure(t *testing.T) {
 	if !errors.Is(err, context.Canceled) || result.Requested != 1 || result.ActualTokens != 0 || result.Succeeded != 0 || result.Failed != 1 || result.Discarded != 0 {
 		t.Fatalf("result=%#v err=%v", result, err)
 	}
-	db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "index.db"))
+	db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "db", "index.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -337,7 +337,7 @@ func TestPublicEmbeddingClassifiesResponseAndTransformFailures(t *testing.T) {
 			if err != nil || result.Requested != 1 || result.ActualTokens != scenario.wantTokens || result.Succeeded != 0 || result.Failed != 1 || result.Discarded != 0 {
 				t.Fatalf("result=%#v err=%v", result, err)
 			}
-			db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "index.db"))
+			db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "db", "index.db"))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -374,7 +374,7 @@ func TestPublicEmbeddingRejectsStalePlanBeforeProviderCall(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "index.db"))
+	db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "db", "index.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -421,7 +421,7 @@ func TestPublicEmbeddingDiscardsResponseForRemovedActiveKey(t *testing.T) {
 		}{result, err}
 	}()
 	<-blocking.started
-	db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "index.db"))
+	db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "db", "index.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -484,7 +484,7 @@ func TestPublicEmbeddingRejectsBlockedResponseAfterGenerationChange(t *testing.T
 		}{result, err}
 	}()
 	<-blocking.started
-	db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "index.db"))
+	db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "db", "index.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -586,7 +586,7 @@ func TestPublicEmbeddingPlansWithoutProviderAndAppliesDirectlyToProduction(t *te
 	if err != nil || again.Ready != again.ActiveDistinct || again.PaidInputs != 0 {
 		t.Fatalf("ready plan=%#v err=%v", again, err)
 	}
-	db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "index.db"))
+	db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "db", "index.db"))
 	if err != nil {
 		t.Fatal(err)
 	}

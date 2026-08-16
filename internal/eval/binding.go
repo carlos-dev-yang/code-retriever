@@ -16,7 +16,7 @@ import (
 )
 
 // CorpusBindings is intentionally local-only. Callers must keep its file
-// below ignored state (normally .cidx/lab/corpora.local.json).
+// below ignored state (normally .cidx/test/corpora.local.json).
 type CorpusBindings struct {
 	Bindings map[string]string `json:"bindings"`
 }
@@ -29,8 +29,8 @@ func LoadIgnoredCorpusBindings(ctx context.Context, repositoryRoot string) (Corp
 	if err != nil {
 		return CorpusBindings{}, err
 	}
-	path := filepath.Join(root, ".cidx", "lab", "corpora.local.json")
-	relative := ".cidx/lab/corpora.local.json"
+	path := filepath.Join(root, ".cidx", "test", "corpora.local.json")
+	relative := ".cidx/test/corpora.local.json"
 	command := exec.CommandContext(ctx, "git", "-C", root, "check-ignore", "--quiet", "--", relative)
 	if err := command.Run(); err != nil {
 		return CorpusBindings{}, fmt.Errorf("local corpus binding file must be ignored")
@@ -39,7 +39,19 @@ func LoadIgnoredCorpusBindings(ctx context.Context, repositoryRoot string) (Corp
 	if err != nil {
 		return CorpusBindings{}, err
 	}
-	return LoadCorpusBindings(data)
+	bindings, err := LoadCorpusBindings(data)
+	if err != nil {
+		return CorpusBindings{}, err
+	}
+	for id, checkout := range bindings.Bindings {
+		clean := filepath.Clean(checkout)
+		portable := filepath.ToSlash(clean)
+		if filepath.IsAbs(clean) || portable == ".." || strings.HasPrefix(portable, "../") || !strings.HasPrefix(portable, ".cidx/test/corpora/") {
+			return CorpusBindings{}, fmt.Errorf("local corpus binding must be project-relative below .cidx/test/corpora")
+		}
+		bindings.Bindings[id] = filepath.Join(root, clean)
+	}
+	return bindings, nil
 }
 
 func LoadCorpusBindings(data []byte) (CorpusBindings, error) {

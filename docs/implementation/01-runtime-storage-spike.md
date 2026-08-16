@@ -192,7 +192,7 @@ Do not duplicate a dimension or codec value with the same meaning across package
 - Do not use `BEGIN EXCLUSIVE` on the normal path.
 - Never download parser grammars at runtime.
 - Do not include API keys, canonical document inputs, or raw vectors in logs or completion evidence.
-- A spike database must not reuse production `.cidx/index.db`.
+- A spike database must not reuse production `.cidx/db/index.db`.
 - Paid document source f32 goes directly to an isolated lab artifact, never through a production transaction or normal runtime store.
 - Retry failed eligible provider requests only after 10, 20, and 30 seconds following the initial attempt, honor a longer `Retry-After`, and never retry authentication, model, or dimension errors indefinitely.
 

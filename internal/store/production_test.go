@@ -26,7 +26,7 @@ func TestProductionMigrationFailsClosedAndUsesOwnerPermissions(t *testing.T) {
 	if err := migrateProduction(ctx, db); err != nil {
 		t.Fatalf("current production schema failed validation: %v", err)
 	}
-	if _, err := db.ExecContext(ctx, `PRAGMA user_version=4`); err != nil {
+	if _, err := db.ExecContext(ctx, `PRAGMA user_version=5`); err != nil {
 		t.Fatal(err)
 	}
 	if err := migrateProduction(ctx, db); err == nil {
@@ -61,7 +61,7 @@ func TestProductionMigrationFailsClosedAndUsesOwnerPermissions(t *testing.T) {
 		t.Fatalf("applied profile handoff = %#v, %v", applied, err)
 	}
 	if runtime.GOOS != "windows" {
-		info, err := os.Stat(filepath.Join(root, ".cidx", "index.db"))
+		info, err := os.Stat(filepath.Join(root, ".cidx", "db", "index.db"))
 		if err != nil || info.Mode().Perm() != 0o600 {
 			t.Fatalf("production db permissions=%#o err=%v", info.Mode().Perm(), err)
 		}
@@ -102,10 +102,10 @@ func TestProductionV1ToV3PreservesLegacyVectorButRequiresNewLineage(t *testing.T
 		t.Fatal(err)
 	}
 	var schemaVersion int
-	var root, manifest, source, space, storage, serving string
+	var manifest, source, space, storage, serving string
 	var generation int64
-	if err := db.QueryRowContext(ctx, `SELECT schema_version,canonical_root,active_generation,manifest_sha256,source_profile,vector_space_profile,vector_storage_profile,active_serving_profile FROM meta WHERE id=1`).Scan(&schemaVersion, &root, &generation, &manifest, &source, &space, &storage, &serving); err != nil || schemaVersion != 3 || root != "root" || generation != 1 || manifest != "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" || source != "source" || space != "space" || storage != "storage" || serving != "serving" {
-		t.Fatalf("meta preservation=%d %q %d %q %q %q %q %q err=%v", schemaVersion, root, generation, manifest, source, space, storage, serving, err)
+	if err := db.QueryRowContext(ctx, `SELECT schema_version,active_generation,manifest_sha256,source_profile,vector_space_profile,vector_storage_profile,active_serving_profile FROM meta WHERE id=1`).Scan(&schemaVersion, &generation, &manifest, &source, &space, &storage, &serving); err != nil || schemaVersion != 4 || generation != 1 || manifest != "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" || source != "source" || space != "space" || storage != "storage" || serving != "serving" {
+		t.Fatalf("meta preservation=%d %d %q %q %q %q %q err=%v", schemaVersion, generation, manifest, source, space, storage, serving, err)
 	}
 	var blob []byte
 	var rowSource, rowSpace, rawSHA, at string
@@ -141,12 +141,12 @@ func TestProductionV2ToV3PreservesHistoricalFailureAndPointers(t *testing.T) {
 	if err := production.Close(); err != nil {
 		t.Fatal(err)
 	}
-	db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "index.db"))
+	db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "db", "index.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer db.Close()
-	for _, statement := range []string{`ALTER TABLE meta RENAME TO meta_v3`, `CREATE TABLE meta (id INTEGER PRIMARY KEY CHECK(id=1), schema_version INTEGER NOT NULL CHECK(schema_version=2), canonical_root TEXT NOT NULL, active_generation INTEGER NOT NULL CHECK(active_generation>=0), manifest_sha256 TEXT NOT NULL, index_profile TEXT NOT NULL, index_profile_json BLOB NOT NULL, canonical_text_profile TEXT NOT NULL, canonical_text_profile_json BLOB NOT NULL, source_profile TEXT NOT NULL, source_profile_json BLOB NOT NULL, vector_space_profile TEXT NOT NULL, vector_space_profile_json BLOB NOT NULL, vector_storage_profile TEXT NOT NULL, vector_storage_profile_json BLOB NOT NULL, active_serving_profile TEXT NOT NULL, index_attempted_at TEXT NOT NULL, index_succeeded_at TEXT NOT NULL, embed_attempted_at TEXT NOT NULL, embed_succeeded_at TEXT NOT NULL, observed_git_commit TEXT NOT NULL, observed_git_dirty INTEGER NOT NULL CHECK(observed_git_dirty IN (0,1)))`, `INSERT INTO meta SELECT id,2,canonical_root,active_generation,manifest_sha256,index_profile,index_profile_json,canonical_text_profile,canonical_text_profile_json,source_profile,source_profile_json,vector_space_profile,vector_space_profile_json,vector_storage_profile,vector_storage_profile_json,active_serving_profile,index_attempted_at,index_succeeded_at,embed_attempted_at,embed_succeeded_at,observed_git_commit,observed_git_dirty FROM meta_v3`, `DROP TABLE meta_v3`, `ALTER TABLE embedding_failures RENAME TO embedding_failures_v3`, `CREATE TABLE embedding_failures (source_profile TEXT NOT NULL,canonical_input_sha256 TEXT NOT NULL,attempts INTEGER NOT NULL,error_class TEXT NOT NULL,last_error TEXT NOT NULL,last_attempted_at TEXT NOT NULL,PRIMARY KEY(source_profile,canonical_input_sha256))`, `INSERT INTO embedding_failures SELECT source_profile,canonical_input_sha256,attempts,error_class,last_error,last_attempted_at FROM embedding_failures_v3`, `DROP TABLE embedding_failures_v3`, `DROP TABLE embedding_runs`, `PRAGMA user_version=2`} {
+	for _, statement := range []string{`ALTER TABLE meta RENAME TO meta_v4`, `CREATE TABLE meta (id INTEGER PRIMARY KEY CHECK(id=1), schema_version INTEGER NOT NULL CHECK(schema_version=2), canonical_root TEXT NOT NULL, active_generation INTEGER NOT NULL CHECK(active_generation>=0), manifest_sha256 TEXT NOT NULL, index_profile TEXT NOT NULL, index_profile_json BLOB NOT NULL, canonical_text_profile TEXT NOT NULL, canonical_text_profile_json BLOB NOT NULL, source_profile TEXT NOT NULL, source_profile_json BLOB NOT NULL, vector_space_profile TEXT NOT NULL, vector_space_profile_json BLOB NOT NULL, vector_storage_profile TEXT NOT NULL, vector_storage_profile_json BLOB NOT NULL, active_serving_profile TEXT NOT NULL, index_attempted_at TEXT NOT NULL, index_succeeded_at TEXT NOT NULL, embed_attempted_at TEXT NOT NULL, embed_succeeded_at TEXT NOT NULL, observed_git_commit TEXT NOT NULL, observed_git_dirty INTEGER NOT NULL CHECK(observed_git_dirty IN (0,1)))`, `INSERT INTO meta SELECT id,2,'legacy-root',active_generation,manifest_sha256,index_profile,index_profile_json,canonical_text_profile,canonical_text_profile_json,source_profile,source_profile_json,vector_space_profile,vector_space_profile_json,vector_storage_profile,vector_storage_profile_json,active_serving_profile,index_attempted_at,index_succeeded_at,embed_attempted_at,embed_succeeded_at,observed_git_commit,observed_git_dirty FROM meta_v4`, `DROP TABLE meta_v4`, `ALTER TABLE embedding_failures RENAME TO embedding_failures_v4`, `CREATE TABLE embedding_failures (source_profile TEXT NOT NULL,canonical_input_sha256 TEXT NOT NULL,attempts INTEGER NOT NULL,error_class TEXT NOT NULL,last_error TEXT NOT NULL,last_attempted_at TEXT NOT NULL,PRIMARY KEY(source_profile,canonical_input_sha256))`, `INSERT INTO embedding_failures SELECT source_profile,canonical_input_sha256,attempts,error_class,last_error,last_attempted_at FROM embedding_failures_v4`, `DROP TABLE embedding_failures_v4`, `DROP TABLE embedding_runs`, `PRAGMA user_version=2`} {
 		if _, err := db.ExecContext(ctx, statement); err != nil {
 			t.Fatal(err)
 		}
@@ -160,11 +160,11 @@ func TestProductionV2ToV3PreservesHistoricalFailureAndPointers(t *testing.T) {
 	}
 	var version, generation, attempts int
 	var manifest, classification, class, at string
-	if err := db.QueryRowContext(ctx, `SELECT m.schema_version,m.active_generation,m.manifest_sha256,f.classification,f.attempts,f.error_class,f.last_attempted_at FROM meta m JOIN embedding_failures f ON 1=1`).Scan(&version, &generation, &manifest, &classification, &attempts, &class, &at); err != nil || version != 3 || generation != 7 || manifest != "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" || classification != "terminal" || attempts != 4 || class != "provider" || at != "2026-01-02T03:04:05Z" {
+	if err := db.QueryRowContext(ctx, `SELECT m.schema_version,m.active_generation,m.manifest_sha256,f.classification,f.attempts,f.error_class,f.last_attempted_at FROM meta m JOIN embedding_failures f ON 1=1`).Scan(&version, &generation, &manifest, &classification, &attempts, &class, &at); err != nil || version != 4 || generation != 7 || manifest != "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" || classification != "terminal" || attempts != 4 || class != "provider" || at != "2026-01-02T03:04:05Z" {
 		t.Fatalf("migration=%d/%d/%q/%q/%d/%q/%q err=%v", version, generation, manifest, classification, attempts, class, at, err)
 	}
 	if err := migrateProduction(ctx, db); err != nil {
-		t.Fatalf("v3 reopen=%v", err)
+		t.Fatalf("v4 reopen=%v", err)
 	}
 }
 
@@ -205,7 +205,10 @@ func TestProductionRejectsSymlinkedStateComponents(t *testing.T) {
 	if err := os.Mkdir(filepath.Join(root, ".cidx"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink(filepath.Join(outside, "index.db"), filepath.Join(root, ".cidx", "index.db")); err != nil {
+	if err := os.Mkdir(filepath.Join(root, ".cidx", "db"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(filepath.Join(outside, "index.db"), filepath.Join(root, ".cidx", "db", "index.db")); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := OpenProduction(context.Background(), root, testResolvedConfig(t)); err == nil {

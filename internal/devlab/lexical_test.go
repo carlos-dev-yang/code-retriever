@@ -36,18 +36,22 @@ func TestDraftCaseDigestFraming(t *testing.T) {
 
 func TestLexicalArtifactRootAndPacketImmutability(t *testing.T) {
 	root := t.TempDir()
-	base := filepath.Join(root, ".cidx", "lab", "evaluations")
-	if got, err := lexicalArtifactRoot(root); err != nil || got != base {
+	stateRoot := filepath.Join(root, ".cidx")
+	if err := os.Mkdir(stateRoot, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	base := filepath.Join(stateRoot, "evaluations")
+	if got, err := lexicalArtifactRoot(stateRoot); err != nil || got != base {
 		t.Fatalf("safe artifact root got=%q err=%v", got, err)
 	}
-	if err := prepareLexicalArtifactRoot(root); err != nil {
+	if err := prepareLexicalArtifactRoot(stateRoot); err != nil {
 		t.Fatal(err)
 	}
 	symlinkRoot := t.TempDir()
 	if err := os.Symlink(t.TempDir(), filepath.Join(symlinkRoot, ".cidx")); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := lexicalArtifactRoot(symlinkRoot); err == nil {
+	if _, err := lexicalArtifactRoot(filepath.Join(symlinkRoot, ".cidx")); err == nil {
 		t.Fatal("artifact-root symlink accepted")
 	}
 	corpus := eval.VerifiedCorpus{CorpusID: "sample", PinnedCommit: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", ContentSHA256: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", Clean: true}
@@ -103,7 +107,7 @@ func TestLexicalPacketChildSymlinksCannotEscapeArtifactRoot(t *testing.T) {
 	inventory := eval.TruthInventorySnapshot{Generation: 1, ManifestSHA256: "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", Chunks: []eval.IndexedTruth{{Path: "pkg/file.go", IndexedSHA256: "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd", QualifiedSymbol: "pkg.F", Kind: "function", StartByte: 0, EndByte: 1}}}
 	for _, child := range []string{"inventory", "review"} {
 		t.Run(child, func(t *testing.T) {
-			base := filepath.Join(t.TempDir(), ".cidx", "lab", "evaluations")
+			base := filepath.Join(t.TempDir(), ".cidx", "evaluations")
 			if err := os.MkdirAll(base, 0o700); err != nil {
 				t.Fatal(err)
 			}

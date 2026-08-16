@@ -56,7 +56,7 @@ This phase does not copy a passing score or SLA from another project. It builds 
 - Phase 06 returns FTS-only ordinal ranks with diagnostics.
 - The Phase 02 index-profile fingerprint and resolved serving config can be recorded.
 - The user has selected each open-source evaluation corpus and supplied its tracked corpus manifest.
-- Each `corpus_id` has either an ignored local binding in `.cidx/lab/corpora.local.json` or an explicit CLI checkout-path input.
+- Each `corpus_id` has either an ignored relative local binding in `.cidx/test/corpora.local.json` or an explicit CLI checkout-path input.
 - Each bound local checkout can be verified against its manifest's pinned commit, clean-tree requirement, expected tree/content hash, license, language slices, root subdirectory, and include/exclude filters.
 
 ## 4. Invariants
@@ -97,8 +97,10 @@ testdata/
     lexical-v1.jsonl          # reviewed query/answer dataset
     README.md                 # binding, corpus preparation, and annotation rules
 .cidx/
-  lab/
-    corpora.local.json        # ignored corpus_id-to-checkout-path bindings
+  test/
+    corpora.local.json        # ignored relative corpus_id-to-checkout bindings
+    corpora/<corpus>/         # disposable approved checkout
+    states/<corpus>/          # preserved config, DBs, and evaluation artifacts
 ```
 
 Filenames may follow Phase 02 repository conventions, but development evaluation code must not enter the production MCP package.
@@ -194,10 +196,10 @@ Use one reviewed tracked manifest per user-selected open-source corpus. It recor
 
 Do not place a checkout path in this tracked manifest. Resolve `corpus_id` at execution time from one of two sources:
 
-1. an ignored `.cidx/lab/corpora.local.json` mapping maintained by the user; or
+1. an ignored `.cidx/test/corpora.local.json` mapping maintained by the user, whose values stay below `.cidx/test/corpora/`; or
 2. an explicit development-CLI checkout-path input for that run.
 
-The resolver canonicalizes the supplied path, confirms it is an existing local checkout, and verifies the commit, clean-tree state, expected hash, root subdirectory, filters, language slice, and license metadata before indexing. It records the portable corpus identity and verified content hash in the run artifact, but does not copy the environment-specific absolute path into tracked artifacts.
+The resolver canonicalizes the supplied path, confirms it is an existing local checkout, and verifies the commit, clean-tree state, expected hash, root subdirectory, filters, language slice, and license metadata before indexing. It records the portable corpus identity and verified content hash in the run artifact, but does not copy the runtime absolute path into tracked artifacts or SQLite. A separate `.cidx/test/states/<corpus>/` root owns config, production/raw DBs, and artifacts while exercising the same production index/search services.
 
 This phase consumes only checkouts the user selected and provided or explicitly authorized it to acquire by exact repository and commit. It does not recommend, choose, update, or embed any corpus.
 

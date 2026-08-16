@@ -190,8 +190,9 @@ printf 'export const View = () => <div>hello</div>\n' >"$repo/sample.tsx"
   wait "$second"
 )
 (cd "$repo" && offline "$binary" status --json >"$work/status.json")
-[ ! -e "$repo/.cidx/lab/embeddings.db" ] || fail 'free runtime opened lab database'
-[ ! -d "$repo/.cidx/lab" ] || fail 'free runtime created lab directory'
+[ ! -e "$repo/.cidx/raw/embeddings.db" ] || fail 'free runtime opened raw embedding database'
+[ ! -d "$repo/.cidx/raw" ] || fail 'free runtime created raw embedding directory'
+[ ! -d "$repo/.cidx/test" ] || fail 'normal runtime created development workspace state'
 if find "$repo" -type f \( -name '*.wasm' -o -name '*.onnx' -o -name '*.gguf' \) -print -quit | grep -q .; then
   fail 'runtime created grammar or model download artifact'
 fi
@@ -271,17 +272,17 @@ fi
 other="$work/other-root"
 mkdir "$other"
 offline git -C "$other" init >/dev/null
+cp "$repo/main.go" "$repo/sample.ts" "$repo/sample.tsx" "$other/"
 mkdir "$other/.cidx"
+mkdir "$other/.cidx/db"
 cp "$repo/.cidx/config.json" "$other/.cidx/config.json"
-cp "$repo/.cidx/index.db" "$other/.cidx/index.db"
-if offline "$binary" status --root "$other" >"$work/root-mismatch.stdout" 2>"$work/root-mismatch.stderr"; then fail 'different-root database unexpectedly opened'; fi
-[ ! -s "$work/root-mismatch.stdout" ] || fail 'root-mismatch failure wrote protocol/data to stdout'
-grep -Eiq 'different root|belongs to different root' "$work/root-mismatch.stderr" || fail 'root-mismatch diagnostic was not actionable'
+cp "$repo/.cidx/db/index.db" "$other/.cidx/db/index.db"
+offline "$binary" status --root "$other" --json >"$work/relocated-status.json"
 schema_repo="$work/newer-schema-root"
 mkdir "$schema_repo"
 offline git -C "$schema_repo" init >/dev/null
 (cd "$schema_repo" && offline "$binary" init --serving-dim 256)
-offline sqlite3 "$schema_repo/.cidx/index.db" 'PRAGMA user_version=999;'
+offline sqlite3 "$schema_repo/.cidx/db/index.db" 'PRAGMA user_version=999;'
 if offline "$binary" status --root "$schema_repo" >"$work/newer-schema.stdout" 2>"$work/newer-schema.stderr"; then fail 'newer schema unexpectedly opened'; fi
 [ ! -s "$work/newer-schema.stdout" ] || fail 'newer-schema failure wrote protocol/data to stdout'
 grep -Eiq 'newer than supported|schema version' "$work/newer-schema.stderr" || fail 'newer-schema diagnostic was not actionable'

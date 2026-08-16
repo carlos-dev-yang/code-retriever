@@ -1,7 +1,7 @@
 # Revision 4 Reconciliation and Evidence Supersession
 
-- State: Phase 00, Phase 02, Phase 05, Phase 08, Phase 10, Phase 11, the Phase 12 corpus-independent boundary, Phase 13, and the local darwin/arm64 Phase 14 package/operational checkpoint are accepted; official Phase 12 evaluation and Phase 14 release-candidate evidence remain externally blocked
-- Date: 2026-08-15
+- State: Phase 00, Phase 02 config/wire and project-local storage work, Phase 05, Phase 08, Phase 10, Phase 11, the Phase 12 corpus-independent boundary, Phase 13, and the local darwin/arm64 Phase 14 package/operational checkpoint are accepted; official Phase 12 evaluation and Phase 14 release-candidate evidence remain externally blocked
+- Date: 2026-08-16
 - Canonical authority: [`local-code-search-mcp-v1-design-r4.md`](../../../../local-code-search-mcp-v1-design-r4.md)
 - Historical checkpoint: `b3a6cb1`
 
@@ -21,7 +21,7 @@ Revision 4 changes the public config/profile vocabulary and fixed operational re
 | Phase | Historical evidence that remains useful | Invalidated Revision 4 boundary | Required new evidence |
 | --- | --- | --- | --- |
 | 00 | RFC 8785 method, source/canonical hashes, ownership catalogs | field catalog, vector-space/storage hashes, safety/request constants | [corrected catalogs and independently reproduced hashes](../phase-00/README.md) complete |
-| 02 | strict decoding, immutable injection, DB isolation, profile hierarchy | raw/resolved names, defaults, profile JSON, evaluation wire | [strict R4 config, legacy typed error, fingerprints and schema validation](../phase-02/revision-4.md) complete |
+| 02 | strict decoding, immutable injection, DB isolation, profile hierarchy | raw/resolved names, defaults, profile JSON, evaluation wire, and later machine-path-bound SQLite metadata | [strict R4 config/wire evidence](../phase-02/revision-4.md) and [project-local source/state reconciliation](../phase-02/project-local-layout-reconciliation.md) accepted |
 | 05 | live-file and atomic-generation behavior | removed chunk cap and renamed segment target in index profile | [local reindex and compatible vector-rekey evidence](../phase-05/revision-4.md) complete |
 | 08 | raw-bank isolation, response validation, cache-first capture | token-named sequential grouping and immediate retry | [shared byte-bounded synchronous executor and raw-lab evidence](../phase-08/revision-4.md) complete |
 | 10 | plan/apply approval and atomic result publication | request concurrency, staged waits, `Retry-After`, cancellation | [deterministic bounded document orchestration evidence](../phase-10/revision-4.md) complete |
@@ -45,5 +45,6 @@ Phases 03/04 retain their AST-boundary and oversize-segment evidence, Phase 06 r
 9. Complete and accept Phase 13 in its own commit.
 10. Implement and accept the corpus-independent Phase 14 packaging/runtime/host surface at `30748c1`.
 11. Accept the local darwin/arm64 package, offline verifier, and Codex project-configuration-read checkpoint from clean provenance `a5b2baef9a18e68d6c8b5d4fb62dc2e03727edb4`; leave official evaluation and promotion evidence blocked.
+12. Reconcile project-local source/state ownership, migrate path-bound production/lab metadata without provider calls, and return to the unchanged Phase 07 query-approval gate.
 
 The external Phase 07/12 corpus gate does not block corpus-independent Phase 13 or local Phase 14 implementation. The local darwin/arm64 package checkpoint does not establish support for other targets or hosts, nor does it establish `release_candidate` scope. Official Phase 12 `core_retrieval` plus frozen Phase 13/14 assistant and host evidence remains required before Phase 14 can establish that scope.

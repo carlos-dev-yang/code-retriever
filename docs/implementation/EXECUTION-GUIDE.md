@@ -90,7 +90,9 @@ Implementation convenience is not authority to change the product contract.
 
 ## 7. Persistent storage and concurrency discipline
 
-- `.cidx/index.db` is the production authority. The server must remain restartable without reconstructing state from Go heap caches.
+- `<state_root>/db/index.db` is the production authority; normal use resolves this to `<source_root>/.cidx/db/index.db`. The server must remain restartable without reconstructing state from Go heap caches.
+- Keep `source_root` and `state_root` distinct in application assembly. Normal use defaults state to the source project's `.cidx`; development evaluation explicitly keeps disposable corpus sources under `.cidx/test/corpora/` and preserved state under `.cidx/test/states/` in the controlling cidx repository.
+- Never persist an absolute source or state path in production or lab SQLite metadata. Runtime canonical paths are process-local safety inputs; portable commit/content/manifest/profile/input identities prove compatibility.
 - Use WAL, separate reader/writer connections, short write transactions, and one atomic active-generation publish.
 - Do parsing, hashing, filesystem scans, and external API waits outside write transactions.
 - Pin each search to one SQLite read snapshot. FTS statistics, candidates, chunks, segments, vectors, coverage, and bodies must come from the same active generation.
@@ -127,7 +129,7 @@ Tracked corpus manifests must contain:
 - expected Git tree or deterministic content-manifest hash;
 - dataset versions allowed to reference the corpus.
 
-Do not commit an absolute checkout path. An ignored local binding such as `.cidx/lab/corpora.local.json`, or an explicit development CLI argument, maps `corpus_id` to a local checkout.
+Do not commit an absolute checkout path. An ignored relative local binding such as `.cidx/test/corpora.local.json`, or an explicit development CLI argument, maps `corpus_id` to a checkout below the controlling project. Evaluation state is separately selected below `.cidx/test/states/`.
 
 Before an official run, verify the checkout URL/commit, clean worktree, content hash, license record, expected indexed files, and absence of credentials. Do not automatically clone, update, or embed a repository. Paid capture and paid evaluation-query embedding remain separate explicit approvals.
 

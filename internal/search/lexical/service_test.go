@@ -73,7 +73,7 @@ func TestSearcherRejectsFTSGrammarAndFailsClosedForOrphan(t *testing.T) {
 	if _, err := searcher.Search(ctx, Request{Query: `GetUserByID" OR "*`}); err != nil {
 		t.Fatalf("safe FTS-like input rejected: %v", err)
 	}
-	database, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "index.db"))
+	database, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "db", "index.db"))
 	if err != nil {
 		t.Fatal(err)
 	}

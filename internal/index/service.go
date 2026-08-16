@@ -79,7 +79,7 @@ func (s *Service) Plan(ctx context.Context, r Request) (Plan, error) {
 	if !validReason(r.Reason) {
 		return Plan{}, fmt.Errorf("invalid index reason %q", r.Reason)
 	}
-	canonical, err := root.Repository(ctx, r.Root)
+	canonical, err := root.SourceRepository(ctx, r.Root)
 	if err != nil {
 		return Plan{}, err
 	}
@@ -141,14 +141,14 @@ func (s *Service) Execute(ctx context.Context, r Request) (Result, error) {
 	if !validReason(r.Reason) {
 		return Result{}, fmt.Errorf("invalid index reason %q", r.Reason)
 	}
-	canonical, err := root.Repository(ctx, r.Root)
+	canonical, err := root.SourceRepository(ctx, r.Root)
 	if err != nil {
 		return Result{}, err
 	}
 	if s.Store == nil || s.Store.Root != canonical {
 		return Result{}, fmt.Errorf("production store root does not match request root")
 	}
-	release, err := acquireLock(ctx, filepath.Join(canonical, ".cidx", "index.lock"))
+	release, err := acquireLock(ctx, filepath.Join(s.Store.StateRoot, "index.lock"))
 	if err != nil {
 		return Result{}, err
 	}
@@ -467,7 +467,7 @@ func gitObservation(ctx context.Context, root string) (string, bool, error) {
 			return "", false, fmt.Errorf("observe Git HEAD: %w", err)
 		}
 	}
-	dirty, err := exec.CommandContext(ctx, "git", "-C", root, "status", "--porcelain", "-z", "--", ".", ":(exclude).cidx/index.db", ":(exclude).cidx/index.db-wal", ":(exclude).cidx/index.db-shm", ":(exclude).cidx/index.lock", ":(exclude).cidx/embed.lock").Output()
+	dirty, err := exec.CommandContext(ctx, "git", "-C", root, "status", "--porcelain", "-z", "--", ".", ":(exclude).cidx/db", ":(exclude).cidx/db/**", ":(exclude).cidx/index.lock", ":(exclude).cidx/embed.lock").Output()
 	if err != nil {
 		return "", false, fmt.Errorf("observe Git worktree: %w", err)
 	}

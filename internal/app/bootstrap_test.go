@@ -85,7 +85,7 @@ func TestInitializeRejectsExistingConfigBeforeDatabaseMutation(t *testing.T) {
 	if string(got) != string(original) {
 		t.Fatalf("config changed:\n got=%q\nwant=%q", got, original)
 	}
-	if _, err := os.Stat(filepath.Join(repository, ".cidx", "index.db")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(repository, ".cidx", "db", "index.db")); !os.IsNotExist(err) {
 		t.Fatalf("existing config mutated database state: %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(repository, ".cidx", initialConfigTemporaryName)); !os.IsNotExist(err) {
@@ -111,7 +111,7 @@ func TestInitializeRejectsRuntimeFailureBeforeCidxMutation(t *testing.T) {
 func TestInitializeRejectsConfiglessProductionStateWithoutMutation(t *testing.T) {
 	ctx, repository := context.Background(), t.TempDir()
 	runGit(t, repository, "init")
-	path := filepath.Join(repository, ".cidx", "index.db")
+	path := filepath.Join(repository, ".cidx", "db", "index.db")
 	original := []byte("orphaned production state")
 	mustWriteFile(t, path, string(original))
 	if err := Initialize(ctx, repository, 256, config.StorageCodecBinary); err == nil {
@@ -192,7 +192,7 @@ func TestInitializePreservesDatabaseReplacedAfterClaim(t *testing.T) {
 	externalDatabase := []byte("external replacement database")
 	externalWAL := []byte("external replacement wal")
 	dependencies.openProduction = func(_ context.Context, root string, _ config.ResolvedConfig) (*store.ProductionStore, error) {
-		dir := filepath.Join(root, ".cidx")
+		dir := filepath.Join(root, ".cidx", "db")
 		if err := os.Remove(filepath.Join(dir, "index.db")); err != nil {
 			return nil, err
 		}
@@ -211,7 +211,7 @@ func TestInitializePreservesDatabaseReplacedAfterClaim(t *testing.T) {
 		"index.db":     externalDatabase,
 		"index.db-wal": externalWAL,
 	} {
-		got, err := os.ReadFile(filepath.Join(repository, ".cidx", path))
+		got, err := os.ReadFile(filepath.Join(repository, ".cidx", "db", path))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -294,7 +294,7 @@ func TestOpenChecksRuntimeBeforeProductionOpen(t *testing.T) {
 	if called {
 		t.Fatal("production opened after runtime failure")
 	}
-	if _, err := os.Stat(filepath.Join(root, ".cidx", "index.db")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(root, ".cidx", "db", "index.db")); !os.IsNotExist(err) {
 		t.Fatalf("runtime failure opened production database: %v", err)
 	}
 }

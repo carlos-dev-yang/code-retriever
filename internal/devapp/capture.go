@@ -81,7 +81,7 @@ func (c EmbeddingCapture) Apply(ctx context.Context, plan CapturePlan) (lab.Capt
 	if c.Production == nil || c.Lab == nil {
 		return lab.CaptureResult{}, fmt.Errorf("production and lab stores are required")
 	}
-	release, err := embedlock.Acquire(ctx, c.Production.Root)
+	release, err := embedlock.AcquireState(ctx, c.Production.StateRoot)
 	if err != nil {
 		return lab.CaptureResult{}, err
 	}

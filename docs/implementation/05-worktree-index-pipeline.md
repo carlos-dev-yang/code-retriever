@@ -10,7 +10,7 @@
 - Reopen the [implementation index](README.md), [execution guide](EXECUTION-GUIDE.md), and [status ledger](STATUS.md) before continuing.
 - Confirm the Phase 01 SQLite/FTS5 and Tree-sitter decisions, the Phase 02 schema/profile/config artifacts, the shared identifier normalizer, and the Phase 03/04 `Chunker` implementations are present and still compatible.
 - Re-check these invariants after any context compaction: enumerate tracked plus untracked nonignored live files; hash, parse, and store each file from one byte slice; never call the embedding API; prepare outside the write transaction; publish one complete generation atomically.
-- Stop if the canonical root does not match DB metadata, a required chunker/schema/profile artifact is missing, a path can escape the root, any file cannot be prepared safely, or base-generation validation cannot prove an atomic publish.
+- Stop if the runtime source root is unsafe, a required chunker/schema/profile artifact is missing, a path can escape the source root, any file cannot be prepared safely, or portable manifest/profile identity plus base-generation validation cannot prove an atomic publish. Source/state paths are not persisted in DB metadata.
 - Before pausing, record executed evidence in §11, capture new architectural choices in §13, and update [STATUS.md](STATUS.md) with the exact next checklist item and unresolved stop condition.
 
 ## 1. Goal

@@ -202,7 +202,7 @@ func TestFTSAndPreflightFallbacksNeverCallQueryClient(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	db, err := sql.Open("sqlite", filepath.Join(production2.Root, ".cidx", "index.db"))
+	db, err := sql.Open("sqlite", filepath.Join(production2.StateRoot, "db", "index.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -224,7 +224,7 @@ func TestLexicalOnlySnapshotIgnoresCorruptVectorState(t *testing.T) {
 	production, _ := indexedSearchFixture(t, resolved)
 	defer production.Close()
 	putVector(t, production, resolved)
-	db, err := sql.Open("sqlite", filepath.Join(production.Root, ".cidx", "index.db"))
+	db, err := sql.Open("sqlite", filepath.Join(production.StateRoot, "db", "index.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -316,7 +316,7 @@ func TestHybridUsesExactQueryContractAndSharedTransform(t *testing.T) {
 	production, _ := indexedSearchFixture(t, resolved)
 	defer production.Close()
 	putVector(t, production, resolved)
-	db, err := sql.Open("sqlite", filepath.Join(production.Root, ".cidx", "index.db"))
+	db, err := sql.Open("sqlite", filepath.Join(production.StateRoot, "db", "index.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -342,7 +342,7 @@ func TestHybridUsesExactQueryContractAndSharedTransform(t *testing.T) {
 	if result.CoverageNumerator != 1 || result.CoverageDenominator != 2 || !result.PartialVectorCoverage || !result.VectorCoverageObserved {
 		t.Fatalf("partial coverage=%d/%d", result.CoverageNumerator, result.CoverageDenominator)
 	}
-	db, err = sql.Open("sqlite", filepath.Join(production.Root, ".cidx", "index.db"))
+	db, err = sql.Open("sqlite", filepath.Join(production.StateRoot, "db", "index.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -462,7 +462,7 @@ func TestCorruptVectorAndChangedGenerationDiscardQuery(t *testing.T) {
 	defer production.Close()
 	putVector(t, production, resolved)
 	client := &fakeQueryClient{response: fakeQueryResponse(resolved, sourceVector())}
-	db, err := sql.Open("sqlite", filepath.Join(production.Root, ".cidx", "index.db"))
+	db, err := sql.Open("sqlite", filepath.Join(production.StateRoot, "db", "index.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -496,7 +496,7 @@ func TestCorruptVectorAndChangedGenerationDiscardQuery(t *testing.T) {
 		done <- value
 	}()
 	<-client.started
-	db, err = sql.Open("sqlite", filepath.Join(production2.Root, ".cidx", "index.db"))
+	db, err = sql.Open("sqlite", filepath.Join(production2.StateRoot, "db", "index.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -539,7 +539,7 @@ func indexedSearchFixture(t *testing.T, resolved config.ResolvedConfig) (*store.
 		production.Close()
 		t.Fatal(err)
 	}
-	db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "index.db"))
+	db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "db", "index.db"))
 	if err != nil {
 		production.Close()
 		t.Fatal(err)
@@ -575,7 +575,7 @@ func putVector(t *testing.T, production *store.ProductionStore, resolved config.
 
 func indexedSearchFixtureHash(t *testing.T, production *store.ProductionStore) (string, string) {
 	t.Helper()
-	db, err := sql.Open("sqlite", filepath.Join(production.Root, ".cidx", "index.db"))
+	db, err := sql.Open("sqlite", filepath.Join(production.StateRoot, "db", "index.db"))
 	if err != nil {
 		t.Fatal(err)
 	}

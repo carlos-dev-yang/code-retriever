@@ -9,7 +9,7 @@
 
 This document defines how to prepare the approved corpora and human labels, when document and query embeddings may be purchased, how candidate search profiles are calibrated, and how a frozen confirmation run produces or fails to produce `core_retrieval` evidence.
 
-It is an execution companion to the canonical evaluation contract, not a replacement for it. If this document, an implementation phase, an adviser response, or a chat summary conflicts with the canonical contract, the canonical contract wins. Nothing here records that an embedding or an official evaluation has already run.
+It is an execution companion to the canonical evaluation contract, not a replacement for it. If this document, an implementation phase, an adviser response, or a chat summary conflicts with the canonical contract, the canonical contract wins. This document does not itself authorize a paid embedding or official evaluation; the status/evidence ledger separately records operations that were approved and completed.
 
 The plan was independently discussed with ChatGPT and Grok. Their common recommendations—provider-free preparation first, explicit spend gates, immutable paired runs, first-loss diagnosis, and limited claims from the current two repositories—are incorporated. Their advice is not ground truth. Section 16 records the material corrections made during reconciliation.
 
@@ -40,7 +40,6 @@ retrieval quality or supports promotion. The current blockers remain:
 
 - two recorded human label-review passes are incomplete;
 - the deterministic simple-search baseline has not been frozen;
-- there is no complete compatible document raw-vector bank for these evaluation inputs;
 - the canonical `voyage-code-4` model/price, complete document raw bank, and
   1024/binary materialization are confirmed; the exact 32-query exploratory
   operation is planned but separately unapproved;
@@ -76,6 +75,37 @@ The immediate workflow is:
 | G | Select a genuine mixed-language corpus and author independent promotion confirmation | Deferred until chi/RHF closure |
 
 Document embedding is intentionally early relative to final label freeze because it embeds the frozen corpus document inputs, not the evaluation labels. The long interval after capture is where provisional questions, dense candidate pools, first-loss traces, cohort balance, and judgments are tested. Changing those questions or labels does not invalidate a compatible document raw bank.
+
+### 2.2 Development workspace versus inspected project
+
+The production engine and the evaluation engine are the same code path. The
+separation is in application assembly and storage ownership, not in ranking or
+indexing behavior:
+
+| Context | Source root | State root | Production DB | Raw/evaluation state |
+| --- | --- | --- | --- | --- |
+| Normal project use | target Git project | `<source>/.cidx` | `<state>/db/index.db` | not opened by normal runtime |
+| cidx development: chi | `.cidx/test/corpora/chi` | `.cidx/test/states/chi` | `<state>/db/index.db` | `<state>/raw/embeddings.db`, `<state>/evaluations/` |
+| cidx development: RHF | `.cidx/test/corpora/react-hook-form` | `.cidx/test/states/react-hook-form` | `<state>/db/index.db` | `<state>/raw/embeddings.db`, `<state>/evaluations/` |
+
+All explicit development paths are relative to the controlling cidx Git
+project and confined below these namespaces. Corpus bindings live in ignored
+`.cidx/test/corpora.local.json`. Database metadata contains no absolute source
+or state path, so a checkout can be replaced or the containing project moved
+without invalidating compatible vectors. Commit/content/manifest/profile and
+canonical-input hashes remain the compatibility authority.
+
+The explicit development entry points are:
+
+```text
+cidx dev workspace <init|index|status> --source-dir .cidx/test/corpora/<name> --state-dir .cidx/test/states/<name>
+cidx dev embeddings <capture|materialize> --source-dir .cidx/test/corpora/<name> --state-dir .cidx/test/states/<name> [...]
+cidx dev retrieval evaluate --source-dir .cidx/test/corpora/<name> --state-dir .cidx/test/states/<name> --corpus-manifest <path> --dataset <path> [...]
+```
+
+The two directory arguments must be supplied together. Normal `cidx init`,
+`index`, `status`, `serve`, and MCP calls do not accept this evaluation-state
+override and continue to own only the target project's `.cidx` directory.
 
 ## 3. Fixed boundaries
 
@@ -214,7 +244,8 @@ Exit: a versioned experiment contract exists. No provider call is allowed before
 
 ### Stage 1 — Verify and freeze corpora
 
-Entry: the user-approved manifests and ignored local checkout bindings exist.
+Entry: the user-approved manifests and the ignored relative
+`.cidx/test/corpora.local.json` bindings exist.
 
 Actions:
 

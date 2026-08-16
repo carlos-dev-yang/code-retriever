@@ -43,6 +43,20 @@ func GitRoot(ctx context.Context, requested string) (string, error) {
 // Repository canonicalizes an explicit root and proves it is the configured
 // Git worktree being indexed. Git is invoked with fixed arguments only.
 func Repository(ctx context.Context, requested string) (string, error) {
+	canonical, err := SourceRepository(ctx, requested)
+	if err != nil {
+		return "", err
+	}
+	if _, err := os.Stat(filepath.Join(canonical, ".cidx", "config.json")); err != nil {
+		return "", fmt.Errorf("repository config is required: %w", err)
+	}
+	return canonical, nil
+}
+
+// SourceRepository validates an explicit Git worktree root without assuming
+// where cidx state or configuration is stored. Application assembly owns that
+// independent state-root decision.
+func SourceRepository(ctx context.Context, requested string) (string, error) {
 	if requested == "" {
 		return "", fmt.Errorf("repository root is required")
 	}
@@ -60,9 +74,6 @@ func Repository(ctx context.Context, requested string) (string, error) {
 	}
 	if gitRoot != canonical {
 		return "", fmt.Errorf("requested root is not Git worktree root")
-	}
-	if _, err := os.Stat(filepath.Join(canonical, ".cidx", "config.json")); err != nil {
-		return "", fmt.Errorf("repository config is required: %w", err)
 	}
 	return canonical, nil
 }

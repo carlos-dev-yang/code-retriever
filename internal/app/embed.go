@@ -142,7 +142,7 @@ func (p PublicEmbedding) Apply(ctx context.Context, plan PublicEmbeddingPlan, ap
 	if plan.Generation < 0 || plan.ManifestSHA256 == "" || len(plan.authorization.paidHashes) != plan.PaidInputs || plan.authorization.source == "" || plan.authorization.space == "" || plan.authorization.storage == "" {
 		return result, fmt.Errorf("invalid embedding plan")
 	}
-	release, err := embedlock.Acquire(ctx, p.Production.Root)
+	release, err := embedlock.AcquireState(ctx, p.Production.StateRoot)
 	if err != nil {
 		return result, err
 	}

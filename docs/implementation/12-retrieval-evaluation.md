@@ -13,7 +13,7 @@ Read the [implementation index](README.md), [execution guide](EXECUTION-GUIDE.md
 
 - Confirm the user has selected each open-source corpus and approved the exact tracked manifest before any checkout, download, indexing, or paid embedding occurs.
 - Confirm each tracked corpus manifest records `corpus_id`, upstream URL, pinned commit, SPDX/license evidence, language slices, expected clean-tree/content hash, root subdirectory, and include/exclude policy; it must not contain an environment-specific absolute path.
-- Confirm an ignored `.cidx/lab/corpora.local.json` binding or explicit CLI input maps each `corpus_id` to the user's existing checkout, and verify its commit, cleanliness, and content hash before a run.
+- Confirm an ignored `.cidx/test/corpora.local.json` relative binding or explicit CLI input maps each `corpus_id` to the user's existing checkout below the controlling project, and verify its commit, cleanliness, and content hash before a run.
 - Re-check that all compared profiles use the same approved document raw bank, manifest, canonical input set, question/answer dataset, and production search implementation, and that aggregate metrics retain separate Go, TypeScript, TSX, and mixed counts and denominators.
 - Re-check source 1024, targets 256/512/1024, nonpersistent query f32, cidx-owned `binary` and `int8` candidates, binary as the production default, and one active serving profile per run.
 - Re-check the frozen calibration/confirmation split, exact denominators, required-group labels, first-loss enum, FTS/dense lane traces, serving-f32 codec reference, RRF ablations, and promotion contract before any applied run.
@@ -105,7 +105,7 @@ For each run, explicitly request queries from Voyage AI with `output_dimension=1
 | Package/file | Responsibility |
 | --- | --- |
 | `eval/corpora/*.json` | Tracked, approved, portable corpus manifests; no local paths |
-| `.cidx/lab/corpora.local.json` | Ignored local `corpus_id` to checkout-path binding |
+| `.cidx/test/corpora.local.json` | Ignored relative `corpus_id` to checkout-path binding |
 | Phase 02 `internal/evalcontract` | Shared dataset, stage trace, failure, artifact, and promotion wire contracts |
 | Phase 07 `internal/eval/{ground_truth,metrics,report}.go` | Shared truth mapping, metric calculations, and report logic |
 | `internal/eval/corpus_manifest.go` | Strict manifest loading, license/revision/hash policy |
@@ -163,7 +163,7 @@ Do not put a machine-specific path in a tracked manifest. Resolve it through eit
 }
 ```
 
-stored in ignored `.cidx/lab/corpora.local.json`, or an explicit CLI `--corpus-path`. Before plan or apply:
+stored in ignored `.cidx/test/corpora.local.json`, or an explicit CLI `--corpus-path`. Binding values are project-relative and confined below `.cidx/test/corpora/`. Before plan or apply:
 
 1. Resolve and canonicalize the local path without following an escaping symlink.
 2. Verify repository origin when available, exact pinned commit, and the manifest's clean-tree rule.
@@ -179,14 +179,14 @@ Confirmation is promotion-capable only when it satisfies the documented dataset/
 
 ### Lab evaluation metadata
 
-`.cidx/lab/embeddings.db` `evaluation_runs` stores no vectors. It records run/state, corpus ID and manifest fingerprint, upstream pinned commit, verified content hash, repository identity, index generation/manifest SHA-256, dataset fingerprint/count, source-space-storage-serving fingerprints, raw-bank fingerprint/coverage, build version, actual query input-token usage and outcomes, and report path/checksum.
+`<state_root>/raw/embeddings.db` `evaluation_runs` stores no query vectors. It records run/state, corpus ID and manifest fingerprint, upstream pinned commit, verified content hash, portable repository identity, index generation/manifest SHA-256, dataset fingerprint/count, source-space-storage-serving fingerprints, raw-bank fingerprint/coverage, build version, actual query input-token usage and outcomes, and report path/checksum.
 
 Query text remains only in the dataset; the DB stores a query ID or hash. It has no query-f32 blob column.
 
 ### Artifacts
 
 ```text
-.cidx/lab/evaluations/<run-id>/
+<state_root>/evaluations/<run-id>/
   run-manifest.json
   per-query-trace.jsonl
   fts-candidates.jsonl
@@ -260,7 +260,7 @@ Evaluation reads current model, serving dimensions, reducer, normalizer, metric,
 
 Do not guess a code-4 token ceiling from another model. Plan with the actual dataset estimate and conservative synchronous `embedding.request` policy, clearly labeled as project policy.
 
-Corpus manifest and dataset paths are development inputs. Artifact location is fixed under `.cidx/lab/evaluations/`. Do not duplicate dimension, reducer, normalizer, metric, or codec in a lab-specific config or CLI override.
+Corpus manifest and dataset paths are development inputs. Artifact location is fixed under `<state_root>/evaluations/`; the cidx development convention resolves this below `.cidx/test/states/<corpus>/`. Do not duplicate dimension, reducer, normalizer, metric, or codec in a lab-specific config or CLI override.
 
 | Change | Like-for-like status | Required work |
 | --- | --- | --- |
@@ -322,7 +322,7 @@ Corpus manifest and dataset paths are development inputs. Artifact location is f
 - Never write credentials, query f32, or raw/source vector bytes to artifacts or DBs.
 - Do not duplicate query text outside the user-managed dataset.
 - Limit errors and diagnostics to path, symbol, and range; exclude complete source bodies.
-- Exclude `.cidx/lab/evaluations` and `.cidx/lab/corpora.local.json` from Git and release artifacts.
+- Exclude `.cidx/test/states/`, `.cidx/test/corpora/`, and `.cidx/test/corpora.local.json` from Git and release artifacts.
 
 ## 10. Validation Scenarios
 

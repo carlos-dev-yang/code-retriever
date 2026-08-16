@@ -149,7 +149,7 @@ func TestLabMigrationIsAtomicAndFailsClosed(t *testing.T) {
 	if err := migrate(ctx, db); err != nil {
 		t.Fatalf("current schema did not validate: %v", err)
 	}
-	if _, err := db.ExecContext(ctx, `PRAGMA user_version=6`); err != nil {
+	if _, err := db.ExecContext(ctx, `PRAGMA user_version=7`); err != nil {
 		t.Fatal(err)
 	}
 	if err := migrate(ctx, db); err == nil {
@@ -186,7 +186,7 @@ func TestV4ToV5EvaluationUsageMigrationPreservesLegacyAccounting(t *testing.T) {
 	for _, statement := range []string{
 		`ALTER TABLE lab_meta RENAME TO lab_meta_v5`,
 		labMetaV4TableStatement,
-		`INSERT INTO lab_meta(id,schema_version,canonical_root,created_at,last_successful_collection_at) SELECT id,4,canonical_root,created_at,last_successful_collection_at FROM lab_meta_v5`,
+		`INSERT INTO lab_meta(id,schema_version,canonical_root,created_at,last_successful_collection_at) SELECT id,4,'legacy-root',created_at,last_successful_collection_at FROM lab_meta_v5`,
 		`DROP TABLE lab_meta_v5`,
 		`ALTER TABLE evaluation_runs RENAME TO evaluation_runs_v5`,
 		evaluationRunsV4TableStatement,
@@ -386,17 +386,17 @@ func TestLabRejectsSymlinkedStateComponents(t *testing.T) {
 	if err := os.Mkdir(filepath.Join(root, ".cidx"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink(outside, filepath.Join(root, ".cidx", "lab")); err != nil {
+	if err := os.Symlink(outside, filepath.Join(root, ".cidx", "raw")); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := OpenStore(ctx, Options{Root: root}); err == nil {
-		t.Fatal("lab followed symlinked .cidx/lab")
+		t.Fatal("lab followed symlinked .cidx/raw")
 	}
 	root = t.TempDir()
-	if err := os.MkdirAll(filepath.Join(root, ".cidx", "lab"), 0o700); err != nil {
+	if err := os.MkdirAll(filepath.Join(root, ".cidx", "raw"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink(filepath.Join(outside, "embeddings.db"), filepath.Join(root, ".cidx", "lab", "embeddings.db")); err != nil {
+	if err := os.Symlink(filepath.Join(outside, "embeddings.db"), filepath.Join(root, ".cidx", "raw", "embeddings.db")); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := OpenStore(ctx, Options{Root: root}); err == nil {

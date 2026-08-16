@@ -17,7 +17,7 @@
 
 Avoid paying repeatedly for the same document embeddings during initial development and retrieval evaluation by preserving the explicitly requested 1024-dimensional float32 document vectors from Voyage AI `voyage-code-4` in a store physically separate from production.
 
-This phase produces a development- and evaluation-only raw document bank at `.cidx/lab/embeddings.db`. `cidx serve` and ordinary search paths neither open nor depend on this database.
+This phase produces a development- and evaluation-only raw document bank at `<state_root>/raw/embeddings.db`. Normal projects resolve state to `<source_root>/.cidx`; cidx's own evaluation workspace uses `.cidx/test/states/<corpus>/`. `cidx serve` and ordinary search paths neither open nor depend on this database.
 
 ## 2. Scope
 
@@ -101,22 +101,21 @@ Core types carry these responsibilities:
 ### Lab storage location
 
 ```text
-.cidx/
-  index.db
+<state_root>/
   config.json
+  db/index.db
   embed.lock
-  lab/
-    embeddings.db
+  raw/embeddings.db
+  evaluations/       # development/evaluation artifacts only
 ```
 
-The path is repository-local in v1. Do not expose a production-config override for the raw-DB path or promote it to a machine-global cache.
+The state root is project-local in v1. Normal use fixes it to the source project's `.cidx`; the development CLI may inject only a controlling-project-relative `.cidx/test/states/<corpus>` root. Do not expose a production-config path override or promote raw storage to a machine-global cache.
 
-### Logical `.cidx/lab/embeddings.db` schema
+### Logical `<state_root>/raw/embeddings.db` schema
 
 `lab_meta`
 
 - `schema_version`
-- canonical repository identity and root hash
 - creation time and last successful collection time
 
 `lab_inputs`
@@ -191,7 +190,7 @@ cidx dev embeddings capture --apply --retry-failed
 - `embedding.model`
 - The resolved synchronous request policy: 128 inputs, 256 KiB total input bytes, concurrency 4, 30-second timeout, and the three staged retries (10/20/30 seconds, honoring a longer `Retry-After`). These are operational request/retry settings, not Voyage Batch Inference settings.
 
-The v1 default and sole initially validated `embedding.model` value is `voyage-code-4`. Source output dimension is not user config. The central `ModelSpec` resolves it to 1024 and fixes it in `EmbeddingSourceProfile`. Do not duplicate a configurable lab path or f32 encoding: `.cidx/lab/embeddings.db` and `f32-le-v1` are code-defined contracts. The preservation policy during initial evaluation is no automatic deletion.
+The v1 default and sole initially validated `embedding.model` value is `voyage-code-4`. Source output dimension is not user config. The central `ModelSpec` resolves it to 1024 and fixes it in `EmbeddingSourceProfile`. Do not duplicate a configurable raw-DB path or f32 encoding: `<state_root>/raw/embeddings.db` and `f32-le-v1` are code-defined contracts. The preservation policy during initial evaluation is no automatic deletion.
 
 ### Change impact
 
@@ -213,7 +212,7 @@ Validate every user-adjustable codec name once in `ResolvedConfig`. The central 
 2. Resolve `voyage-code-4` source dimension 1024 and its allowed serving-dimension set from the model-capability registry, and fail fast on invalid combinations.
 3. Define float32 little-endian encode/decode and vector SHA-256 rules.
 4. Open the Phase 02 lab DB schema and migration, and verify its tables and constraints match the raw input/embedding repository contract; do not create a competing schema here.
-5. Fail closed when a lab DB has a different repository identity.
+5. Fail closed when portable source/profile/input/manifest identity is incompatible; never compare a persisted absolute checkout path.
 6. Implement a read service that gets distinct canonical inputs and exact canonical bytes from the captured active generation.
 7. Use bounded raw-key lookup groups to separate hits, misses, and previous failures.
 8. Implement the cost-free plan result and JSON output.

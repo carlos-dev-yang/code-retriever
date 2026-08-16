@@ -1,6 +1,6 @@
 # cidx v1 Implementation Plan Index
 
-- Status: Phase 04 Revision 4 correction is accepted; Phase 07 has complete chi/RHF `voyage-code-4` document capture and 1024/binary coverage, and now waits at the separate exact 32-query exploratory approval gate
+- Status: Phase 02 project-local source/state reconciliation is accepted with existing chi/RHF document/vector state preserved; work returns to the unchanged Phase 07 exact 32-query approval gate
 - Canonical design: [Local Code Search MCP v1 Final Target Contract — Revision 4](../../local-code-search-mcp-v1-design-r4.md)
 - Earlier designs: [original](../../local-code-search-mcp-v1-design.md), [r1](../../local-code-search-mcp-v1-design-r1.md), [r2](../../local-code-search-mcp-v1-design-r2.md), [r3](../../local-code-search-mcp-v1-design-r3.md)
 - Execution protocol: [Implementation Execution and Context-Recovery Guide](EXECUTION-GUIDE.md)
@@ -13,7 +13,7 @@ This directory is the executable implementation plan for cidx v1. It decomposes 
 
 The existing completion records describe work performed against earlier revisions. They remain historical evidence, but they do not prove Revision 4 compliance. Before code work resumes, reconcile the renamed configuration fields, size limits, synchronous request policy, retry waits, and removed read-span/chunk caps, then identify the smallest affected phase validations that must be rerun.
 
-Phase 02's completed config/profile/evaluation-wire reconciliation is recorded in [its R4 evidence](evidence/phase-02/revision-4.md). Downstream executor, segmentation, query, and CLI behavior remains in its owning phase.
+Phase 02's config/profile/evaluation-wire reconciliation is recorded in [its R4 evidence](evidence/phase-02/revision-4.md). The later project-local source/state layout, path-free production/lab metadata migration, real chi/RHF preservation, and relocation proof are accepted in [the focused layout evidence](evidence/phase-02/project-local-layout-reconciliation.md); downstream algorithms remain unchanged.
 
 Phase 08's shared byte-bounded synchronous executor and raw-lab integration are accepted in [its R4 evidence](evidence/phase-08/revision-4.md). Phase 10 owns production document publication integration, and Phase 11 owns request-local query integration.
 
@@ -69,7 +69,7 @@ Allowed states are `planned | in_progress | blocked | done`. A phase becomes `do
 | --- | --- | --- | --- | --- | --- |
 | 00 | done | [Shared contracts and configuration](00-shared-contracts-and-config.md) | none | Revision 4 field catalog, profile/hash hierarchy, migration policy, and change-impact rules | [Evidence](evidence/phase-00/README.md) |
 | 01 | done | [Runtime and storage spike](01-runtime-storage-spike.md) | 00 | SQLite/FTS5/Tree-sitter packaging decisions, generation and codec evidence | [Evidence](01-runtime-storage-spike.md#11-completion-evidence) |
-| 02 | done | [Configuration, profiles, and schemas](02-config-profiles-and-schemas.md) | 00, 01 | Revision 4 `ResolvedConfig`, fingerprints, strict legacy handling, and evaluation wire | [R4 evidence](evidence/phase-02/revision-4.md) |
+| 02 | done | [Configuration, profiles, and schemas](02-config-profiles-and-schemas.md) | 00, 01 | Separate runtime source/state roots, project-local relative layout, path-free production/lab metadata, and lossless schema/layout migration | [R4 config/wire evidence](evidence/phase-02/revision-4.md); accepted [layout evidence](evidence/phase-02/project-local-layout-reconciliation.md) |
 | 03 | done | [Go chunker](03-go-chunker.md) | 02 | Go function, method, and type chunks/projections | [Evidence](03-go-chunker.md#11-completion-evidence) |
 | 04 | done | [TypeScript and TSX chunker](04-typescript-tsx-chunker.md) | 02 | Accepted path-derived retrieval labels and real-corpus overload correction; versioned full reindex handoff | [Evidence](evidence/phase-04/README.md) |
 | 05 | done | [Worktree indexing pipeline](05-worktree-index-pipeline.md) | 03, 04, reconciled 02 | Remove the chunk-cap contract, inject `target_segment_bytes`, preserve atomic local reindex, and safely rekey proven-equivalent pre-R4 vectors | [R4 evidence](evidence/phase-05/revision-4.md) |
@@ -154,9 +154,9 @@ live working tree
 ### 3.2 Initial development and evaluation path
 
 ```text
-active document canonical input
+active document canonical input from an explicitly resolved source root
 -> request Voyage document-role 1024-dimensional float32 embedding
--> persist document f32 in .cidx/lab/embeddings.db
+-> persist document f32 in <state_root>/raw/embeddings.db
 -> choose one candidate serving dimension/reducer/normalizer in project config
 -> use the default `binary` codec or explicitly select the only alternative, `int8`
 -> run cidx index to reconcile active profile and segment keys
@@ -167,6 +167,13 @@ active document canonical input
 ```
 
 This is a development aid for economical repository-specific quality exploration. Query f32 is never persisted. Production does not open the lab DB and does not require the raw bank after evaluation.
+
+Normal use resolves `state_root=<source_root>/.cidx` and production SQLite to
+`<state_root>/db/index.db`. The cidx development workspace keeps disposable
+corpus checkouts under `.cidx/test/corpora/<corpus-id>` and preserved named
+state under `.cidx/test/states/<corpus-id>`. Both paths are supplied to the
+same application/index/search/store assembly; no evaluation-only search engine
+exists.
 
 ### 3.3 Normal serving path
 

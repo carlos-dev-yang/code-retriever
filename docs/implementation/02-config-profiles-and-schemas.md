@@ -1,6 +1,6 @@
 # 02. Configuration, Profiles, and Storage Schemas
 
-- Status: `done` — Revision 4 config/profile/wire reconciliation and main-agent boundary validation are complete; pre-R4 completion evidence remains historical
+- Status: `done` — the user-directed project-local source/state layout, path-free production/lab schema migrations, real chi/RHF state preservation, relocation proof, and one final boundary validation are complete
 - Prerequisite phases: `00-shared-contracts-and-config`, `01-runtime-storage-spike`
 - Downstream phases: `03-go-chunker`, `04-typescript-tsx-chunker`, `05-worktree-index-pipeline`, `08-raw-embedding-lab`
 - Design basis: `local-code-search-mcp-v1-design-r4.md` Sections 4.4, 6, and 9
@@ -60,7 +60,7 @@ The raw lab is an auxiliary facility for initial codec, dimension, and retrieval
 - Phase 01 has selected the SQLite and Tree-sitter bindings, WAL pragmas, and atomic-publication approach.
 - Minimum f32, binary, and int8 blob-validation/scoring rules are decided.
 - The v1 reference path applies the same reducer to explicit 1024-dimensional float output for documents and queries, producing only local serving dimensions.
-- The repository root remains a canonical path and `.cidx/` remains inside it, as required by r4.
+- Source and state roots are separate runtime values. Normal use fixes state to `<source-root>/.cidx`; development evaluation may inject a controlling-project-relative `.cidx/test/states/<name>` state root for a separate `.cidx/test/corpora/<name>` source checkout.
 
 ## 4. Invariants
 
@@ -72,7 +72,7 @@ The raw lab is an auxiliary facility for initial codec, dimension, and retrieval
 6. Applied profiles in database `meta` are authoritative for currently searchable data. Search never partially applies desired config during a mismatch.
 7. Exactly one serving-vector profile is active at a time. A production vector table may retain multiple cache rows, but retrieval and coverage observe only the active fingerprint.
 8. Production stores only the active profile's serving `binary` or `int8` representation. It has no f32/f16 column and no codec outside this closed v1 enum.
-9. The lab database has a separate file, schema version, migration, and connection type. The dependency graphs of `serve` and `search` contain no `lab` package.
+9. The lab database has a separate file, schema version, migration, and connection type. The dependency graphs of `serve` and `search` contain no `lab` package. Production is `<state_root>/db/index.db`; lab raw is `<state_root>/raw/embeddings.db`.
 10. The only raw embedding persisted in the lab is 1024-dimensional Voyage source f32 created with `input_type=document`. Search-invisible derived materializations and evaluation provenance may use other lab tables, but query f32 is never stored.
 11. Canonical-input identity does not change when serving dimensions or quantization change.
 12. Schema-migration versions and profile versions or fingerprints never substitute for one another.
@@ -140,8 +140,8 @@ Core types have these responsibilities:
 - `ServingVectorKey`: serving-profile fingerprint plus canonical-input hash
 - `AppliedProfiles`: index and serving profiles, active generation, manifest digest, and active serving profile actually applied to the database
 - `ConfigImpactPlan`: `none | restart_only | local_reindex | local_rematerialize_if_raw | paid_embedding_required | schema_migration`, with reasons
-- `ProductionStore`: handle that opens only the production schema
-- `LabOptions`: store-open values such as repository identity and fixed lab path derived from root; owns no embedding semantics
+- `ProductionStore`: handle that opens only the production schema and retains source/state roots in memory
+- `LabOptions`: store-open values containing the explicit state root; owns no source-path identity or embedding semantics
 - `LabStore`: handle that opens only the lab schema and implements no production interface
 - `Chunker`, `ChunkRequest`, `ChunkResult`: context-aware shared language-adapter interface for parallel Phases 03 and 04; request source/path/policy are immutable inputs, results carry parser metadata and typed diagnostics
 - `SourceChunk`, `ProjectionRange`, `SegmentCandidate`: shared values connecting parser output to production schema
@@ -235,7 +235,7 @@ Each lower profile's canonical JSON includes the fingerprint of its dependency. 
 ### 6.3 Production `index.db`
 
 - `meta`
-  - schema version and canonical root
+  - schema version; no persisted absolute source or state root
   - canonical JSON and fingerprints for applied index, canonical-text, embedding-source, vector-space, and vector-storage profiles
   - one `active_serving_profile_fingerprint`
   - active generation and manifest SHA-256
@@ -267,9 +267,9 @@ Store `vector_cache.dimensions` on every row only as integrity metadata that mus
 
 ### 6.4 Separate lab database
 
-The default is `.cidx/lab/embeddings.db`, separate from production. `serve` startup never creates or opens it.
+The path is `<state_root>/raw/embeddings.db`, separate from production. Normal cidx development evaluation selects a named state root below `.cidx/test/states/`. `serve` startup never creates or opens it.
 
-- `lab_meta`: lab schema version and canonical repository identity
+- `lab_meta`: lab schema version and creation/collection timestamps; no machine path
 - `lab_inputs`: document canonical-input hash and reproducible canonical bytes or a snapshot reference
 - `raw_document_embeddings`: source-profile-plus-input-hash key, immutable 1024-dimensional Voyage document-role f32 blob, dimensions, checksum, API response model, and creation time
 - `capture_runs`: target generation, source profile, requested/hit/miss/success/failure counts, and cost metadata
@@ -293,12 +293,12 @@ Phase 02 provides:
 - `config.Load(path) (ResolvedConfig, error)`
 - `config.FingerprintProfiles(ResolvedConfig) (DesiredProfiles, error)`
 - `config.PlanImpact(desired, applied, expectedProductionSchemaVersion) ConfigImpactPlan`; the store caller supplies the database-schema authority so it is never conflated with the config-file version
-- `store.OpenProduction(root, resolvedConfig) (ProductionStore, error)`
-- `lab.OpenStore(root, labOptions) (LabStore, error)`
+- `store.OpenProductionAt(sourceRoot, stateRoot, resolvedConfig) (ProductionStore, error)`; the default wrapper resolves state to `<sourceRoot>/.cidx`
+- `lab.OpenStore(labOptions{StateRoot}) (LabStore, error)`
 - separate production and lab `Migrate` and `InspectSchemaVersion`
 - strict `evalcontract` encode/decode/validate and canonical artifact-checksum functions
 
-This phase does not build public CLI or MCP surfaces. Design the application API so future `cidx init --serving-dim`, `status`, `index`, and `serve` all use the same loader and store factory. Do not create `.cidx/lab/config.json`. Derive the lab path and repository identity from root, and always read model, serving dimension, reducer, normalizer, metric, and codec from the current project `ResolvedConfig`. Never inject `LabOptions` or `LabStore` into a production runtime service.
+This phase does not duplicate CLI/MCP behavior. Application assembly resolves one source root plus one state root and injects both into the same production services. Default commands use `<source-root>/.cidx`; development commands may inject a validated controlling-project-relative `.cidx/test/states/<name>`. Config is `<state_root>/config.json`, lab raw is `<state_root>/raw/embeddings.db`, and evaluation artifacts are `<state_root>/evaluations`. Always read model, serving dimension, reducer, normalizer, metric, and codec from that one state config. Never inject `LabOptions` or `LabStore` into a production runtime service.
 
 ## 7. Config Usage and Change Impact
 
@@ -345,7 +345,7 @@ Database schema version, config schema version, required MCP protocol fields, an
 
 - If config validation fails, do not create a database file, migrate, or begin profile reconciliation.
 - Do not run migrations while the server accepts search. A transaction failure must roll back schema version and data together.
-- Fail closed when production and lab paths are confused. Record store kind and canonical-root identity in each database.
+- Fail closed when production and lab paths are confused. Store kind and schema shape distinguish the databases; runtime path ownership and portable manifest/profile/input identity replace persisted canonical-root equality.
 - A production database must not open under lab migrations, and a lab database must not open under production migrations.
 - Read `VOYAGE_API_KEY` only from the process environment; never store it in `config.json`, the lab database, or evaluation metadata.
 - Error messages contain no source body, raw vector, or credential.
@@ -380,12 +380,22 @@ Validate the following during implementation; this planning phase adds no test c
 
 Historical pre-R4 completion evidence remains in [Phase 02 evidence](evidence/phase-02/README.md). Revision 4 implementation, review remediation, and the one-time main-agent commit-boundary validation are recorded in [the completed R4 reconciliation evidence](evidence/phase-02/revision-4.md).
 
+The user-directed project-local source/state reconciliation, real chi/RHF
+migration, relocation proof, and current boundary checks are recorded in
+[the project-local layout evidence](evidence/phase-02/project-local-layout-reconciliation.md).
+
 - Strict immutable `ResolvedConfig`, profile hierarchy/fingerprints, impact planning, separate schemas, active-codec validation, chunk/projection contracts, normalizer, and portable evaluation types are implemented.
 - The canonical-text and embedding-source Phase 00 fixtures reproduce; defaulted and explicit equivalent configs share semantic fingerprints.
-- Production/lab schemas are separately versioned at 1 with atomic user-version migration checks, canonical root matching, and owner-only paths where supported. Production contains no raw f32/f16 storage or lab runtime dependency.
+- Historical v1 production/lab schemas used atomic user-version migration checks, canonical-root matching, and owner-only paths where supported. The current project-local layout migration supersedes that machine-path identity while preserving the separation: production contains no raw f32/f16 storage or lab runtime dependency.
 - Exact successful and intentionally unrun checks, including RFC-8785 finite-number/Unicode conformance, transaction-pinned active state, immutable lab rows, and real strict JSON-Schema validation, are recorded in the evidence file.
 
 Revision 4 reconciles the config/profile/evaluation-wire boundary without changing the production or lab relational schemas. It strictly requires `embedding.serving_dimensions`, defaults and caps source, segment, request, retry, and inline values centrally, removes the chunk/read-span line settings, returns a typed pre-R4 mapping error before a store can open, and changes vector/evaluation JSON to `serving_dimensions`. Existing request executor, segmentation, query retry, filesystem-init, and public CLI work remains owned by Phases 05, 08, 10, 11, and 13.
+
+The later project-local layout reconciliation does change only the storage
+identity schemas: production v4 and lab v6 remove the obsolete absolute
+`canonical_root`. Their atomic migrations preserve every other relational row.
+Normal and development workspaces now inject separate source/state roots into
+the same application services.
 
 ## 12. Downstream Handoff
 
@@ -429,3 +439,5 @@ Provide Phases 07 and 12 with the versioned `evalcontract` types/schemas, stable
 | Revision 4 legacy input | fixed: typed reject before config resolution reaches stores | Removed fields carry exact migration guidance and are never aliases. |
 | Revision 4 operational policy | fixed: defaults plus code-owned ceilings | Request/retry values are resolved centrally but their executor semantics remain later-phase work. |
 | Formal migrations | fixed: fail-closed atomic `user_version` migration | New databases are created transactionally; current schemas are checked; newer or unknown schemas are refused. |
+| Runtime root model | fixed: separate source and state values | Normal use binds state to `<source>/.cidx`; cidx evaluation confines explicit relative roots below `.cidx/test/corpora/` and `.cidx/test/states/`. |
+| Persistent path identity | excluded | SQLite stores portable content/manifest/profile/input identity, never an absolute source or state path. |

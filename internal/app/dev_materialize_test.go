@@ -37,16 +37,6 @@ func TestDevMaterializePlansStagesPublishesAndRechecksActiveKeys(t *testing.T) {
 	}
 	defer raw.Close()
 	service := devapp.Materialize{Production: production, Lab: raw, Resolved: resolved}
-	foreignLab, err := lab.OpenStore(ctx, lab.Options{Root: t.TempDir()})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := (devapp.Materialize{Production: production, Lab: foreignLab, Resolved: resolved}).Plan(ctx); err == nil {
-		t.Fatal("foreign lab root accepted")
-	}
-	if err := foreignLab.Close(); err != nil {
-		t.Fatal(err)
-	}
 	missing, err := service.Plan(ctx)
 	if err != nil || missing.RequiredRaw == 0 || missing.MissingRaw != missing.RequiredRaw {
 		t.Fatalf("missing plan=%#v err=%v", missing, err)
@@ -75,7 +65,7 @@ func TestDevMaterializePlansStagesPublishesAndRechecksActiveKeys(t *testing.T) {
 	if err != nil || !result.Published || result.Staged != plan.RequiredRaw {
 		t.Fatalf("result=%#v err=%v", result, err)
 	}
-	db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "index.db"))
+	db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "db", "index.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
