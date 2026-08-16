@@ -440,7 +440,33 @@ Phase 07 still requires a frozen simple-search baseline. The recommended policy 
 5. Break all remaining ties by normalized path, parent start byte, and stable parent identity.
 6. Record returned-count behavior and exact algorithm fingerprint.
 
-This is a proposed contract, not recorded acceptance. Phase 07 remains blocked until the user accepts this policy verbatim or replaces it with another deterministic policy before the official run.
+For executable precision, the proposed v1 baseline defines those terms as
+follows:
+
+- query tokens are the stable-deduplicated union returned by the existing
+  `symbol.ClassifyQuery` and `identifier-split-lower-v1` normalizer;
+- each parent field is tokenized with that same normalizer, and candidate
+  admission means at least one query token occurs in the union of normalized
+  path, symbol, qualified-symbol, signature, and exact parent-body tokens;
+- exact qualified-symbol and exact symbol compare the fully normalized query
+  string with the fully normalized field; path match means at least one query
+  token occurs in the normalized path-token set;
+- distinct matched-token count is computed once across the union of all five
+  fields, not added once per field;
+- the final stable identity order is normalized path, start byte, end byte,
+  qualified symbol, and indexed content hash;
+- the policy fingerprint covers the algorithm version, normalizer ID, field
+  list, `ANY` admission rule, rank tuple, and tie tuple.
+
+Implementation remains development/evaluation-only: one generation-pinned,
+read-only production-store snapshot supplies the authoritative parents and
+exact stored bodies to an internal evaluator. It does not change the public
+lexical searcher, MCP search, database schema, FTS weights, or production
+ranking.
+
+This is a proposed contract, not recorded acceptance. Phase 07 remains at this
+decision gate until the user accepts this policy verbatim or replaces it with
+another deterministic policy before the official run.
 
 ## 8. Required retrieval arms
 

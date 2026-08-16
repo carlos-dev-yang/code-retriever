@@ -177,6 +177,17 @@ This makes the earlier ambiguous “literal token presence” rule explicit as
 reproduce the current all-token FTS emptiness and would not be a useful weak
 control.
 
+The source audit also closes the remaining mechanical ambiguities in the
+proposal. Query tokens are the stable-deduplicated union from the existing
+`symbol.ClassifyQuery` and `identifier-split-lower-v1` normalizer. Parent fields
+use the same tokenizer. Exact symbol checks compare fully normalized strings;
+path match means any query token occurs in the normalized path; matched-token
+count is distinct across the union of all five fields. The stable tie tuple is
+normalized path, start byte, end byte, qualified symbol, then indexed content
+hash. The fingerprint seals those definitions. A development-only,
+generation-pinned read snapshot supplies authoritative parents and stored
+bodies; no public FTS, MCP, schema, or production-ranking change is proposed.
+
 ## 7. Blind-pool coverage prepared
 
 The exploratory top-5 outputs were combined across FTS, serving f32, active
