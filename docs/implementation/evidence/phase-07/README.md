@@ -21,7 +21,10 @@ bound to exact generation-3 identities and deterministic case digests. The
 official live Voyage pages confirm `voyage-code-4`, its supported dimensions,
 $0.12 per million-token price, and 200-million-token free allowance. The user
 approved the exact document-only capture under a $5 account billing limit on
-2026-08-16. No provider or API key had been used at approval time.
+2026-08-16. A clean post-approval preflight reproduced the exact 619/492 input,
+475,564/804,258 conservative-token, and 5/5 request plans. The apply did not
+start because `VOYAGE_API_KEY` is not present in the task environment; no
+provider request or API-key read occurred.
 
 ### 2026-08-16 behavior-binding boundary checks
 

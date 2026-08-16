@@ -116,3 +116,19 @@ the approval authority for this bounded operation.
 
 This packet is not promotion evidence. It authorizes only the bounded document
 capture above and does not authorize query embedding.
+
+## 7. Approved-operation preflight
+
+The clean binary built from commit
+`1e72820f68569ec6028b6218820de13b00e36f7e` reported
+`source_modified=false`. Its provider-free plans matched this packet exactly:
+
+| Corpus | Generation | Manifest | Active distinct | Raw hits | Paid misses | Conservative tokens | Requests |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| chi | 3 | `6bd4db89ee1a9cba70f69e125a803d147dbc0d92c95ef59b44be2dcb54302a29` | 619 | 0 | 619 | 475,564 | 5 |
+| react-hook-form | 3 | `54f6b1387ae989b1e49bdf21d3ed96189e76fb5b61b74ca282a2617c57f88b8a` | 492 | 0 | 492 | 804,258 | 5 |
+
+The apply did not start because `VOYAGE_API_KEY` was absent from both the
+current process environment and a login shell. No provider request or API-key
+read occurred. The next attempt must inject the credential through the task
+environment, re-run the same equality check, and only then apply.
