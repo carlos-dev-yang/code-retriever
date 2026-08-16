@@ -1,6 +1,6 @@
 # Phase 07 chi/RHF Exploratory Query Results — Revision 4
 
-- Status: `diagnostic_complete_decisions_pending`
+- Status: `diagnostic_complete_decisions_accepted`
 - Run date: 2026-08-16
 - Authority: draft calibration preparation only
 - Serving profile: 1,024 dimensions, binary codec
@@ -125,9 +125,10 @@ direct groups. Source review at the pinned RHF commit shows:
   and object recursion;
 - `module.Path`, same file, bytes 1651–2036: public distributive wrapper.
 
-Proposed revision: required grade-2 groups are `PathImpl` and `PathInternal`;
-`Path` becomes grade-1 useful support. Keep the query text, TypeScript language,
-`BEST_N`, and current task/signal tags. This creates a new draft digest.
+Accepted revision (user-confirmed 2026-08-16): required grade-2 groups are
+`PathImpl` and `PathInternal`; `Path` becomes grade-1 useful support. Keep the
+query text, TypeScript language, `BEST_N`, and current task/signal tags. This
+creates a new draft digest.
 
 ### G09 — add one reviewed hard negative
 
@@ -137,8 +138,9 @@ The question explicitly asks about deprecated `RealIP`, header precedence, and
 misleading negative: it walks forwarded headers for the safer replacement API
 but does not implement the deprecated precedence/mutation contract. Proposed
 revision: retain `RealIP` as grade 2 and `realIP` as grade 1; add `walkXFF` as a
-grade-0 hard negative with the distinction above. This requires corpus-wide
-evidence and the later separated second review pass before freeze.
+grade-0 hard negative with the distinction above. The user accepted this
+revision on 2026-08-16. Corpus-wide evidence and the later separated second
+review pass remain required before freeze.
 
 ### Cases retained unchanged
 
@@ -160,7 +162,7 @@ The simple baseline is an evaluation control, not a production search change.
 The existing-field label decision remains authoritative: it uses stored `symbol`
 and `qualified_symbol`; it adds no alias column or public wire.
 
-Recommended frozen baseline:
+Accepted frozen baseline (user-confirmed 2026-08-16):
 
 1. scan the same semantic-parent inventory as FTS;
 2. normalize query, path, symbol, qualified symbol, signature, and body with one
@@ -215,12 +217,12 @@ are non-promotional. They deliberately include all 205 query-parent relations:
 every retrieved parent plus all 56 machine-draft truth parents, including truth
 that missed every top-5 arm. The labels remain hidden so the human first pass
 does not inherit those machine grades. Deterministic simple-search candidates
-remain pending the policy decision below. Int8 is an unopened alternative and
+remain pending implementation and provider-free measurement. Int8 is an unopened alternative and
 is out of scope for the user-selected 1,024/binary initial grid.
 
 These counts also correct the earlier impression that only three headline
-label decisions remain. T10, G09, and the simple baseline are the policy gates;
-after those gates, all 205 pooled relations still require a blind first pass and
+label decisions remain. T10, G09, and the simple baseline policy are now
+accepted; all 205 pooled relations still require a blind first pass and
 a separated second pass before the dataset can be frozen.
 
 Separate ignored machine-suggestion overlays prepare, but do not replace, that
@@ -241,17 +243,17 @@ without explicit user acceptance and two recorded human passes. Review pass 1
 uses the label-free packets above; these overlays are a later reconciliation
 aid, not a way to seed the blind decisions.
 
-## 8. Remaining decision gate
+## 8. Accepted decision and next boundary
 
-Before creating a new working-dataset digest or implementing the simple
-baseline, the user must confirm:
+On 2026-08-16 the user reviewed and accepted the T10 direct-truth revision,
+the G09 `walkXFF` hard-negative addition, and the six-point simple-search
+policy above. The user also fixed the cohort-authoring rule: representative
+real search intents come first, and edge cases are retained only when they
+separate a material failure mode; question counts must not be padded with
+increasingly narrow details.
 
-1. the T10 direct-truth revision;
-2. the G09 `walkXFF` hard-negative addition;
-3. the six-point simple-search policy above.
-
-No further provider operation is required for those decisions. After they are
-accepted, update the draft dataset, generate blinded provider-free simple/FTS
-pool additions, complete two separated label-review passes, and freeze the
-chi/RHF calibration digest. A later paid calibration apply remains a separate
-approval.
+This acceptance covers the three material gates, not all 205 candidate
+judgments. No further provider operation is required. Next create the new
+working-dataset digest, generate blinded provider-free simple/FTS pool
+additions, complete two separated label-review passes, and freeze the chi/RHF
+calibration digest. A later paid calibration apply remains a separate approval.

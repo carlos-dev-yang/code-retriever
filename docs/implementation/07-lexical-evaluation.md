@@ -1,6 +1,6 @@
 # 07. Lexical Chunking and Search Evaluation
 
-- Status: `in_progress` — the exact one-series 12 chi + 20 RHF exploratory query run is explicitly approved under a $0.01 ceiling and its provider-free plans match byte-for-byte; later label freeze, simple baseline, formal calibration, confirmation, and promotion remain separately gated.
+- Status: `in_progress` — the exact one-series 12 chi + 20 RHF exploratory query run completed once; on 2026-08-16 the user accepted the T10/G09 label corrections and deterministic evaluation-only simple-search policy. The new draft digest, simple-pool measurement, two review passes, formal calibration, confirmation, and promotion remain separately gated.
 - Prerequisite phase: `06-fts-search`
 - Follow-up phase: `12-retrieval-evaluation`
 - Design basis: `local-code-search-mcp-v1-design-r4.md` §13, §14
@@ -218,6 +218,15 @@ Use JSONL or an equivalent line-oriented schema. Every query follows the full la
 - path/package/module-qualified, literal/config-key, mixed identifier-semantic, multi-implementation, ambiguous-name, and declaration-versus-implementation cases; and
 - added, modified, renamed, deleted, stale, small, and large construct cases.
 
+These categories are coverage dimensions, not a quota that justifies artificial
+microcases. Author representative code-search intents first. Retain a difficult
+or edge case only when it distinguishes a material parser/chunker,
+semantic-parent, language construct, codec, or retrieval failure that a normal
+question would not expose. Do not fill cohort counts with increasingly narrow
+wording that adds no new diagnostic information. Later confirmation floors are
+minimum coverage requirements; independently authored realistic questions may
+satisfy several floors when the cohorts genuinely overlap.
+
 Every case records a `language_slice` of `go`, `typescript`, `tsx`, or `mixed`. A `mixed` case must genuinely allow or expect relevant results across language boundaries; it is not a substitute for an unknown label. Reports always show Go, TypeScript, and TSX separately when those slices are present. An aggregate may be included only with per-slice case counts and denominators so one language cannot hide another language's failure.
 
 Represent valid alternatives as OR entries within a required group and separate mandatory requirements as AND groups. Use frozen relevance grades `0=wrong/stale/hard-negative`, `1=useful support`, and `2=direct requirement satisfaction`. Strict Hit/Recall/MRR use grade 2 or satisfied groups; NDCG uses all grades. Do not narrow answers after seeing results.
@@ -380,7 +389,9 @@ Phase 12 extends the shared Phase 07 `internal/eval` dataset, ground-truth, metr
 | Never select, download, or embed a corpus in Phase 07 without explicit user authorization. | This phase is a free, local lexical evaluator and a manifest alone is not authorization for external actions or paid work. | A separate user-authorized acquisition or embedding workflow is designed. |
 | Observe hit@k/MRR without a numeric gate. | The corpus and product usage pattern are not yet sufficiently settled. | Representative corpora and product requirements accumulate. |
 | Do not use a generative-model judge. | Avoid cost, nondeterminism, and mixing answer definition into scoring. | It is separately designed as supplementary evaluation. |
-| Defer the simple-search baseline policy. | The phase requires a deterministic baseline but does not define its ranking policy; infrastructure must not invent corpus-tuned behavior. | A reviewed corpus and baseline policy are supplied. |
+| Use the accepted deterministic simple-search policy as an evaluation-only control. | On 2026-08-16 the user accepted a corpus-independent `ANY` normalized-token admission rule over the authoritative semantic-parent snapshot, followed by exact qualified/symbol, path, matched-token, and stable identity ordering. It adds no alias, BM25, embedding, boost, public wire, or production-ranking change. | A later evaluation-contract revision explicitly replaces the control. |
+| Prefer representative cohort intents and reject quota-padding edge cases. | The user wants questions that expose material failure modes, not detail added only to reach a count. Difficult cases remain valuable when they isolate a real parser, parent-collapse, type/wrapper, codec, or retrieval distinction. | New evidence shows a missing material failure mode that cannot be covered by a representative question. |
+| Accept the T10 and G09 source-backed label revisions. | `PathImpl` and `PathInternal` directly implement T10 while public `Path` is useful support; `walkXFF` is a reviewed misleading implementation for the deprecated G09 contract. | Pinned source identity or the question intent changes. |
 | Use human-reviewed path/kind/symbol targets as ground truth. | These map directly to the code-search unit. | Multi-hop task evaluation is added separately. |
 | Preserve failure taxonomy alongside metrics. | It identifies which implementation layer should change next. | Never. |
 | Call production services directly. | This prevents divergence between evaluation and actual behavior. | Never. |

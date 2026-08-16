@@ -1,7 +1,7 @@
 # Phase 07 Lexical Evaluation Evidence
 
 - Phase: `07-lexical-evaluation`
-- State: `in_progress` — the exact 12 chi + 20 RHF exploratory query series completed once with 32/32 validated responses and its approval is consumed; official frozen evidence remains gated on the recorded label/simple-baseline decisions and review passes.
+- State: `in_progress` — the exact 12 chi + 20 RHF exploratory query series completed once with 32/32 validated responses and its approval is consumed; the user accepted the T10/G09/simple-baseline decisions on 2026-08-16, while the new digest, provider-free simple pool, and two review passes remain pending.
 - Date: 2026-08-16
 
 Current real-data audit: [chi/RHF structural audit — Revision 4](chi-rhf-structural-audit-r4.md).
@@ -351,9 +351,10 @@ Phase 12 correction now uses recorded parent coordinates and is documented in
 its Revision 4 evidence. Focused normal/race tests, vet, build, formatting,
 module, and diff checks passed at this correction boundary.
 The immutable exploratory artifacts are preserved as diagnostic input and are
-not rewritten. Cohort/label freeze now waits on the remaining human decisions;
-it does not require another provider call merely to inspect the already-recorded
-rankings and metrics.
+not rewritten. The three material T10/G09/simple-policy decisions are accepted;
+cohort/label freeze now waits on the new draft digest, provider-free simple
+pool, and two separated human passes. It does not require another provider call
+merely to inspect the already-recorded rankings and metrics.
 
 The exploratory top-5 results were also pooled into ranking-blind ignored
 pass-1 packets. Chi contributes 64 unique parents and 82 query-parent
@@ -367,6 +368,6 @@ Separate ignored advisory overlays cover all 205 relations with proposed
 0/1/2 grades and required-group assignments. They are explicitly withheld from
 the label-free first-pass packet and cannot be merged automatically.
 
-The complete metrics, stage diagnosis, source-backed label corrections, and
-simple-baseline decision are recorded in
+The complete metrics, stage diagnosis, accepted source-backed label corrections,
+accepted simple-baseline policy, and representative-intent cohort rule are recorded in
 [`chi-rhf-exploratory-query-results-r4.md`](chi-rhf-exploratory-query-results-r4.md).
