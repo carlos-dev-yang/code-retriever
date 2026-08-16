@@ -279,11 +279,9 @@ boundary. No provider/network operation ran at either boundary.
 
 ## Next gate
 
-1. Decide whether to preserve canonical `voyage-code-4` using authoritative
-   account-side availability/pricing evidence or explicitly reopen the model
-   contract to a currently documented model.
-2. Finalize a dollar ceiling and obtain explicit document-capture approval for
-   the already exact 1,111-input/1,279,822-byte/10-request plan.
-3. After document capture, request paid-query approval separately and compare
+1. Obtain explicit document-capture approval for the official
+   `voyage-code-4` model and the already exact
+   1,111-input/1,279,822-byte/10-request plan under the proposed $1.00 ceiling.
+2. After document capture, request paid-query approval separately and compare
    dense/hybrid behavior against the clean all-miss FTS control before either
    human label-freeze pass.

@@ -1,7 +1,7 @@
 # Phase 07 Lexical Evaluation Evidence
 
 - Phase: `07-lexical-evaluation`
-- State: `blocked` — provider-free generation-3 audit and exact 32-case draft binding are complete; document capture waits for the explicit provider/model decision, and official evidence still requires later human label freeze/two review passes plus a deterministic simple-search baseline policy.
+- State: `blocked` — provider-free generation-3 audit, exact 32-case draft binding, clean FTS controls, and official `voyage-code-4` pricing verification are complete; document capture waits for explicit bounded approval, and official evidence still requires later human label freeze/two review passes plus a deterministic simple-search baseline policy.
 - Date: 2026-08-16
 
 Current real-data audit: [chi/RHF structural audit — Revision 4](chi-rhf-structural-audit-r4.md).
@@ -17,11 +17,11 @@ have deterministic path-derived retrieval labels, the three observed overload
 sets each collapse to one parent, and source-span mismatches are zero. New
 source-body-free inventory hashes and the current no-network document plan are
 recorded in the structural audit. The side-panel-reviewed 32-case cohort is now
-bound to exact generation-3 identities and deterministic case digests. Work is
-blocked at the separate document-capture decision because the configured
-`voyage-code-4` model is absent from the current official Voyage model and
-pricing pages; the project does not invent a price or substitute a model. No
-provider or API key has been used.
+bound to exact generation-3 identities and deterministic case digests. The
+official live Voyage pages confirm `voyage-code-4`, its supported dimensions,
+$0.12 per million-token price, and 200-million-token free allowance. Work now
+waits only at the separate bounded document-capture approval gate. No provider
+or API key has been used.
 
 ### 2026-08-16 behavior-binding boundary checks
 

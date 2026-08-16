@@ -1,6 +1,6 @@
 # 07. Lexical Chunking and Search Evaluation
 
-- Status: `blocked` — generation-3 chi/RHF audit and 32-case draft cohort binding are complete; document capture waits for the explicit `voyage-code-4` availability/pricing decision, while official frozen evidence remains gated on later pooled label review and the simple-search policy.
+- Status: `blocked` — generation-3 chi/RHF audit, 32-case draft cohort binding, clean FTS controls, and official `voyage-code-4` price verification are complete; document capture waits for explicit bounded user approval, while official frozen evidence remains gated on later pooled label review and the simple-search policy.
 - Prerequisite phase: `06-fts-search`
 - Follow-up phase: `12-retrieval-evaluation`
 - Design basis: `local-code-search-mcp-v1-design-r4.md` §13, §14

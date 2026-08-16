@@ -61,35 +61,39 @@ After complete capture, local materialization transforms them to the selected
 1024-dimensional binary representation and publishes only that cidx-owned
 representation to production. Query vectors are not part of this approval.
 
-## 4. Price verification blocker
+## 4. Official model and price verification
 
 The official [Voyage pricing](https://docs.voyageai.com/docs/pricing) and
 [embedding model](https://docs.voyageai.com/docs/embeddings) pages were checked
-on 2026-08-16. They list `voyage-code-3`, but neither page lists
-`voyage-code-4`; an exact search of the official documentation also returned no
-`voyage-code-4` result. Therefore this packet does **not** invent a price or
-silently substitute a model.
+on 2026-08-16 against their live HTML. They confirm `voyage-code-4` with a
+32,000-token per-input context, output dimensions 1024 (default), 256, 512, and
+2048, and intended use for code retrieval and coding agents. The official price
+is $0.00012 per thousand tokens / $0.12 per million tokens, with the first 200
+million tokens free per account.
 
-For scale only, the currently published `voyage-code-3` price is $0.18 per one
-million tokens after its published free allowance. Applying that unrelated
-rate to this packet's conservative 1,279,822-token ceiling would be $0.23036796.
-This is not an authoritative `voyage-code-4` estimate and cannot authorize the
-configured operation.
+An initial documentation-search extract was stale and omitted this model. A
+direct read of the current official page HTML exposed the rows above and is the
+authority for this corrected packet; the earlier absence conclusion is
+withdrawn.
+
+At $0.12 per million tokens, this packet's conservative 1,279,822-token
+single-pass ceiling is $0.15357864 after the free allowance is exhausted. A
+theoretical four-full-attempt ceiling (initial attempt plus all three retries)
+is 5,119,288 tokens or $0.61431456. The proposed operation approval ceiling is
+therefore $1.00. If the account still has its published free allowance, the
+actual billed amount should be $0; provider-reported usage and account billing
+remain the final operational evidence.
 
 ## 5. Decision required
 
-One of these must be recorded before any document provider call:
+The user must explicitly approve the canonical `voyage-code-4` document-only
+capture of 1,111 inputs / 1,279,822 conservative tokens / 10 planned synchronous
+requests under the proposed $1.00 ceiling before any provider call. Query
+embedding is excluded and requires a later separate approval.
 
-1. Preserve the canonical `voyage-code-4` contract and provide/confirm official
-   account-side availability and pricing, together with a user-approved dollar
-   ceiling for this 1,111-input capture; or
-2. explicitly reopen the provider/model contract and authorize evaluation of a
-   currently documented model such as `voyage-code-3`. This is a design/profile
-   change, not an execution detail, and would require regenerated fingerprints
-   and this approval packet before capture.
-
-Supplying an API key alone is not approval. Until one option is confirmed, the
-command remains plan-only and no code or query text is sent to Voyage.
+Supplying an API key alone is not approval. Until the bounded approval is
+recorded, the command remains plan-only and no code or query text is sent to
+Voyage.
 
 ## 6. Post-approval sequence
 

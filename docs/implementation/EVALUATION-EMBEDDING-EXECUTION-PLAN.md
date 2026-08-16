@@ -41,9 +41,8 @@ retrieval quality or supports promotion. The current blockers remain:
 - two recorded human label-review passes are incomplete;
 - the deterministic simple-search baseline has not been frozen;
 - there is no complete compatible document raw-vector bank for these evaluation inputs;
-- the configured canonical `voyage-code-4` model is absent from the current
-  official Voyage model and pricing pages, so availability, authoritative
-  pricing, and a document-capture dollar ceiling require an explicit decision;
+- the canonical `voyage-code-4` model and its official price are confirmed,
+  but the bounded document capture still requires explicit user approval;
 - no paid query operation has been approved;
 - the two repositories do not contain a genuine cross-language Go/TypeScript/TSX behavior path;
 - the confirmation-size and review floor has not been satisfied.
@@ -623,8 +622,8 @@ Provider-free actions 1–4 below are complete. The immediate sequence is:
 2. Author the first versioned chi/RHF behavior-cohort working set, using the 12 identifier cases only as reference.
 3. Present the questions with direct/support parents, answer mode, task/signal tags, and source evidence for user review.
 4. Freeze the initial 1,024-byte canonical document input universe and produce a no-network document-capture plan and estimate.
-5. Return to the user for the provider/model decision and explicit
-   document-capture approval recorded in the [current approval
+5. Return to the user for explicit bounded document-capture approval recorded
+   in the [current approval
    packet](evidence/phase-07/chi-rhf-document-capture-approval-r4.md).
 6. After capture, materialize 1,024/binary and request a separate bounded exploratory-query approval.
 7. Use first-loss evidence to revise the working cohort direction, then close and freeze the chi/RHF calibration dataset.
