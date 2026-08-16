@@ -1,6 +1,6 @@
 # 07. Lexical Chunking and Search Evaluation
 
-- Status: `in_progress` — the exact one-series 12 chi + 20 RHF exploratory query run completed once; on 2026-08-16 the user accepted the T10/G09 label corrections and deterministic evaluation-only simple-search policy. The new draft digest, simple-pool measurement, two review passes, formal calibration, confirmation, and promotion remain separately gated.
+- Status: `in_progress` — the exact one-series 12 chi + 20 RHF exploratory query run completed once; the accepted T10/G09 draft-v2 corrections and deterministic evaluation-only simple control have been measured from clean provenance, and the final five-arm ranking-blind pools are complete. Two human review passes, formal calibration, confirmation, and promotion remain separately gated.
 - Prerequisite phase: `06-fts-search`
 - Follow-up phase: `12-retrieval-evaluation`
 - Design basis: `local-code-search-mcp-v1-design-r4.md` §13, §14
@@ -395,6 +395,15 @@ Select experimental variants through an explicit evaluation profile. Do not muta
 - Evidence that a new run does not overwrite an existing baseline artifact.
 - Evidence that no corpus was selected, updated, copied, or embedded by this phase, and that any acquisition had exact user authorization.
 - Dataset-size/review record distinguishing smoke, calibration, and promotion-capable confirmation evidence.
+
+On 2026-08-16 the provider-free simple control ran from clean commit
+`d343e12c36c2d17e40c00fe2fab445299f151715` with `VOYAGE_API_KEY` absent.
+Its immutable draft-v2 artifacts record chi Hit@5 `5/12` and RHF Hit@5
+`14/20`; these are diagnostic observations, not gates. The final blind pools
+deduplicate the top five parents from FTS, serving f32, active binary, RRF, and
+simple control plus every draft-v2 truth parent. They contain 133 chi and 175
+RHF query-parent relations, with all labels and lane/rank/score information
+hidden. Two separated human passes remain incomplete.
 
 Completion reports must not use the metric value itself as a success declaration. They should demonstrate that the evaluation is reproducible and that failures are traceable.
 

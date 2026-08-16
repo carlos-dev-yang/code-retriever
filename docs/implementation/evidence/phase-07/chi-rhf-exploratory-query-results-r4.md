@@ -193,39 +193,41 @@ rule rather than a tuning change. The fingerprint seals those definitions. A dev
 generation-pinned read snapshot supplies authoritative parents and stored
 bodies; no public FTS, MCP, schema, or production-ranking change is proposed.
 
-## 7. Blind-pool coverage prepared
+## 7. Final opened-arm blind-pool coverage prepared
 
 The exploratory top-5 outputs were combined across FTS, serving f32, active
-binary, and their RRF observations, then deduplicated by semantic-parent
+binary, RRF, and the accepted deterministic simple control, then deduplicated by semantic-parent
 identity. The generated pass-1 packets remove arm identity, native score, and
 original rank. Candidate order is deterministically shuffled from a recorded
 seed. Each catalog entry retains the verified source path/hash, parent byte and
 line range, local source path, and exact parent body.
 
-| Corpus | Queries | Unique parents | Query-parent judgments | Already present in machine draft | Newly unjudged |
+| Corpus | Queries | Unique parents | Query-parent judgments | Earlier four-arm relations | Simple-only additions |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| chi | 12 | 64 | 82 | 22 | 60 |
-| react-hook-form | 20 | 58 | 123 | 34 | 89 |
-| **Total** | **32** | **122** | **205** | **56** | **149** |
+| chi | 12 | 91 | 133 | 82 | 51 |
+| react-hook-form | 20 | 78 | 175 | 123 | 52 |
+| **Total** | **32** | **169** | **308** | **205** | **103** |
 
 Ignored local packets:
 
-- chi: `.cidx/test/states/chi/evaluations/review/pool-v1-chi-exploratory-top5.json`,
-  SHA-256 `b1e2c572026ac2bd8aa61b36fead308366b14142dffe54bc1beb6857a1d18f83`;
-- RHF: `.cidx/test/states/react-hook-form/evaluations/review/pool-v1-rhf-exploratory-top5.json`,
-  SHA-256 `818b35cb299a3273419865aee6958886c203cf82ad640361fa0ff859ed64414e`.
+- chi: `.cidx/test/states/chi/evaluations/review/pool-v2-chi-calibration-top5.json`,
+  SHA-256 `ed05cbc28df97e34db02a8484d095619d54c99ffac9b5eaa171524d46559307c`;
+- RHF: `.cidx/test/states/react-hook-form/evaluations/review/pool-v2-rhf-calibration-top5.json`,
+  SHA-256 `7dee4ee2af94ad610d9d1b194c6c8a00ce289fceeb123630a6c0dd8634fcbb5a`.
 
 Both packets are `MACHINE_PREPARED_UNREVIEWED`, contain null decisions, and
-are non-promotional. They deliberately include all 205 query-parent relations:
-every retrieved parent plus all 56 machine-draft truth parents, including truth
+are non-promotional. They deliberately include all 308 query-parent relations:
+every opened-arm top-5 parent plus every draft-v2 truth parent, including truth
 that missed every top-5 arm. The labels remain hidden so the human first pass
-does not inherit those machine grades. Deterministic simple-search candidates
-remain pending implementation and provider-free measurement. Int8 is an unopened alternative and
+does not inherit machine grades. Candidate bodies and line ranges were
+reproved byte-for-byte against the preserved production SQLite state; candidate
+IDs are the recorded SHA-256 canonical span identities and case order is a
+recorded digest shuffle. Int8 is an unopened alternative and
 is out of scope for the user-selected 1,024/binary initial grid.
 
 These counts also correct the earlier impression that only three headline
 label decisions remain. T10, G09, and the simple baseline policy are now
-accepted; all 205 pooled relations still require a blind first pass and
+accepted; all 308 pooled relations still require a blind first pass and
 a separated second pass before the dataset can be frozen.
 
 Separate ignored machine-suggestion overlays prepare, but do not replace, that
@@ -255,10 +257,10 @@ real search intents come first, and edge cases are retained only when they
 separate a material failure mode; question counts must not be padded with
 increasingly narrow details.
 
-This acceptance covers the three material gates, not all 205 candidate
-judgments. No further provider operation is required. Next create the new
-working-dataset digest, generate blinded provider-free simple/FTS pool
-additions, complete two separated label-review passes, and freeze the chi/RHF
+This acceptance covers the three material gates, not all 308 candidate
+judgments. No further provider operation is required. The draft-v2 digests,
+clean simple measurements, and five-arm blind pools are now complete. Next
+complete two separated label-review passes and freeze the chi/RHF
 calibration digest. A later paid calibration apply remains a separate approval.
 
 The `kb-guide` measurement-contract follow-up confirmed the practical review

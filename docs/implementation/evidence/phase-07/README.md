@@ -1,7 +1,7 @@
 # Phase 07 Lexical Evaluation Evidence
 
 - Phase: `07-lexical-evaluation`
-- State: `in_progress` — the exact 12 chi + 20 RHF exploratory query series completed once with 32/32 validated responses and its approval is consumed; the user accepted the T10/G09/simple-baseline decisions on 2026-08-16, while the new digest, provider-free simple pool, and two review passes remain pending.
+- State: `in_progress` — the exact 12 chi + 20 RHF exploratory query series completed once with 32/32 validated responses and its approval is consumed; accepted draft-v2, clean provider-free simple-control measurement, and final five-arm blind pools are complete, while two human review passes remain pending.
 - Date: 2026-08-16
 
 Current real-data audit: [chi/RHF structural audit — Revision 4](chi-rhf-structural-audit-r4.md).
@@ -14,10 +14,10 @@ Consumed query-evaluation gate: [chi/RHF query-evaluation approval packet — Re
 
 Current exploratory diagnosis: [chi/RHF exploratory query results — Revision 4](chi-rhf-exploratory-query-results-r4.md).
 
-### 2026-08-16 provider-free simple-control implementation checkpoint
+### 2026-08-16 provider-free simple-control implementation and measurement checkpoint
 
-The accepted evaluation-only simple control is implemented but has not run
-against either draft-v2 corpus dataset. `ProductionStore.SemanticParentsSnapshot`
+The accepted evaluation-only simple control is implemented and has run against
+both draft-v2 corpus datasets. `ProductionStore.SemanticParentsSnapshot`
 copies the active generation, manifest, and the authoritative semantic-parent
 stored fields (path, indexed hash, language, kind, symbol, qualified symbol,
 signature, exact source body, and ranges) in one read transaction, closes that
@@ -44,6 +44,17 @@ exactly `min(admitted_candidate_count, candidate_k)` ranked hits, and every
 metric depth is bounded by the captured `return_k`. It emits no FTS `StageTrace` or FTS
 first-loss semantics. It does not change public MCP/schema, production FTS,
 BM25, aliases, weights, embeddings, or corpus state.
+
+Both runs used a binary built from clean commit
+`d343e12c36c2d17e40c00fe2fab445299f151715`, reported
+`source_modified=false`, and ran with `VOYAGE_API_KEY` removed. Chi run
+`chi-simple-v2-d343e12-1` recorded Hit@1 `2/12`, Hit@5 `5/12`, simple-run
+SHA-256 `ab629635f94be0a90f683181899e983c3ec97a4e61222117eda7faa1dc10bc83`.
+RHF run `rhf-simple-v2-d343e12-1` recorded Hit@1 `7/20`, Hit@5 `14/20`,
+simple-run SHA-256
+`cf01829cfe62308aa5a1546eaebb5050e1f3211d52f8f6a4ce40829c2d0b75a8`.
+These values diagnose lexical/name-path separability and are not pass/fail
+thresholds.
 
 ### 2026-08-16 accepted draft-v2 label boundary
 
@@ -205,14 +216,14 @@ The focused tests cover portable/duplicate-field manifest rejection, local Git b
 
 - No corpus beyond the two explicitly authorized public checkouts was selected, downloaded, cloned, copied, or embedded. No provider, API key, paid operation, or public MCP contract change ran.
 - No official frozen run, human-reviewed labels, simple-search comparison baseline, or promotion evidence exists. The recorded corpus verification and repeatability evidence is draft-smoke-only.
-- A deterministic simple-search baseline is intentionally pending: Phase 07 does not yet define a corpus-independent baseline ranking policy, so this infrastructure does not invent one.
+- At this historical checkpoint a deterministic simple-search baseline was intentionally pending. That blocker is superseded by the accepted, fingerprinted control and clean draft-v2 measurements recorded above.
 - The direct `internal/eval` source has no `embedclient`, `lab`, or provider import. A full Go dependency listing still reaches `embedclient` indirectly through the existing shared `config`/`evalcontract` package graph; that pre-existing shared-contract coupling must be split before a strict transitive dependency-boundary claim can be made.
 
 ## Next action
 
-Run the accepted simple control against both draft-v2 datasets from clean
-provenance, pool its returned parents into the ranking-blind review material,
-then complete two recorded review passes. Any future hard-negative or no-answer
+Complete a machine-label-blind first pass over both digest-bound v2 pools,
+then perform a separated second pass and adjudicate every disagreement. Any
+future hard-negative or no-answer
 label needs corpus-wide search evidence and a second review/pass.
 
 ## Authorized corpus-resume smoke
@@ -431,21 +442,21 @@ its Revision 4 evidence. Focused normal/race tests, vet, build, formatting,
 module, and diff checks passed at this correction boundary.
 The immutable exploratory artifacts are preserved as diagnostic input and are
 not rewritten. The three material T10/G09/simple-policy decisions are accepted;
-cohort/label freeze now waits on the new draft digest, provider-free simple
-pool, and two separated human passes. It does not require another provider call
+cohort/label freeze now waits on two separated human passes. It does not require another provider call
 merely to inspect the already-recorded rankings and metrics.
 
-The exploratory top-5 results were also pooled into ranking-blind ignored
-pass-1 packets. Chi contributes 64 unique parents and 82 query-parent
-judgments; RHF contributes 58 and 123. All 205 relations remain unreviewed in
-the packets, including every current machine-draft truth parent even when it
-missed every retrieved top-5 arm. The packets
+The final opened-arm top-5 results were pooled into ranking-blind ignored
+pass-1 packets. Chi contributes 91 unique parents and 133 query-parent
+judgments; RHF contributes 78 and 175. All 308 relations remain unreviewed in
+the packets, including every draft-v2 truth parent even when it missed every
+retrieved top-5 arm. The packets
 retain verified source spans and exact parent bodies while omitting arm, score,
-and rank. Their paths, digests, coverage, pending simple-search addition, and
+and rank. Their paths, digests, coverage, completed simple-search addition, and
 unopened int8 status are recorded in the exploratory-results evidence below.
-Separate ignored advisory overlays cover all 205 relations with proposed
-0/1/2 grades and required-group assignments. They are explicitly withheld from
-the label-free first-pass packet and cannot be merged automatically.
+The earlier ignored advisory overlays cover only the 205 four-arm relations
+with proposed 0/1/2 grades and required-group assignments. They are explicitly
+withheld from the label-free first-pass packet, do not cover the 103
+simple-only additions, and cannot be merged automatically.
 
 The complete metrics, stage diagnosis, accepted source-backed label corrections,
 accepted simple-baseline policy, and representative-intent cohort rule are recorded in
