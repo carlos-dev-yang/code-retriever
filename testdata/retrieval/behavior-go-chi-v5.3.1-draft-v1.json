@@ -1,0 +1,228 @@
+{
+  "schema_version": 1,
+  "version": "go-chi-v5.3.1-behavior-draft-v1",
+  "corpus_id": "go-chi-chi-v5.3.1",
+  "cases": [
+    {
+      "schema_version": 1,
+      "id": "chi-g01-context-pool",
+      "text": "How does a request entering a top-level router reset and reuse its route context before the handler chain runs?",
+      "language": "go",
+      "cohorts": ["task:single_parent_behavior", "signal:semantic_only"],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {"identifiers":["ServeHTTP"],"paths":["mux.go"],"languages":["go"],"scopes":["implementation"]},
+      "required_groups": [{"id":"context-pool-lifecycle","alternatives":[{"spans":[{"path":"mux.go","content_sha256":"3255394e5c4f305b47b81e2e3912caaf58455223fe7a126cec5c494c663adb24","qualified_symbol":"chi.Mux.ServeHTTP","start_byte":1535,"end_byte":2772}]}]}],
+      "hard_negatives": [],
+      "judgments": [{"span":{"path":"mux.go","content_sha256":"3255394e5c4f305b47b81e2e3912caaf58455223fe7a126cec5c494c663adb24","qualified_symbol":"chi.Mux.ServeHTTP","start_byte":1535,"end_byte":2772},"grade":2,"rationale":"Directly owns top-level route-context reset, pool reuse, and handler-chain entry."}],
+      "review": {"state":"draft","passes":[{"id":"machine-binding","reviewer":"machine-prepared/side-panel-advised"}],"rationale":"Behavior question was source-checked and advisory-reviewed; formal human relevance passes remain pending."},
+      "digest": "41286707c99af15727a4dfeca82e460dd05cc84b18e9755118b204b27924a5eb"
+    },
+    {
+      "schema_version": 1,
+      "id": "chi-g02-route-outcome",
+      "text": "How does routing choose between a matching handler, method-not-allowed, and not-found responses?",
+      "language": "go",
+      "cohorts": ["task:lifecycle_state_error_or_configuration", "signal:semantic_only"],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {"identifiers":["routeHTTP"],"paths":["mux.go"],"languages":["go"],"scopes":["implementation"]},
+      "required_groups": [{"id":"route-outcome-selection","alternatives":[{"spans":[{"path":"mux.go","content_sha256":"3255394e5c4f305b47b81e2e3912caaf58455223fe7a126cec5c494c663adb24","qualified_symbol":"chi.Mux.routeHTTP","start_byte":14344,"end_byte":15546}]}]}],
+      "hard_negatives": [],
+      "judgments": [
+        {"span":{"path":"mux.go","content_sha256":"3255394e5c4f305b47b81e2e3912caaf58455223fe7a126cec5c494c663adb24","qualified_symbol":"chi.Mux.routeHTTP","start_byte":14344,"end_byte":15546},"grade":2,"rationale":"Directly selects the matching, method-not-allowed, or not-found handler outcome."},
+        {"span":{"path":"tree.go","content_sha256":"eef7d6c9eefa838f4fdfda6ac61a116911a4d71f3ba0a002a62728783631c31d","qualified_symbol":"chi.node.FindRoute","start_byte":9148,"end_byte":10052},"grade":1,"rationale":"Useful support for the route lookup result consumed by routeHTTP."}
+      ],
+      "review": {"state":"draft","passes":[{"id":"machine-binding","reviewer":"machine-prepared/side-panel-advised"}],"rationale":"Behavior question was source-checked and advisory-reviewed; formal human relevance passes remain pending."},
+      "digest": "a554bf3bb79796381fd0de551b203ca66a36a2f50b878ea52f5cdbabbea6bf2d"
+    },
+    {
+      "schema_version": 1,
+      "id": "chi-g03-route-context-commit",
+      "text": "After a successful trie lookup, how are captured URL parameters and the matched pattern committed to RouteContext?",
+      "language": "go",
+      "cohorts": ["task:single_parent_behavior", "signal:semantic_only"],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {"identifiers":["FindRoute"],"paths":["tree.go"],"languages":["go"],"scopes":["implementation"]},
+      "required_groups": [{"id":"route-context-commit","alternatives":[{"spans":[{"path":"tree.go","content_sha256":"eef7d6c9eefa838f4fdfda6ac61a116911a4d71f3ba0a002a62728783631c31d","qualified_symbol":"chi.node.FindRoute","start_byte":9148,"end_byte":10052}]}]}],
+      "hard_negatives": [],
+      "judgments": [
+        {"span":{"path":"tree.go","content_sha256":"eef7d6c9eefa838f4fdfda6ac61a116911a4d71f3ba0a002a62728783631c31d","qualified_symbol":"chi.node.FindRoute","start_byte":9148,"end_byte":10052},"grade":2,"rationale":"Directly commits route parameters and the matched pattern after lookup."},
+        {"span":{"path":"tree.go","content_sha256":"eef7d6c9eefa838f4fdfda6ac61a116911a4d71f3ba0a002a62728783631c31d","qualified_symbol":"chi.node.findRoute","start_byte":10054,"end_byte":13569},"grade":1,"rationale":"Useful support for the internal trie walk that produces the committed values."}
+      ],
+      "review": {"state":"draft","passes":[{"id":"machine-binding","reviewer":"machine-prepared/side-panel-advised"}],"rationale":"Behavior question was source-checked and advisory-reviewed; formal human relevance passes remain pending."},
+      "digest": "8ad07ef470a4c44ce0b482d826a3679983f92c7d7ee902658e9040612e7ac264"
+    },
+    {
+      "schema_version": 1,
+      "id": "chi-g04-subrouter-mount",
+      "text": "How does mounting a subrouter inherit fallback handlers and shift the remaining path before delegating?",
+      "language": "go",
+      "cohorts": ["task:single_parent_behavior", "signal:semantic_only"],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {"identifiers":["Mount"],"paths":["mux.go"],"languages":["go"],"scopes":["implementation"]},
+      "required_groups": [{"id":"subrouter-mount-flow","alternatives":[{"spans":[{"path":"mux.go","content_sha256":"3255394e5c4f305b47b81e2e3912caaf58455223fe7a126cec5c494c663adb24","qualified_symbol":"chi.Mux.Mount","start_byte":9388,"end_byte":11525}]}]}],
+      "hard_negatives": [],
+      "judgments": [{"span":{"path":"mux.go","content_sha256":"3255394e5c4f305b47b81e2e3912caaf58455223fe7a126cec5c494c663adb24","qualified_symbol":"chi.Mux.Mount","start_byte":9388,"end_byte":11525},"grade":2,"rationale":"Directly owns fallback inheritance, path shifting, and subrouter delegation."}],
+      "review": {"state":"draft","passes":[{"id":"machine-binding","reviewer":"machine-prepared/side-panel-advised"}],"rationale":"Behavior question was source-checked and advisory-reviewed; formal human relevance passes remain pending."},
+      "digest": "df608a84d60120a5163460ccdd3d483cf7b6ab12851fb893c57c327d0cc1312a"
+    },
+    {
+      "schema_version": 1,
+      "id": "chi-g05-middleware-order",
+      "text": "How are middleware functions wrapped so registration order is preserved before the endpoint runs?",
+      "language": "go",
+      "cohorts": ["task:single_parent_behavior", "signal:semantic_only"],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {"identifiers":["chain"],"paths":["chain.go"],"languages":["go"],"scopes":["implementation"]},
+      "required_groups": [{"id":"middleware-composition","alternatives":[{"spans":[{"path":"chain.go","content_sha256":"8c22d7bbc23f4b4d46ded5ef721a9c3a173031fa2c2c9a7b48c46c2b07e8bd80","qualified_symbol":"chi.chain","start_byte":991,"end_byte":1516}]}]}],
+      "hard_negatives": [],
+      "judgments": [
+        {"span":{"path":"chain.go","content_sha256":"8c22d7bbc23f4b4d46ded5ef721a9c3a173031fa2c2c9a7b48c46c2b07e8bd80","qualified_symbol":"chi.chain","start_byte":991,"end_byte":1516},"grade":2,"rationale":"Directly composes middleware in reverse wrapping order to preserve registration order."},
+        {"span":{"path":"chain.go","content_sha256":"8c22d7bbc23f4b4d46ded5ef721a9c3a173031fa2c2c9a7b48c46c2b07e8bd80","qualified_symbol":"chi.Middlewares.Handler","start_byte":214,"end_byte":445},"grade":1,"rationale":"Useful public entry point that delegates composition to chain."}
+      ],
+      "review": {"state":"draft","passes":[{"id":"machine-binding","reviewer":"machine-prepared/side-panel-advised"}],"rationale":"Behavior question was source-checked and advisory-reviewed; formal human relevance passes remain pending."},
+      "digest": "38788240b2f8a8be84e7c28e46d49c893cb64e0d3e5dd3869757a03d210697d6"
+    },
+    {
+      "schema_version": 1,
+      "id": "chi-g06-basic-auth",
+      "text": "How are Basic credentials compared without a timing-sensitive password check, and how is a failed challenge returned?",
+      "language": "go",
+      "cohorts": ["task:delegated_or_cross_parent_flow", "signal:mixed"],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {"identifiers":["BasicAuth"],"paths":["middleware/basic_auth.go"],"languages":["go"],"scopes":["implementation"]},
+      "required_groups": [{"id":"basic-auth-comparison","alternatives":[{"spans":[{"path":"middleware/basic_auth.go","content_sha256":"d1cfa0a32e9871cfba478590d1c1010297df20e53bbf83f34b09a4ec76e8b278","qualified_symbol":"middleware.BasicAuth","start_byte":68,"end_byte":672}]}]}],
+      "hard_negatives": [],
+      "judgments": [
+        {"span":{"path":"middleware/basic_auth.go","content_sha256":"d1cfa0a32e9871cfba478590d1c1010297df20e53bbf83f34b09a4ec76e8b278","qualified_symbol":"middleware.BasicAuth","start_byte":68,"end_byte":672},"grade":2,"rationale":"Directly performs constant-time credential comparison and chooses challenge failure."},
+        {"span":{"path":"middleware/basic_auth.go","content_sha256":"d1cfa0a32e9871cfba478590d1c1010297df20e53bbf83f34b09a4ec76e8b278","qualified_symbol":"middleware.basicAuthFailed","start_byte":674,"end_byte":851},"grade":1,"rationale":"Useful support for the concrete failed-challenge response."}
+      ],
+      "review": {"state":"draft","passes":[{"id":"machine-binding","reviewer":"machine-prepared/side-panel-advised"}],"rationale":"Behavior question was source-checked and advisory-reviewed; formal human relevance passes remain pending."},
+      "digest": "057d1d279b2dd898dbd1b6075bc88d1e822539a94252e19a5529698d01d8ee31"
+    },
+    {
+      "schema_version": 1,
+      "id": "chi-g07-compression-selection",
+      "text": "How does response compression choose an accepted encoder and avoid compressing disallowed content types?",
+      "language": "go",
+      "cohorts": ["task:delegated_or_cross_parent_flow", "signal:semantic_only"],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 2,
+      "split": "calibration",
+      "required_constraints": {"identifiers":["selectEncoder","isCompressible"],"paths":["middleware/compress.go"],"languages":["go"],"scopes":["implementation"]},
+      "required_groups": [
+        {"id":"encoder-selection","alternatives":[{"spans":[{"path":"middleware/compress.go","content_sha256":"e7bc1ebe0718ae3bdc58fa4e266d01fdc72a84fd7833e0e70122e09032efd2e1","qualified_symbol":"middleware.Compressor.selectEncoder","start_byte":6870,"end_byte":7736}]}]},
+        {"id":"content-type-eligibility","alternatives":[{"spans":[{"path":"middleware/compress.go","content_sha256":"e7bc1ebe0718ae3bdc58fa4e266d01fdc72a84fd7833e0e70122e09032efd2e1","qualified_symbol":"middleware.compressResponseWriter.isCompressible","start_byte":8620,"end_byte":9091}]}]}
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {"span":{"path":"middleware/compress.go","content_sha256":"e7bc1ebe0718ae3bdc58fa4e266d01fdc72a84fd7833e0e70122e09032efd2e1","qualified_symbol":"middleware.Compressor.selectEncoder","start_byte":6870,"end_byte":7736},"grade":2,"rationale":"Directly selects an encoder from accepted encodings."},
+        {"span":{"path":"middleware/compress.go","content_sha256":"e7bc1ebe0718ae3bdc58fa4e266d01fdc72a84fd7833e0e70122e09032efd2e1","qualified_symbol":"middleware.compressResponseWriter.isCompressible","start_byte":8620,"end_byte":9091},"grade":2,"rationale":"Directly enforces content-type compression eligibility."},
+        {"span":{"path":"middleware/compress.go","content_sha256":"e7bc1ebe0718ae3bdc58fa4e266d01fdc72a84fd7833e0e70122e09032efd2e1","qualified_symbol":"middleware.Compressor.Handler","start_byte":6153,"end_byte":6868},"grade":1,"rationale":"Useful support for the response-writer integration around selection."},
+        {"span":{"path":"middleware/compress.go","content_sha256":"e7bc1ebe0718ae3bdc58fa4e266d01fdc72a84fd7833e0e70122e09032efd2e1","qualified_symbol":"middleware.Compress","start_byte":427,"end_byte":1090},"grade":1,"rationale":"Useful public constructor for the configured compression flow."}
+      ],
+      "review": {"state":"draft","passes":[{"id":"machine-binding","reviewer":"machine-prepared/side-panel-advised"}],"rationale":"Behavior question was source-checked and advisory-reviewed; formal human relevance passes remain pending."},
+      "digest": "412cdf761e27202207530e3122f00dfecaa5549c003cffb9ecc5a60804f9a890"
+    },
+    {
+      "schema_version": 1,
+      "id": "chi-g08-panic-recovery",
+      "text": "How are ordinary panics logged and converted to 500 while abort-handler panics are rethrown and upgraded connections avoid the status write?",
+      "language": "go",
+      "cohorts": ["task:lifecycle_state_error_or_configuration", "signal:semantic_only"],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {"identifiers":["Recoverer"],"paths":["middleware/recoverer.go"],"languages":["go"],"scopes":["implementation"]},
+      "required_groups": [{"id":"panic-recovery-policy","alternatives":[{"spans":[{"path":"middleware/recoverer.go","content_sha256":"472571093397d19475fd36ac1816a5c8e8de7706a9be9b155eb360657ca5f076","qualified_symbol":"middleware.Recoverer","start_byte":237,"end_byte":1187}]}]}],
+      "hard_negatives": [],
+      "judgments": [{"span":{"path":"middleware/recoverer.go","content_sha256":"472571093397d19475fd36ac1816a5c8e8de7706a9be9b155eb360657ca5f076","qualified_symbol":"middleware.Recoverer","start_byte":237,"end_byte":1187},"grade":2,"rationale":"Directly implements all panic classes and response-writing conditions in the question."}],
+      "review": {"state":"draft","passes":[{"id":"machine-binding","reviewer":"machine-prepared/side-panel-advised"}],"rationale":"Behavior question was source-checked and advisory-reviewed; formal human relevance passes remain pending."},
+      "digest": "b6e0a3fc22271deba5e39d5b127f06ef9a79db5c783890d9c1da9ee09678ae13"
+    },
+    {
+      "schema_version": 1,
+      "id": "chi-g09-client-ip",
+      "text": "How does the deprecated client-IP middleware choose between forwarding headers before mutating RemoteAddr?",
+      "language": "go",
+      "cohorts": ["task:delegated_or_cross_parent_flow", "signal:mixed"],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {"identifiers":["RealIP"],"paths":["middleware/realip.go"],"languages":["go"],"scopes":["implementation"]},
+      "required_groups": [{"id":"client-ip-mutation","alternatives":[{"spans":[{"path":"middleware/realip.go","content_sha256":"2f837f2213de7074c5c6915dad70f85c4588077291a8563d1cbad6698a757220","qualified_symbol":"middleware.RealIP","start_byte":342,"end_byte":1214}]}]}],
+      "hard_negatives": [],
+      "judgments": [
+        {"span":{"path":"middleware/realip.go","content_sha256":"2f837f2213de7074c5c6915dad70f85c4588077291a8563d1cbad6698a757220","qualified_symbol":"middleware.RealIP","start_byte":342,"end_byte":1214},"grade":2,"rationale":"Directly owns header precedence and RemoteAddr mutation."},
+        {"span":{"path":"middleware/realip.go","content_sha256":"2f837f2213de7074c5c6915dad70f85c4588077291a8563d1cbad6698a757220","qualified_symbol":"middleware.realIP","start_byte":1216,"end_byte":1567},"grade":1,"rationale":"Useful support for parsing a candidate forwarding-header value."}
+      ],
+      "review": {"state":"draft","passes":[{"id":"machine-binding","reviewer":"machine-prepared/side-panel-advised"}],"rationale":"Behavior question was source-checked and advisory-reviewed; formal human relevance passes remain pending."},
+      "digest": "cbd5a39a3c75ad6bce2d988c9f141933a64d533fdcccc463cda3dd5004e60b39"
+    },
+    {
+      "schema_version": 1,
+      "id": "chi-g10-request-throttle",
+      "text": "How are concurrent requests limited, queued with a timeout, cancelled, and given an optional Retry-After value?",
+      "language": "go",
+      "cohorts": ["task:delegated_or_cross_parent_flow", "signal:semantic_only"],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {"identifiers":["ThrottleWithOpts"],"paths":["middleware/throttle.go"],"languages":["go"],"scopes":["implementation"]},
+      "required_groups": [{"id":"throttle-lifecycle","alternatives":[{"spans":[{"path":"middleware/throttle.go","content_sha256":"05569797a14131ba177a71fccccd509363ca2016fa4c45a31cff033ae44301e4","qualified_symbol":"middleware.ThrottleWithOpts","start_byte":1402,"end_byte":3532}]}]}],
+      "hard_negatives": [],
+      "judgments": [
+        {"span":{"path":"middleware/throttle.go","content_sha256":"05569797a14131ba177a71fccccd509363ca2016fa4c45a31cff033ae44301e4","qualified_symbol":"middleware.ThrottleWithOpts","start_byte":1402,"end_byte":3532},"grade":2,"rationale":"Directly owns concurrency, queue timeout, cancellation, and response flow."},
+        {"span":{"path":"middleware/throttle.go","content_sha256":"05569797a14131ba177a71fccccd509363ca2016fa4c45a31cff033ae44301e4","qualified_symbol":"middleware.throttler.setRetryAfterHeaderIfNeeded","start_byte":3860,"end_byte":4198},"grade":1,"rationale":"Useful support for the optional Retry-After header calculation."}
+      ],
+      "review": {"state":"draft","passes":[{"id":"machine-binding","reviewer":"machine-prepared/side-panel-advised"}],"rationale":"Behavior question was source-checked and advisory-reviewed; formal human relevance passes remain pending."},
+      "digest": "bd64663649bfe0f57d879cd235d6d7eaa486486d2753f6f4867bd9ea9de309a2"
+    },
+    {
+      "schema_version": 1,
+      "id": "chi-g11-timeout",
+      "text": "How does the timeout middleware cancel downstream work and decide whether to write a gateway-timeout response?",
+      "language": "go",
+      "cohorts": ["task:lifecycle_state_error_or_configuration", "signal:mixed"],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {"identifiers":["Timeout"],"paths":["middleware/timeout.go"],"languages":["go"],"scopes":["implementation"]},
+      "required_groups": [{"id":"timeout-cancellation","alternatives":[{"spans":[{"path":"middleware/timeout.go","content_sha256":"3e83d007ec300b4ea605d97a336351e562ecd84b32c2b26206791d11ce7501c0","qualified_symbol":"middleware.Timeout","start_byte":63,"end_byte":1221}]}]}],
+      "hard_negatives": [],
+      "judgments": [{"span":{"path":"middleware/timeout.go","content_sha256":"3e83d007ec300b4ea605d97a336351e562ecd84b32c2b26206791d11ce7501c0","qualified_symbol":"middleware.Timeout","start_byte":63,"end_byte":1221},"grade":2,"rationale":"Directly owns downstream cancellation and gateway-timeout response conditions."}],
+      "review": {"state":"draft","passes":[{"id":"machine-binding","reviewer":"machine-prepared/side-panel-advised"}],"rationale":"Behavior question was source-checked and advisory-reviewed; formal human relevance passes remain pending."},
+      "digest": "133d5835c009d0da28dfb7c17dfaf4f1331d76f9492015087772f4e6e997685a"
+    },
+    {
+      "schema_version": 1,
+      "id": "chi-g12-header-router",
+      "text": "How is the first matching header middleware selected with wildcard support and a default fallback?",
+      "language": "go",
+      "cohorts": ["task:delegated_or_cross_parent_flow", "signal:semantic_only"],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {"identifiers":["Handler"],"paths":["middleware/route_headers.go"],"languages":["go"],"scopes":["implementation"]},
+      "required_groups": [{"id":"header-route-selection","alternatives":[{"spans":[{"path":"middleware/route_headers.go","content_sha256":"cfd320f1a996ac95e29e25ab8a2ffa9606577996d6e001fb3835ede2795a3f69","qualified_symbol":"middleware.HeaderRouter.Handler","start_byte":2626,"end_byte":3421}]}]}],
+      "hard_negatives": [],
+      "judgments": [
+        {"span":{"path":"middleware/route_headers.go","content_sha256":"cfd320f1a996ac95e29e25ab8a2ffa9606577996d6e001fb3835ede2795a3f69","qualified_symbol":"middleware.HeaderRouter.Handler","start_byte":2626,"end_byte":3421},"grade":2,"rationale":"Directly performs ordered header-route selection and default fallback."},
+        {"span":{"path":"middleware/route_headers.go","content_sha256":"cfd320f1a996ac95e29e25ab8a2ffa9606577996d6e001fb3835ede2795a3f69","qualified_symbol":"middleware.Pattern.Match","start_byte":3972,"end_byte":4166},"grade":1,"rationale":"Useful support for wildcard pattern matching."}
+      ],
+      "review": {"state":"draft","passes":[{"id":"machine-binding","reviewer":"machine-prepared/side-panel-advised"}],"rationale":"Behavior question was source-checked and advisory-reviewed; formal human relevance passes remain pending."},
+      "digest": "8d0107ebdc3621d2f5faca9e2e27eac2dc5e63e5391454d2e54d39060ad5c9cd"
+    }
+  ]
+}

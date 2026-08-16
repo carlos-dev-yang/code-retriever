@@ -1,8 +1,49 @@
 # Phase 07 Lexical Evaluation Evidence
 
 - Phase: `07-lexical-evaluation`
-- State: `blocked` — reusable offline infrastructure plus a user-authorized provider-free corpus draft smoke are implemented; official evidence requires human label freeze/two review passes and a deterministic simple-search baseline policy.
-- Date: 2026-08-15
+- State: `blocked` — provider-free generation-3 audit and exact 32-case draft binding are complete; document capture waits for the explicit provider/model decision, and official evidence still requires later human label freeze/two review passes plus a deterministic simple-search baseline policy.
+- Date: 2026-08-16
+
+Current real-data audit: [chi/RHF structural audit — Revision 4](chi-rhf-structural-audit-r4.md).
+
+Current cohort-authoring worksheet: [chi/RHF behavior-cohort working set — Revision 4](chi-rhf-working-cohort-r4.md).
+
+Current document-capture gate: [chi/RHF document-capture approval packet — Revision 4](chi-rhf-document-capture-approval-r4.md).
+
+The accepted Phase 04 correction is now reflected in provider-free
+generation-3 indexes: chi has 452 parents/621 segments and RHF has 322
+parents/492 segments; 57 RHF production anonymous default-export functions now
+have deterministic path-derived retrieval labels, the three observed overload
+sets each collapse to one parent, and source-span mismatches are zero. New
+source-body-free inventory hashes and the current no-network document plan are
+recorded in the structural audit. The side-panel-reviewed 32-case cohort is now
+bound to exact generation-3 identities and deterministic case digests. Work is
+blocked at the separate document-capture decision because the configured
+`voyage-code-4` model is absent from the current official Voyage model and
+pricing pages; the project does not invent a price or substitute a model. No
+provider or API key has been used.
+
+### 2026-08-16 behavior-binding boundary checks
+
+The two behavior datasets contain 32 cases with 32 matching RFC 8785-framed
+case digests. A read-only SQL join proved that every unique direct/support span
+resolves to exactly one generation-3 production parent. The focused boundary
+validation then passed:
+
+```text
+gofmt -w internal/devlab/lexical.go internal/devlab/lexical_test.go
+go test -count=1 ./internal/devlab ./internal/eval ./internal/evalcontract ./internal/search/lexical ./internal/store
+go test -count=1 -race ./internal/devlab ./internal/eval ./internal/evalcontract
+go vet ./internal/devlab ./internal/eval ./internal/evalcontract ./internal/search/lexical ./internal/store
+go build ./internal/devlab ./internal/eval ./internal/evalcontract ./internal/search/lexical ./internal/store
+jq -e . testdata/retrieval/behavior-*-draft-v1.json
+go mod tidy -diff
+git diff --check
+```
+
+No repository-wide test, corpus mutation after generation 3, provider call,
+API-key read, query embedding, materialization, label freeze, or promotion run
+occurred.
 
 ## Implemented infrastructure
 

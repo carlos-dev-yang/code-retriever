@@ -13,7 +13,7 @@ import (
 )
 
 func TestDraftCaseDigestFraming(t *testing.T) {
-	for _, name := range []string{"lexical-go-chi-v5.3.1-draft.json", "lexical-react-hook-form-v7.85.0-draft.json"} {
+	for _, name := range []string{"lexical-go-chi-v5.3.1-draft.json", "lexical-react-hook-form-v7.85.0-draft.json", "behavior-go-chi-v5.3.1-draft-v1.json", "behavior-react-hook-form-v7.85.0-draft-v1.json"} {
 		data, err := os.ReadFile(filepath.Join("..", "..", "testdata", "retrieval", name))
 		if err != nil {
 			t.Fatal(err)

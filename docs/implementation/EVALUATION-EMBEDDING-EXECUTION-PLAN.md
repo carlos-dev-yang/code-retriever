@@ -20,16 +20,30 @@ The user has approved these pinned open-source corpora for the current work:
 - Go: [`go-chi/chi` v5.3.1 manifest](../../testdata/retrieval/corpora/go-chi-chi-v5.3.1.json)
 - TypeScript and TSX: [`react-hook-form` v7.85.0 manifest](../../testdata/retrieval/corpora/react-hook-form-v7.85.0.json)
 
-The current datasets are deliberately narrow machine-draft lexical smoke inputs:
+The original datasets are deliberately narrow machine-draft lexical smoke
+inputs:
 
 - [go-chi draft](../../testdata/retrieval/lexical-go-chi-v5.3.1-draft.json)
 - [react-hook-form draft](../../testdata/retrieval/lexical-react-hook-form-v7.85.0-draft.json)
 
-The 12 cases comprise 6 Go, 4 TypeScript, and 2 TSX cases, with no reviewed hard-negative and no confirmation cases. They prove that the provider-free corpus, indexing, evaluator, artifact, and replay path works. They do not prove semantic retrieval quality, select a serving dimension or codec, or support promotion. The current blockers remain:
+The current behavior-oriented calibration drafts are:
+
+- [12-case chi behavior draft](../../testdata/retrieval/behavior-go-chi-v5.3.1-draft-v1.json)
+- [20-case react-hook-form behavior draft](../../testdata/retrieval/behavior-react-hook-form-v7.85.0-draft-v1.json)
+
+The behavior set comprises 12 Go, 12 TypeScript, and 8 TSX cases. It is bound
+to exact generation-3 content hashes, qualified symbols, and byte ranges, but
+remains draft and contains no reviewed hard-negative or confirmation case. The
+original 12 smoke cases prove only that the provider-free corpus, indexing,
+evaluator, artifact, and replay path works. Neither set proves semantic
+retrieval quality or supports promotion. The current blockers remain:
 
 - two recorded human label-review passes are incomplete;
 - the deterministic simple-search baseline has not been frozen;
 - there is no complete compatible document raw-vector bank for these evaluation inputs;
+- the configured canonical `voyage-code-4` model is absent from the current
+  official Voyage model and pricing pages, so availability, authoritative
+  pricing, and a document-capture dollar ceiling require an explicit decision;
 - no paid query operation has been approved;
 - the two repositories do not contain a genuine cross-language Go/TypeScript/TSX behavior path;
 - the confirmation-size and review floor has not been satisfied.
@@ -603,13 +617,15 @@ The honest terminal outcome is then an invalid/incomplete run or `NOT_PROMOTION_
 
 ## 15. Exact next actions
 
-No paid action is next. The immediate sequence is:
+Provider-free actions 1–4 below are complete. The immediate sequence is:
 
 1. Complete the provider-free chi/RHF corpus/parser/chunker/parent/1,024-byte segment audit and surface only concrete exceptions for user review.
 2. Author the first versioned chi/RHF behavior-cohort working set, using the 12 identifier cases only as reference.
 3. Present the questions with direct/support parents, answer mode, task/signal tags, and source evidence for user review.
 4. Freeze the initial 1,024-byte canonical document input universe and produce a no-network document-capture plan and estimate.
-5. Return to the user for explicit document-capture approval.
+5. Return to the user for the provider/model decision and explicit
+   document-capture approval recorded in the [current approval
+   packet](evidence/phase-07/chi-rhf-document-capture-approval-r4.md).
 6. After capture, materialize 1,024/binary and request a separate bounded exploratory-query approval.
 7. Use first-loss evidence to revise the working cohort direction, then close and freeze the chi/RHF calibration dataset.
 

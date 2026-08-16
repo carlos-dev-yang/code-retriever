@@ -1,6 +1,6 @@
 # 07. Lexical Chunking and Search Evaluation
 
-- Status: `blocked` — the user-authorized provider-free corpus smoke is recorded; official frozen baseline evidence remains blocked on label review and baseline policy.
+- Status: `blocked` — generation-3 chi/RHF audit and 32-case draft cohort binding are complete; document capture waits for the explicit `voyage-code-4` availability/pricing decision, while official frozen evidence remains gated on later pooled label review and the simple-search policy.
 - Prerequisite phase: `06-fts-search`
 - Follow-up phase: `12-retrieval-evaluation`
 - Design basis: `local-code-search-mcp-v1-design-r4.md` §13, §14
@@ -387,3 +387,4 @@ Phase 12 extends the shared Phase 07 `internal/eval` dataset, ground-truth, metr
 | Freeze calibration separately from confirmation. | Parameter tuning and promotion evidence cannot come from the same queries. | A new versioned evaluation policy is approved. |
 | Keep required failures in denominators. | Dropping failed observations inflates retrieval and operational metrics. | Never. |
 | Acquire only the two explicitly user-authorized public checkouts for this resume. | The user named commits, versions, licenses, and allowed local acquisition; this is a narrowly recorded exception to the default no-download rule. | Any corpus identity, commit, or authorization changes. |
+| Resume Phase 07 with real-data structural audit and behavior-cohort authoring before paid work. | The user prioritized measured corpus behavior over additional test scaffolding and fixed the first working profile to 1,024-byte segments, 1,024 serving dimensions, and binary storage. | The structural audit finds a canonical-input defect or the exact document-capture plan reaches its explicit approval gate. |

@@ -16,7 +16,16 @@ the lexical runner.
 `e2e`, `examples`, `scripts`, and `playwright.config.ts` so the production
 index has identical source coverage.
 
-Draft smoke datasets are deliberately `review.state=draft`, identify the
-machine draft author and `user-review-pending`, and are not frozen,
-official, promotion-capable, or suitable for tuning. Do not authorize a paid
-document or query embedding operation from these files.
+The `lexical-*-draft.json` files are the original 12-case exact-identifier
+smoke reference. The `behavior-*-draft-v1.json` files bind the current
+behavior-oriented calibration working set to the corrected generation-3
+inventories: 12 Go cases for chi and 12 TypeScript plus 8 TSX cases for RHF.
+Every behavior case records a deterministic digest, exact file-content hash,
+qualified symbol, byte range, provisional direct/support grade, one `task:*`
+cohort, and one `signal:*` cohort.
+
+All four datasets are deliberately `review.state=draft`. The behavior set is
+source-checked and side-panel-advised, but that does not count as either formal
+human label pass. These files are not frozen, official, promotion-capable, or
+suitable for confirmation tuning. They also do not authorize a paid document
+or query embedding operation.
