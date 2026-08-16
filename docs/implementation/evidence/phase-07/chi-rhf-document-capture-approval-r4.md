@@ -1,6 +1,6 @@
 # Phase 07 chi/RHF Document-Capture Approval Packet — Revision 4
 
-- Status: `approved_for_document_capture`
+- Status: `document_capture_complete`
 - Prepared: 2026-08-16
 - Approved: 2026-08-16 by the user, with a $5 account billing limit and an
   explicit instruction to proceed
@@ -128,7 +128,47 @@ The clean binary built from commit
 | chi | 3 | `6bd4db89ee1a9cba70f69e125a803d147dbc0d92c95ef59b44be2dcb54302a29` | 619 | 0 | 619 | 475,564 | 5 |
 | react-hook-form | 3 | `54f6b1387ae989b1e49bdf21d3ed96189e76fb5b61b74ca282a2617c57f88b8a` | 492 | 0 | 492 | 804,258 | 5 |
 
-The apply did not start because `VOYAGE_API_KEY` was absent from both the
-current process environment and a login shell. No provider request or API-key
-read occurred. The next attempt must inject the credential through the task
-environment, re-run the same equality check, and only then apply.
+The initial apply attempt did not start because `VOYAGE_API_KEY` was absent.
+The user then placed a single credential entry in ignored local
+`.cidx/credentials.env`; its mode was corrected to `0600`. The launcher read
+only `VOYAGE_API_KEY`, exported it only to each cidx child process, and repeated
+the exact plan checks before the first provider call. The credential value was
+not printed, copied into tracked state, or passed as a CLI argument.
+
+## 8. Completed capture and materialization
+
+Both approved captures completed without failure or retry:
+
+| Corpus | Run | Requested/persisted | Failed | Actual provider tokens | Raw format |
+| --- | ---: | ---: | ---: | ---: | --- |
+| chi | 1 | 619/619 | 0 | 131,433 | 1024 × f32, 4,096 bytes |
+| react-hook-form | 1 | 492/492 | 0 | 200,080 | 1024 × f32, 4,096 bytes |
+| **Total** | — | **1,111/1,111** | **0** | **331,513** | — |
+
+Every request and response model was `voyage-code-4`, the raw encoding was
+`cidx-lab-f32-le-v1`, and `capture_failures` remained empty. At the official
+$0.12/million rate, observed usage is $0.03978156 after the free allowance is
+exhausted and $0 while sufficient published free allowance remains.
+
+Provider-free materialization then published the fixed
+`19a53bbed1f4840ababa2caf9b0544d6b81e0d66aa052dc70780de55a54c200e`
+serving profile:
+
+| Corpus | Raw coverage | Staged/published vectors | Codec | Stored bytes/vector | Segment coverage |
+| --- | ---: | ---: | --- | ---: | ---: |
+| chi | 619/619 | 619 | `cidx-binary-sign-lsb-v1` | 128 | 621/621 |
+| react-hook-form | 492/492 | 492 | `cidx-binary-sign-lsb-v1` | 128 | 492/492 |
+
+Post-capture plans report all 1,111 inputs as raw hits, zero paid misses, and
+zero request groups. The ignored local database SHA-256 values at this boundary
+are:
+
+```text
+chi lab         b070f80b516e1b9ce577b3c505d1fb7c8fcea62b5857e1d26dfd7fa5c70873f4
+chi production  1cf8451a8d6dda4cac91a6685cf1bf3efb98edfffff53d85ed333caf9e961625
+RHF lab         108c20a79005c3a81edeccb385fc9afca72a2f3a0518ad5e77e58465489ab122
+RHF production  9992220ce27b898fd88357dacf0bce3b338b075eff2ae3ad63ae3e8332e10958
+```
+
+No query embedding occurred. The next paid gate is the separate
+[query-evaluation approval packet](chi-rhf-query-evaluation-approval-r4.md).

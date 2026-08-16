@@ -1,7 +1,7 @@
 # Phase 07 Lexical Evaluation Evidence
 
 - Phase: `07-lexical-evaluation`
-- State: `in_progress` — provider-free generation-3 audit, exact 32-case draft binding, clean FTS controls, and official `voyage-code-4` pricing verification are complete; the exact bounded document capture was explicitly approved on 2026-08-16, while query embedding and official frozen evidence remain separately gated.
+- State: `blocked` — generation-3 audit, exact 32-case draft binding, clean FTS controls, complete 1,111-input `voyage-code-4` document capture, and full 1024/binary materialization are recorded; the exact 32-query exploratory run now waits at its separate bounded approval gate, while official frozen evidence remains gated on later review and policy freeze.
 - Date: 2026-08-16
 
 Current real-data audit: [chi/RHF structural audit — Revision 4](chi-rhf-structural-audit-r4.md).
@@ -9,6 +9,8 @@ Current real-data audit: [chi/RHF structural audit — Revision 4](chi-rhf-struc
 Current cohort-authoring worksheet: [chi/RHF behavior-cohort working set — Revision 4](chi-rhf-working-cohort-r4.md).
 
 Current document-capture gate: [chi/RHF document-capture approval packet — Revision 4](chi-rhf-document-capture-approval-r4.md).
+
+Current query-evaluation gate: [chi/RHF query-evaluation approval packet — Revision 4](chi-rhf-query-evaluation-approval-r4.md).
 
 The accepted Phase 04 correction is now reflected in provider-free
 generation-3 indexes: chi has 452 parents/621 segments and RHF has 322
@@ -21,10 +23,22 @@ bound to exact generation-3 identities and deterministic case digests. The
 official live Voyage pages confirm `voyage-code-4`, its supported dimensions,
 $0.12 per million-token price, and 200-million-token free allowance. The user
 approved the exact document-only capture under a $5 account billing limit on
-2026-08-16. A clean post-approval preflight reproduced the exact 619/492 input,
-475,564/804,258 conservative-token, and 5/5 request plans. The apply did not
-start because `VOYAGE_API_KEY` is not present in the task environment; no
-provider request or API-key read occurred.
+2026-08-16. A clean post-approval preflight reproduced the exact plan. The
+capture then persisted 619/619 chi and 492/492 RHF raw 1024-f32 vectors with
+zero failures and 331,513 provider-reported tokens. Local materialization
+published complete 1024/binary coverage for 621/621 chi and 492/492 RHF
+segments. No query embedding occurred.
+
+### 2026-08-16 document and query-plan boundary
+
+Read-only lab and production checks proved one `voyage-code-4` response model,
+1024 dimensions/4,096 raw bytes, zero capture failures, published
+materialization runs, one binary codec, 128 stored bytes per vector, and no
+missing segment vector. Post-capture plans have 1,111 raw hits and zero paid
+misses. The provider-free retrieval preflight then fixed 12 chi plus 20 RHF
+query operations with a 3,698-token conservative ceiling. The separate query
+packet proposes a $0.01 approval ceiling; credentials and document approval do
+not authorize it.
 
 ### 2026-08-16 behavior-binding boundary checks
 
