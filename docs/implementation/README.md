@@ -1,6 +1,6 @@
 # cidx v1 Implementation Plan Index
 
-- Status: Phase 07's exact 12 chi + 20 RHF exploratory query series and segmented-parent trace correction are complete; source-backed diagnosis isolates three user decisions before the new chi/RHF draft digest and label freeze
+- Status: Phase 07's exact 12 chi + 20 RHF exploratory query series and segmented-parent trace correction are complete; ranking-blind packets cover 205 retrieved-or-truth query-parent judgments, with three user decisions and the provider-free simple-pool addition remaining before two-pass label freeze
 - Canonical design: [Local Code Search MCP v1 Final Target Contract — Revision 4](../../local-code-search-mcp-v1-design-r4.md)
 - Earlier designs: [original](../../local-code-search-mcp-v1-design.md), [r1](../../local-code-search-mcp-v1-design-r1.md), [r2](../../local-code-search-mcp-v1-design-r2.md), [r3](../../local-code-search-mcp-v1-design-r3.md)
 - Execution protocol: [Implementation Execution and Context-Recovery Guide](EXECUTION-GUIDE.md)
@@ -74,7 +74,7 @@ Allowed states are `planned | in_progress | blocked | done`. A phase becomes `do
 | 04 | done | [TypeScript and TSX chunker](04-typescript-tsx-chunker.md) | 02 | Accepted path-derived retrieval labels and real-corpus overload correction; versioned full reindex handoff | [Evidence](evidence/phase-04/README.md) |
 | 05 | done | [Worktree indexing pipeline](05-worktree-index-pipeline.md) | 03, 04, reconciled 02 | Remove the chunk-cap contract, inject `target_segment_bytes`, preserve atomic local reindex, and safely rekey proven-equivalent pre-R4 vectors | [R4 evidence](evidence/phase-05/revision-4.md) |
 | 06 | done | [FTS search](06-fts-search.md) | 05 | Contentless FTS, safe queries, BM25 chunk candidates | [Evidence](06-fts-search.md#11-completion-evidence) |
-| 07 | in_progress | [Lexical evaluation](07-lexical-evaluation.md) | 06, corrected 04 inventory | Document/raw and 1024/binary coverage, 32-query exploratory series, trace correction, and source-backed diagnosis complete; confirm three recorded decisions, then freeze cohort/label direction without another provider call | [Evidence](evidence/phase-07/README.md) |
+| 07 | in_progress | [Lexical evaluation](07-lexical-evaluation.md) | 06, corrected 04 inventory | Document/raw and 1024/binary coverage, 32-query exploratory series, trace correction, source-backed diagnosis, and blind top-5 packets complete; confirm three decisions, add the provider-free simple pool, then perform two-pass label freeze without another provider call | [Evidence](evidence/phase-07/README.md) |
 | 08 | done | [Initial raw-embedding lab](08-raw-embedding-lab.md) | reconciled 02, 05 | Isolated 1024-dimensional document f32 capture through the shared synchronous request policy | [R4 evidence](evidence/phase-08/revision-4.md) |
 | 09 | done | [Vector materialization](09-vector-materialization.md) | 01, 02, 05, 08 | Shared reduction/normalization, binary/int8 codecs, and selected-profile publish | [Evidence](09-vector-materialization.md#11-completion-evidence) |
 | 10 | done | [Embedding orchestration and reconciliation](10-embedding-orchestration-and-reconciliation.md) | reconciled 05, 08, existing 09 | Byte-bounded concurrent document requests, shared retry execution, and profile reconciliation | [Accepted R4 evidence](evidence/phase-10/revision-4.md) |

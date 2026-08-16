@@ -177,7 +177,42 @@ This makes the earlier ambiguous “literal token presence” rule explicit as
 reproduce the current all-token FTS emptiness and would not be a useful weak
 control.
 
-## 7. Remaining decision gate
+## 7. Blind-pool coverage prepared
+
+The exploratory top-5 outputs were combined across FTS, serving f32, active
+binary, and their RRF observations, then deduplicated by semantic-parent
+identity. The generated pass-1 packets remove arm identity, native score, and
+original rank. Candidate order is deterministically shuffled from a recorded
+seed. Each catalog entry retains the verified source path/hash, parent byte and
+line range, local source path, and exact parent body.
+
+| Corpus | Queries | Unique parents | Query-parent judgments | Already present in machine draft | Newly unjudged |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| chi | 12 | 64 | 82 | 22 | 60 |
+| react-hook-form | 20 | 58 | 123 | 34 | 89 |
+| **Total** | **32** | **122** | **205** | **56** | **149** |
+
+Ignored local packets:
+
+- chi: `.cidx/test/states/chi/evaluations/review/pool-v1-chi-exploratory-top5.json`,
+  SHA-256 `b1e2c572026ac2bd8aa61b36fead308366b14142dffe54bc1beb6857a1d18f83`;
+- RHF: `.cidx/test/states/react-hook-form/evaluations/review/pool-v1-rhf-exploratory-top5.json`,
+  SHA-256 `818b35cb299a3273419865aee6958886c203cf82ad640361fa0ff859ed64414e`.
+
+Both packets are `MACHINE_PREPARED_UNREVIEWED`, contain null decisions, and
+are non-promotional. They deliberately include all 205 query-parent relations:
+every retrieved parent plus all 56 machine-draft truth parents, including truth
+that missed every top-5 arm. The labels remain hidden so the human first pass
+does not inherit those machine grades. Deterministic simple-search candidates
+remain pending the policy decision below. Int8 is an unopened alternative and
+is out of scope for the user-selected 1,024/binary initial grid.
+
+These counts also correct the earlier impression that only three headline
+label decisions remain. T10, G09, and the simple baseline are the policy gates;
+after those gates, all 205 pooled relations still require a blind first pass and
+a separated second pass before the dataset can be frozen.
+
+## 8. Remaining decision gate
 
 Before creating a new working-dataset digest or implementing the simple
 baseline, the user must confirm:

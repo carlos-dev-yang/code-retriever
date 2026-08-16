@@ -212,7 +212,13 @@ The calibration count is not a promotion threshold. Freeze its planned counts an
 
 ### 5.3 Judgment pooling without label leakage
 
-Before final label freeze, reviewers must see the unique top candidates from simple search, FTS, serving f32, binary, int8, and RRF. To avoid lane and rank bias:
+Before final label freeze, reviewers must see the unique top candidates from
+every arm opened for the selected calibration grid. The current user-selected
+initial grid is 1,024 dimensions with binary serving, so its pool consists of
+simple search, FTS, serving f32, active binary, and their applicable RRF arms.
+Int8 or another dimension enters the pool only if that alternative is explicitly
+opened before freeze; it is not silently added to the current grid. To avoid lane
+and rank bias:
 
 - combine and deduplicate candidates by semantic parent;
 - pool to at least the deepest cutoff used by any formal metric;

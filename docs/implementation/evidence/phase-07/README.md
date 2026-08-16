@@ -355,6 +355,15 @@ not rewritten. Cohort/label freeze now waits on the remaining human decisions;
 it does not require another provider call merely to inspect the already-recorded
 rankings and metrics.
 
+The exploratory top-5 results were also pooled into ranking-blind ignored
+pass-1 packets. Chi contributes 64 unique parents and 82 query-parent
+judgments; RHF contributes 58 and 123. All 205 relations remain unreviewed in
+the packets, including every current machine-draft truth parent even when it
+missed every retrieved top-5 arm. The packets
+retain verified source spans and exact parent bodies while omitting arm, score,
+and rank. Their paths, digests, coverage, pending simple-search addition, and
+unopened int8 status are recorded in the exploratory-results evidence below.
+
 The complete metrics, stage diagnosis, source-backed label corrections, and
 simple-baseline decision are recorded in
 [`chi-rhf-exploratory-query-results-r4.md`](chi-rhf-exploratory-query-results-r4.md).
