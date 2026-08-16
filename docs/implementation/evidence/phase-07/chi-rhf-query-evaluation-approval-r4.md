@@ -1,6 +1,6 @@
 # Phase 07 chi/RHF Query-Evaluation Approval Packet — Revision 4
 
-- Status: `awaiting_user_decision`
+- Status: `approved_for_one_bounded_series`
 - Prepared: 2026-08-16
 - Operation covered: query embedding for the 32 draft behavior cases only
 - Document embedding covered: no — complete before this packet
@@ -63,11 +63,11 @@ allowance. The conservative 3,698-token single-pass ceiling costs $0.00044376
 after that allowance is exhausted. The theoretical four-full-attempt ceiling
 is 14,792 tokens or $0.00177504.
 
-The proposed approval ceiling is **$0.01** for this complete 32-query operation.
-The user's $5 account billing limit and the completed document approval do not
-implicitly approve this separate paid-query action.
+The approved ceiling is **$0.01** for this complete 32-query operation. The
+user's $5 account billing limit and the completed document approval did not
+implicitly approve it; the explicit authorization is recorded below.
 
-## 5. Claim boundary and decision required
+## 5. Claim boundary and authorization record
 
 These are draft calibration questions. The resulting run may guide pooling and
 cohort revision, but it is not a frozen-label, confirmation, mixed-language,
@@ -75,7 +75,16 @@ promotion, or release-candidate result. Difficult cases remain in the working
 set until reviewed; the run does not authorize label deletion or threshold
 tuning on confirmation data.
 
-Before `--apply`, the user must explicitly approve the exact 32-query
-`voyage-code-4` operation under the proposed $0.01 ceiling. A credential's
-presence is not approval. After approval, both plans must match this packet
-again before the first query request.
+On 2026-08-16 the user instructed Codex to set the remaining work as a goal and
+continue. This authorizes exactly the two-invocation series in this packet:
+12 chi plus 20 react-hook-form draft exploratory queries, at most $0.01 total.
+It does not authorize a changed dataset/profile, a repeated exploratory run,
+formal calibration, confirmation, mixed-language work, or assistant use.
+
+Immediately after that instruction, provider-free preflight at commit
+`e06e28a` reproduced both packet plans byte-for-byte, including the original
+plan SHA-256 values `b57c76d04dd55da08488af4170943d4bf26e9f3bf5c5672952875f77e60cbfc5`
+and `d1c259f40ee262316ee2a7f2008aac057a1efd9828fadf388687ce6513882997`.
+The generation, manifests, dataset digests, raw counts, query counts, token
+ceilings, and serving profile remain unchanged. A clean-provenance binary must
+repeat this same preflight before the first request.

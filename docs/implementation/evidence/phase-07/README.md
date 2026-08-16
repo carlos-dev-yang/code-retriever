@@ -1,7 +1,7 @@
 # Phase 07 Lexical Evaluation Evidence
 
 - Phase: `07-lexical-evaluation`
-- State: `blocked` — generation-3 audit, exact 32-case draft binding, clean FTS controls, complete 1,111-input `voyage-code-4` document capture, and full 1024/binary materialization are recorded; the exact 32-query exploratory run now waits at its separate bounded approval gate, while official frozen evidence remains gated on later review and policy freeze.
+- State: `in_progress` — the exact 12 chi + 20 RHF exploratory query series is approved under the recorded $0.01 ceiling after byte-identical provider-free re-preflight; official frozen evidence remains gated on later review and policy freeze.
 - Date: 2026-08-16
 
 Current real-data audit: [chi/RHF structural audit — Revision 4](chi-rhf-structural-audit-r4.md).
@@ -29,6 +29,18 @@ zero failures and 331,513 provider-reported tokens. Local materialization
 published complete 1024/binary coverage for 621/621 chi and 492/492 RHF
 segments. No query embedding occurred.
 
+### 2026-08-16 explicit exploratory-query authorization
+
+After the project-local source/state migration was accepted at `e06e28a`, the
+user instructed Codex to goal the remaining work and continue. The instruction
+authorizes only the existing two-invocation packet: 12 chi plus 20 RHF draft
+exploratory queries under a combined $0.01 ceiling. Provider-free preflight
+reproduced both original plan JSON digests byte-for-byte, so no corpus,
+dataset, generation, manifest, raw count, profile, token ceiling, or operation
+count changed. The next boundary is a clean-provenance repeat followed by that
+single bounded series; no repeat, formal calibration, confirmation, mixed
+corpus, promotion, or assistant operation is implied.
+
 ### 2026-08-16 document and query-plan boundary
 
 Read-only lab and production checks proved one `voyage-code-4` response model,
@@ -37,8 +49,8 @@ materialization runs, one binary codec, 128 stored bytes per vector, and no
 missing segment vector. Post-capture plans have 1,111 raw hits and zero paid
 misses. The provider-free retrieval preflight then fixed 12 chi plus 20 RHF
 query operations with a 3,698-token conservative ceiling. The separate query
-packet proposes a $0.01 approval ceiling; credentials and document approval do
-not authorize it.
+packet now records the later explicit one-series authorization under its $0.01
+ceiling; credentials and document approval alone did not authorize it.
 
 ### 2026-08-16 behavior-binding boundary checks
 

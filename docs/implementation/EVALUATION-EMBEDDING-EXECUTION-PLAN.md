@@ -41,9 +41,8 @@ retrieval quality or supports promotion. The current blockers remain:
 - two recorded human label-review passes are incomplete;
 - the deterministic simple-search baseline has not been frozen;
 - the canonical `voyage-code-4` model/price, complete document raw bank, and
-  1024/binary materialization are confirmed; the exact 32-query exploratory
-  operation is planned but separately unapproved;
-- no paid query operation has been approved;
+  1024/binary materialization are confirmed; the exact 12 chi + 20 RHF
+  exploratory series is approved once under a $0.01 ceiling;
 - the two repositories do not contain a genuine cross-language Go/TypeScript/TSX behavior path;
 - the confirmation-size and review floor has not been satisfied.
 
@@ -656,12 +655,12 @@ Provider-free actions 1–4 below are complete. The immediate sequence is:
 4. Freeze the initial 1,024-byte canonical document input universe and produce a no-network document-capture plan and estimate.
 5. Record explicit bounded document-capture approval in the [current approval
    packet](evidence/phase-07/chi-rhf-document-capture-approval-r4.md).
-6. After capture, materialize 1,024/binary and request a separate bounded exploratory-query approval through the [current query packet](evidence/phase-07/chi-rhf-query-evaluation-approval-r4.md).
-7. Use first-loss evidence to revise the working cohort direction, then close and freeze the chi/RHF calibration dataset.
+6. After capture, materialize 1,024/binary and record the separately approved bounded exploratory-query series in the [current query packet](evidence/phase-07/chi-rhf-query-evaluation-approval-r4.md).
+7. Execute that exact series once, use first-loss evidence to revise the working cohort direction, then close and freeze the chi/RHF calibration dataset.
 
 The deterministic simple baseline must still freeze before official frozen-label lexical scoring, but it is not on the critical path to the document capture above. Mixed-language corpus selection and promotion confirmation are deliberately deferred until chi/RHF calibration closure.
 
-Paid query approval is requested only after compatible raw document coverage and local candidate materializations exist. Formal confirmation approval is requested only after the selected policy, final pooled confirmation labels, margins, denominators, arms, and promotion contract are sealed.
+The one current exploratory query series is explicitly approved after compatible raw document coverage and local candidate materializations were proved. Any repeat or later pool/calibration/confirmation apply requires its own approval. Formal confirmation approval is requested only after the selected policy, final pooled confirmation labels, margins, denominators, arms, and promotion contract are sealed.
 
 ## 16. Adviser reconciliation
 

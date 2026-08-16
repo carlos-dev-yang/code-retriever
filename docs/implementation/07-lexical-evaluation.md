@@ -1,6 +1,6 @@
 # 07. Lexical Chunking and Search Evaluation
 
-- Status: `blocked` — generation-3 chi/RHF audit, 32-case draft cohort binding, clean FTS controls, complete `voyage-code-4` document capture, and full 1024/binary materialization are recorded; the exact 32-query exploratory run waits for separate bounded approval, while later frozen evidence remains separately gated.
+- Status: `in_progress` — the exact one-series 12 chi + 20 RHF exploratory query run is explicitly approved under a $0.01 ceiling and its provider-free plans match byte-for-byte; later label freeze, simple baseline, formal calibration, confirmation, and promotion remain separately gated.
 - Prerequisite phase: `06-fts-search`
 - Follow-up phase: `12-retrieval-evaluation`
 - Design basis: `local-code-search-mcp-v1-design-r4.md` §13, §14
