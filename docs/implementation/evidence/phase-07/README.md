@@ -363,6 +363,9 @@ missed every retrieved top-5 arm. The packets
 retain verified source spans and exact parent bodies while omitting arm, score,
 and rank. Their paths, digests, coverage, pending simple-search addition, and
 unopened int8 status are recorded in the exploratory-results evidence below.
+Separate ignored advisory overlays cover all 205 relations with proposed
+0/1/2 grades and required-group assignments. They are explicitly withheld from
+the label-free first-pass packet and cannot be merged automatically.
 
 The complete metrics, stage diagnosis, source-backed label corrections, and
 simple-baseline decision are recorded in

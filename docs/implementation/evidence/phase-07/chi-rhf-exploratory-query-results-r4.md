@@ -212,6 +212,24 @@ label decisions remain. T10, G09, and the simple baseline are the policy gates;
 after those gates, all 205 pooled relations still require a blind first pass and
 a separated second pass before the dataset can be frozen.
 
+Separate ignored machine-suggestion overlays prepare, but do not replace, that
+human work:
+
+- chi: `.cidx/test/states/chi/evaluations/review/machine-suggestions-v1-chi.json`,
+  SHA-256 `a453e50560e722c5e64f4db667c34f3d4584f4f1d9b9e0fc1701aa0878326b4f`;
+- RHF: `.cidx/test/states/react-hook-form/evaluations/review/machine-suggestions-v1-rhf.json`,
+  SHA-256 `01553e8030e06ed4ba256e6317dad473cc1681865e9bc8abce99faf38505f29b`.
+
+Across both overlays the advisory distribution is 111 grade-0, 59 grade-1,
+and 35 grade-2 relations. Every grade-2 suggestion has a proposed required
+group. The overlays preserve every existing machine-draft grade except the
+explicit T10 `Path` grade-2 to grade-1 proposal; they also mark the T10 three
+parents and G09 `walkXFF` as material decision gates. Their status is
+`ADVISORY_NOT_LABEL_AUTHORITY`, and their merge policy forbids dataset changes
+without explicit user acceptance and two recorded human passes. Review pass 1
+uses the label-free packets above; these overlays are a later reconciliation
+aid, not a way to seed the blind decisions.
+
 ## 8. Remaining decision gate
 
 Before creating a new working-dataset digest or implementing the simple
