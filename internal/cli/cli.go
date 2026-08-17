@@ -107,8 +107,8 @@ func versionCommand(ctx context.Context, args []string, deps Dependencies) error
 func initCommand(ctx context.Context, args []string, deps Dependencies) error {
 	flags := flag.NewFlagSet("init", flag.ContinueOnError)
 	flags.SetOutput(deps.Stderr)
-	serving := flags.Int("serving-dim", 0, "required serving dimension (256, 512, or 1024)")
-	codec := flags.String("codec", "binary", "binary or int8")
+	serving := flags.Int("serving-dim", config.DefaultServingDimensions, "serving dimension (512 or 1024)")
+	codec := flags.String("codec", config.StorageCodecInt8, "storage codec (int8 only; flag removed in the CLI reconciliation phase)")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}

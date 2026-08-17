@@ -24,7 +24,7 @@ func Validate(resolved *ResolvedConfig) error {
 	if !resolved.Embedding.Model.SupportsServingDimensions(resolved.Embedding.ServingDimensions) || resolved.Embedding.ReducerID != vector.ReducerID || resolved.Embedding.NormalizerID != vector.NormalizerID || resolved.Embedding.Metric != vector.MetricID {
 		return fmt.Errorf("unsupported embedding transform")
 	}
-	if resolved.Embedding.StorageCodec != StorageCodecBinary && resolved.Embedding.StorageCodec != StorageCodecInt8 {
+	if resolved.Embedding.StorageCodec != StorageCodecInt8 {
 		return fmt.Errorf("unsupported storage codec %q", resolved.Embedding.StorageCodec)
 	}
 	if resolved.Embedding.Request.MaxInputs <= 0 || resolved.Embedding.Request.MaxInputs > AbsoluteRequestMaxInputs || resolved.Embedding.Request.MaxTotalInputBytes <= 0 || resolved.Embedding.Request.MaxTotalInputBytes > AbsoluteRequestMaxTotalInputBytes || resolved.Embedding.Request.MaxConcurrency <= 0 || resolved.Embedding.Request.MaxConcurrency > AbsoluteRequestMaxConcurrency || resolved.Embedding.Request.TimeoutSeconds <= 0 || resolved.Embedding.Request.TimeoutSeconds > AbsoluteRequestTimeoutSeconds {
@@ -64,8 +64,3 @@ func validRetryWaits(retry ResolvedRetry) bool {
 func finitePositive(value float64) bool {
 	return value > 0 && !math.IsNaN(value) && !math.IsInf(value, 0)
 }
-
-const (
-	StorageCodecBinary = "binary"
-	StorageCodecInt8   = "int8"
-)

@@ -290,12 +290,8 @@ func FingerprintProfiles(resolved ResolvedConfig) (DesiredProfiles, error) {
 }
 
 func storageCodecID(codec string) (string, error) {
-	switch codec {
-	case StorageCodecBinary:
-		return vector.BinaryCodecID, nil
-	case StorageCodecInt8:
+	if codec == StorageCodecInt8 {
 		return vector.Int8CodecID, nil
-	default:
-		return "", fmt.Errorf("unsupported storage codec")
 	}
+	return "", fmt.Errorf("unsupported storage codec")
 }

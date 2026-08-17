@@ -1,7 +1,6 @@
 # 02. Configuration, Profiles, and Storage Schemas
 
-- Status: `in_progress` — reconcile config/profile validation and fixtures to
-  int8-only 512/1024 product support; prior schema/layout evidence remains accepted
+- Status: `done` — default 1024/optional 512 and fixed-int8 config/profile/evaluation-wire boundary accepted
 - Prerequisite phases: `00-shared-contracts-and-config`, `01-runtime-storage-spike`
 - Downstream phases: `03-go-chunker`, `04-typescript-tsx-chunker`, `05-worktree-index-pipeline`, `08-raw-embedding-lab`
 - Design basis: `local-code-search-mcp-v1-design-r4.md` Sections 4.4, 6, and 9
@@ -17,15 +16,15 @@
 
 ## 2026-08-17 product-profile supersession
 
-Phase 02 now owns complete removal of Binary and 256, a 1024 default,
-supported explicit 1024, fixed int8 profile identity, and actionable legacy
+Phase 02 now owns config-level removal of Binary and 256, a 1024 default,
+supported explicit 512, fixed int8 profile identity, and actionable legacy
 errors. It does not delete old config or database rows. The current authority
 is [`RETIRED-VECTOR-PROFILES.md`](RETIRED-VECTOR-PROFILES.md); older Binary/256
 details below remain historical until the focused Phase 02 boundary closes.
 
 ## 1. Goal
 
-Implement strict typed configuration and three SQLite storage boundaries so the entire project observes the same desired configuration and applied profiles.
+Implement strict typed configuration and define the ownership contract for three SQLite storage boundaries so the entire project observes the same desired configuration and applied profiles. Phase 08 implements the new product source-bank/evaluation-store schemas under this contract.
 
 - Read `.cidx/config.json` once and inject the validated immutable `ResolvedConfig` into every runtime service.
 - Separate the index profile that invalidates source chunks and FTS from the source, vector-space, and storage profile hierarchy.
@@ -44,7 +43,7 @@ Implement strict typed configuration and three SQLite storage boundaries so the 
 - Canonical JSON and SHA-256 profile fingerprints
 - Canonical embedding-input hashes and the vector/cache key hierarchy
 - Production database schema, migrations, and connection factory
-- Separate product source-bank and lab database schemas, migrations, and connection factories
+- Code-owned product source-bank/lab locations and distinct schema/factory requirements handed to Phase 08
 - Minimum store API for active serving profile and derived ready/pending/failed state
 - Profile-mismatch and required-reconciliation planning
 - Shared `Chunker` interface and source byte/line range and projection value types and validators
@@ -120,7 +119,7 @@ internal/
     chunks.go
     embeddings.go           # segment, codec-tagged vector, and failure metadata
     runs.go
-  sourcebank/
+  sourcebank/               # Phase 08 implementation target under this contract
     options.go              # code-owned source-bank path and portable repository identity
     store.go                # product document-source connection factory
     schema.go               # source-only schema and migrations
@@ -309,9 +308,9 @@ Phase 02 provides:
 - `config.FingerprintProfiles(ResolvedConfig) (DesiredProfiles, error)`
 - `config.PlanImpact(desired, applied, expectedProductionSchemaVersion) ConfigImpactPlan`; the store caller supplies the database-schema authority so it is never conflated with the config-file version
 - `store.OpenProductionAt(sourceRoot, stateRoot, resolvedConfig) (ProductionStore, error)`; the default wrapper resolves state to `<sourceRoot>/.cidx`
-- `sourcebank.Open(sourceBankOptions{SourceRoot, StateRoot}) (SourceBank, error)`
+- Phase 08 handoff: `sourcebank.Open(sourceBankOptions{SourceRoot, StateRoot}) (SourceBank, error)`
 - `lab.OpenStore(labOptions{StateRoot}) (LabStore, error)`
-- separate production, source-bank, and lab `Migrate` and `InspectSchemaVersion`
+- existing production/lab `Migrate` and `InspectSchemaVersion`; Phase 08 adds an independent source-bank version and removes vector blobs from the next lab schema
 - strict `evalcontract` encode/decode/validate and canonical artifact-checksum functions
 
 This phase does not duplicate CLI/MCP behavior. Application assembly resolves one source root plus one state root and injects both into the same production services. Default commands use `<source-root>/.cidx`; development commands may inject a validated controlling-project-relative `.cidx/test/states/<name>`. Config is `<state_root>/config.json`, the product source bank is `<state_root>/db/embeddings.db`, and evaluation artifacts use a separate lab namespace. Always read model, serving dimension, reducer, normalizer, metric, and codec from that one state config. Never inject source-bank or lab handles into serving/search services.
@@ -347,7 +346,7 @@ Database schema version, config schema version, required MCP protocol fields, an
 8. Build the production connection factory with Phase 01-selected pragmas.
 9. Implement the production schema and versioned migrations.
 10. Use a fixed int8 identity and validated value types so the production vector-write API cannot accept another codec.
-11. Implement distinct product source-bank and lab connection factories and migrations; only the source bank stores document f32.
+11. Freeze distinct product source-bank and lab ownership; Phase 08 implements their connection factories and migrations so only the source bank stores document f32.
 12. Verify package direction prevents `sourcebank` or `lab` imports anywhere on `serve` or `search` dependency paths.
 13. Define queries that derive ready/pending/failed state and coverage from the active snapshot.
 14. Define typed errors for schema and profile mismatch.
@@ -382,7 +381,7 @@ Validate the following during implementation; this planning phase adds no test c
 - Changing between 1024 and 512 leaves the index-profile fingerprint unchanged and changes only serving-profile fingerprints.
 - A chunker or FTS-version change is classified as an index-profile mismatch.
 - Types or constraints reject any path attempting to write a float32 blob to production.
-- Serving, source-bank, and lab files reject every wrong store factory.
+- Serving and current lab files reject the wrong factory; Phase 08 re-proves this across the new source-bank and vector-free lab schemas.
 - `init` and an FTS-only runtime can be assembled without opening source-bank or lab databases.
 - A vector row for a profile other than the active profile is excluded from ready state and coverage.
 - When a valid vector exists, ready state wins over an old failure; success upsert and failure deletion can occur in one transaction.
@@ -405,7 +404,7 @@ migration, relocation proof, and current boundary checks are recorded in
 - Historical v1 production/lab schemas used atomic user-version migration checks, canonical-root matching, and owner-only paths where supported. The current project-local layout and product source-bank contract supersede that machine-path identity while preserving separation: `index.db` contains no raw f32/f16, `embeddings.db` contains immutable document f32 only, and serving has no lab dependency.
 - Exact successful and intentionally unrun checks, including RFC-8785 finite-number/Unicode conformance, transaction-pinned active state, immutable lab rows, and real strict JSON-Schema validation, are recorded in the evidence file.
 
-The historical Revision 4 boundary reconciled config/profile/evaluation wires without changing the then-current serving or lab relational schemas. The 2026-08-17 contract now requires an additional source-bank schema and removal of f32 blobs from the lab schema; that work must be revalidated before Phase 02 returns to done.
+The historical Revision 4 boundary reconciled config/profile/evaluation wires without changing the then-current serving or lab relational schemas. The 2026-08-17 Phase 02 reconciliation fixes the int8-only profiles and three-store ownership contract; Phase 08 owns and revalidates the actual source-bank/vector-free-lab migration.
 
 The later project-local layout reconciliation does change only the storage
 identity schemas: production v4 and lab v6 remove the obsolete absolute

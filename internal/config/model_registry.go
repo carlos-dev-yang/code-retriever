@@ -23,7 +23,7 @@ func VoyageCode4() ModelSpec {
 		Provider: embedclient.ProviderID, Model: embedclient.Model,
 		// The adapter owns the source dimension; this registry exposes that
 		// capability together with the allowed serving dimensions.
-		SourceDimensions: embedclient.SourceDimensions, AllowedServingDimensions: []int{256, 512, 1024},
+		SourceDimensions: embedclient.SourceDimensions, AllowedServingDimensions: []int{1024, 512},
 		OutputDType: embedclient.OutputDType, DocumentInputType: "document", QueryInputType: "query",
 		Truncation: false, AdapterVersion: embedclient.AdapterVersion,
 	}

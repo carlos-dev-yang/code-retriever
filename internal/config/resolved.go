@@ -110,8 +110,9 @@ func Resolve(raw RawConfig) (ResolvedConfig, error) {
 	if err != nil {
 		return ResolvedConfig{}, err
 	}
-	if raw.Embedding.ServingDimensions == nil {
-		return ResolvedConfig{}, fmt.Errorf("embedding.serving_dimensions is required")
+	servingDimensions := DefaultServingDimensions
+	if raw.Embedding.ServingDimensions != nil {
+		servingDimensions = *raw.Embedding.ServingDimensions
 	}
 	codec := DefaultStorageCodec
 	if raw.Embedding.StorageCodec != nil {
@@ -196,7 +197,7 @@ func Resolve(raw RawConfig) (ResolvedConfig, error) {
 	hardMaxInlineBytes := defaultInt(raw.MCP.HardMaxInlineBytes, DefaultHardMaxInlineBytes)
 	resolved := ResolvedConfig{Version: raw.Version,
 		Index:     ResolvedIndex{MaxSourceFileBytes: maxSourceFileBytes, TargetSegmentBytes: targetSegmentBytes},
-		Embedding: ResolvedEmbedding{Model: model, ServingDimensions: *raw.Embedding.ServingDimensions, ReducerID: reducer, NormalizerID: normalizer, Metric: metric, StorageCodec: codec, Request: request, Retry: retry},
+		Embedding: ResolvedEmbedding{Model: model, ServingDimensions: servingDimensions, ReducerID: reducer, NormalizerID: normalizer, Metric: metric, StorageCodec: codec, Request: request, Retry: retry},
 		Search:    ServingPolicy{DefaultMode: mode, AllowPaidQueryEmbedding: allowPaid, ReturnK: returnK, CandidateK: candidateK, RRFK: rrfK, QueryTextFormatVersion: QueryTextFormatVersion, QueryLimits: QueryLimits{MaxBytes: maxQueryBytes, MaxTokens: maxQueryTokens, MaxTokenRunes: maxQueryTokenRunes}, FTSSymbolWeight: symbolWeight, FTSBodyWeight: bodyWeight},
 		MCP:       ResolvedMCP{HardMaxInlineBytes: hardMaxInlineBytes},
 	}

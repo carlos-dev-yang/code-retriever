@@ -4,7 +4,7 @@ This ledger is the authoritative resumable state for implementation work. Update
 
 ## Current state
 
-- Active phase: 02 — default 1024/optional 512 int8 config and source-bank profile reconciliation
+- Active phase: 05 — reprove int8-only serving-key reconciliation and pending source behavior
 - Active owner: `/root`
 - Phase 07 simple-control implementation owner: `/root/phase07_simple_control` (store/eval/devlab only; no corpus, provider, or production-ranking mutation)
 - Last updated: 2026-08-17
@@ -27,8 +27,8 @@ This ledger is the authoritative resumable state for implementation work. Update
   in the same chunker-version/reindex boundary. The accepted implementation
   found 57 such production functions: 51 in previously parentless files and six
   in files with an existing type parent.
-- Next eligible phase: complete Phase 02 reconciliation, then revalidate Phase 05 and proceed through 08, 09, 10, 11, 13, 14 before resuming Phase 07.
-- Exact next action: finalize the accepted [product source-vector bank](SOURCE-VECTOR-BANK-DECISION.md) in the canonical document commit, then implement Phase 02 default/profile validation.
+- Next eligible phase: revalidate Phase 05, then proceed through 08, 09, 10, 11, 13, 14 before resuming Phase 07.
+- Exact next action: reprove Phase 05 serving-key reconciliation against fixed int8 and source-bank pending identities.
 
 Existing phase completion rows and implementation are historical work produced against earlier design revisions. They must not be read as proof that the current code satisfies Revision 4; the implementation remains a prototype until it is explicitly reconciled and revalidated against the final target contract.
 
@@ -38,7 +38,7 @@ Existing phase completion rows and implementation are historical work produced a
 | --- | --- | --- | --- | --- | --- | --- |
 | 00 | done | `/root` | Yes — r4 design, execution guide, evaluation contract, implementation index, historical Phase 00 evidence, five-profile comparison, and explicit user decision checked | Revision 4 catalogs plus the int8-only 512/1024 product boundary and approval-gated Binary/256 evidence boundary recorded | [Phase 00 evidence index](evidence/phase-00/README.md), [int8 profile decision](evidence/phase-00/int8-profile-retirement-r4.md), and [retired-profile contract](RETIRED-VECTOR-PROFILES.md) | Complete Phase 02 reconciliation |
 | 01 | done | terra/high implementation agent; Codex validation | Yes — [Phase 00 evidence](evidence/phase-00/README.md) | Executable spikes and [Phase 01 evidence](evidence/phase-01/README.md) validated | Core, race, vet, build, runner, dependency-boundary, format, and module checks passed | Enter Phase 02 |
-| 02 | in_progress | `/root` | Yes — canonical R4, source-bank and retired-profile contracts, Phase 00/01 evidence, active Phase 07 state, live config/profile code, schemas, and existing chi/RHF state inspected | Earlier project-local layout work remains accepted; default 1024/optional 512, fixed int8, source-bank identity, and complete Binary/256 removal are being reconciled | [Phase 02 R4 config/wire evidence](evidence/phase-02/revision-4.md), [accepted project-local layout evidence](evidence/phase-02/project-local-layout-reconciliation.md), [source-bank decision](SOURCE-VECTOR-BANK-DECISION.md), and [int8 decision evidence](evidence/phase-00/int8-profile-retirement-r4.md) | Implement config/profile boundary and run one Phase 02 validation |
+| 02 | done | `/root` | Yes — canonical R4, source-bank and retired-profile contracts, Phase 00/01 evidence, live config/profile/evaluation-wire code, schemas, and downstream references inspected | Default 1024/optional 512, fixed int8, source-bank impact identity, strict Binary/256 rejection, focused race/test/vet/build/schema/format/diff boundary accepted; physical source/lab split remains Phase 08 | [Current int8/source evidence](evidence/phase-02/int8-source-profile-reconciliation.md), historical [R4 config/wire evidence](evidence/phase-02/revision-4.md), and [layout evidence](evidence/phase-02/project-local-layout-reconciliation.md) | Enter Phase 05 serving-key reconciliation |
 | 03 | done | terra/high implementation agent; Codex validation | Yes — [Phase 02 evidence](evidence/phase-02/README.md) and `internal/chunk` shared contracts | Go Tree-sitter adapter, exact chunk/projection/segment fixtures, decision log, and [Phase 03 evidence](evidence/phase-03/README.md) accepted | Main focused test, race, vet, build, format, and diff checks passed | Enter Phase 04 |
 | 04 | done | `/root`; main-agent validation | Yes — original Phase 04 document/evidence, Phase 02/03 contracts, real chi/RHF structural audit, accepted user decision, and current workspace inspected | Revision 4 path-derived existing-field labels, overload correction, version bump, focused boundary validation, and full provider-free generation-3 handoff accepted | [Phase 04 evidence](evidence/phase-04/README.md) | Resume Phase 07 against corrected inventory |
 | 05 | done | `/root/r4_phase05_index` (terra/high); Codex validation | Yes — full Phase 05 document, [Phase 02 R4 evidence](evidence/phase-02/revision-4.md), [Phase 03 evidence](evidence/phase-03/README.md), [Phase 04 evidence](evidence/phase-04/README.md), historical [Phase 05 evidence](evidence/phase-05/README.md), and the live implementation were inspected at `dde2893` | Target naming, forced free local rebuild, strict compatible legacy vector planning/reproof, atomic copy, rollback coverage, Terra review, and one-time main boundary validation complete | [Phase 05 R4 evidence](evidence/phase-05/revision-4.md) | Hand active canonical inputs and current-profile pending keys to Phase 08/10 |

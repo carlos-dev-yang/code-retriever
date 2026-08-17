@@ -108,6 +108,9 @@ func rejectExplicitZeroSafetyValues(data []byte) error {
 	if mcp, specified := root["mcp"]; specified && mcp == nil {
 		return fmt.Errorf("mcp must not be null when specified")
 	}
+	if embedding, specified := root["embedding"]; specified && embedding == nil {
+		return fmt.Errorf("embedding must not be null when specified")
+	}
 	for _, path := range [][2]string{
 		{"index", "max_source_file_bytes"},
 		{"index", "target_segment_bytes"},
@@ -121,6 +124,13 @@ func rejectExplicitZeroSafetyValues(data []byte) error {
 		}
 	}
 	if embedding, ok := root["embedding"].(map[string]any); ok {
+		for _, field := range []string{"serving_dimensions", "storage_codec"} {
+			if embedding[field] == nil {
+				if _, specified := embedding[field]; specified {
+					return fmt.Errorf("embedding.%s must not be null when specified", field)
+				}
+			}
+		}
 		requestValue, requestSpecified := embedding["request"]
 		if requestSpecified && requestValue == nil {
 			return fmt.Errorf("embedding.request must not be null when specified")

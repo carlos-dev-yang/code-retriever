@@ -5,12 +5,12 @@ import "cidx/internal/profile"
 type ImpactClass string
 
 const (
-	ImpactNone                    ImpactClass = "none"
-	ImpactRestartOnly             ImpactClass = "restart_only"
-	ImpactLocalReindex            ImpactClass = "local_reindex"
-	ImpactLocalRematerializeIfRaw ImpactClass = "local_rematerialize_if_raw"
-	ImpactPaidEmbeddingRequired   ImpactClass = "paid_embedding_required"
-	ImpactSchemaMigration         ImpactClass = "schema_migration"
+	ImpactNone                       ImpactClass = "none"
+	ImpactRestartOnly                ImpactClass = "restart_only"
+	ImpactLocalReindex               ImpactClass = "local_reindex"
+	ImpactLocalRematerializeIfSource ImpactClass = "local_rematerialize_if_source"
+	ImpactPaidEmbeddingRequired      ImpactClass = "paid_embedding_required"
+	ImpactSchemaMigration            ImpactClass = "schema_migration"
 )
 
 type AppliedProfiles struct {
@@ -43,10 +43,10 @@ func PlanImpact(desired DesiredProfiles, applied AppliedProfiles, expectedProduc
 		return ConfigImpactPlan{Class: ImpactPaidEmbeddingRequired, Reasons: []string{"embedding source profile differs"}, HybridFTSOnlyFallback: true}
 	}
 	if applied.Fingerprints.VectorSpace != "" && applied.Fingerprints.VectorSpace != desired.Fingerprints.VectorSpace {
-		return ConfigImpactPlan{Class: ImpactLocalRematerializeIfRaw, Reasons: []string{"vector space differs"}, HybridFTSOnlyFallback: true}
+		return ConfigImpactPlan{Class: ImpactLocalRematerializeIfSource, Reasons: []string{"vector space differs"}, HybridFTSOnlyFallback: true}
 	}
 	if applied.Fingerprints.VectorStorage != "" && applied.Fingerprints.VectorStorage != desired.Fingerprints.VectorStorage {
-		return ConfigImpactPlan{Class: ImpactLocalRematerializeIfRaw, Reasons: []string{"storage codec differs"}, HybridFTSOnlyFallback: true}
+		return ConfigImpactPlan{Class: ImpactLocalRematerializeIfSource, Reasons: []string{"int8 storage profile differs"}, HybridFTSOnlyFallback: true}
 	}
 	if applied.Fingerprints.Policy != "" && applied.Fingerprints.Policy != desired.Fingerprints.Policy {
 		return ConfigImpactPlan{Class: ImpactRestartOnly, Reasons: []string{"serving policy differs"}}

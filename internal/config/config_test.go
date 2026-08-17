@@ -24,11 +24,12 @@ func TestRFC8785ProfileFixturesAndStrictResolvedDefaults(t *testing.T) {
 	if digest, err := Fingerprint(space, VectorSpaceDomain); err != nil || digest != "01fd78bd204c5e01b010fba65047e6d6fa565bfcdf6c0d48db9019e709ee91e7" {
 		t.Fatalf("serving-dimension fixture = %s, %v", digest, err)
 	}
-	implicit, err := LoadBytes([]byte(validConfigJSON("")))
+	implicitJSON := strings.Replace(validConfigJSON(""), `"serving_dimensions":1024`, ``, 1)
+	implicit, err := LoadBytes([]byte(implicitJSON))
 	if err != nil {
 		t.Fatal(err)
 	}
-	explicit, err := LoadBytes([]byte(validConfigJSON(`,"model":"voyage-code-4","reducer":"prefix-l2-v1","normalizer":"l2-v1","metric":"cosine","storage_codec":"binary"`)))
+	explicit, err := LoadBytes([]byte(validConfigJSON(`,"model":"voyage-code-4","reducer":"prefix-l2-v1","normalizer":"l2-v1","metric":"cosine","storage_codec":"int8"`)))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,7 +39,7 @@ func TestRFC8785ProfileFixturesAndStrictResolvedDefaults(t *testing.T) {
 	if _, err := LoadBytes([]byte(`{"version":1,"unknown":true}`)); err == nil {
 		t.Fatal("unknown field accepted")
 	}
-	if _, err := LoadBytes([]byte(strings.Replace(validConfigJSON(""), `"embedding":{"serving_dimensions":256`, `"embedding":{"serving_dimensions":256,"request":{"max_inputs":0}`, 1))); err == nil {
+	if _, err := LoadBytes([]byte(strings.Replace(validConfigJSON(""), `"embedding":{"serving_dimensions":1024`, `"embedding":{"serving_dimensions":1024,"request":{"max_inputs":0}`, 1))); err == nil {
 		t.Fatal("explicit zero request limit accepted")
 	}
 	if _, err := LoadBytes([]byte(`{"version":1,"version":1}`)); err == nil {
@@ -81,10 +82,10 @@ func TestCanonicalJSONRFC8785UsedValueConformance(t *testing.T) {
 	if !bytes.Contains(canonical, []byte(`"😀":1,"�":2`)) {
 		t.Fatalf("keys are not UTF-16 sorted: %s", canonical)
 	}
-	if _, err := DecodeRaw([]byte(`{"version":1,"index":{"languages":["go"],"max_source_file_bytes":1,"target_segment_bytes":1},"embedding":{"serving_dimensions":256},"search":{"default_mode":"\ud800"},"mcp":{"hard_max_inline_bytes":1}}`)); err == nil {
+	if _, err := DecodeRaw([]byte(`{"version":1,"index":{"languages":["go"],"max_source_file_bytes":1,"target_segment_bytes":1},"embedding":{"serving_dimensions":1024},"search":{"default_mode":"\ud800"},"mcp":{"hard_max_inline_bytes":1}}`)); err == nil {
 		t.Fatal("lone surrogate accepted")
 	}
-	if _, err := DecodeRaw([]byte(`{"version":1,"index":{"languages":["go"],"max_source_file_bytes":1,"target_segment_bytes":1},"embedding":{"serving_dimensions":256},"search":{"default_mode":"\ud83d\ude00"},"mcp":{"hard_max_inline_bytes":1}}`)); err != nil {
+	if _, err := DecodeRaw([]byte(`{"version":1,"index":{"languages":["go"],"max_source_file_bytes":1,"target_segment_bytes":1},"embedding":{"serving_dimensions":1024},"search":{"default_mode":"\ud83d\ude00"},"mcp":{"hard_max_inline_bytes":1}}`)); err != nil {
 		t.Fatalf("valid surrogate pair rejected: %v", err)
 	}
 	zero, err := CanonicalJSON(struct {
@@ -176,8 +177,8 @@ func TestPlanImpactClassesAndPrecedence(t *testing.T) {
 	}{
 		{"none", AppliedProfiles{}, ImpactNone},
 		{"restart", AppliedProfiles{Fingerprints: profile.ProfileFingerprints{Policy: "changed"}}, ImpactRestartOnly},
-		{"storage", AppliedProfiles{Fingerprints: profile.ProfileFingerprints{VectorStorage: "changed"}}, ImpactLocalRematerializeIfRaw},
-		{"space", AppliedProfiles{Fingerprints: profile.ProfileFingerprints{VectorSpace: "changed"}}, ImpactLocalRematerializeIfRaw},
+		{"storage", AppliedProfiles{Fingerprints: profile.ProfileFingerprints{VectorStorage: "changed"}}, ImpactLocalRematerializeIfSource},
+		{"space", AppliedProfiles{Fingerprints: profile.ProfileFingerprints{VectorSpace: "changed"}}, ImpactLocalRematerializeIfSource},
 		{"source", AppliedProfiles{Fingerprints: profile.ProfileFingerprints{Source: "changed"}}, ImpactPaidEmbeddingRequired},
 		{"canonical", AppliedProfiles{Fingerprints: profile.ProfileFingerprints{CanonicalText: "changed"}}, ImpactLocalReindex},
 		{"index", AppliedProfiles{Fingerprints: profile.ProfileFingerprints{Index: "changed"}}, ImpactLocalReindex},
@@ -206,7 +207,7 @@ func TestResolvedConfigIntegrityRejectsPostResolutionMutation(t *testing.T) {
 }
 
 func validConfigJSON(extra string) string {
-	return `{"version":1,"index":{"languages":["go","typescript"],"max_source_file_bytes":10000,"target_segment_bytes":2000},"embedding":{"serving_dimensions":256` + extra + `},"search":{},"mcp":{"hard_max_inline_bytes":1}}`
+	return `{"version":1,"index":{"languages":["go","typescript"],"max_source_file_bytes":10000,"target_segment_bytes":2000},"embedding":{"serving_dimensions":1024` + extra + `},"search":{},"mcp":{"hard_max_inline_bytes":1}}`
 }
 
 func TestFinalV1DefaultsAndLegacyShapeError(t *testing.T) {
@@ -228,11 +229,11 @@ func TestFinalV1DefaultsAndLegacyShapeError(t *testing.T) {
 	if legacy.Mappings[0].RemovedField != "embedding.batch" || legacy.Mappings[2].RemovedField != "index.max_chunk_bytes" || legacy.Mappings[4].RemovedField != "mcp.max_read_span_lines" {
 		t.Fatalf("legacy mappings=%#v", legacy.Mappings)
 	}
-	raw, err := DefaultRaw(512, StorageCodecInt8)
+	raw, err := DefaultRaw(0, "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result, err := Resolve(raw); err != nil || result.Embedding.ServingDimensions != 512 || result.Embedding.StorageCodec != StorageCodecInt8 || result.Index.MaxSourceFileBytes != AbsoluteMaxSourceFileBytes || result.Index.TargetSegmentBytes != DefaultTargetSegmentBytes || result.MCP.HardMaxInlineBytes != DefaultHardMaxInlineBytes {
+	if result, err := Resolve(raw); err != nil || result.Embedding.ServingDimensions != 1024 || result.Embedding.StorageCodec != StorageCodecInt8 || result.Index.MaxSourceFileBytes != AbsoluteMaxSourceFileBytes || result.Index.TargetSegmentBytes != DefaultTargetSegmentBytes || result.MCP.HardMaxInlineBytes != DefaultHardMaxInlineBytes {
 		t.Fatalf("default raw did not resolve: %#v %v", result, err)
 	}
 	raw.Index.MaxSourceFileBytes = AbsoluteMaxSourceFileBytes + 1
@@ -244,6 +245,12 @@ func TestFinalV1DefaultsAndLegacyShapeError(t *testing.T) {
 	if err != nil || (*second.Embedding.Retry.WaitSeconds)[0] != 10 {
 		t.Fatalf("default retry schedule shared mutable state: %#v %v", second.Embedding.Retry, err)
 	}
+	if _, err := DefaultRaw(256, StorageCodecInt8); err == nil {
+		t.Fatal("retired 256 dimension accepted")
+	}
+	if _, err := DefaultRaw(1024, StorageCodecBinary); err == nil {
+		t.Fatal("retired binary codec accepted")
+	}
 }
 
 func TestStrictR4PresenceRejectsExplicitNullEmptyAndNegativeZero(t *testing.T) {
@@ -251,11 +258,11 @@ func TestStrictR4PresenceRejectsExplicitNullEmptyAndNegativeZero(t *testing.T) {
 		name string
 		json string
 	}{
-		{"empty retry waits", strings.Replace(validConfigJSON(""), `"embedding":{"serving_dimensions":256`, `"embedding":{"serving_dimensions":256,"retry":{"wait_seconds":[]}`, 1)},
-		{"null retry waits", strings.Replace(validConfigJSON(""), `"embedding":{"serving_dimensions":256`, `"embedding":{"serving_dimensions":256,"retry":{"wait_seconds":null}`, 1)},
-		{"null retry max", strings.Replace(validConfigJSON(""), `"embedding":{"serving_dimensions":256`, `"embedding":{"serving_dimensions":256,"retry":{"max_retries":null}`, 1)},
-		{"null request scalar", strings.Replace(validConfigJSON(""), `"embedding":{"serving_dimensions":256`, `"embedding":{"serving_dimensions":256,"request":{"max_inputs":null}`, 1)},
-		{"negative-zero request scalar", strings.Replace(validConfigJSON(""), `"embedding":{"serving_dimensions":256`, `"embedding":{"serving_dimensions":256,"request":{"max_inputs":-0}`, 1)},
+		{"empty retry waits", strings.Replace(validConfigJSON(""), `"embedding":{"serving_dimensions":1024`, `"embedding":{"serving_dimensions":1024,"retry":{"wait_seconds":[]}`, 1)},
+		{"null retry waits", strings.Replace(validConfigJSON(""), `"embedding":{"serving_dimensions":1024`, `"embedding":{"serving_dimensions":1024,"retry":{"wait_seconds":null}`, 1)},
+		{"null retry max", strings.Replace(validConfigJSON(""), `"embedding":{"serving_dimensions":1024`, `"embedding":{"serving_dimensions":1024,"retry":{"max_retries":null}`, 1)},
+		{"null request scalar", strings.Replace(validConfigJSON(""), `"embedding":{"serving_dimensions":1024`, `"embedding":{"serving_dimensions":1024,"request":{"max_inputs":null}`, 1)},
+		{"negative-zero request scalar", strings.Replace(validConfigJSON(""), `"embedding":{"serving_dimensions":1024`, `"embedding":{"serving_dimensions":1024,"request":{"max_inputs":-0}`, 1)},
 		{"null source limit", strings.Replace(validConfigJSON(""), `"max_source_file_bytes":10000`, `"max_source_file_bytes":null`, 1)},
 		{"negative-zero source limit", strings.Replace(validConfigJSON(""), `"max_source_file_bytes":10000`, `"max_source_file_bytes":-0`, 1)},
 		{"null segment target", strings.Replace(validConfigJSON(""), `"target_segment_bytes":2000`, `"target_segment_bytes":null`, 1)},
@@ -269,7 +276,7 @@ func TestStrictR4PresenceRejectsExplicitNullEmptyAndNegativeZero(t *testing.T) {
 			}
 		})
 	}
-	_, err := DecodeRaw([]byte(strings.Replace(validConfigJSON(""), `"embedding":{"serving_dimensions":256`, `"embedding":{"serving_dimensions":256,"batch":null`, 1)))
+	_, err := DecodeRaw([]byte(strings.Replace(validConfigJSON(""), `"embedding":{"serving_dimensions":1024`, `"embedding":{"serving_dimensions":1024,"batch":null`, 1)))
 	var legacy *LegacyConfigError
 	if !errors.As(err, &legacy) || len(legacy.Mappings) != 1 || legacy.Mappings[0].RemovedField != "embedding.batch" {
 		t.Fatalf("non-object legacy batch did not yield deterministic legacy error: %T %#v", err, err)
