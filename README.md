@@ -2,7 +2,7 @@
 
 cidx is a lightweight local code-search MCP server under active v1 implementation. It combines free local AST/FTS indexing with optional, explicitly authorized Voyage AI embeddings and keeps SQLite as the persistent authority.
 
-The Revision 4 core through Phase 13 and the Phase 14 corpus-independent implementation checkpoint are accepted. The local darwin/arm64 package and operational checkpoint were accepted from clean provenance `a5b2baef9a18e68d6c8b5d4fb62dc2e03727edb4`; Phase 14 remains blocked only for its official evaluation and release-candidate scope. Consult the status ledger for the exact boundary.
+The Revision 4 corpus-independent implementation is accepted through the current Phase 14 local package boundary. Default 1024/int8, provider-free compact 512/int8, retired Binary/256 rejection, and source-bank-free serving were verified in a darwin/arm64 archive from clean provenance `5f4955e1499ee8896be5c825ef0fb9b3a52abb70`. Phase 14 remains blocked only for official evaluation, assistant-use, and release-candidate scope. Consult the status ledger for the exact boundary.
 
 The current Phase 07 chi/RHF checkpoint includes the clean 32-query Voyage
 embedding-search run and dual-AI advisory replays. It rejects OR fusion as a
@@ -17,7 +17,8 @@ without another Voyage call.
 - Paid document embedding and paid hybrid-query embedding are separate explicit operations.
 - The stable MCP surface is limited to `status`, `search`, `read_span`, and `reindex`.
 - Production defaults to 1024-dimensional cidx-owned `int8`, can rematerialize an explicit 512/int8 target from its preserved 1024-f32 document source bank without another provider call, and contains no Binary/256 executable path. Their historical reports remain document evidence only.
-- The development-only document-f32 lab is isolated from runtime serving.
+- The product document source-1024 f32 bank is isolated from runtime serving;
+  evaluation state is separate and contains no serving vector authority.
 
 ## Local Phase 14 surface
 
@@ -26,8 +27,9 @@ The local darwin/arm64 package builder and offline verifier are documented in
 composition, and fail-closed upgrade guidance live in
 [hosts](docs/hosts.md), [hooks](docs/hooks.md), and [upgrade](docs/upgrade.md).
 The owner selected Apache-2.0 and its unmodified canonical text is in
-[`LICENSE`](LICENSE). The accepted checkpoint covers only the locally verified
-darwin/arm64 archive and project-scoped Codex configuration read; other
+[`LICENSE`](LICENSE). The current checkpoint covers only the locally verified
+darwin/arm64 archive, both supported int8 dimensions, source-bank-free
+four-tool serving, and a project-scoped Codex configuration read; other
 platforms and hosts, code signing, and notarization remain unsupported or
 unverified. It does not establish `release_candidate` status.
 

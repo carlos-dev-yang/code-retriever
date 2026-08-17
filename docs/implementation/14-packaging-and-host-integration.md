@@ -1,8 +1,8 @@
 # 14. Packaging and MCP Host Integration
 
-- Status: `in_progress` — rebuild the preserved local package checkpoint for
-  default 1024/int8 and provider-free compact-512 rematerialization; official
-  Phase 07/12 and assistant gates remain blocked
+- Status: `blocked` — the current default-1024/int8 and provider-free
+  compact-512 local package checkpoint is accepted; official Phase 07/12,
+  assistant-use, and release-candidate gates remain externally blocked
 - Prerequisite: `13-cli-and-mcp`
 - Followed by: v1 release-candidate validation
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 1–3 and 7–10
@@ -34,17 +34,18 @@ The deployment must preserve:
 
 Release-candidate evidence must also measure cidx's marginal usefulness beside an assistant's existing file, symbol, compiler, and test tools. It does not treat a cidx-only assistant or forced cidx invocation as the product.
 
-## Local accepted checkpoint
+## Current local accepted checkpoint
 
-The local darwin/arm64 target was packaged and verified from clean provenance
-`a5b2baef9a18e68d6c8b5d4fb62dc2e03727edb4`. The ignored archive, checksum
-manifest, embedded build manifest, and retained verifier transcripts are
-identified in [Phase 14 Revision 4 evidence](evidence/phase-14/revision-4.md).
-The accepted run covers checksum and deliberate-corruption rejection, neutral
-archive metadata and diagnostic paths, runtime capabilities, provider-free
-four-tool MCP smoke, and a project-scoped Codex configuration read only. It
-does not verify another OS/architecture or host, code signing, notarization,
-assistant usefulness, official retrieval evaluation, or `release_candidate`.
+The local darwin/arm64 target was rebuilt and verified from clean provenance
+`5f4955e1499ee8896be5c825ef0fb9b3a52abb70`. The current ignored archive,
+checksums, runtime facts, installed-binary 1024/int8 and provider-free 512/int8
+materialization, retired-profile rejection, source-bank-free four-tool MCP,
+and retained transcripts are recorded in
+[current int8 package evidence](evidence/phase-14/int8-profile-package-reconciliation.md).
+The earlier checkpoint remains [historical evidence](evidence/phase-14/revision-4.md).
+Neither checkpoint verifies another OS/architecture or host, code signing,
+notarization, assistant usefulness, official retrieval evaluation, or
+`release_candidate`.
 
 ## 2. Scope and Non-goals
 
@@ -291,6 +292,11 @@ This file defines a plan and creates no test code or release artifact.
 
 ## 11. Completion Evidence
 
+The current local darwin/arm64 implementation and operational subset is
+accepted in [current int8 package evidence](evidence/phase-14/int8-profile-package-reconciliation.md).
+The remaining items below are promotion/release gates, so the phase stays
+`blocked` rather than `done`.
+
 - Actual supported OS/architecture artifacts and checksums.
 - Build manifest and third-party notices.
 - Offline FTS5 and bundled-grammar smoke record.
@@ -330,3 +336,5 @@ If operational feedback establishes a real requirement for permanent model pinni
 | Runtime checks use disposable local state | FTS5/WAL and all embedded grammars must fail before repository mutation or production migration, without downloads or repairs | A future runtime changes the bundled dependency boundary |
 | Owner selected Apache-2.0; root license and local package checkpoint recorded | The unmodified root `LICENSE` supplies cidx's terms while third-party notices remain separate; local verification is limited to darwin/arm64 | Another release target, distribution policy, or owner terms require review |
 | CLI-only provenance report | Build facts are needed for package verification, while Phase 13's MCP `serverInfo` and four-tool surface remain frozen | The MCP version contract is separately revised |
+| Verify both current product profiles from one source bank | Default 1024/int8 and explicit 512/int8 must work in the installed binary without making source storage a serving dependency | The source/serving contract changes |
+| Keep Binary/256 package checks negative-only | Retired experimental profiles remain historical evidence and cannot regain an executable product entry point | A new measured design decision explicitly reauthorizes them |

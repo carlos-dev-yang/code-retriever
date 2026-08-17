@@ -3,8 +3,8 @@
 - Status: explicit product decision now preserves a product-owned 1024-f32
   document source bank and fixes int8-only serving at 1024 by default or
   explicit compact 512. Binary/256 implementations are removed while their
-  historical document evidence remains; downstream boundaries are being
-  reconciled before Phase 07 human freeze resumes
+  historical document evidence remains. All corpus-independent implementation
+  and local package boundaries are reconciled; Phase 07 human freeze is next
 - Canonical design: [Local Code Search MCP v1 Final Target Contract — Revision 4](../../local-code-search-mcp-v1-design-r4.md)
 - Earlier designs: [original](../../local-code-search-mcp-v1-design.md), [r1](../../local-code-search-mcp-v1-design-r1.md), [r2](../../local-code-search-mcp-v1-design-r2.md), [r3](../../local-code-search-mcp-v1-design-r3.md)
 - Execution protocol: [Implementation Execution and Context-Recovery Guide](EXECUTION-GUIDE.md)
@@ -43,15 +43,15 @@ Retrieval algorithms and normative evaluation schemas remain frozen. Official
 corpus evidence and promotion remain blocked, but Phase 13 is eligible without
 a corpus, provider, paid, or metric run.
 
-Phase 13's narrow provider-free initialization reconciliation is accepted in
-[its Revision 4 evidence](evidence/phase-13/revision-4.md). Phase 14's
-corpus-independent implementation checkpoint keeps the existing
+Phase 13's current int8-only CLI/MCP reconciliation is accepted in
+[current evidence](evidence/phase-13/int8-only-cli-mcp-reconciliation.md).
+Phase 14's current local package checkpoint keeps the existing
 MCP/search/index/store core frozen and is accepted in
-[the Phase 14 Revision 4 local checkpoint evidence](evidence/phase-14/revision-4.md).
-That evidence accepts one local darwin/arm64 package, offline verifier, and
-project-scoped Codex configuration-read checkpoint from clean provenance
-`a5b2baef9a18e68d6c8b5d4fb62dc2e03727edb4`. It is not immutable
-`release_candidate` evidence.
+[current int8 package evidence](evidence/phase-14/int8-profile-package-reconciliation.md).
+It proves default 1024/int8, provider-free compact 512/int8, negative-only
+Binary/256 handling, and source-bank-free serving from clean provenance
+`5f4955e1499ee8896be5c825ef0fb9b3a52abb70`. It is not immutable
+`release_candidate` evidence; the earlier local checkpoint remains historical.
 
 cidx is a **local auxiliary search MCP** used alongside file readers, symbol tools, compilers, and tests. It is not a comprehensive code-knowledge system. The plan is bounded by free local AST/FTS indexing, explicit paid embeddings, a small MCP surface, caller-controlled inline source volume, and one serving-vector profile per repository.
 
@@ -88,7 +88,7 @@ Allowed states are `planned | in_progress | blocked | done`. A phase becomes `do
 | 11 | done | [Vector and hybrid search](11-vector-and-hybrid-search.md) | reconciled 02/09/10, existing 06 | Int8-only request-local scan, RRF, fallback, and body packaging | [Current evidence](evidence/phase-11/int8-only-query-search-reconciliation.md) and [historical R4 evidence](evidence/phase-11/revision-4.md) |
 | 12 | blocked | [Retrieval evaluation](12-retrieval-evaluation.md) | 07, reconciled 08, 09, 11 | Accepted int8-only corpus-independent adapter; official corpus evaluation and promotion remain externally gated | [Current evidence](evidence/phase-12/int8-only-evaluation-reconciliation.md) and [accepted R4 accounting evidence](evidence/phase-12/revision-4.md) |
 | 13 | done | [CLI and MCP](13-cli-and-mcp.md) | reconciled 02/08/11 and existing Phase 12 core | Int8-only 1024-default init/help, local 512 rematerialization, and unchanged four-tool MCP | [Current evidence](evidence/phase-13/int8-only-cli-mcp-reconciliation.md) and [historical R4 evidence](evidence/phase-13/revision-4.md) |
-| 14 | in_progress | [Packaging and host integration](14-packaging-and-host-integration.md) | 13 | Rebuild local package/verifier smoke for current default 1024/int8 and provider-free compact 512 | [Historical local checkpoint](evidence/phase-14/revision-4.md) |
+| 14 | blocked | [Packaging and host integration](14-packaging-and-host-integration.md) | 13 | Current local package/verifier checkpoint accepted; official evaluation, assistant-use, and release-candidate evidence remain externally gated | [Current int8 package evidence](evidence/phase-14/int8-profile-package-reconciliation.md) and [historical local checkpoint](evidence/phase-14/revision-4.md) |
 
 `STATUS.md` is the operational ledger. Keep this summary table synchronized with it whenever a phase changes state.
 
