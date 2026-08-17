@@ -1,6 +1,6 @@
 # cidx v1 Implementation Plan Index
 
-- Status: Phase 07 completed the codec-isolated chi/RHF target-f32/binary/int8 top-20 diagnostic and single-root source review; production remains 1024/binary, every codec rank stays isolated, and formal freeze still waits on separated human source review
+- Status: Phase 07 completed isolated 1,024- and 512-dimension chi/RHF f32/binary/int8 top-20 diagnostics; 512/int8 is the compact candidate, the working 1024/binary baseline remains unchanged, every codec rank stays isolated, and formal freeze still waits on separated human source review
 - Canonical design: [Local Code Search MCP v1 Final Target Contract — Revision 4](../../local-code-search-mcp-v1-design-r4.md)
 - Earlier designs: [original](../../local-code-search-mcp-v1-design.md), [r1](../../local-code-search-mcp-v1-design-r1.md), [r2](../../local-code-search-mcp-v1-design-r2.md), [r3](../../local-code-search-mcp-v1-design-r3.md)
 - Execution protocol: [Implementation Execution and Context-Recovery Guide](EXECUTION-GUIDE.md)

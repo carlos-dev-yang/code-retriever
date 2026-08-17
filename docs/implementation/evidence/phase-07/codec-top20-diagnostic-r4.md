@@ -1,5 +1,7 @@
 # Paired f32/binary/int8 top-20 diagnostic — Revision 4
 
+Follow-up: [512-dimensional int8 diagnostic — Revision 4](codec-int8-512-diagnostic-r4.md).
+
 - Date: 2026-08-17
 - Authority: calibration diagnostic only; not a human label freeze and not promotion evidence
 - Production profile: `serving_dimensions=1024`, `storage_codec=binary` (unchanged)
@@ -161,4 +163,3 @@ coexist with a worse answer neighborhood.
    passes. The root review above is useful calibration evidence only.
 6. No further Voyage query call is needed for label changes. Recompute labels
    and metrics provider-free against the immutable rankings.
-

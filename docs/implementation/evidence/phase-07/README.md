@@ -1,7 +1,7 @@
 # Phase 07 Lexical Evaluation Evidence
 
 - Phase: `07-lexical-evaluation`
-- State: `in_progress` — the fresh 32-query Voyage embedding-search run and two complete AI-advisory blind passes are recorded; OR fusion is rejected for serving, production remains AND, and formal label freeze is blocked only on the required separated human review.
+- State: `in_progress` — the isolated 1,024 and 512 codec diagnostics are recorded; 512/int8 is the preferred compact candidate, the working 1024/binary baseline remains unchanged, and formal label freeze is blocked only on the required separated human review.
 - Date: 2026-08-17
 
 Current real-data audit: [chi/RHF structural audit — Revision 4](chi-rhf-structural-audit-r4.md).
@@ -19,6 +19,20 @@ Current measured cohort decision: [chi/RHF cohort score review — Revision 4](c
 Current measured retrieval loop: [provider-free FTS decisions and provenance-safe Voyage comparator — Revision 4](measured-retrieval-loop-r4.md).
 
 Current isolated codec diagnostic: [paired f32/binary/int8 top-20 diagnostic — Revision 4](codec-top20-diagnostic-r4.md).
+
+Current 512-dimensional follow-up: [512-dimensional int8 diagnostic — Revision 4](codec-int8-512-diagnostic-r4.md).
+
+### 2026-08-17 512-dimensional int8 follow-up
+
+The clean-provenance 512-dimension series completed over the same chi/RHF raw
+document banks and questions. It used 32 successful Voyage query operations,
+646 tokens, zero retry/failure, zero document operations, no FTS, and no RRF.
+Against same-run exhaustive 512-f32, int8 retained `1.0000` of chi and `.9950`
+of RHF top-20 membership. A complete source-backed advisory review of all 640
+512-int8 relations found comparable neighborhoods to the earlier 1,024 run.
+Actual provider-free SQLite materialization halved int8 vector payload and
+reduced the two complete databases by a combined `26.48%`. The result advances
+512/int8 as the compact candidate but is not label freeze or promotion proof.
 
 ### 2026-08-17 paired codec diagnostic entry gate
 
