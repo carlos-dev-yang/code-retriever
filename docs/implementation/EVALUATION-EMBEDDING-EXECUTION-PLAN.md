@@ -387,6 +387,13 @@ preferred compact candidate and 256/int8 as the memory-constrained alternative;
 see the [512](evidence/phase-07/codec-int8-512-diagnostic-r4.md) and
 [256](evidence/phase-07/codec-int8-256-diagnostic-r4.md) evidence.
 
+The subsequent provider-free five-profile consolidation compares every current
+language, signal, and task cohort plus the actual answer placements without
+FTS, RRF, or codec-rank fusion. It advances 512/int8 as the next
+frozen-evaluation candidate, retains 256/int8 as the memory-constrained
+alternative, and leaves production at 1024/binary. See the
+[five-profile comparison](evidence/phase-07/five-profile-cohort-comparison-r4.md).
+
 Exit: the chi/RHF cohort direction and calibration truth are frozen. Exploratory and pool-generation runs remain preparation evidence and do not vote for promotion.
 
 ### Stage 8 — Run paid calibration and select one policy
@@ -708,18 +715,23 @@ The honest terminal outcome is then an invalid/incomplete run or `NOT_PROMOTION_
 
 ## 15. Exact next actions
 
-Provider-free actions 1–4 below are complete. The immediate sequence is:
+Corpus audit, cohort authoring, document capture, exploratory comparison, and
+the isolated 1,024/512/256 codec checkpoints are complete. The immediate
+sequence is:
 
-1. Complete the provider-free chi/RHF corpus/parser/chunker/parent/1,024-byte segment audit and surface only concrete exceptions for user review.
-2. Author the first versioned chi/RHF behavior-cohort working set, using the 12 identifier cases only as reference.
-3. Present the questions with direct/support parents, answer mode, task/signal tags, and source evidence for user review.
-4. Freeze the initial 1,024-byte canonical document input universe and produce a no-network document-capture plan and estimate.
-5. Record explicit bounded document-capture approval in the [current approval
-   packet](evidence/phase-07/chi-rhf-document-capture-approval-r4.md).
-6. After capture, materialize 1,024/binary and record the separately approved bounded exploratory-query series in the [current query packet](evidence/phase-07/chi-rhf-query-evaluation-approval-r4.md).
-7. Execute that exact series once, use first-loss evidence to revise the working cohort direction, then close and freeze the chi/RHF calibration dataset.
+1. Preserve the five immutable profile rankings and the provider-free
+   [combined comparison](evidence/phase-07/five-profile-cohort-comparison-r4.md).
+2. Complete the independently randomized separated human source-review passes
+   over the digest-bound pools, leaving no unresolved human disagreement.
+3. Replay the immutable rankings provider-free after label changes; do not
+   call Voyage merely to rescore labels.
+4. Freeze the calibration dataset digest and rerun the deterministic simple
+   and FTS controls against that final digest.
+5. Seal the selected candidate, margins, denominators, confirmation questions,
+   and approval packet before any formal confirmation operation.
 
-The deterministic simple baseline must still freeze before official frozen-label lexical scoring, but it is not on the critical path to the document capture above. Mixed-language corpus selection and promotion confirmation are deliberately deferred until chi/RHF calibration closure.
+Mixed-language corpus selection and promotion confirmation remain deliberately
+deferred until chi/RHF calibration closure.
 
 The earlier hybrid exploratory query series completed after compatible raw document coverage and local candidate materializations were proved; its one-series approval is consumed. The user separately approved and consumed the 1,024-, 512-, and final 256-dimensional 32-query codec-only series under the existing USD 5 billing cap and project-local credential boundary. Any later pool/calibration/confirmation apply requires its own approval. Formal confirmation approval is requested only after the selected policy, final pooled confirmation labels, margins, denominators, arms, and promotion contract are sealed.
 

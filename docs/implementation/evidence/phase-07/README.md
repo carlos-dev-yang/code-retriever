@@ -1,7 +1,12 @@
 # Phase 07 Lexical Evaluation Evidence
 
 - Phase: `07-lexical-evaluation`
-- State: `in_progress` — the isolated 1,024, 512, and 256 codec diagnostics are recorded; 512/int8 remains the preferred compact candidate, 256/int8 is the memory-constrained alternative, the working 1024/binary baseline remains unchanged, and formal label freeze is blocked only on the required separated human review.
+- State: `in_progress` — the five independent 1,024-f32/binary/int8,
+  512-int8, and 256-int8 arms are consolidated over every current cohort;
+  512/int8 remains the preferred compact candidate, 256/int8 is the
+  memory-constrained alternative, the working 1024/binary baseline remains
+  unchanged, and formal label freeze is blocked only on the required separated
+  human review.
 - Date: 2026-08-17
 
 Current real-data audit: [chi/RHF structural audit — Revision 4](chi-rhf-structural-audit-r4.md).
@@ -23,6 +28,22 @@ Current isolated codec diagnostic: [paired f32/binary/int8 top-20 diagnostic —
 Current 512-dimensional follow-up: [512-dimensional int8 diagnostic — Revision 4](codec-int8-512-diagnostic-r4.md).
 
 Current 256-dimensional follow-up: [256-dimensional int8 diagnostic — Revision 4](codec-int8-256-diagnostic-r4.md).
+
+Current five-profile conclusion: [five-profile cohort and answer comparison — Revision 4](five-profile-cohort-comparison-r4.md).
+
+### 2026-08-17 five-profile consolidation
+
+The immutable 1,024-, 512-, and 256-dimensional rankings were replayed without
+a Voyage call and without FTS, RRF, or codec-rank fusion. Across all 32 draft
+questions, every profile retained every direct answer by top 20. `512-int8`
+had the strongest shallow result: 31/32 direct and complete answers by top 5,
+all 32 questions with source-reviewed useful code by top 5, and `.9969`
+same-run f32 top-20 retention. Its two complete SQLite files are 13.53% larger
+than the fresh provider-free 1,024-binary controls. `256-int8` is only 5.44%
+larger than binary but falls to 28/32 direct answers by top 5 and places RHF
+T12's direct implementation at rank 14. This advances 512/int8 only as the
+next frozen-evaluation candidate; production stays 1024/binary until human
+label and confirmation gates are complete.
 
 ### 2026-08-17 256-dimensional int8 follow-up
 
