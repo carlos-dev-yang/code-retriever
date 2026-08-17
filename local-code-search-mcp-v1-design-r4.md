@@ -1,7 +1,8 @@
 # Local Code Search MCP v1 — Final Target Contract (Revision 4)
 
-- Status: final implementation target; project-local state-layout reconciliation is accepted
-- Date: 2026-08-16
+- Status: final implementation target; project-local state layout, durable
+  1024-f32 document source bank, and int8-only 1024/512 target boundary are accepted
+- Date: 2026-08-17
 - Binary name: `cidx`
 - Previous canonical draft: [`local-code-search-mcp-v1-design-r3.md`](local-code-search-mcp-v1-design-r3.md)
 - Detailed implementation plan: [`docs/implementation/README.md`](docs/implementation/README.md)
@@ -25,10 +26,16 @@ The stable MCP surface contains exactly four tools:
 The default serving behavior is:
 
 - search mode: `fts`
-- production vector codec: cidx-owned `binary`
-- alternative vector codec: cidx-owned `int8`
+- production vector codec: cidx-owned `int8`
+- serving dimensions: 1024 by default, with 512 as the supported compact option
 - one active vector profile per repository
 - no HNSW or other ANN index
+
+Sign-binary and every 256-dimensional profile are removed from the product.
+Their existing artifacts remain historical document evidence. Any future
+reproduction requires a separately approved non-product tool; the current
+source contains no Binary/256 config, codec, storage, search, or evaluation path. The
+detailed boundary is [Retired Vector Profiles and Evidence Boundary](docs/implementation/RETIRED-VECTOR-PROFILES.md).
 
 No numeric hit-rate, MRR, p50, p95, or maximum-latency target is a v1 release promise. These values are measured per corpus and language before later optimization decisions.
 
@@ -36,7 +43,7 @@ No numeric hit-rate, MRR, p50, p95, or maximum-latency target is a v1 release pr
 
 The MCP host starts `cidx serve` as a small long-lived Go stdio process for one explicit repository root. The process parses JSON-RPC/MCP messages and coordinates bounded work; it is not an HTTP daemon.
 
-SQLite is embedded through the selected Go driver and stored under a caller-resolved project-local state root. Users do not install a separate SQLite service. Normal use binds the source root and state root together and stores persistent AST chunks, FTS rows, segment metadata, active vectors, profiles, and generation metadata in `<source-root>/.cidx/db/index.db`.
+SQLite is embedded through the selected Go driver and stored under a caller-resolved project-local state root. Users do not install a separate SQLite service. Normal use binds the source root and state root together. `<source-root>/.cidx/db/index.db` stores persistent AST chunks, FTS rows, segment metadata, the one active int8 target, profiles, and generation metadata. `<source-root>/.cidx/db/embeddings.db` stores the immutable product-owned 1024-f32 document source bank used only by explicit embedding and local rematerialization operations.
 
 Source and state are separate runtime inputs even though normal use resolves them together:
 
@@ -108,21 +115,40 @@ The provider's 1024-dimensional float response is the source representation. Pro
 1024-dimensional provider float
 -> take the leading serving_dimensions components
 -> L2 normalize
--> encode or prepare with the selected cidx codec
+-> encode or prepare with the fixed cidx int8 codec
 ```
 
-The final configuration name is `serving_dimensions`, with allowed values `256`, `512`, or `1024`. The CLI name is `--serving-dim`.
+The final configuration name is `serving_dimensions`, with allowed values
+`1024` or `512`. The CLI name is `--serving-dim`; 1024 is the ordinary test and
+default initialization value, while 512 is an explicit compact option.
 
 `serving_dimensions` is the vector length used by every document vector, query vector, blob validator, and scanner in the active repository profile. It is not a source-code line range, directory scope, or search boundary. Source scope is determined separately by enabled languages, Git/ignore rules, file eligibility, and the explicit repository root.
 
 Production stores one active cidx-owned codec only:
 
-- `binary` is the default;
-- `int8` is the only v1 alternative;
-- provider-side binary/int8 output is not treated as either cidx codec;
-- production contains no persistent f32/f16 vector column.
+- `int8` is fixed by the product and is not a user-selectable CLI option;
+- provider-side quantized output is not treated as the cidx codec;
+- the serving database contains no persistent f32/f16 vector column; document
+  source f32 exists only in the separate product source bank.
 
-The initial development/evaluation workflow may preserve document-role 1024-dimensional f32 in a physically separate lab database at `<state_root>/raw/embeddings.db`. This is a test asset used to rematerialize and compare serving dimensions/codecs without repeated document-embedding charges. Runtime `serve` and `search` never open the lab database, query f32 is never persisted, and the lab is not a permanent multi-profile serving system. Evaluation artifacts live below `<state_root>/evaluations`; the cidx development workspace convention is `.cidx/test/states/<name>` for each isolated state.
+The earlier cidx sign-binary codec and 256-dimensional space are retired
+profiles. Their implementations are removed. Immutable historical reports and
+artifacts remain evidence, and any reproduction requires a separately approved
+non-product tool.
+
+Every successful ordinary document embedding durably records the validated
+1024-dimensional f32 response in the product source bank at
+`<state_root>/db/embeddings.db` before publishing its active int8 target. A
+complete compatible bank rematerializes either 1024/int8 or 512/int8 locally
+without a provider call. The source bank is not a second serving authority:
+runtime `serve`, `search`, `status`, and MCP never open it, and a missing bank
+does not break the already-active target. Query f32 is never persisted.
+
+Evaluation run metadata and experimental artifacts remain physically separate
+from both product databases. The cidx development workspace convention is
+`.cidx/test/states/<name>` for each isolated state; it uses the same product
+source-bank and target-store contracts under that state root while keeping
+review/run artifacts below its lab/evaluation namespace.
 
 ## 6. Synchronous request and retry policy
 
@@ -186,8 +212,8 @@ The final user-facing shape includes these concepts:
   },
   "embedding": {
     "model": "voyage-code-4",
-    "serving_dimensions": "<one of 256, 512, 1024>",
-    "storage_codec": "binary",
+    "serving_dimensions": "<one of 512, 1024>",
+    "storage_codec": "int8",
     "request": {
       "max_inputs": 128,
       "max_total_input_bytes": 262144,
@@ -208,15 +234,21 @@ The final user-facing shape includes these concepts:
 }
 ```
 
-The serving dimension is required rather than silently defaulted. `cidx init --serving-dim` or the evaluation workflow selects one supported value, and repository-specific evaluation may later change it through explicit reconciliation. `source_dimensions=1024`, supported serving dimensions, provider endpoint, algorithm/version IDs, schema versions, and executable absolute ceilings are code-owned model/protocol contracts rather than arbitrary user values.
+`cidx init` defaults to 1024 and accepts an explicit `--serving-dim 1024|512`.
+The codec is code-owned int8 and has no public selector. Repository-specific
+evaluation may change between the two supported dimensions through explicit
+reconciliation. `source_dimensions=1024`, supported serving dimensions,
+provider endpoint, algorithm/version IDs, schema versions, and executable
+absolute ceilings are code-owned model/protocol contracts rather than
+arbitrary user values.
 
 Change impact remains explicit:
 
 | Change | Required action |
 | --- | --- |
 | source eligibility, parser/chunker, segment target, FTS format | local reindex |
-| canonical embedding input or model/source role | paid document re-embedding unless compatible raw exists |
-| serving dimensions, reducer/normalizer, binary/int8 codec | local rematerialization when compatible lab raw exists; otherwise paid embedding |
+| canonical embedding input or model/source role | paid document re-embedding only for missing incompatible source-bank keys |
+| serving dimensions or int8 implementation | provider-free local rematerialization from the compatible product source bank; report missing keys before any separately approved embedding |
 | request grouping, retry, FTS defaults, RRF, return count, inline byte limits | restart/reload only; no reindex or re-embedding |
 | database schema | explicit migration |
 | source/state location only | reopen from the new relative location; no reindex or re-embedding when portable identity and database contents are unchanged |
@@ -230,7 +262,7 @@ Evaluation separates, rather than blends:
 - operational correctness and failures;
 - human-judged retrieval usefulness;
 - FTS, dense, provider-union, parent-collapse, RRF, body-packaging, and assistant first-loss stages;
-- exhaustive serving-dimension f32 versus binary/int8 representation fidelity;
+- exhaustive serving-dimension f32 versus int8 representation fidelity;
 - storage, memory, request count, latency, and cost observations.
 
 There is no weighted total score. HNSW recall and ANN tuning are excluded because v1 scans all eligible stored vectors. Failures and timeouts stay in required denominators. Calibration selects candidate settings; frozen confirmation evidence supports promotion. A metric observed during development does not become a release threshold retroactively.
@@ -238,8 +270,9 @@ There is no weighted total score. HNSW recall and ANN tuning are excluded becaus
 The initial matrix includes:
 
 - segment targets: 768, 1,024, 1,536 bytes;
-- serving dimensions: 256, 512, 1024;
-- cidx codecs: binary and int8;
+- serving dimensions: 512 and 1024;
+- cidx production codec: int8;
+- historical Binary/256 evidence: preserved outside the selectable product matrix;
 - FTS, dense, and RRF hybrid lanes;
 - per-language and mixed-corpus slices;
 - inline-body and follow-up `read_span` behavior.

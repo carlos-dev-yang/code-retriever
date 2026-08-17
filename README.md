@@ -16,7 +16,7 @@ without another Voyage call.
 - Local indexing and FTS search never require an API key or network access.
 - Paid document embedding and paid hybrid-query embedding are separate explicit operations.
 - The stable MCP surface is limited to `status`, `search`, `read_span`, and `reindex`.
-- Production serves one configured vector profile and stores only its cidx-owned `binary` or `int8` representation.
+- Production defaults to 1024-dimensional cidx-owned `int8`, can rematerialize an explicit 512/int8 target from its preserved 1024-f32 document source bank without another provider call, and contains no Binary/256 executable path. Their historical reports remain document evidence only.
 - The development-only document-f32 lab is isolated from runtime serving.
 
 ## Local Phase 14 surface

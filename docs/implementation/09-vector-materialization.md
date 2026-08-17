@@ -1,6 +1,7 @@
 # 09. Runtime Vector Materialization
 
-- Status: `done`
+- Status: `blocked` — Phase 02 int8-only profile reconciliation must land;
+  then remove Binary from the production materializer and revalidate 512/1024
 - Prerequisite phases: `01-runtime-storage-spike`, `02-config-profiles-and-schemas`, `05-worktree-index-pipeline`, `08-raw-embedding-lab`
 - Follow-up phases: `10-embedding-orchestration-and-reconciliation`, `11-vector-and-hybrid-search`, `12-retrieval-evaluation`
 - Design basis: `local-code-search-mcp-v1-design-r4.md` §6, §7.4, §9
@@ -8,14 +9,22 @@
 ## Context Recovery Checklist
 
 - Reopen the [implementation index](README.md), [execution guide](EXECUTION-GUIDE.md), and [status ledger](STATUS.md) before continuing.
-- Confirm the Phase 01 atomic SQLite publication decision, Phase 02 profile/config schemas, Phase 05 active manifest and serving keys, Phase 08 repository-bound raw bank, and current single serving-profile reconciliation are available.
-- Re-check these invariants after any context compaction: the source is always 1024-dimensional document f32; serving dimensions are only `{256,512,1024}`; the transform is `prefix(serving_dimensions) -> L2 -> selected cidx codec`; v1 codecs are only `binary` and `int8`, with `binary` as default; production persists no f32 and reads one active serving profile; candidate preparation is search-invisible and final publication is atomic; no API call occurs in materialization.
-- Stop if raw coverage is incomplete, source/vector/storage fingerprints do not reconcile with current config, a source checksum/dimension/finite check fails, codec or metric compatibility is unsupported, or generation/manifest/serving keys change before publish.
+- Confirm the Phase 01 atomic SQLite publication decision, Phase 02 profile/config schemas, Phase 05 active manifest and serving keys, Phase 08 product source bank, and current single serving-profile reconciliation are available.
+- Re-check these invariants after any context compaction: the product source bank holds 1024-dimensional document f32; serving dimensions are only `{1024,512}`; the transform is `prefix(serving_dimensions) -> L2 -> int8`; `index.db` persists no f32 and reads one active serving profile; candidate preparation is search-invisible and final publication is atomic; no API call occurs in materialization.
+- Stop if source coverage is incomplete, source/vector/storage fingerprints do not reconcile with current config, a source checksum/dimension/finite check fails, int8 or metric compatibility is unsupported, or generation/manifest/serving keys change before publish.
 - Before pausing, record executed evidence in §11, capture new architectural choices in §13, and update [STATUS.md](STATUS.md) with the exact next checklist item and unresolved stop condition.
+
+## 2026-08-17 product-profile supersession
+
+Production materialization is now `prefix(1024|512) -> L2 -> int8` only, with
+1024 used by ordinary fixtures. Binary codec code and every 256 path are removed
+from the product; only immutable historical reports and artifacts remain. The
+earlier dual-codec body below is historical where it conflicts with
+[`RETIRED-VECTOR-PROFILES.md`](RETIRED-VECTOR-PROFILES.md).
 
 ## 1. Goal
 
-Deterministically transform the Phase 08 `voyage-code-4` 1024-dimensional float32 document bank into the one vector space and cidx-owned `binary` or `int8` storage representation selected by current production config, then atomically publish the current serving set to production `index.db.vector_cache`. The resolved default codec is `binary`.
+Deterministically transform the Phase 08 product-owned `voyage-code-4` 1024-dimensional float32 document bank into the configured 1024- or 512-dimensional vector space and the fixed cidx-owned int8 representation, then atomically publish the current serving set to production `index.db.vector_cache` without a provider call.
 
 The reducer, normalizer, and codec implemented here are not lab-only converters. Later ordinary document embedding and hybrid queries use the same packages and `VectorSpaceProfile`.
 
@@ -23,12 +32,12 @@ The reducer, normalizer, and codec implemented here are not lab-only converters.
 
 ### Included
 
-- A common source-f32 to serving-dimensions to normalization pipeline followed by a selected `binary` or `int8` codec.
+- A common source-f32 to serving-dimensions to normalization pipeline followed by the fixed int8 codec.
 - Hierarchical fingerprints for `EmbeddingSourceProfile`, `VectorSpaceProfile`, and `VectorStorageProfile`.
-- Coverage validation between the current active manifest and raw bank.
-- Search-invisible candidate rows prepared in the lab and atomic publication into the already reconciled single active production profile.
+- Coverage validation between the current active manifest and product source bank.
+- Search-invisible candidate preparation outside the production write transaction and atomic publication into the already reconciled single active production profile.
 - Development-only `cidx dev embeddings materialize` plan/activate behavior.
-- Provenance linking raw f32 baselines to production binary/int8 representations.
+- Provenance linking source f32 rows to production int8 representations.
 
 ### Out of scope
 
@@ -36,14 +45,14 @@ The reducer, normalizer, and codec implemented here are not lab-only converters.
 - Creating or storing query embeddings.
 - Rebuilding FTS or AST data, or replacing serving-key reconciliation.
 - Persistent multi-profile serving, profile catalogs, or traffic splitting.
-- A runtime fallback in which the server reads the raw DB.
+- A runtime fallback in which the server reads the source bank.
 - External vector import, a model-pinning service, or a remote vector database.
 - ANN/HNSW construction.
 - Computing evaluation metrics themselves.
 
 ## 3. Prerequisites
 
-- The Phase 08 raw DB opens and validates against the current repository identity and source profile.
+- The Phase 08 source bank opens and validates against the current repository identity and source profile.
 - The config loader provides these layers as immutable resolved values:
   - `EmbeddingSourceProfile`
   - `VectorSpaceProfile`
@@ -58,18 +67,18 @@ The reducer, normalizer, and codec implemented here are not lab-only converters.
 1. `VectorSpaceProfile` contains the source-profile fingerprint, serving dimensions, reducer, normalization, and metric.
 2. `VectorStorageProfile` contains the vector-space fingerprint and codec.
 3. `VectorSpaceProfile.ServingDimensions` is the single authority for serving dimension. Transform, query, blob validator, scan loop, and coverage use the same value.
-4. Before work begins, validate that serving dimensions are one of the active `ModelSpec.AllowedServingDimensions` values `{256, 512, 1024}` and do not exceed source 1024. Do not permit an arbitrary value merely because `1 <= serving <= source`.
+4. Before work begins, validate that serving dimensions are one of the active `ModelSpec.AllowedServingDimensions` values `{1024, 512}` and do not exceed source 1024. Do not permit an arbitrary value merely because `1 <= serving <= source`.
 5. The v1 reducer selects the first `serving dimensions` values from the source vector using the Voyage Matryoshka prefix method.
-6. L2-normalize the prefix vector before either binary or int8 quantization.
+6. L2-normalize the prefix vector before int8 quantization.
 7. Validate supported metric/normalization combinations during config resolution.
-8. `VectorStorageProfile.Codec` is the single authority for codec identity and accepts only `binary` or `int8`. A versioned binary contract fixes bit mapping, packing, padding, query preparation, and scoring; a versioned int8 contract fixes scale, rounding, clamp, norm, query preparation, and scoring.
+8. `VectorStorageProfile.Codec` is the single authority for the fixed int8 identity. Its versioned contract fixes scale, rounding, clamp, norm, query preparation, and scoring.
 9. Production search and coverage read codec-valid rows for exactly one `active_serving_profile_fingerprint` at a time.
 10. Inactive candidates and old cache rows may remain physically present, but never participate in the search join and are eligible for separate garbage collection.
 11. Search sees either the complete old serving set or the complete new serving set, never mixed dimensions or codecs.
 12. Never copy raw f32 bytes into production `index.db`.
-13. Rematerializing another serving dimension or codec from the same raw bank does not call the Voyage AI API.
+13. Rematerializing 1024 or 512 from the same compatible source bank does not call the Voyage AI API.
 14. The v1 materialization source is always one 1024-dimensional f32 representation.
-15. The serving representation is produced from `SpaceVector` by the selected cidx-owned codec. Do not assume either codec is the same representation as Voyage `output_dtype=int8|binary`.
+15. The serving representation is produced from `SpaceVector` by the cidx-owned int8 codec. Do not treat it as Voyage provider-quantized output.
 16. `VectorSpaceProfile.Metric=cosine` describes the serving-f32 reference space. Each codec owns a versioned scorer that may approximate that ordering; raw codec scores are not relabeled as exact cosine.
 
 ## 5. Packages, Files, and Types to Implement
@@ -81,14 +90,13 @@ The reducer, normalizer, and codec implemented here are not lab-only converters.
 | `internal/vector/transform.go` | source-f32 validation plus reducer and normalizer orchestration |
 | `internal/vector/reducer_prefix.go` | versioned Voyage Matryoshka prefix reduction |
 | `internal/vector/normalize_l2.go` | L2 normalization with zero/finite validation |
-| `internal/vector/codec.go` | storage-codec interface and registry |
-| `internal/vector/codec_binary.go` | cidx binary encoder, bit packing, validation, query preparation, and scorer |
+| `internal/vector/codec.go` | fixed int8 storage/scoring contract; no codec registry or selector |
 | `internal/vector/codec_int8.go` | cidx int8 encoder, metadata validation, query preparation, and scorer |
 | `internal/vector/distance.go` | codec-aware scoring contracts; no generic decoder may bypass the active codec |
 | `internal/store/vector_build.go` | current-profile atomic publish, abort, and garbage collection |
-| `internal/lab/materializations.go` | active raw rows, derived variants, and run provenance |
-| `internal/lab/materializer.go` | feeds raw rows into the common transform and production publish |
-| `internal/app/dev_materialize.go` | plan/activate use case consumed by the Phase 13 development command |
+| `internal/sourcebank/embeddings.go` | immutable validated 1024-f32 document-source reads |
+| `internal/app/materialize.go` | shared source-read, transform, plan, and production-publish use case |
+| `internal/app/dev_materialize.go` | evaluation-root adapter consumed by the Phase 13 development command; uses the same materializer |
 
 Core types:
 
@@ -98,8 +106,8 @@ Core types:
 - `SpaceVector`: ephemeral f32 slice satisfying serving dimension and normalization.
 - `StoredVector`: codec-tagged blob, dimensions, codec-specific metadata, and provenance.
 - `VectorTransformer`: side-effect-free service that creates a `SpaceVector` from a `SourceVector`.
-- `VectorCodec`: creates a `StoredVector` from a `SpaceVector` and provides the search-scoring contract.
-- `MaterializationPlan`: captured generation, required raw keys, missing raw keys, build count, and expected bytes.
+- `Int8Codec`: creates a `StoredVector` from a `SpaceVector` and provides the sole production search-scoring contract.
+- `MaterializationPlan`: captured generation, required source keys, missing source keys, build count, and expected bytes.
 - `VectorBuild`: build ID, captured manifest, profile fingerprints, staged row counts, and status.
 
 `VectorTransformer` and `VectorCodec` do not reread config internally. Construct them with already validated immutable profiles.
@@ -115,29 +123,18 @@ Core types:
 - `space_profile_fingerprint`
 - `source_profile_fingerprint`
 - dimensions and codec
-- codec-tagged blob and codec-specific metadata; binary rows use the Phase 01 bit layout, while int8 rows use the Phase 01 scale/norm layout
+- int8 blob plus scale/norm metadata using the Phase 01 int8 layout
 - source raw-vector SHA-256 provenance
 - materialization time
 - primary key `(serving_vector_profile_fingerprint, canonical_input_sha256)`
 
 Every searchable row's serving profile must equal `meta.active_serving_profile_fingerprint`. The physical dimension and codec columns validate corruption; they do not override config. Old cache rows with another fingerprint may remain but are excluded from search. Prepare new candidates in lab staging, not in the production table.
 
-Lab `materialization_runs`
-
-- build ID, captured generation, and manifest
-- source, space, and storage profile fingerprints
-- planned, staged, missing, and rejected counts
-- `planned | building | ready | published | aborted | failed`
-- start/end time and sanitized error
-
-Lab `materialized_variants`
-
-- materialization fingerprint and `canonical_input_sha256`
-- transformed binary or int8 bytes and validation metadata
-- raw-vector SHA-256 provenance
-- available only to evaluation/materialization; production search cannot access it
-
-Multiple candidate variants in the lab do not imply persistent multi-profile serving. Production exposes one active search-visible profile.
+Materialization run accounting may be written to the separate lab metadata store
+when the caller is a development command, but product materialization neither
+requires that store nor writes serving candidates into it. Transformed candidates
+remain bounded process state until the atomic production publication boundary.
+Production exposes one active search-visible profile.
 
 ### Common transformation API
 
@@ -146,20 +143,20 @@ Resolve profiles
   -> Validate source dimensions and finite f32 values
   -> PrefixReduce(serving dimensions)
   -> L2Normalize
-  -> Encode(selected `binary` or `int8` codec)
+  -> Encode with the fixed cidx `int8` codec
   -> Validate stored vector metadata
 ```
 
-The binary codec version specifies exact value-to-bit mapping, bit order, padding, zero/invalid-vector behavior, query preparation, and similarity scoring. The int8 codec version specifies exact scale, rounding, clamp, zero-vector behavior, reconstructed-norm calculation, query preparation, and scoring. Do not reimplement these rules in multiple packages.
+The int8 codec version specifies exact scale, rounding, clamp, zero-vector behavior, reconstructed-norm calculation, query preparation, and scoring. Do not reimplement these rules in multiple packages.
 
 ### Atomic publish
 
-1. Prepare every transformation in lab `materialized_variants`, outside the production write transaction.
+1. Read and validate source rows, then prepare every transformation in bounded process memory outside the production write transaction.
 2. Immediately before publish, recheck that active generation, manifest, active-segment serving keys, and `active_serving_profile_fingerprint` still match current config. If not, do not publish.
 3. In one production write transaction, upsert the complete set of validated candidate rows for current serving keys plus embedding-run metadata. The materializer neither changes config nor switches the active fingerprint to another candidate.
 4. Before commit, search sees pre-publish current-profile coverage; after commit, search sees the complete new row set. No partial candidate subset becomes visible.
 5. After commit, old cache rows for other profiles may be garbage-collected in a separate maintenance transaction.
-6. On rollback, the pre-publish current-profile vector set and coverage remain intact, while lab candidates remain search-invisible.
+6. On rollback, the pre-publish current-profile vector set and coverage remain intact; no candidate becomes search-visible.
 
 If the full-row final transaction is too large under the initial SQLite-spike bounds, introduce generation-scoped production staging. Even then, do not use a pointer as an arbitrary candidate-selection mechanism; first prove that one search cannot combine pre- and post-publish state.
 
@@ -170,11 +167,11 @@ cidx dev embeddings materialize
 cidx dev embeddings materialize --activate
 ```
 
-- The default execution displays config, raw coverage, expected rows/bytes, current and desired fingerprints, and required actions.
+- The default execution displays config, source coverage, expected rows/bytes, current and desired fingerprints, and required actions.
 - `--activate` calls no API. It builds the one serving set selected by current config and publishes it atomically to production.
 - If active-segment serving keys or the active serving fingerprint do not yet match current config, fail before transformation with `PROFILE_RECONCILIATION_REQUIRED` and require `cidx index`.
-- If even one raw row is missing for an evaluation snapshot, do not publish by default; return `RAW_COVERAGE_INCOMPLETE`.
-- Do not provide profile-name listing, a promote command, or persistent profile selection. Compare candidates sequentially by changing config explicitly one choice at a time.
+- If even one source row is missing for an evaluation snapshot, do not publish by default; return `SOURCE_COVERAGE_INCOMPLETE`.
+- Do not provide profile-name listing, a promote command, or persistent profile selection. Switch only between explicit 1024 and 512 config values, then plan/apply local rematerialization.
 - This command is an unstable development surface, not part of the general MCP surface.
 
 ## 7. Config Used and Change Impact
@@ -192,10 +189,9 @@ cidx dev embeddings materialize --activate
 
 | Config change | Raw collection | Local materialization | FTS/index |
 | --- | --- | --- | --- |
-| source profile | new raw rows required | required after raw collection | serving-key local reconciliation required |
+| source profile | new source rows required | required after source collection | serving-key local reconciliation required |
 | serving dimensions | not required | complete serving set required | serving-key local reconciliation required |
 | reducer, normalization, or metric | not required | complete serving set required | serving-key local reconciliation required |
-| codec | not required | complete serving set required | serving-key local reconciliation required |
 | RRF, candidates, or max inline bytes | not required | not required | not required |
 
 Development materialization uses the one resolved profile from `.cidx/config.json` at execution time. A separate lab config or arbitrary CLI flag cannot override dimensions or codec outside that profile.
@@ -207,12 +203,12 @@ Development materialization uses the one resolved profile from `.cidx/config.jso
 3. Make the f32 source decoder validate dimensions, byte length, checksum, and NaN/Inf values.
 4. Implement the prefix reducer as an independent pure operation.
 5. Specify and implement the L2 normalizer's zero-vector policy.
-6. Fix the exact arithmetic and blob contracts for the `VectorCodec` interface, the default binary codec, and the alternative int8 codec.
+6. Fix the exact arithmetic and blob contract for the int8 codec.
 7. Validate that every transformed result has the configured serving dimension.
 8. Implement stored-vector blob-length and codec-metadata validation.
-9. Implement a one-to-one coverage plan between the active snapshot and raw bank.
-10. Implement lab materialization runs/variants and atomic publication of the production current profile.
-11. Decode and transform raw rows in bounded local groups outside the production write transaction.
+9. Implement a one-to-one coverage plan between the active snapshot and source bank.
+10. Implement bounded candidate preparation and atomic publication of the production current profile without a lab-store dependency.
+11. Decode and transform source rows in bounded local groups outside the production write transaction.
 12. Implement build resume or abort policy without touching the previous active serving set.
 13. Revalidate generation, manifest, and desired config fingerprints before publish.
 14. Implement single-transaction current-profile vector publication and rollback.
@@ -224,12 +220,12 @@ Development materialization uses the one resolved profile from `.cidx/config.jso
 
 ### Failure and rollback
 
-- Fail before staging for invalid config, missing raw data, checksum mismatch, zero or invalid norm, or unsupported codec.
-- If transformation of one raw row fails, do not mark the evaluation full build ready.
+- Fail before staging for invalid config, missing source data, checksum mismatch, zero or invalid norm, or incompatible int8 metadata.
+- If transformation of one source row fails, do not mark the full build ready.
 - Build failure or cancellation does not change the active serving fingerprint or existing vector rows.
 - A failed publish transaction leaves every pre-publish current-profile vector row intact.
 - Failure to clean staging after commit does not damage serving correctness; retry during later maintenance.
-- Rollback never modifies or deletes raw-DB rows.
+- Rollback never modifies or deletes source-bank rows.
 
 ### Concurrency
 
@@ -243,39 +239,37 @@ Development materialization uses the one resolved profile from `.cidx/config.jso
 
 - Store neither source-f32 nor serving-f32 blobs in the production DB.
 - Do not print vector elements or canonical source in transformation errors.
-- The development materializer is the only process that opens both raw and production DBs; validate both paths and repository identities.
+- Only an explicit materialization operation opens both source and production DBs; validate both paths and portable repository identities.
 - Keep temporary buffers within the process lifetime and do not dump them automatically into evaluation artifacts.
 
 ## 10. Validation Scenarios
 
-- Transform the same raw row with the same profile repeatedly and obtain byte-identical binary or int8 blobs and metadata.
-- Validate binary blob length as `ceil(serving_dimensions/8)`, padding rules, deterministic bit packing, and scorer compatibility for every supported serving dimension.
+- Transform the same source row with the same profile repeatedly and obtain byte-identical int8 blobs and metadata.
 - Validate int8 blob length, scale/norm metadata, deterministic encoding, and scorer compatibility for every supported serving dimension.
-- Reject serving dimensions outside `{256,512,1024}` or greater than source 1024 before any DB write.
+- Reject serving dimensions outside `{1024,512}` or greater than source 1024 before any DB write.
 - Materialize two different serving-dimension configs sequentially and ensure every row and scan dimension matches the current config in each run.
-- Change the codec and retain raw hits while changing only storage fingerprint and serving bytes.
 - While building, search sees only the pre-publish effective state; after publish, a new search sees the complete new current-profile row set. No request mixes the two.
 - Change index generation immediately before publish and retain the pre-publish serving set without writing.
-- Corrupt one raw row and prevent activation of a partial serving set.
+- Corrupt one source row and prevent activation of a partial serving set.
 - Force publish-transaction failure and verify vector rows plus active fingerprint still match the pre-publish state.
-- Inspect the production DB and find no f32 blob.
-- Start `cidx serve` without reading lab materialized variants or the raw DB.
+- Inspect the serving `index.db` and find no f32 blob; inspect the separate source bank and find only validated document-role 1024-f32 rows.
+- Start `cidx serve` without reading the product source bank or lab state.
 
 ## 11. Completion Evidence
 
-Implementation handoff record (2026-08-15):
+Historical pre-supersession implementation handoff record (2026-08-15):
 
-- Implemented the offline source-f32 -> prefix -> L2 -> selected binary/int8 path, lab-only candidate staging, and a full-set production publication boundary.
+- Implemented the then-current offline source-f32 -> prefix -> L2 -> selected binary/int8 path, lab-only candidate staging, and a full-set production publication boundary. Binary and lab-staged product materialization are no longer current proof.
 - Added additive lab v2-to-v3 and production v1-to-v2 migrations. Existing raw/capture rows and existing production vector rows are preserved; production legacy rows without source/space/raw-SHA lineage are intentionally not ready until rebuilt.
-- The materialization planner now uses a narrow one-snapshot active-key API, verifies lab/production root identity, reads raw rows in bounded local groups, and republishes only lab-staged-and-reread variants.
+- The historical materialization planner used a narrow one-snapshot active-key API, verified lab/production root identity, read raw rows in bounded groups, and republished lab-staged variants. The current boundary must reprove those guarantees using the product source bank and no lab dependency.
 - Focused implementation checks passed: normal and race tests, vet, and builds for `./internal/config ./internal/vector ./internal/lab ./internal/store ./internal/app`; production dependency inspection found no `internal/lab` import.
 - Main-agent commit-boundary validation passed for config integrity, vector transforms/codecs, lab migrations and staging, production migration/publication, the application materializer, and the directly affected index integration.
 - Not run: a provider request, API-key read, corpus access, paid work, CLI/MCP wiring, a live server, broad load testing, or retrieval-quality evaluation.
 
 - Profile-fingerprint and dimension/codec validation report.
 - Deterministic transformation checksum for identical input.
-- binary and int8 score/ranking error summaries against the serving-f32 baseline.
-- Blob-length, row-count, and coverage results for at least two serving-dimension candidates.
+- int8 score/ranking error summaries against the serving-f32 baseline.
+- Int8 blob-length, row-count, and coverage results for both 1024 and 512 serving dimensions.
 - Snapshot record showing no pre/post state mixing during concurrent search and publish.
 - Existing-vector-set checksum retained after a failed publish.
 - Schema-query result proving that only one active serving profile's codec-valid vectors participate in search joins and coverage.
@@ -287,21 +281,21 @@ Provide Phase 10 with:
 
 - a validated `ServingVectorProfile`;
 - a side-effect-free `VectorTransformer`;
-- a versioned `VectorCodec`;
+- a versioned fixed `Int8Codec`;
 - a store service that atomically replaces the active serving set; and
 - raw-coverage and materialization-result models.
 
-Provide Phase 11 search only with `VectorSpaceProfile`, `VectorStorageProfile`, and the codec-aware scorer. Do not hand off the raw lab store or development materializer.
+Provide Phase 11 search only with `VectorSpaceProfile`, `VectorStorageProfile`, and the int8 scorer. Do not hand off the product source bank, evaluation store, or materializer to search.
 
 ## 13. Decision Log
 
-- Production search reads one profile selected by config: serving dimension, reducer, normalization, metric, and one storage codec. V1 defaults to `binary` and permits `int8` as the only alternative.
-- The raw bank can produce multiple candidates, but they are materialized and compared sequentially, one at a time.
+- Production search reads one profile selected by config: serving dimension, reducer, normalization, metric, and fixed int8 storage codec.
+- The source bank can produce 1024/int8 or 512/int8, but only one is materialized and active at a time.
 - Do not build permanent multi-profile serving or a promote/catalog workflow.
-- The raw DB is an initial-evaluation helper, not a runtime dependency.
+- The source bank is durable product state used only by explicit document embedding/rematerialization operations, never a runtime search dependency.
 - Dimension and codec belong to the central config's fingerprinted profiles; row metadata is validation-only.
 - Documents and queries share the reducer and normalizer.
 - Queries transform into serving f32 space, then use the active codec's in-memory query preparation and scorer; query representations are not persisted.
 - Materialization has one path: fixed source 1024, then local prefix reduction and L2 normalization.
-- Both cidx-owned codecs and Voyage provider-quantized output are separate profile and encoding contracts.
+- The cidx-owned int8 codec and Voyage provider-quantized output are separate profile and encoding contracts.
 - Production provenance is additive: v2 records source/space profile, raw SHA-256, and materialization time. Legacy rows remain physically preserved but fail the new readiness guard rather than being silently trusted or deleted.

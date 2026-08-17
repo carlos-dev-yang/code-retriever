@@ -1,13 +1,19 @@
 # Phase 07 Lexical Evaluation Evidence
 
 - Phase: `07-lexical-evaluation`
-- State: `in_progress` — the five independent 1,024-f32/binary/int8,
-  512-int8, and 256-int8 arms are consolidated over every current cohort;
-  512/int8 remains the preferred compact candidate, 256/int8 is the
-  memory-constrained alternative, the working 1024/binary baseline remains
-  unchanged, and formal label freeze is blocked only on the required separated
-  human review.
+- State: `blocked` — the five independent historical arms are consolidated,
+  and their immutable artifacts remain preserved. A later explicit user
+  decision selected `1024/int8` as the ordinary test and product default,
+  retained compact `512/int8` as the only other product profile, and removed Binary
+  plus every 256-dimensional profile from current code. Formal label
+  work resumes after the implementation is reconciled to that boundary.
 - Date: 2026-08-17
+
+Current product authority: [Retired Vector Profiles and Evidence Boundary](../../RETIRED-VECTOR-PROFILES.md).
+
+The dated sections below describe the measurements and decisions as they were
+made. References to an active Binary profile or a 256 candidate are historical
+provenance, not a current runtime or evaluation option.
 
 Current real-data audit: [chi/RHF structural audit — Revision 4](chi-rhf-structural-audit-r4.md).
 
@@ -23,13 +29,13 @@ Current measured cohort decision: [chi/RHF cohort score review — Revision 4](c
 
 Current measured retrieval loop: [provider-free FTS decisions and provenance-safe Voyage comparator — Revision 4](measured-retrieval-loop-r4.md).
 
-Current isolated codec diagnostic: [paired f32/binary/int8 top-20 diagnostic — Revision 4](codec-top20-diagnostic-r4.md).
+Historical isolated codec diagnostic: [paired f32/binary/int8 top-20 diagnostic — Revision 4](codec-top20-diagnostic-r4.md).
 
-Current 512-dimensional follow-up: [512-dimensional int8 diagnostic — Revision 4](codec-int8-512-diagnostic-r4.md).
+Historical 512-dimensional follow-up: [512-dimensional int8 diagnostic — Revision 4](codec-int8-512-diagnostic-r4.md).
 
-Current 256-dimensional follow-up: [256-dimensional int8 diagnostic — Revision 4](codec-int8-256-diagnostic-r4.md).
+Historical 256-dimensional follow-up: [256-dimensional int8 diagnostic — Revision 4](codec-int8-256-diagnostic-r4.md).
 
-Current five-profile conclusion: [five-profile cohort and answer comparison — Revision 4](five-profile-cohort-comparison-r4.md).
+Historical five-profile conclusion and current decision input: [five-profile cohort and answer comparison — Revision 4](five-profile-cohort-comparison-r4.md).
 
 ### 2026-08-17 five-profile consolidation
 
@@ -41,9 +47,11 @@ all 32 questions with source-reviewed useful code by top 5, and `.9969`
 same-run f32 top-20 retention. Its two complete SQLite files are 13.53% larger
 than the fresh provider-free 1,024-binary controls. `256-int8` is only 5.44%
 larger than binary but falls to 28/32 direct answers by top 5 and places RHF
-T12's direct implementation at rank 14. This advances 512/int8 only as the
-next frozen-evaluation candidate; production stays 1024/binary until human
-label and confirmation gates are complete.
+T12's direct implementation at rank 14. This measurement established 512/int8
+as a useful compact target; the later owner decision selected 1024/int8 as the
+ordinary default and retained 512/int8 as the provider-free compact option.
+Its recorded Binary and 256 comparisons remain document evidence only and are
+not executable product arms.
 
 ### 2026-08-17 256-dimensional int8 follow-up
 

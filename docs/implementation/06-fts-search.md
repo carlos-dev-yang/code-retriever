@@ -36,7 +36,7 @@ The result is the default search engine that works without an API key or network
 ### Out of scope
 
 - Query or document embedding.
-- binary/int8 vector scan and RRF.
+- vector scan and RRF.
 - Voyage API calls.
 - Automatic reindexing or a full-file freshness scan on search.
 - Search-result body-byte allocation and the MCP wire schema.

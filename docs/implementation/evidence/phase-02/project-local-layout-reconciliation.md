@@ -1,12 +1,19 @@
 # Phase 02 Project-Local Source/State Reconciliation
 
-- State: accepted
+- State: accepted historical layout evidence; source/lab file ownership superseded on 2026-08-17
 - Date: 2026-08-16
 - Owner: `/root`
 - Canonical authority: [`local-code-search-mcp-v1-design-r4.md`](../../../../local-code-search-mcp-v1-design-r4.md)
 - Trigger: user-directed separation of normal project operation from cidx development/evaluation operation
 
-## Accepted storage contract
+The relative source/state-root and portable-identity proof remains accepted.
+Its combined `<state_root>/raw/embeddings.db` layout is historical: current
+implementation must migrate compatible document f32 to
+`<state_root>/db/embeddings.db` and keep vector-free evaluation metadata at
+`<state_root>/lab/evaluation.db`. The paths and hashes below are preserved as
+the exact pre-split migration input, not a current storage contract.
+
+## Historical accepted storage contract
 
 Normal operation resolves one target Git worktree as `source_root` and fixes
 `state_root=<source_root>/.cidx`. Its production authority is

@@ -13,6 +13,14 @@
 - Stop if the runtime source root is unsafe, a required chunker/schema/profile artifact is missing, a path can escape the source root, any file cannot be prepared safely, or portable manifest/profile identity plus base-generation validation cannot prove an atomic publish. Source/state paths are not persisted in DB metadata.
 - Before pausing, record executed evidence in §11, capture new architectural choices in §13, and update [STATUS.md](STATUS.md) with the exact next checklist item and unresolved stop condition.
 
+## 2026-08-17 product-profile supersession
+
+Binary/256 are no longer valid desired product profiles. Phase 05 preserves
+AST/FTS/canonical inputs and old rows but must never make a retired storage
+profile active or reusable. Only 512/1024 int8 may become current. The focused
+reproof follows Phase 02 and is governed by
+[`RETIRED-VECTOR-PROFILES.md`](RETIRED-VECTOR-PROFILES.md).
+
 ## 1. Goal
 
 Discover searchable files from the Git working tree as it exists when indexing starts, hash, parse, and chunk each file from the same bytes, then atomically publish a new local search state to SQLite.
@@ -207,7 +215,7 @@ This phase applies the Phase 02 `ConfigImpactPlan` to the active snapshot.
 - Embedding-source, vector-space, or storage-profile mismatch: relink active segments to the new serving key. Reuse a valid production vector for that key; otherwise let state derive as pending.
 - Serving-policy-only change: do not change generation code data, FTS data, or vector keys.
 
-The metadata update that changes desired profiles to applied profiles is part of the same final publish transaction as file, chunk, FTS, and segment-key deltas. Never publish only part of a profile mismatch. Reconciliation neither opens the lab DB nor calls an API. The v1 source profile is `voyage-official` / `voyage-code-4` with `SourceDimensions=1024`; serving dimensions are limited to `{256,512,1024}` by the central `ModelSpec`.
+The metadata update that changes desired profiles to applied profiles is part of the same final publish transaction as file, chunk, FTS, and segment-key deltas. Never publish only part of a profile mismatch. Reconciliation opens neither product source bank nor lab and calls no API. The v1 source profile is `voyage-official` / `voyage-code-4` with `SourceDimensions=1024`; serving dimensions are limited to `{1024,512}` by the central `ModelSpec`.
 
 ## 7. Config Used and Change Impact
 
@@ -224,7 +232,7 @@ This phase receives only the typed config resolved by Phase 02. Subpackages do n
 | Canonical-text rules | Formatter/profile | Recompute input/hash from stored projections; no API call |
 | Embedding model/source space | `voyage-code-4`, source 1024 | Relink serving keys; missing vectors become pending; no API call |
 | Search serving values | `return_k`, `candidate_k`, body-byte cap | No impact in this phase |
-| Serving dimensions/codec | `{256,512,1024}` and storage profile | Does not directly trigger an AST/FTS rebuild |
+| Serving dimensions/codec | `{1024,512}` and fixed int8 storage profile | Does not directly trigger an AST/FTS rebuild |
 
 Do not expose arbitrary, unimplemented chunker version numbers in user config. Fingerprints contain only the resolved combination of user-selectable rules and implementation IDs owned by the binary. Absolute safety ceilings are code constants; config can set only a stricter project policy.
 

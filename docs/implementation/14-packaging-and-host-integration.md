@@ -1,6 +1,9 @@
 # 14. Packaging and MCP Host Integration
 
-- Status: `blocked` — local darwin/arm64 package and operational checkpoint accepted from clean provenance `a5b2baef9a18e68d6c8b5d4fb62dc2e03727edb4`; official release-candidate evidence remains externally gated.
+- Status: `blocked` — the earlier local package checkpoint is preserved, but
+  package smoke must be rebuilt for default 1024/int8, compact 512
+  rematerialization, and source-bank isolation before any later release
+  evidence; official Phase 07/12 and assistant gates remain
 - Prerequisite: `13-cli-and-mcp`
 - Followed by: v1 release-candidate validation
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 1–3 and 7–10
@@ -13,7 +16,7 @@ Read the [implementation index](README.md), [execution guide](EXECUTION-GUIDE.md
 - Confirm Phase 01 recorded the SQLite/Tree-sitter bindings, FTS5/CGO policy, and candidate platforms; Phase 13 must have frozen public CLI, stdio, and exactly four MCP tools.
 - Re-check that the artifact bundles FTS5 and Go/TypeScript/TSX grammars, needs no runtime dependency download for free FTS, and serves one explicit root per process.
 - Re-check project-scoped host setup, stdout protocol purity, stderr diagnostics, the 64 KiB default / 1 MiB absolute `max_inline_bytes` ceiling, no read-span line cap, and environment-only `VOYAGE_API_KEY` forwarding.
-- Re-check that packaging does not open the lab DB, mutate host config or hooks, promise unverified platforms, or invent fixed-model/external-vector policy.
+- Re-check that serving/package smoke does not open the source bank or lab DB, mutate host config or hooks, promise unverified platforms, or invent fixed-model/external-vector policy.
 - Re-check the frozen assistant-task controls and three product arms: existing tools only, existing tools plus lexical cidx, and existing tools plus hybrid cidx. Never force a cidx call.
 - Stop if dependency licensing, FTS/grammar reproducibility, schema compatibility, root semantics, or a host-specific config format is unverified. Do not claim inferred support.
 - Before pausing, update build/host evidence and this decision log, then update [STATUS.md](STATUS.md) with verified and unverified targets, risks, and next action.
@@ -28,7 +31,7 @@ The deployment must preserve:
 - SQLite FTS5 and grammars do not depend on accidental system installation.
 - One MCP process handles one explicit root and does not rely on host cwd.
 - cidx does not modify host settings, register user scope, or put secrets in project config.
-- Production serve does not open the lab DB.
+- Production serve does not open the product source bank or lab DB.
 
 Release-candidate evidence must also measure cidx's marginal usefulness beside an assistant's existing file, symbol, compiler, and test tools. It does not treat a cidx-only assistant or forced cidx invocation as the product.
 
@@ -74,7 +77,7 @@ assistant usefulness, official retrieval evaluation, or `release_candidate`.
 
 ### Explicit policy non-goals
 
-This phase chooses neither a permanent bundled/pinned embedding profile nor an external vector-supply architecture. It packages only current v1: official direct Voyage AI API, initially validated `voyage-code-4`, typed serving profile, cidx-owned production binary/int8 table with binary default, and separate development lab.
+This phase chooses neither a permanent bundled/pinned embedding profile nor an external vector-supply architecture. It packages only current v1: official direct Voyage AI API, initially validated `voyage-code-4`, default 1024/optional 512 serving profile, fixed cidx-owned production int8 storage, product document source bank, and separate evaluation lab. Binary/256 are preserved documents only and are not package smoke options.
 
 Do not add provider plugins, vector import formats, model bundles, or speculative extension points. Decide long-term policy later through a separate design when real deployment requirements exist.
 
@@ -97,7 +100,7 @@ Do not add provider plugins, vector import formats, model bundles, or speculativ
 6. v1 never edits host files programmatically.
 7. Config and examples contain no API-key literal.
 8. Official support documentation covers project scope only.
-9. Release `serve` neither creates nor opens `.cidx/raw/embeddings.db` or any `.cidx/test/` evaluation state.
+9. Release `serve` neither creates nor opens `.cidx/db/embeddings.db` or any `.cidx/test/` evaluation state.
 10. Unsupported schema/config/profile fails clearly rather than being silently migrated or ignored.
 11. Bad checksum, corrupt archive, or missing execute permission is never reported as success.
 12. Assistant usefulness runs do not require or force a cidx call; no-use is a valid observed outcome.
@@ -192,7 +195,7 @@ Beside the example, state that it reads the live worktree at execution time, not
 - Do not migrate schemas while serve is handling requests.
 - If a new binary requires migration or reindex, report it through status or a clear startup error.
 - Do not infer downgrade support; fail closed outside the supported schema range.
-- The raw lab is not a production-upgrade prerequisite.
+- Evaluation state is not a production-upgrade prerequisite. The product source-bank schema is checked separately from serving `index.db` and is never opened by `serve`.
 
 ## 7. Configuration and Change Impact
 
@@ -278,7 +281,7 @@ This file defines a plan and creates no test code or release artifact.
 9. Concurrent reindex from two host processes does not damage search snapshots.
 10. stdout contains no nonprotocol logs.
 11. Config and docs contain no credential literal.
-12. Serve works without a lab DB and neither creates nor opens one.
+12. Serve works without a source bank or lab DB and neither creates nor opens one.
 13. Unsupported schema/config/architecture reports an actionable error.
 14. Hook docs accurately explain live-worktree semantics and require no automatic hook mutation.
 15. Package/API surfaces make no external-vector-import or fixed-model-bundle promise.
@@ -297,7 +300,7 @@ This file defines a plan and creates no test code or release artifact.
 - Space/non-ASCII/root-mismatch results.
 - stdout/stderr captures.
 - Schema upgrade/error-flow record.
-- Minimal run without `VOYAGE_API_KEY` or lab DB.
+- Minimal serving run without `VOYAGE_API_KEY`, source bank, or lab DB.
 - Explicit list of unsupported or unverified platforms/hosts.
 - Release-surface review confirming fixed-model/external-vector policy remains out of scope.
 - Frozen assistant task/control manifest and paired records for existing tools only, plus lexical cidx, and plus hybrid cidx.

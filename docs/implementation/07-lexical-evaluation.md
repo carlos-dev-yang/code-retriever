@@ -1,11 +1,8 @@
 # 07. Lexical Chunking and Search Evaluation
 
-- Status: `in_progress` — all five independent 1,024-f32/binary/int8,
-  512-int8, and 256-int8 profiles are consolidated over the existing 12 chi +
-  20 RHF questions without RRF. The working `1024/binary` baseline remains
-  unchanged; 512/int8 is the preferred frozen-evaluation candidate, 256/int8
-  is the memory-constrained alternative, and formal label freeze, confirmation,
-  and promotion remain separately gated.
+- Status: `blocked` — five-profile evidence is preserved, but current
+  calibration resumes only after the int8-only 1024/512 runtime reconciliation;
+  ordinary evaluation then uses 1024/int8 before separated human label freeze
 - Prerequisite phase: `06-fts-search`
 - Follow-up phase: `12-retrieval-evaluation`
 - Design basis: `local-code-search-mcp-v1-design-r4.md` §13, §14
@@ -19,6 +16,16 @@
 - Re-check these invariants after any context compaction: the user selects every open-source corpus; the tracked manifest pins identity, provenance, license, language slice, filters, and expected content; an ignored local binding or explicit CLI input alone supplies the checkout path; this phase never selects, downloads, or embeds a corpus absent exact user authorization; all compared runs record the same reproducibility inputs and report Go, TypeScript, TSX, and mixed denominators separately.
 - Stop if a required corpus manifest or local binding is missing, the checkout is dirty or differs from its pinned commit/hash, license or redistribution scope is unclear, an expected target is absent, or generation/config changes would make the run non-reproducible.
 - Before pausing, record executed evidence in §11, capture new architectural choices in §13, and update [STATUS.md](STATUS.md) with the exact next checklist item and unresolved stop condition.
+
+## 2026-08-17 product-profile supersession
+
+The five-profile report is decision evidence, not the current test matrix.
+Current ordinary tests use 1024/int8. Supported compact 512/int8 may appear
+only in a frozen declared arm. Document source f32 is durable product state;
+query/reference f32 remains non-serving. Binary and 256 reports and local
+states are preserved historical evidence, but current code has no route that
+selects them. See
+[`RETIRED-VECTOR-PROFILES.md`](RETIRED-VECTOR-PROFILES.md).
 
 ## 1. Goal
 
@@ -38,7 +45,7 @@ This phase does not copy a passing score or SLA from another project. It builds 
 - Review of chunk ranges, source bodies, and projection duplication.
 - Reproducible run manifests containing config, profile, index manifest, and corpus provenance.
 - Machine-readable results and human-readable summaries.
-- Calibration and confirmation splits plus a dataset contract reusable by later raw-f32, vector, binary/int8, RRF, body-package, and assistant evaluation.
+- Calibration and confirmation splits plus a dataset contract reusable by later source-f32, int8 vector, RRF, body-package, and assistant evaluation.
 
 ### Out of scope
 
@@ -54,16 +61,12 @@ This phase does not copy a passing score or SLA from another project. It builds 
 - Automated scoring by a generative-model judge.
 - Treating an MCP host's final context-token use as a product guarantee.
 
-The active Phase 07 diagnostic exception is a development-only, non-promotion
-codec comparison over the already authorized chi/RHF raw document bank and
-query set. It leaves the working `1024/binary` baseline unchanged. The original
-checkpoint compares 1,024-dimensional target-f32/binary/int8; the authorized
-follow-ups use separate development state, locally reduce the same 1,024-f32
-document bank to 512 or 256 dimensions, and compare target-f32/binary/int8 at
-the selected dimension. Each run reuses one ephemeral Voyage query f32 across
-its three arms and captures isolated top-20 parent rankings without FTS or RRF.
-Cross-dimension results are comparisons of separate checkpoints, not same-query
-paired deltas, and no diagnostic opens another production serving profile.
+The completed five-profile codec diagnostic is immutable historical evidence.
+It compared target-f32, Binary, and int8 arms at dimensions that included 256,
+but it no longer authorizes an executable diagnostic path. Current Phase 07
+resumes with one default 1024/int8 product run; an explicit frozen 512/int8 arm
+may reuse the same product source bank. Both may use an in-memory serving-f32
+reference, and no current run can derive, activate, or score Binary/256.
 
 ## 3. Prerequisites
 
@@ -215,7 +218,7 @@ Do not place a checkout path in this tracked manifest. Resolve `corpus_id` at ex
 1. an ignored `.cidx/test/corpora.local.json` mapping maintained by the user, whose values stay below `.cidx/test/corpora/`; or
 2. an explicit development-CLI checkout-path input for that run.
 
-The resolver canonicalizes the supplied path, confirms it is an existing local checkout, and verifies the commit, clean-tree state, expected hash, root subdirectory, filters, language slice, and license metadata before indexing. It records the portable corpus identity and verified content hash in the run artifact, but does not copy the runtime absolute path into tracked artifacts or SQLite. A separate `.cidx/test/states/<corpus>/` root owns config, production/raw DBs, and artifacts while exercising the same production index/search services.
+The resolver canonicalizes the supplied path, confirms it is an existing local checkout, and verifies the commit, clean-tree state, expected hash, root subdirectory, filters, language slice, and license metadata before indexing. It records the portable corpus identity and verified content hash in the run artifact, but does not copy the runtime absolute path into tracked artifacts or SQLite. A separate `.cidx/test/states/<corpus>/` root owns config, production/source/lab DBs, and artifacts while exercising the same production index/search services.
 
 This phase consumes only checkouts the user selected and provided or explicitly authorized it to acquire by exact repository and commit. It does not recommend, choose, update, or embed any corpus.
 
@@ -249,7 +252,7 @@ Represent valid alternatives as OR entries within a required group and separate 
 
 Create separate calibration and confirmation splits. A promotion-capable confirmation series starts with at least 90 answerable queries (30 each for Go, TypeScript, and TSX), 18 verified abstainable/hard-negative queries (6 each), and 10 cases in every critical cohort; cohorts may overlap. A 12–20 query set is smoke evidence only.
 
-Every frozen query receives human review. Record two independent approvals when possible. Solo development records two separated review passes and the single-reviewer limitation. No-answer and hard-negative labels require corpus-wide search evidence and a second independent review/pass. Pool unique top results from simple search, FTS, and later f32/binary/int8/RRF arms before final label freeze.
+Every frozen query receives human review. Record two independent approvals when possible. Solo development records two separated review passes and the single-reviewer limitation. No-answer and hard-negative labels require corpus-wide search evidence and a second independent review/pass. Pool unique top results from simple search, FTS, current f32/int8/RRF arms, and already-preserved historical diagnostic reports before final label freeze.
 
 Before retaining a difficult calibration question, record its real
 `source_basis`, nearest existing query IDs, the distinct parser/chunker,
@@ -282,8 +285,9 @@ zero duplicate/conflicting judgments, zero missing source verifications, and
 zero invalid grade-2 group assignments. Bind that proof to corpus, generation,
 dataset, arm set, scoring depth, simple-policy fingerprint, shuffle seed, and
 final pool digest. A previously unseen parent added by a later arm reopens both
-passes for that relation. Int8 may remain explicitly unopened/out of scope for
-the current 1,024/binary grid; it must not be silently described as pooled.
+passes for that relation. The current pool uses 1024/int8 plus its declared
+f32/FTS/control arms. Supported compact 512/int8 must be explicitly opened before it
+is pooled; retired Binary/256 evidence cannot be silently included.
 
 Metric calculations record denominators, negative-query handling, and failure states. Preflight-invalid data makes the run incomplete. A required query execution failure remains in the run denominator with zero retrieval metrics and an explicit operation-failure state; an optional unrequested downstream stage is `NOT_OBSERVED`.
 
@@ -426,7 +430,7 @@ On 2026-08-16 the provider-free simple control ran from clean commit
 `d343e12c36c2d17e40c00fe2fab445299f151715` with `VOYAGE_API_KEY` absent.
 Its immutable draft-v2 artifacts record chi Hit@5 `5/12` and RHF Hit@5
 `14/20`; these are diagnostic observations, not gates. The final blind pools
-deduplicate the top five parents from FTS, serving f32, active binary, RRF, and
+deduplicate the top five parents from FTS, serving f32, active int8, RRF, and
 simple control plus every draft-v2 truth parent. They contain 133 chi and 175
 RHF query-parent relations, with all labels and lane/rank/score information
 hidden. Two separated human passes remain incomplete.
@@ -445,7 +449,7 @@ iteration order across Go map keys. See
 On 2026-08-17 the provenance-bound comparator at clean commit
 `70bbf1c3b67aa79eaaff4fba495ddbc4e805b6df` ran all 12 chi and 20 RHF
 queries freshly through Voyage query embedding plus FTS, exhaustive target
-f32, active binary, parent collapse, RRF, ablation, and body packaging. All
+f32, active int8, parent collapse, RRF, ablation, and body packaging. All
 32 responses validated with zero retry/failure, 646 provider-reported tokens,
 USD `0.00007752` accounted cost, zero document provider operations, and no
 query-vector persistence. The run showed real fusion rescues and regressions;
@@ -479,7 +483,7 @@ Provide Phases 08–12 with:
 - the user-selected, manifest-verified corpus IDs and query/answer dataset;
 - lexical baseline rank source data;
 - query categories and representative lexical failures;
-- the evaluator contract used to compare f32, binary, and int8 at the same serving dimension; and
+- the evaluator contract used to compare exhaustive f32 with active int8 at the same serving dimension; historical Binary/256 reports remain document evidence only; and
 - the fixed `candidate_k`, `return_k`, and RRF input conditions used by hybrid comparison.
 - frozen calibration/confirmation digests and the lexical baseline that later lanes must protect.
 - the AI-advisory direct map and support-label sensitivity endpoints as review
@@ -493,6 +497,7 @@ Phase 12 extends the shared Phase 07 `internal/eval` dataset, ground-truth, metr
 
 | Decision | Reason | Revisit when |
 | --- | --- | --- |
+| Use 1024/int8 for ordinary evaluation, allow explicit compact 512/int8, preserve 1024-f32 document source rows, and remove Binary/256 executable arms. | The user selected the highest-fidelity measured int8 target as the default, required provider-free local dimension changes, and chose documents rather than hidden code paths as the Binary/256 evidence boundary. | A new explicit product-contract decision authorizes another profile or source-retention policy. |
 | Build a lexical baseline before retrieval comparisons. | This separates vector improvement from chunking defects; Phase 08 implementation may proceed in parallel. | Never for the Phase 12 prerequisite contract. |
 | The user selects every open-source corpus. | Corpus suitability, licensing, checkout ownership, and download authorization belong to the user. | Product scope explicitly introduces managed corpora. |
 | Separate portable tracked manifests from ignored local bindings. | Reproducibility needs pinned provenance while machine paths must not enter version control. | A dedicated portable workspace resolver is designed. |

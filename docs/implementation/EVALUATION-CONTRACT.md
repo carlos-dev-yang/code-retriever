@@ -16,10 +16,10 @@ The contract adapts lessons from the sibling `knowledge-system` project after an
 1. cidx is an auxiliary local retrieval MCP used beside file readers, grep/symbol tools, compilers, and tests.
 2. Product usefulness is measured as the marginal effect of adding cidx to those tools, not by forcing an assistant to use cidx and not by evaluating a cidx-only assistant as the primary product arm.
 3. FTS and dense retrieval are parallel provider lanes. They must be measured separately before RRF.
-4. cidx scans every eligible stored vector. Binary/int8 differences from serving-dimension f32 are representation and codec losses, not ANN recall losses.
+4. cidx scans every eligible stored vector. Int8 differences from serving-dimension f32 are representation and codec losses, not ANN recall losses. Historical Binary/256 results are evidence-only.
 5. Human relevance truth and serving-dimension f32 ranking are independent references:
    - human truth measures whether useful code is retrieved;
-   - exhaustive serving-f32 ranking measures whether binary or int8 preserves the chosen vector representation.
+   - exhaustive serving-f32 ranking measures whether int8 preserves the chosen vector representation.
 6. A codec may preserve f32 neighbors while the dense model is semantically wrong, or change f32 neighbors while retaining human-gold results. Reports keep both facts visible.
 7. Activation, successful materialization, schema validity, or readiness proves lifecycle correctness only. It is never quality evidence.
 8. Latency, size, tokens, and cost are measured from the start, but they are not release gates until a budget is explicitly frozen before a confirmation run.
@@ -150,7 +150,7 @@ A 12–20 query set is execution smoke evidence only and cannot support a codec,
 
 Every frozen query receives human review. Freezing should have two recorded independent approvals. In a solo-development run, record two separated review passes and mark the absence of a second reviewer as a limitation; do not silently claim dual review. Every no-answer and hard-negative label requires corpus-wide search evidence and an independent second review/pass.
 
-Pool unique top results from FTS, serving f32, binary, int8, and RRF for relevance review before labels freeze. Pooling expands judgment coverage; it must not alter labels after confirmation results are known.
+Pool unique top results from FTS, serving f32, active int8, and RRF for relevance review before labels freeze. Historical Binary/256 pools may remain as evidence but do not become current product arms. Pooling expands judgment coverage; it must not alter labels after confirmation results are known.
 
 ### 4.6 Calibration and confirmation
 
@@ -172,7 +172,13 @@ A paired delta requires identical:
 - code commit and platform; latency additionally requires equivalent hardware/load;
 - assistant model, prompt, tools, and budgets for end-to-end comparison.
 
-Within one current-profile run, serving f32 and the active binary or int8 codec reuse the same in-memory query f32 and the same serving-dimension document f32. Persist only the query-vector hash. A development-only codec-comparison run may additionally derive candidate binary/int8 document representations from that same immutable document-f32 bank and score all codec arms from one request-local query f32. Such a run must keep the production active profile singular, pre-materialize each candidate document representation once per run, issue exactly one logical query-embedding operation per dataset case, record f32/binary/int8 parent rankings separately without FTS or RRF, and persist neither query vectors nor raw document vectors. A direct cross-codec paired delta is valid only inside this same-query comparison or when independently recorded query-vector hashes and every other paired control match. Otherwise compare each codec with its own same-query serving-f32 reference and report the cross-run result as separate checkpoints, not a paired delta.
+Within one current-profile run, serving f32 and active int8 reuse the same
+in-memory query f32 and the same serving-dimension document f32. Persist only
+the query-vector hash. Ordinary evaluation uses 1024/int8; a frozen plan may
+explicitly select supported compact 512/int8. A historical Binary or 256 reproduction
+is outside the current matrix and requires the approval and isolation contract
+in `RETIRED-VECTOR-PROFILES.md`. Cross-dimension deltas are paired only when
+the source query vector and every other paired control match.
 
 ## 5. Metric Definitions
 
@@ -253,9 +259,9 @@ ScoreTieRate = tied returned candidate pairs / comparable returned pairs
 BoundaryTieRate = queries whose kth score ties a candidate outside top-k / required queries
 ```
 
-Report repeated-run ranking-hash equality. Every f32, binary, and int8 arm also reports human-gold metrics. Never call these fidelity measurements ANN recall.
+Report repeated-run ranking-hash equality. Every current f32 and int8 arm also reports human-gold metrics. Never call these fidelity measurements ANN recall.
 
-Do not subtract codec raw scores from f32 cosine unless the codec reconstructs that exact normalized quantity. BM25, f32 cosine, binary score, int8 score, and RRF are different scales.
+Do not subtract codec raw scores from f32 cosine unless the codec reconstructs that exact normalized quantity. BM25, f32 cosine, int8 score, and RRF are different scales. Historical binary scores remain incomparable evidence.
 
 ## 7. RRF Contract and Diagnostics
 
@@ -450,7 +456,7 @@ Required evidence:
 - production/lab isolation and no query-vector persistence;
 - no target, codec, RRF, or quality-selection claim in this phase.
 
-### Phases 09–10: binary/int8 materialization
+### Phases 09–10: int8 materialization
 
 Required implementation evidence for each current config candidate:
 
@@ -461,7 +467,7 @@ Required implementation evidence for each current config candidate:
 - size, transform-time, memory, and zero-provider-call observations;
 - no full human-gold or cross-codec promotion claim before Phase 12.
 
-Binary receives no quality credit merely for smaller size. Full f32/codec and human-gold comparison belongs to Phase 12.
+No codec receives quality credit merely for smaller size. Full f32/int8 and human-gold comparison belongs to Phase 12; Binary/256 are retired evidence.
 
 ### Phase 11: hybrid RRF
 
@@ -482,7 +488,7 @@ Required evidence:
 - independent confirmation dataset;
 - complete per-query records for FTS, serving f32, the current active codec, union, collapse, RRF, body packaging, and lane ablations;
 - same-run serving-f32 versus active-codec retention/displacement/inversion/tie metrics plus human-gold metrics;
-- sequential binary and int8 candidate reports, with direct cross-codec paired claims only when query-vector hashes and all paired controls match;
+- current int8 reports against serving-f32, with historical Binary/256 reports preserved but excluded from activation;
 - complete hard-gate result;
 - implementation invariant audit;
 - `PROMOTION_EVIDENCE_READY` or `NOT_PROMOTION_READY`;

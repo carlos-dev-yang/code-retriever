@@ -1,6 +1,7 @@
 # 13. CLI and MCP Surface Integration
 
-- Status: `done` — the narrow Revision 4 initialization and CLI/MCP reconciliation is accepted in [Phase 13 Revision 4 evidence](evidence/phase-13/revision-4.md).
+- Status: `blocked` — public init/help/package smoke must be reconciled to
+  default 1024, `--serving-dim <1024|512>`, fixed int8, and source-bank reuse after Phase 02/08/11
 - Prerequisites: reconciled `05-worktree-index-pipeline`, `10-embedding-orchestration-and-reconciliation`, and `11-vector-and-hybrid-search`; completed `06-fts-search`; Phase 12 corpus-independent core/API
 - Followed by: `14-packaging-and-host-integration`
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 3, 4, 8, and 10
@@ -14,9 +15,16 @@ Read the [implementation index](README.md), [execution guide](EXECUTION-GUIDE.md
 - Re-check the exact MCP registry: `status`, `search`, `read_span`, and `reindex`, with no fifth tool and no lab/config/document-embedding tool.
 - Re-check that caller-required `max_inline_bytes` limits bodies only; it cannot change result rank, IDs, order, or count. This phase validates/clamps the request and passes the effective maximum to the Phase 11 shared packager.
 - Re-check stdio purity, bounded concurrent dispatch, request cancellation, one explicit root per process, and the rule that FTS works without `VOYAGE_API_KEY`.
-- Re-check that public/lab dependency graphs remain separate, query f32 is nonpersistent, and production vectors use the current profile's cidx-owned `binary` or `int8` codec.
+- Re-check that public/lab dependency graphs remain separate, query f32 is nonpersistent, and production vectors use the fixed cidx-owned int8 codec.
 - Stop if a tool schema, max-byte semantics, error code, root/freshness boundary, or paid-query disclosure is unresolved. Do not expand the public contract implicitly.
 - Before pausing, update schemas/examples, this phase's evidence and decision log, then update [STATUS.md](STATUS.md) with validated transport behavior, open risks, and the exact next action.
+
+## 2026-08-17 product-profile supersession
+
+Public `cidx init` defaults to 1024, accepts only explicit 1024 or 512, and
+exposes no codec flag. Config still records fixed int8 identity. Binary/256
+code paths are removed; only historical evidence remains under
+[`RETIRED-VECTOR-PROFILES.md`](RETIRED-VECTOR-PROFILES.md).
 
 ## Revision 4 initialization checkpoint
 
@@ -27,7 +35,7 @@ boundary, and accepted in [Phase 13 Revision 4 evidence](evidence/phase-13/revis
 - `root.GitRoot` discovers the containing Git worktree without requiring
   `.cidx/config.json`; `root.Repository` retains its configured explicit-root
   behavior for normal serving.
-- `cidx init --serving-dim <256|512|1024> [--codec <binary|int8>]` uses the
+- `cidx init [--serving-dim <1024|512>]` uses the
   complete `config.DefaultRaw` factory and resolves it before any write. It
   stages owner-only configuration under an exclusive temporary name, opens and
   closes production SQLite through `store.OpenProduction`, then atomically
@@ -46,7 +54,7 @@ boundary, and accepted in [Phase 13 Revision 4 evidence](evidence/phase-13/revis
 
 ## 1. Objective
 
-Connect earlier application services to one `cidx` CLI and stdio MCP server. Keep the public surface small and stable, while isolating original-f32 lab and evaluation operations under explicitly unstable `cidx dev ...` commands.
+Connect earlier application services to one `cidx` CLI and stdio MCP server. Keep the public surface small and stable, while keeping source-bank mutation out of MCP and isolating evaluation operations under explicitly unstable `cidx dev ...` commands.
 
 Completion requires:
 
@@ -56,7 +64,7 @@ Completion requires:
 - The server hard maximum clamps body transfer only and does not alter ranking or result count.
 - Long status/reindex work and search are not serialized by the dispatcher.
 - stdout contains only stdio protocol frames; diagnostics use stderr.
-- Raw f32, candidate materialization, and evaluation remain outside MCP and normal-user compatibility contracts.
+- Source f32, target materialization, and evaluation remain outside MCP; ordinary CLI embed/rematerialization owns the product source-bank workflow.
 
 ## 2. Scope and Non-goals
 
@@ -78,7 +86,7 @@ Completion requires:
 - New index or search algorithms, or a fifth MCP tool.
 - HTTP, SSE, remote transport, GUI, installer, or daemon.
 - Automatic host-config edits.
-- MCP document embedding, raw-lab execution, evaluation, or config mutation.
+- MCP document embedding, source-bank/lab execution, evaluation, or config mutation.
 - Server-side token-budget estimates or enforcement.
 - Generated summaries or result rewriting.
 - Long-term compatibility guarantees for development commands.
@@ -103,7 +111,7 @@ Completion requires:
 4. `search(mode=fts)` works without network or credentials.
 5. Only `search(mode=hybrid)` may pay for query embedding, and cannot bypass the configured paid guard.
 6. `status` returns neither source bodies nor a full file list.
-7. The lab DB and `internal/lab` are absent from the `serve` dependency graph.
+7. The source bank, lab DB, `internal/sourcebank`, and `internal/lab` are absent from the `serve` dependency graph.
 
 ### Body maximum
 
@@ -171,17 +179,17 @@ CLI/MCP parsers perform syntax validation, clamp the requested maximum to the co
 ### 6.1 Stable public CLI
 
 ```text
-cidx init --serving-dim <256|512|1024> [--codec <binary|int8>]
+cidx init [--serving-dim <1024|512>]
 cidx status [--json]
 cidx index [--dry-run] [--reason manual|commit]
 cidx embed [--dry-run|--apply] [--retry-failed]
 cidx serve --root <repository-root>
 ```
 
-- `init` creates production config/DB at the Git root without an API call. It records `voyage-code-4`, the selected serving dimension, `fts` as the default mode, and `binary` unless `--codec int8` is explicitly supplied. It resolves source 1024 from `ModelSpec` and never silently overwrites existing config.
+- `init` creates production config/DB at the Git root without an API call. It records `voyage-code-4`, the selected serving dimension (1024 by default), `fts` as the default mode, and fixed int8 storage. It resolves source 1024 from `ModelSpec` and never silently overwrites existing config.
 - `status` briefly copies the active DB snapshot, closes its transaction, then inspects the whole live worktree without writing.
 - `index` uses the Phase 05 live-worktree AST+FTS pipeline; `--reason` is metadata.
-- `embed` defaults to pending-input and token/cost planning. Only `--apply` calls the paid document API and stores the active production binary/int8 representation; it does not depend on a lab DB.
+- `embed` defaults to pending-input, reusable-source, and token/cost planning. `--apply` reuses compatible source rows locally and calls the paid document API only for missing sources; every new source row is durable before active int8 publication. It does not depend on a lab DB.
 - `serve` starts one stdio MCP server for one explicit root.
 
 Do not place temporary r2-style f32 preservation flags such as `--eval-f32-out` on stable public embed.
@@ -194,9 +202,9 @@ cidx dev embeddings materialize [--activate]
 cidx dev retrieval evaluate --corpus-manifest <path> --dataset <path> [--apply]
 ```
 
-- `capture` reports compatible lab `voyage-code-4` 1024-dimensional document f32 and pays only for misses under `--apply`.
-- `materialize` locally transforms raw f32 into the one current project profile. Default is a plan; `--activate` verifies active segment-key agreement and atomically publishes that current-profile set. It does not edit config.
-- `evaluate` compares lexical, reduced f32, binary, int8, vector, and hybrid variants for current config and an explicitly approved corpus/dataset. Default is planning; `--apply` pays for queries. Query f32 stays in run memory.
+- `capture` reports compatible product-source `voyage-code-4` 1024-dimensional document f32 and pays only for misses under `--apply`; development run accounting is written separately.
+- `materialize` locally transforms product source f32 into the one current project profile. Default is a plan; `--activate` verifies active segment-key agreement and atomically publishes that current-profile set. It does not edit config or require the lab DB.
+- `evaluate` compares lexical, exhaustive serving-dimension f32, active int8, vector, and hybrid variants for current config and an explicitly approved corpus/dataset. Default is planning; `--apply` pays for queries. Query f32 stays in run memory.
 
 There is no `promote` command. `cidx index` owns profile/key reconciliation; materialization publishes vectors for the already-current profile. Mark development commands unstable, omit them from MCP, and never make them required general installation steps.
 
@@ -329,7 +337,7 @@ This file defines an implementation plan and does not add test code.
 9. Cancellation reaches scan/API/services without damaging the active snapshot.
 10. stdout capture contains only MCP frames.
 11. Disabled paid guard, missing key, profile mismatch, and API failure use the required no-call or post-failure FTS behavior.
-12. Development commands are absent from MCP; production serve neither creates nor opens a lab DB.
+12. Development commands are absent from MCP; production serve neither creates nor opens a source bank or lab DB.
 13. Unknown fields, negative/fractional maxima, excessive `k`, and invalid mode are rejected strictly.
 14. Root mismatch, traversal, and symlinks fail closed.
 
@@ -346,7 +354,7 @@ Official Phase 12 corpus/usefulness or `core_retrieval` promotion evidence is no
 - Cancellation and graceful-shutdown trace.
 - stdout protocol-purity capture and stderr-log sample.
 - FTS-only operation without an API key.
-- Dependency inspection proving production serve excludes `internal/lab`.
+- Dependency inspection proving production serve excludes `internal/sourcebank` and `internal/lab`.
 
 Completion reports distinguish the transport, OS, and host actually checked from unverified items.
 
@@ -362,8 +370,8 @@ Phase 14 receives one `cidx` binary and public help, the `cidx serve --root <rep
 | Accept only a maximum; no detail enum | Caller controls data volume without option explosion | Another stable budget contract is required |
 | Body bytes cannot affect rank | Smaller context requests must not change retrieval quality or result count | Core v1 invariant; no planned revisit |
 | Reuse Phase 11 body packager | Offline evaluation and MCP must exercise one result-shaping policy | A new transport requires different serialization only |
-| Separate public embed from raw lab | Production is lab-independent while experiments retain f32 | Raw bank becomes an explicit product cache |
-| Expose raw lab only under `cidx dev` | Avoid widening public/MCP compatibility | Lab is explicitly productized |
+| Separate product source bank from evaluation state | Public embedding retains reusable document f32 without making lab metadata or raw vectors a search dependency | The product source-retention contract changes |
+| Expose no source-bank MCP tool | Dimension changes use explicit CLI plan/apply and preserve the four-tool MCP surface | A measured MCP mutation use case is accepted |
 | Concurrent dispatcher | Long management calls must not block search at application level | Core concurrency invariant |
 | stdout is protocol-only | Prevent stdio frame corruption | Transport changes |
 | Do not estimate token budgets | Caller owns tokenizer and host-context composition | Host provides a standard token contract |

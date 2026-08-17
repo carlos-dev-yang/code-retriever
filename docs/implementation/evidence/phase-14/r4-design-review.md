@@ -10,6 +10,10 @@
 - Result: **no P1 or P2 implementation findings**. One P3 evidence-ledger
   staleness finding was corrected by the commit that records this review.
 
+This is immutable pre-2026-08-17 review evidence. Its Binary/256 capability
+row records what commit `30748c1` implemented; it does not authorize those
+profiles after the later int8-only product decision.
+
 ## Requirement mapping
 
 | Revision 4 boundary | Implementation/evidence conclusion |

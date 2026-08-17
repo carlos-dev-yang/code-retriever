@@ -1,6 +1,7 @@
 # 10. Embedding Orchestration and Profile Reconciliation
 
-- Status: `done` — `/root/r4_phase10_executor` implemented, `/root/r4_phase10_review` independently reviewed, and Codex accepted the commit boundary
+- Status: `blocked` — Phase 02/09 int8-only reconciliation must land before
+  production embedding publication is revalidated
 - Prerequisites: `05-worktree-index-pipeline`, `08-raw-embedding-lab`, `09-vector-materialization`
 - Followed by: `11-vector-and-hybrid-search`, `13-cli-and-mcp`
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 4.4, 6, and 7
@@ -9,18 +10,27 @@
 
 Read the [implementation index](README.md), [execution guide](EXECUTION-GUIDE.md), and [project status](STATUS.md) before resuming.
 
-- Confirm that Phase 05 publishes the active index and canonical document inputs atomically, Phase 08 provides the isolated raw lab, and Phase 09 provides the shared transformer, codec, and materializer.
+- Confirm that Phase 05 publishes the active index and canonical document inputs atomically, Phase 08 provides the product source bank plus isolated evaluation state, and Phase 09 provides the shared transformer, codec, and materializer.
 - Re-check that indexing and MCP `reindex` are free and never call Voyage AI; only an explicit paid apply may embed documents.
-- Re-check the source contract: `voyage-code-4`, explicit 1024-dimensional float output, `input_type=document`, `truncation=false`, then shared `prefix(serving_dimensions) -> L2 -> selected cidx codec` for serving dimensions 256, 512, or 1024. V1 codecs are `binary` and `int8`; `binary` is the default.
-- Re-check that one serving profile is active, raw f32 is not a production dependency, query f32 is never persisted, and an external API wait holds no SQLite transaction or application-wide search mutex.
-- Stop if source/profile identity, the raw-lab boundary, paid-call authorization, or publication atomicity is unresolved. Do not improvise provider plugins, multi-profile serving, or vector import.
+- Re-check the source contract: `voyage-code-4`, explicit 1024-dimensional float output, `input_type=document`, `truncation=false`, then shared `prefix(serving_dimensions) -> L2 -> int8` for serving dimensions 512 or 1024.
+- Re-check that one serving profile is active, document f32 is durably written to the product source bank but never read by serving/search, query f32 is never persisted, and an external API wait holds no SQLite transaction or application-wide search mutex.
+- Stop if source/profile identity, the product-source/lab boundary, paid-call authorization, or publication atomicity is unresolved. Do not improvise provider plugins, multi-profile serving, or vector import.
 - Before pausing, update this phase's evidence and decision log, then update [STATUS.md](STATUS.md) with completed checks, open risks, and the exact next action.
+
+## 2026-08-17 product-profile supersession
+
+Production embedding durably writes validated source f32 before it encodes int8
+at supported dimension 1024 or 512. Ordinary fixtures use 1024. Compatible
+source hits rematerialize locally. Binary and 256 code paths are removed;
+only their historical evidence remains. Earlier dual-codec text below
+is historical where it conflicts with
+[`RETIRED-VECTOR-PROFILES.md`](RETIRED-VECTOR-PROFILES.md).
 
 ## 1. Objective
 
 Connect free local indexing, paid document embedding, local vector transformation, and publication of the current serving-profile vectors through one application workflow.
 
-Initial development and evaluation use `embeddings capture -> embeddings materialize --activate`. Normal usage later uses public `cidx embed --apply`: it receives a 1024-dimensional f32 response from `voyage-code-4`, passes it through the shared in-memory transform and active `binary` or `int8` codec, and directly prepares the production serving vector without requiring raw preservation.
+Initial development and evaluation use the same product source-bank capture followed by local materialization. Normal `cidx embed --apply` receives a 1024-dimensional f32 response from `voyage-code-4`, durably records it in the source bank, then passes it through the shared transform and fixed int8 codec. Compatible source hits skip the provider and rematerialize the selected target locally.
 
 ## 2. Scope and Non-goals
 
@@ -37,7 +47,7 @@ Initial development and evaluation use `embeddings capture -> embeddings materia
 ### Out of scope
 
 - API calls during indexing or automatic document embedding during search.
-- Treating the raw lab as a mandatory cache for normal embedding.
+- Treating evaluation metadata as a production dependency; the product source bank is a separate required write/reuse boundary.
 - Query embedding caches or persisted raw queries.
 - External vector import, arbitrary providers, or a long-term model-pinning product.
 - Permanent multi-profile serving, schedulers, daemons, or background embedding queues.
@@ -46,7 +56,7 @@ Initial development and evaluation use `embeddings capture -> embeddings materia
 ## 3. Prerequisites
 
 - The active index snapshot and canonical document inputs publish atomically.
-- Phase 08 raw collection and the Phase 09 shared transformer/materializer exist.
+- Phase 08 source collection and the Phase 09 shared transformer/materializer exist.
 - `ResolvedConfig` resolves source, vector-space, and storage profiles exactly once.
 - The production store reads generation, manifest, serving fingerprints, coverage, and failures from one consistent snapshot.
 - The Voyage client and canonical document-input builder are separate interfaces.
@@ -60,15 +70,15 @@ Initial development and evaluation use `embeddings capture -> embeddings materia
 5. A segment is ready only when its `ServingVectorKey` has a valid vector row.
 6. Validity covers profile fingerprint, dimensions, codec, blob length, scale/norm, and finite metadata.
 7. Every source f32 response uses the shared `VectorTransformer`; document and query paths do not duplicate reduction.
-8. Normal embedding explicitly requests `output_dimension=1024`, `output_dtype=float`, `input_type=document`, and `truncation=false`, then applies `prefix(serving_dimensions) -> L2 -> selected cidx binary/int8 codec`. Raw f32 may be discarded after a successful runtime commit.
-9. Development capture first persists validated f32 in the lab DB and never writes runtime vectors.
-10. Development materialization never calls the API and publishes only the current config's single serving profile.
+8. Normal embedding explicitly requests `output_dimension=1024`, `output_dtype=float`, `input_type=document`, and `truncation=false`, durably writes the validated f32 row to the product source bank, then applies `prefix(serving_dimensions) -> L2 -> int8`.
+9. Public and development capture share immutable source-bank writes while evaluation run metadata remains separate.
+10. Materialization never calls the API and publishes only the current config's single serving profile.
 11. FTS remains available during reconciliation. Hybrid falls back without a query API call when no matching serving profile exists.
 12. No external API wait holds a SQLite write transaction or application-wide search mutex.
 13. A late response enters runtime staging only after rechecking the current generation and desired fingerprints.
-14. Raw-lab presence never changes public planning, readiness, or runtime search semantics.
+14. Source-bank presence changes only document paid/local planning; it never changes readiness or runtime search semantics for an already-active target.
 15. Validate response model, count, unique in-range indexes, 1024 dimensions, and finite values before transformation.
-16. Provider-native quantization is not a shortcut for either cidx codec; public embedding receives float32 and uses the active Phase 09 codec.
+16. Provider-native quantization is not a shortcut for cidx int8; public embedding receives float32 and uses the Phase 09 codec.
 
 ## 5. Implementation Packages, Files, and Types
 
@@ -112,7 +122,7 @@ For each active canonical input, derive state in this order:
 2. Otherwise, if an applicable terminal failure exists for the current paid-source key, return `failed`.
 3. Otherwise return `pending`.
 
-A development raw-bank hit is not a production readiness state. Report `locally_materializable` only in a development materialization plan.
+A product source-bank hit is not readiness by itself. Report it as `locally_materializable` until the selected int8 target is atomically published.
 
 ### Public CLI
 
@@ -124,7 +134,7 @@ cidx embed --apply --retry-failed
 
 - Default execution reports active distinct inputs, reused vectors, paid-request count, token/cost estimate, and reconciliation reason.
 - Only `--apply` calls the document API.
-- Normal apply does not open the lab DB and immediately transforms the f32 response.
+- Normal apply does not open the lab DB. It durably commits each validated f32 response to the product source bank before transforming/publishing the current target; an existing compatible source hit skips the provider.
 - When filling the same serving profile, retain valid vectors and upsert only missing keys.
 - If desired config differs from the active segment key, fail with `PROFILE_RECONCILIATION_REQUIRED` before the API call and require `cidx index` to publish local key reconciliation.
 - After reconciliation, active fingerprints and segment keys already identify the new config. Apply writes missing vectors in short transactions. Failed keys may remain absent, but every row used by search has the same active profile.
@@ -140,21 +150,21 @@ Use this only for initial quality evaluation and codec choice. Public `cidx embe
 
 ### Reconciliation matrix
 
-| Desired change | Index required | API required | Local raw materialization | Hybrid state |
+| Desired change | Index required | API required | Local source materialization | Hybrid state |
 | --- | --- | --- | --- | --- |
-| Canonical input format | Recompute local input | New key requires embedding | Possible in dev with matching raw | FTS fallback until ready |
-| Provider/source model/source dimensions/request semantics | Reconcile serving key | Required normally | Only with matching source raw bank | FTS fallback until ready |
-| Serving dimensions/reducer/normalizer/metric | Reconcile serving key | Normal path may need another source response | Free from initial lab bank | FTS fallback until ready |
-| Storage codec | Reconcile serving key | Needed if source f32 is unavailable | Free from initial lab bank | FTS fallback until ready |
+| Canonical input format | Recompute local input | Only new missing source keys | Reuse matching product source rows | FTS fallback until ready |
+| Provider/source model/source dimensions/request semantics | Reconcile serving key | Only for missing incompatible source rows | Reuse matching product source bank | FTS fallback until ready |
+| Serving dimensions/reducer/normalizer/metric | Reconcile serving key | Only missing incompatible source rows | Free from compatible product source bank | FTS fallback until ready |
+| Int8 implementation | Reconcile serving key | Only missing incompatible source rows | Free from compatible product source bank | FTS fallback until ready |
 | FTS/RRF/response policy | Policy only | No | No | Existing vectors remain valid |
 
-Raw preservation is not permanent. A later space or codec change in normal operation may require another paid call. Do not hide that cost or assume a lab DB.
+Document source preservation is permanent until the owner removes project state. A later supported dimension change rematerializes locally; only missing or source-incompatible canonical inputs require a separately approved paid call.
 
 ## 7. Configuration and Change Impact
 
-Production inputs are `embedding.model`, `embedding.serving_dimensions`, `embedding.reducer`, `embedding.normalizer`, `embedding.metric`, and `embedding.storage_codec`, plus the code-defined canonical-input/text-format version. Public embed and server construction must not accept the lab store.
+Production inputs are `embedding.model`, `embedding.serving_dimensions`, `embedding.reducer`, `embedding.normalizer`, `embedding.metric`, and fixed `embedding.storage_codec`, plus the code-defined canonical-input/text-format version. Public embedding receives the product source-bank service; server/search construction must not receive either source-bank or lab handles.
 
-`voyage-code-4` is the v1 default and initially the only validated model. Source dimensions are not configurable: `ModelSpec` resolves `SourceDimensions=1024` and `AllowedServingDimensions={256,512,1024}`. The official endpoint and request semantics belong to the code-owned Voyage adapter.
+`voyage-code-4` is the v1 default and initially the only validated model. Source dimensions are not configurable: `ModelSpec` resolves `SourceDimensions=1024` and `AllowedServingDimensions={1024,512}`. The official endpoint and request semantics belong to the code-owned Voyage adapter.
 
 Use only the regular synchronous Embeddings endpoint, never Voyage Batch Inference or asynchronous polling. The code-owned request policy is at most 128 inputs and 256 KiB total input bytes per request, at most four concurrent requests, and a 30-second timeout. Retry an initial attempt at most three times after 10, 20, and 30 seconds, with a longer provider `Retry-After` taking precedence. Production applies the already-validated `ResolvedConfig` limits, concurrency, timeout, retry count, and waits through the accepted `embed.Execute` executor; it does not restate or implement a serial retry policy.
 
@@ -184,7 +194,7 @@ Keep these sources of truth separate:
 13. [x] Preserve partial successes and reflect exact state and coverage.
 14. [x] Freeze public plan/apply request, result, and cancellation contracts for Phase 13.
 15. [x] Report free index state, serving coverage, and paid pending separately.
-16. [x] Verify that development raw/materialize is absent from the public dependency path.
+16. Reconcile public embedding with the product source bank while proving serving/search dependency graphs remain source-bank-free.
 17. [x] Hand off pre-query fallback on profile mismatch to Phase 11 after Phase 10 review and boundary validation.
 
 ## 9. Failure, Rollback, Concurrency, and Security
@@ -196,7 +206,7 @@ Keep these sources of truth separate:
 - Commit successful same-profile request groups durably in short transactions; do not roll them back because a later group fails.
 - Keep FTS or partial-coverage hybrid available while a reconciled profile is incomplete.
 - A failed generation/profile recheck prevents a late vector from joining the active set.
-- A late development-capture response may enter the raw bank. A late inactive public f32 may be discarded but never enters runtime storage.
+- A validated late document response may enter the immutable source bank. It publishes no target until generation/input/profile reproof succeeds.
 - A crash before public f32-derived output commits may cause the next run to pay for another request; this follows from not making raw retention a product contract.
 
 ### Concurrency
@@ -213,15 +223,15 @@ Keep these sources of truth separate:
 - Read credentials only from `VOYAGE_API_KEY`; never persist them in plans or run rows.
 - Before apply, disclose that canonical document input leaves the machine.
 - Sanitized errors exclude bodies, vectors, and authorization headers.
-- Ephemeral public f32 never enters debug logs, crash artifacts, or production DB.
-- Only an explicit development command opens the raw lab.
+- Document f32 never enters logs or crash artifacts and is written only to the owner-only product source bank.
+- Search/MCP never opens the source bank; only explicit document capture/materialization paths do.
 
 ## 10. Validation Scenarios
 
 - Without `VOYAGE_API_KEY`, index, FTS search, and embed planning work; only apply fails.
 - A ready same-profile key is not requested again.
 - A serving-dimension or codec mismatch falls back before query embedding.
-- Public embed creates the selected profile without a lab DB and does not increase lab raw rows.
+- Public embed writes source rows without opening evaluation state, then creates the selected profile; a compatible source hit rematerializes without a provider request.
 - Development capture/materialize and public direct paths produce byte-identical serving vectors for the same input/profile.
 - API waits do not block status or FTS search through an application lock.
 - If an active segment disappears before the response, its vector does not join the active set.
@@ -248,7 +258,7 @@ Implementation handoff record (2026-08-15; accepted at the main-agent boundary):
 - Added the production v2-to-v3 migration. It preflights the exact v2 schema, atomically preserves meta/vector/index data and active-profile pointers, converts preserved v2 failures to terminal historical failures, and adds classified unresolved failures plus `embedding_runs`.
 - Added a public no-lab plan/apply application boundary. Planning takes no client or credential; apply requires an explicit approval flag and an injected client. Canonical inputs are reconstructed from the active stored source/projections and verified against their canonical SHA-256 before requests.
 - Added a pinned active snapshot with derived ready/pending/failed states; it joins active segment keys, valid current-profile vectors, and latest terminal/retryable failures. Incremental writes revalidate config, generation, manifest, profiles, and active key in a short transaction, then either publish/clear failure or discard the stale key.
-- Added direct source-f32 transformation through the shared transformer and selected codec, with an ephemeral little-endian f32 SHA-256 provenance value. Production schema/storage contains no f32 vector representation and the public path has no lab dependency.
+- The historical checkpoint added direct source-f32 transformation through the shared transformer and selected codec, with only an ephemeral f32 checksum. The current reconciliation must additionally persist the validated f32 in the product source bank before fixed-int8 publication; production `index.db` still contains no f32 and the public path has no lab dependency.
 - Added focused fake-provider checks for free planning, explicit approval, exact document/1024/float/non-truncating request fields, serving-blob parity with the shared transformer/codec, ready exclusion, retry planning, schema/run records, and the existing store migration/atomic publication checks.
 - Checks run: `go test -count=1 ./internal/app ./internal/embed ./internal/lab ./internal/store`; `go test -count=1 -race ./internal/app ./internal/embed ./internal/store`; `go vet ./internal/app ./internal/embed ./internal/lab ./internal/store`; `go build ./internal/app ./internal/embed ./internal/lab ./internal/store`; direct dependency inspection of `./internal/embed ./internal/store` for `internal/lab`; `git diff --check`. All passed; the fake-provider test proves FTS completes while its document request is blocked. No real client, credentials, network, corpus, or paid operation was used.
 - Main-agent boundary checks passed: focused race tests for `internal/app`, `internal/embed`, `internal/lab`, and `internal/store`; focused vet/build; formatting; production dependency-boundary inspection; and diff validation.
@@ -261,20 +271,20 @@ Implementation handoff record (2026-08-15; accepted at the main-agent boundary):
 - Concurrent FTS completion while a paid request waits.
 - Store proof that a late response did not enter the active vector set.
 - Inspection proving no f32, key, or source body remains in production DB or logs.
-- End-to-end public hybrid preparation without a raw lab.
+- End-to-end public hybrid preparation with product source-bank reuse and no lab dependency.
 
 ## 12. Handoff
 
 Phase 11 receives the active `ServingVectorProfile` and fingerprint, valid codec-tagged rows and coverage, the shared transformer for a 1024-dimensional query f32 vector, the matching codec-specific query preparation/scorer, and stable fallback reasons for profile mismatch, missing vectors, missing credentials, or disabled paid queries.
 
-Phase 12 uses the development raw bank and materializer separately. It must not bypass public orchestration to create multiple runtime-active profiles.
+Phase 12 reads the product source bank through evaluation-only views and uses the shared materializer. It must not bypass orchestration to create multiple runtime-active profiles.
 
 ## 13. Decision Log
 
 - Public `cidx embed [--apply]` is the normal hybrid-enablement path.
-- The initial two-step raw lab saves evaluation cost; it is not a public prerequisite.
-- Normal embedding uses Voyage 1024 f32 -> prefix(serving_dimensions)/L2 -> active cidx codec (`binary` by default or `int8`).
-- Normal embedding does not require persistent raw f32, and query f32 is never stored.
+- The product source bank saves ordinary and evaluation cost; it is not a serving/search prerequisite after target publication.
+- Normal embedding uses Voyage 1024 f32 -> durable source row -> prefix(serving_dimensions)/L2 -> int8.
+- Document source f32 is persistent, while query f32 is never stored.
 - Only the serving profile selected by config is active.
 - Profile changes leave FTS intact and hybrid safely falls back until ready.
 - General-user model locking and external vector injection remain deliberately undesigned.

@@ -14,10 +14,10 @@ Read the [implementation index](README.md), [execution guide](EXECUTION-GUIDE.md
 - Confirm the user has selected each open-source corpus and approved the exact tracked manifest before any checkout, download, indexing, or paid embedding occurs.
 - Confirm each tracked corpus manifest records `corpus_id`, upstream URL, pinned commit, SPDX/license evidence, language slices, expected clean-tree/content hash, root subdirectory, and include/exclude policy; it must not contain an environment-specific absolute path.
 - Confirm an ignored `.cidx/test/corpora.local.json` relative binding or explicit CLI input maps each `corpus_id` to the user's existing checkout below the controlling project, and verify its commit, cleanliness, and content hash before a run.
-- Re-check that all compared profiles use the same approved document raw bank, manifest, canonical input set, question/answer dataset, and production search implementation, and that aggregate metrics retain separate Go, TypeScript, TSX, and mixed counts and denominators.
-- Re-check source 1024, targets 256/512/1024, nonpersistent query f32, cidx-owned `binary` and `int8` candidates, binary as the production default, and one active serving profile per run.
+- Re-check that all compared profiles use the same approved product document source bank, manifest, canonical input set, question/answer dataset, and production search implementation, and that aggregate metrics retain separate Go, TypeScript, TSX, and mixed counts and denominators.
+- Re-check the durable document source-1024 bank, default 1024/int8 and explicit compact 512/int8 targets, nonpersistent query f32, complete absence of Binary/256 executable arms, and one active serving profile per run.
 - Re-check the frozen calibration/confirmation split, exact denominators, required-group labels, first-loss enum, FTS/dense lane traces, serving-f32 codec reference, RRF ablations, and promotion contract before any applied run.
-- Stop if corpus approval, license evidence, pinned revision, clean-tree/content hash, ground truth, raw coverage, or fingerprint compatibility is unresolved. Never choose, download, update, index, or embed a corpus on the user's behalf without explicit approval.
+- Stop if corpus approval, license evidence, pinned revision, clean-tree/content hash, ground truth, source coverage, or fingerprint compatibility is unresolved. Never choose, download, update, index, or embed a corpus on the user's behalf without explicit approval.
 - Before pausing, update run/evidence records and this decision log, then update [STATUS.md](STATUS.md) with approved corpus IDs, checked hashes, incomplete work, and the exact next action.
 
 ## Revision 4 Corpus-Independent Entry Gate
@@ -31,7 +31,7 @@ Read the [implementation index](README.md), [execution guide](EXECUTION-GUIDE.md
 
 ## 1. Objective
 
-Sequentially compare supported serving dimensions and the cidx-owned `binary` and `int8` codecs against the same `voyage-code-4` 1024-dimensional document raw bank and the same question/answer dataset. Each run evaluates exactly one `ServingVectorProfile` selected by `.cidx/config.json` and records evidence for the next configuration decision. FTS is the default search mode and binary remains the resolved default codec unless the user explicitly selects hybrid or int8.
+Evaluate the default 1024/int8 target and any explicitly frozen compact 512/int8 arm against the same product-owned `voyage-code-4` 1024-dimensional document source bank and the same question/answer dataset. Each run evaluates exactly one `ServingVectorProfile` selected by `.cidx/config.json`. FTS remains the default search mode. Historical Binary/256 reports do not enter the executable matrix.
 
 Produce a stage-separated scorecard and hard-gate result rather than a weighted total. Human relevance determines usefulness; exhaustive serving-dimension f32 determines representation fidelity. Preserve FTS-only, dense-only, collapse, RRF, and body-survival evidence so a correct hybrid result cannot hide a broken lane or downstream loss.
 
@@ -45,13 +45,13 @@ For each run, explicitly request queries from Voyage AI with `output_dimension=1
 
 - User-approved open-source corpus manifests and local checkout bindings.
 - Reproducible retrieval datasets with expected symbols/files.
-- Target-f32 baselines derived from one document raw bank.
+- Target-f32 baselines derived from one product document source bank.
 - Current production selected-codec results.
 - FTS-only, vector-only, and FTS+vector RRF comparison.
 - FTS/dense candidate union plus hybrid-without-FTS and hybrid-without-dense ablations.
-- f32/binary/int8 score and ranking observations.
+- exhaustive serving-f32 and active-int8 score/ranking observations.
 - Parent-collapse, RRF contribution/rescue/harm, body-package survival, first-loss, and per-cohort evidence.
-- Sequential serving-dimension and codec comparisons.
+- Sequential 1024/int8 and explicitly frozen 512/int8 comparisons.
 - Free planning separated from paid query apply.
 - Frozen promotion contract/result plus immutable traces, metrics, and checksummed artifacts.
 
@@ -62,16 +62,16 @@ For each run, explicitly request queries from Voyage AI with `output_dimension=1
 - Query-vector tables or caches.
 - Concurrent runtime A/B serving of multiple candidate profiles.
 - Automatic config edits or automatic profile promotion by evaluation.
-- Importing vectors for models absent from the raw bank.
+- Importing vectors for models absent from the source bank.
 - Fixed latency/hit-rate release thresholds or SLAs.
-- Learned rerankers, LLM judges, generated-answer evaluation, or permanent product operation of the raw bank.
+- Learned rerankers, LLM judges, generated-answer evaluation, or use of the source bank as a search/runtime authority.
 
 ## 3. Prerequisites
 
 - Phase 07 provides the shared dataset format and FTS baseline runner.
 - The user has selected the corpus, approved its pinned manifest and license use, and made an approved checkout available locally.
 - The local binding resolves `corpus_id` to a path outside the tracked manifest; the checkout matches pinned commit, clean-tree rule, expected content hash, root subdirectory, and include/exclude language slice.
-- Phase 08 completely covers the approved evaluation manifest and source profile in its raw document bank.
+- Phase 08 completely covers the approved evaluation manifest and source profile in its product document source bank.
 - Phase 05 records active fingerprints and segment keys for current config; Phase 09 publishes its serving vectors.
 - Phase 11 exposes the actual vector scorer, aggregation, and RRF as reusable entry points.
 - The dataset records corpus/revision, query ID/text, expected file/symbol, and permitted answer sets.
@@ -82,19 +82,19 @@ For each run, explicitly request queries from Voyage AI with `output_dimension=1
 1. No corpus network access, checkout creation/update, indexing, or embedding occurs until the user explicitly approves that corpus and action.
 2. A tracked manifest contains portable identity and integrity data, never an absolute local path; local bindings are ignored or passed explicitly.
 3. Every dimension/codec comparison uses the same approved corpus commit, clean/content hash, document source fingerprint, manifest, and canonical input set.
-4. One production run evaluates one current `ServingVectorProfile`. A development-only codec diagnostic may keep binary as that singular active profile while deriving an int8 candidate bank from the same raw f32 solely in run memory; it cannot activate, publish, or serve the candidate.
+4. One production run evaluates one current int8 `ServingVectorProfile`. Historical multi-codec reports are immutable inputs only; current evaluation cannot activate, derive, publish, or score Binary/256 candidates.
 5. Changing a candidate requires an explicit config edit, `cidx index` reconciliation, then `cidx dev embeddings materialize --activate`.
 6. Evaluation never writes config or changes the active serving profile.
 7. Each run creates a fresh query from current `voyage-code-4` at 1024 dimensions and never persists it or reuses it in another run.
-8. Within one run, one ephemeral serving-space query may be reused across the f32 baseline, active codec scan, and hybrid variants, then discarded. The isolated codec diagnostic reuses it across f32, binary, and int8 dedicated scorers, but never crosses scores or feeds those rankings into RRF.
+8. Within one run, one ephemeral serving-space query is reused across the f32 baseline, active int8 scan, and hybrid variants, then discarded. Historical multi-codec diagnostics are immutable reports and have no current scorer path.
 9. Document serving-f32 baselines apply the current reducer/normalizer to raw documents in memory and never enter production storage.
-10. Production binary/int8 variants read only the current active serving profile.
+10. Production int8 evaluation reads only the current active serving profile.
 11. Document and query both start at source 1024 and use the same prefix plus L2 transform.
 12. Runs differing in corpus/commit/content hash, manifest, dataset, config, raw profile, or code version are not labeled as like-for-like.
 13. Failed or missing queries are never silently removed from metric denominators.
 14. Hit rate and latency are observations, not predeclared automatic candidate gates.
 15. Validate query response model/count/indexes, 1024 dimensions, and finite values; omit `encoding_format`.
-16. Production binary/int8 representations are Phase 09 cidx codecs, not Voyage provider-quantized output.
+16. Production int8 is the Phase 09 cidx codec, not Voyage provider-quantized output.
 17. Human-gold retrieval and serving-f32 codec fidelity are independent metrics; neither substitutes for the other.
 18. Calibration may select settings and margins but cannot vote for promotion. Confirmation cannot tune any setting, label, budget, or margin.
 19. Required query/API failures and timeouts remain in denominators with an explicit failure stage. Optional unrequested stages are `NOT_OBSERVED`, not zero.
@@ -114,14 +114,14 @@ For each run, explicitly request queries from Voyage AI with `output_dimension=1
 | `internal/eval/retrieval_metrics.go` | Human retrieval, requirement, survival, first-loss, and serving-f32/current-codec fidelity metrics |
 | `internal/eval/variants.go` | Variant definitions and common rank adapter |
 | `internal/eval/promotion.go` | Frozen gate contract, paired comparison, and promotion result |
-| `internal/lab/eval_documents.go` | Target-f32 view over the raw bank |
+| `internal/sourcebank/eval_reader.go` | Read-only target-f32 view used only by evaluation assembly |
 | `internal/lab/eval_runner.go` | One-current-config development run |
 | `internal/lab/evaluations.go` | Vector-free run provenance in the Phase 02 lab schema |
 | `internal/app/dev_evaluate.go` | Plan/apply, confirmation, progress, and result for Phase 13 |
 
 Call the Phase 11 implementations directly; do not copy a similar evaluation-only algorithm.
 
-Core types reuse Phase 02 `EvaluationCase`, `RequiredGroup`, `ExpectedAlternative`, relevance grades, cohorts, split, stage, first-loss, artifact, and promotion types plus Phase 07 truth/metric services. Phase 12 adds only retrieval calculations such as `EvaluationPlan`, `EvaluationRun`, `CaseRanking`, `CodecFidelity`, `LaneContribution`, and `MetricSummary`. `RetrievalVariant` includes `fts`, `target_f32`, `serving_active_codec`, each supported RRF arm, provider union, and the two lane-ablation hybrids. The run manifest records whether the active codec is binary or int8.
+Core types reuse Phase 02 `EvaluationCase`, `RequiredGroup`, `ExpectedAlternative`, relevance grades, cohorts, split, stage, first-loss, artifact, and promotion types plus Phase 07 truth/metric services. Phase 12 adds only retrieval calculations such as `EvaluationPlan`, `EvaluationRun`, `CaseRanking`, `CodecFidelity`, `LaneContribution`, and `MetricSummary`. `RetrievalVariant` includes `fts`, `target_f32`, `serving_int8`, each supported RRF arm, provider union, and the two lane-ablation hybrids. The run manifest records the fixed int8 codec and selected supported dimension.
 
 ## 6. Schema, API, and CLI
 
@@ -179,7 +179,7 @@ Confirmation is promotion-capable only when it satisfies the documented dataset/
 
 ### Lab evaluation metadata
 
-`<state_root>/raw/embeddings.db` `evaluation_runs` stores no query vectors. It records run/state, corpus ID and manifest fingerprint, upstream pinned commit, verified content hash, portable repository identity, index generation/manifest SHA-256, dataset fingerprint/count, source-space-storage-serving fingerprints, raw-bank fingerprint/coverage, build version, actual query input-token usage and outcomes, and report path/checksum.
+The separate evaluation store's `evaluation_runs` table stores no query vectors. It records run/state, corpus ID and manifest fingerprint, upstream pinned commit, verified content hash, portable repository identity, index generation/manifest SHA-256, dataset fingerprint/count, source-space-storage-serving fingerprints, product source-bank fingerprint/coverage, build version, actual query input-token usage and outcomes, and report path/checksum.
 
 Query text remains only in the dataset; the DB stores a query ID or hash. It has no query-f32 blob column.
 
@@ -206,7 +206,7 @@ Query text remains only in the dataset; the DB stores a query ID or hash. It has
   artifact-checksums.json
 ```
 
-Artifacts include sufficient corpus, profile, and raw-document provenance but no query vector or raw document bytes. `rankings.json` uses query IDs rather than copying text. Mark incomplete runs explicitly and never compare them automatically with complete runs.
+Artifacts include sufficient corpus, profile, and document-source provenance but no query vector or source-vector/document bytes. `rankings.json` uses query IDs rather than copying text. Mark incomplete runs explicitly and never compare them automatically with complete runs.
 
 ### Development CLI
 
@@ -216,12 +216,12 @@ cidx dev retrieval evaluate --corpus-manifest <path> --corpus-path <approved-loc
 cidx dev retrieval evaluate --corpus-manifest <path> --dataset <path> --apply
 ```
 
-- Default execution performs corpus/config/DB/raw coverage/dataset validation and estimates query tokens/cost; it makes no network call and does not index or embed.
+- Default execution performs corpus/config/DB/source coverage/dataset validation and estimates query tokens/cost; it makes no network call and does not index or embed.
 - An existing approved local binding may replace `--corpus-path`; the tracked manifest itself never holds the path.
 - `--apply` is a separate explicit approval for paid query embedding. Prior corpus approval does not imply paid-call approval.
 - If the current profile/key differs, return `PROFILE_RECONCILIATION_REQUIRED` and make no API call.
 - If the key matches but current vectors are absent, return `MATERIALIZATION_REQUIRED` and point to development materialize or public embed.
-- If the raw bank does not completely cover the verified evaluation manifest, return `RAW_COVERAGE_INCOMPLETE`.
+- If the product source bank does not completely cover the verified evaluation manifest, return `SOURCE_COVERAGE_INCOMPLETE`.
 - A command evaluates only current config. It is an unstable development surface, not MCP or public compatibility surface.
 - This command never clones, fetches, checks out, cleans, or updates a corpus. Any such action requires a separate user-approved workflow outside this command.
 
@@ -244,19 +244,19 @@ Phase 13 eventually exposes the commands below. Phase 12 itself can call the sam
 11. compare complete runs only when their compatibility fingerprints match
 ```
 
-Target or codec changes make zero additional document API calls. Queries are requested fresh in each evaluation run.
+Changing between supported 1024 and 512 targets makes zero additional document API calls when source coverage is complete. Queries are requested fresh in each evaluation run.
 
 ### Variants and observations
 
-Each run evaluates FTS-only, serving-f32 vector-only, active-codec vector-only, provider union, FTS+f32 RRF, FTS+active-codec RRF, and both lane-ablation hybrids. Binary and int8 use separate profile runs because one active profile never mixes codecs. All compatible arms use the same ephemeral serving-space query and frozen candidate/collapse/RRF/body policy.
+Each run evaluates FTS-only, serving-f32 vector-only, active-int8 vector-only, provider union, FTS+f32 RRF, FTS+int8 RRF, and both lane-ablation hybrids. All compatible arms use the same ephemeral serving-space query and frozen candidate/collapse/RRF/body policy. Historical Binary/256 runs are report inputs only and are never regenerated or rescored.
 
-Compute the exact formulas in `EVALUATION-CONTRACT.md`: Hit/Recall/MRR/NDCG, requirement coverage and complete hit, stage survival/loss, first loss, serving-f32 top-k/gold retention, missing neighbors, rank displacement, pairwise inversion, tie diagnostics, RRF lane overlap/contribution/rescue/harm, and body-package survival. Keep raw BM25, f32, binary, int8, and RRF scores on separate scales.
+Compute the exact formulas in `EVALUATION-CONTRACT.md`: Hit/Recall/MRR/NDCG, requirement coverage and complete hit, stage survival/loss, first loss, serving-f32 top-k/gold retention, missing neighbors, rank displacement, pairwise inversion, tie diagnostics, RRF lane overlap/contribution/rescue/harm, and body-package survival. Keep raw BM25, f32, int8, and RRF scores on separate scales.
 
 Report every metric by Go, TypeScript, TSX, mixed, and critical cohort with denominators and failures. An aggregate is allowed only alongside slices. Numeric noninferiority margins come from repeated cidx calibration baselines and are frozen in `promotion-contract.json` before confirmation; no foreign threshold is copied.
 
 ## 7. Configuration and Change Impact
 
-Evaluation reads current model, serving dimensions, reducer, normalizer, metric, storage codec, and search candidate/return/RRF/FTS-weight config. `voyage-code-4` is initially the only validated model; `ModelSpec` supplies source 1024 and current serving dimension from `{256,512,1024}`.
+Evaluation reads current model, serving dimensions, reducer, normalizer, metric, fixed storage codec, and search candidate/return/RRF/FTS-weight config. `voyage-code-4` is initially the only validated model; `ModelSpec` supplies source 1024 and current serving dimension from `{1024,512}`.
 
 Do not guess a code-4 token ceiling from another model. Plan with the actual dataset estimate and conservative synchronous `embedding.request` policy, clearly labeled as project policy.
 
@@ -267,8 +267,8 @@ Corpus manifest and dataset paths are development inputs. Artifact location is f
 | Serving dimensions/codec | Candidate comparison | Reconcile index, materialize, run again |
 | Reducer/normalizer/metric | Different spaces; compare only approved combinations | Materialize and rerun |
 | Dataset question/answer | Dataset incompatible | New fingerprint and query run |
-| Corpus commit/content hash/include slice | Corpus incompatible | New user approval, raw coverage, and series |
-| Index manifest | Corpus snapshot incompatible | New raw coverage and series |
+| Corpus commit/content hash/include slice | Corpus incompatible | New user approval, source coverage, and series |
+| Index manifest | Corpus snapshot incompatible | New source coverage and series |
 | RRF/candidates/FTS weights | Retrieval-policy comparison | New run with explicit difference |
 
 ## 8. Ordered Implementation Checklist
@@ -277,16 +277,16 @@ Corpus manifest and dataset paths are development inputs. Artifact location is f
 2. Implement ignored/explicit local binding without writing an absolute path to tracked files.
 3. Verify user approval marker, license evidence, origin, pinned commit, cleanliness, selected files, and content hash before any run.
 4. Freeze dataset schema, strict loading, required-group/relevance matching, review records, calibration/confirmation assignment, and canonical digest.
-5. Verify repository, corpus manifest, index manifest, source profile, and raw coverage.
+5. Verify repository, corpus manifest, index manifest, source profile, and source coverage.
 6. Check current config against active serving profile before query APIs.
 7. Implement query-count and token/cost planning with no network access.
 8. Connect `--apply` to the Voyage 1024 query request and shared transformer, validating role and response.
 9. Make it impossible for a query vector to escape request/run memory.
-10. Stream or load bounded serving-f32 document views from the raw bank.
+10. Stream or load bounded serving-f32 document views from the product source bank.
 11. Reuse Phase 11 aggregation, tie-break, codec-aware scan, FTS, collapse, and RRF for every standalone, union, hybrid, and ablation arm.
 12. Record success, API failure, fallback, missing-answer, stage survival, and first-loss outcomes explicitly.
 13. Implement per-language/cohort denominators, required-failure inclusion, aggregate-with-slice-count rules, and incomplete-run policy.
-14. Compute paired human-gold metrics and serving-f32-versus-active-codec retention, displacement, inversion, missing-neighbor, tie, and determinism diagnostics. Treat binary/int8 cross-run deltas as paired only when query-vector hashes and all other controls match.
+14. Compute paired human-gold metrics and serving-f32-versus-int8 retention, displacement, inversion, missing-neighbor, tie, and determinism diagnostics. Treat 1024/512 cross-run deltas as paired only when source query vectors and all other controls match.
 15. Write artifacts to a temporary location and atomically publish with a completion marker.
 16. Store only vector-free provenance and artifact checksums in `evaluation_runs`.
 17. Freeze development plan/apply request and summary contracts for Phase 13.
@@ -319,7 +319,7 @@ Corpus manifest and dataset paths are development inputs. Artifact location is f
 - Require explicit user approval before acquiring or processing third-party source.
 - Treat upstream URL as provenance, not download authority.
 - Disclose before apply that dataset questions are sent to Voyage AI.
-- Never write credentials, query f32, or raw/source vector bytes to artifacts or DBs.
+- Never write credentials, query f32, or source-vector bytes to artifacts or the evaluation DB.
 - Do not duplicate query text outside the user-managed dataset.
 - Limit errors and diagnostics to path, symbol, and range; exclude complete source bodies.
 - Exclude `.cidx/test/states/`, `.cidx/test/corpora/`, and `.cidx/test/corpora.local.json` from Git and release artifacts.
@@ -331,16 +331,16 @@ Corpus manifest and dataset paths are development inputs. Artifact location is f
 - A tracked manifest containing an absolute local path is rejected.
 - Planning makes zero query calls and reports expected count, tokens, and cost.
 - Applied evaluation leaves no query f32 row in either schema.
-- f32 and the active binary or int8 variant reuse the same ephemeral serving-space query within a run.
-- Runs for targets A and B record the same approved raw-bank and document-key set.
+- f32 and active int8 reuse the same ephemeral serving-space query within a run.
+- Runs for targets A and B record the same approved source-bank and document-key set.
 - Document API calls remain zero between codec/dimension candidates.
 - Changing a question changes the dataset fingerprint.
-- Changing source model prevents reuse of the raw bank.
+- Changing source model prevents reuse of incompatible source-bank rows.
 - Config/materialization mismatch fails before query embedding.
 - A concurrent index or corpus change marks the run incomplete.
 - Reports expose failed-query denominator treatment.
 - Reports expose Go, TypeScript, TSX, and mixed results separately and cannot present an aggregate without slice counts.
-- Target-f32 and active-codec ranking entries align by query/document ID within every run; sequential binary/int8 runs declare whether query-vector hashes permit a direct paired delta.
+- Target-f32 and active-int8 ranking entries align by query/document ID within every run; sequential 1024/512 runs declare whether query-vector hashes permit a direct paired delta.
 - Low or high latency/hit rate never automatically selects a profile.
 - Standalone FTS and dense lane regressions remain visible even when RRF retrieves the correct parent.
 - Provider union, collapse, RRF, package, and first-loss requirement coverage is monotonic.
@@ -352,12 +352,12 @@ Corpus manifest and dataset paths are development inputs. Artifact location is f
 
 - Approved portable manifest and separate ignored local-binding example.
 - License, commit, clean-tree, slice, and content-hash verification record.
-- Dataset schema/fingerprint and a complete run manifest with corpus/raw/profile provenance.
+- Dataset schema/fingerprint and a complete run manifest with corpus/source/profile provenance.
 - Per-language/cohort Hit/Recall/MRR/NDCG, requirement coverage, survival, first-loss, and hard-negative results for every standalone/union/hybrid/ablation arm.
-- Same-run paired serving-f32/current-codec retention, missing-neighbor, displacement, inversion, tie, human-gold, determinism, and codec-integrity evidence, plus clearly classified sequential binary/int8 comparison status.
+- Same-run paired serving-f32/int8 retention, missing-neighbor, displacement, inversion, tie, human-gold, determinism, and codec-integrity evidence, plus clearly classified sequential 1024/512 comparison status.
 - RRF lane overlap, contribution, rescue, harm, rank movement, and broken-lane detection evidence.
 - Body-package survival, fidelity, density, duplicate, and omission-reason evidence produced by the shared packaging core available at this phase.
-- Sequential reports for at least two approved serving-dimension/codec candidates when the user requests that comparison.
+- Sequential reports for 1024/int8 and an explicitly frozen 512/int8 candidate when the user requests that comparison.
 - Per-run query calls/tokens/cost and proof of zero new document calls.
 - Inspection proving no query vector in DBs or artifacts.
 - Incomplete classification for a concurrent manifest/content change.
@@ -368,7 +368,7 @@ The corpus-independent subset is accepted in [Revision 4 evidence](evidence/phas
 
 ## 12. Handoff
 
-Write the selected `embedding.serving_dimensions`, reducer, normalizer, and metric to the single project config authority only after human review. Keep `storage_codec=binary` unless the user explicitly chooses the supported `int8` alternative after reviewing the comparison. Then run `cidx index` to reconcile serving keys and either development materialize activation or public embed apply to prepare rows before Phase 13 and Phase 14 verification.
+Write the selected supported `embedding.serving_dimensions`, reducer, normalizer, metric, and fixed `storage_codec=int8` to the single project config authority only through the explicit profile-change flow. The product default is 1024 and compact 512 is optional. Then run profile reconciliation and provider-free source-bank materialization before Phase 13 and Phase 14 verification.
 
 If results are inconclusive, record candidates, why they remain undecided, and what additional user-approved corpus or questions are required. Do not invent a default.
 
@@ -388,10 +388,10 @@ If results are inconclusive, record candidates, why they remain undecided, and w
 - The initial 1024-f32 document bank is reusable for setup evaluation only, not permanent product workflow.
 - Query f32 is never stored, even for fixed questions, and is not a cache foundation.
 - Candidates are evaluated sequentially by changing current config; runtime still serves one profile.
-- The user-opened chi/RHF codec diagnostic is the only exception to sequential candidate activation: a dedicated vector-only development path keeps production binary active, creates an in-memory int8 bank from the same raw f32, prepares binary and int8 queries independently from one ephemeral f32, and records separate top-20 rankings without FTS or RRF.
+- The earlier user-opened chi/RHF codec diagnostic is historical evidence only; its Binary/256 arms have no executable current path.
 - The f32 baseline exists only in development-run memory.
-- Source output stays explicitly 1024; only targets 256, 512, and 1024 are candidates.
-- Serving dimension is chosen after measurements. Storage defaults to binary; int8 requires an explicit user selection after comparison.
+- Source output stays explicitly 1024; only targets 1024 and 512 are supported.
+- Serving defaults to 1024 and may explicitly switch to compact 512. Storage is fixed int8.
 - Hit rate and latency are observations, not predeclared gates.
 - Evaluation remains an unstable development surface outside MCP/public compatibility.
 - There is no weighted total quality score; promotion is the conjunction of applicable hard gates.

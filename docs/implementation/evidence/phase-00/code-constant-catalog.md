@@ -11,7 +11,7 @@ These values are centralized registries or named protocol constants. They are no
 | Credential environment name | `VOYAGE_API_KEY` | Voyage adapter/bootstrap |
 | Model | `voyage-code-4` | `ModelSpec` registry |
 | Source dimensions | `1024` | `ModelSpec` registry |
-| Allowed serving dimensions | `256,512,1024` | `ModelSpec` registry |
+| Allowed serving dimensions | `1024,512` (1024 default) | `ModelSpec` registry |
 | Document/query roles | `document` / `query` | source profile/adapter |
 | Output dtype | provider float response validated as 1024 finite f32 values | source profile/adapter |
 | Truncation | explicit `false` | source profile/adapter |
@@ -37,14 +37,13 @@ These values are centralized registries or named protocol constants. They are no
 | Reducer | source prefix reduction from 1024 to an allowed serving dimension | Phase 01 |
 | Normalizer | L2 normalization | Phase 01 |
 | Metric | cosine serving-space reference | Phase 01 |
-| Storage codec | `binary|int8`, default `binary` | Phase 01 |
-| Binary codec contract | bit mapping, packing order, padding, query preparation, scorer and version | Phase 01; not yet fixed |
-| int8 codec contract | scale, rounding, clamp, norm, query preparation, scorer and version | Phase 01; not yet fixed |
+| Storage codec | fixed `int8`; no selector or registry alternative | Phase 01 evidence plus 2026-08-17 owner decision |
+| int8 codec contract | scale, rounding, clamp, norm, query preparation, scorer and version | Phase 01 |
 | Canonical text formatter | exact byte framing/version | Phase 02 then language phases |
 | Parser/chunker/symbol/FTS IDs | code-owned implementation identifiers | Phases 01–06 |
 | RRF formula/tie behavior | versioned 1-based rank formula and deterministic tie policy | Phases 06/11; numeric `rrf_k` remains config |
 
-Provider-native `output_dtype=binary|int8` is not a cidx codec and must never share a codec ID with a local encoder/scorer.
+Provider-native quantized output is not the cidx codec and must never share a codec ID with the local encoder/scorer.
 
 ## Safety ceilings and error identifiers
 
@@ -63,4 +62,4 @@ Provider-native `output_dtype=binary|int8` is not a cidx codec and must never sh
 
 The executable owns these independent ceilings and rejects a config value above them. The two 1 MiB ceilings have different names and purposes even though their numeric values match. A provider token estimate remains cost information and is never substituted for the request byte boundary.
 
-Stable error identifiers are code constants, not parsed message text. At minimum they cover config/schema/profile mismatch, reconciliation/materialization required, paid-query disabled, missing API key, query/document embedding failure, stale/not-found/oversized spans, invalid vector/blob, generation change, corpus approval/license/hash failure, raw coverage incomplete, and incomplete evaluation.
+Stable error identifiers are code constants, not parsed message text. At minimum they cover config/schema/profile mismatch, reconciliation/materialization required, paid-query disabled, missing API key, query/document embedding failure, stale/not-found/oversized spans, invalid vector/blob, generation change, corpus approval/license/hash failure, source coverage incomplete, and incomplete evaluation.

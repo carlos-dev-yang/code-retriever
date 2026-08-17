@@ -1,6 +1,6 @@
-# 08. Raw Document Embedding Lab
+# 08. Product Document Source Bank and Evaluation Capture
 
-- Status: `done` — Revision 4 shared synchronous request execution and raw-lab integration passed independent Terra review and the main-agent commit-boundary validation
+- Status: `blocked` — the accepted shared synchronous executor remains, but immutable 1024-f32 document rows must be separated into product-owned source storage before downstream reconciliation
 - Prerequisite phases: `02-config-profiles-and-schemas`, `05-worktree-index-pipeline`
 - Follow-up phases: `09-vector-materialization`, `12-retrieval-evaluation`
 - Design basis: `local-code-search-mcp-v1-design-r4.md` §7.1–§7.4, §9.1
@@ -9,15 +9,26 @@
 
 - Reopen the [implementation index](README.md), [execution guide](EXECUTION-GUIDE.md), and [status ledger](STATUS.md) before continuing.
 - Confirm the Phase 02 production/lab stores and profile schemas, the central `voyage-code-4` `ModelSpec`, the Phase 05 active canonical document inputs, the repository identity contract, and the shared embedding lock are available.
-- Re-check these invariants after any context compaction: source requests explicitly use 1024-dimensional float output; the bank stores immutable document f32 only; document and query roles remain distinct; queries are never persisted; production serving neither opens nor imports the lab store; provider quantized output is not either cidx-owned `binary` or `int8` codec.
+- Re-check these invariants after any context compaction: source requests explicitly use 1024-dimensional float output; the product bank stores immutable document f32 only; document and query roles remain distinct; queries are never persisted; serving/search/MCP never opens the source bank; evaluation run state is separate; provider quantized output is not a cidx codec.
 - Stop before a paid call if repository/profile identity is unresolved, active canonical inputs cannot be reconstructed exactly, `VOYAGE_API_KEY` is missing for apply, synchronous request limits rely on an undocumented model-specific token cap, or response model/count/index/dimension/finite validation fails.
 - Before pausing, record executed evidence in §11, capture new architectural choices in §13, and update [STATUS.md](STATUS.md) with the exact next checklist item and unresolved stop condition.
 
+## 2026-08-17 product source-bank supersession
+
+The owner accepted permanent product-owned 1024-f32 document source storage at
+`<state_root>/db/embeddings.db`. It is populated before active int8 publication
+and locally rematerializes default 1024/int8 or compact 512/int8 without another
+provider call. Search and MCP never open it. Evaluation capture/run metadata
+must move behind a distinct lab-only store and cannot make the source bank a
+serving authority. The earlier development-only raw-bank text below is
+historical where it conflicts with
+[`SOURCE-VECTOR-BANK-DECISION.md`](SOURCE-VECTOR-BANK-DECISION.md).
+
 ## 1. Goal
 
-Avoid paying repeatedly for the same document embeddings during initial development and retrieval evaluation by preserving the explicitly requested 1024-dimensional float32 document vectors from Voyage AI `voyage-code-4` in a store physically separate from production.
+Avoid paying repeatedly for compatible document embeddings in ordinary use and evaluation by preserving the explicitly requested 1024-dimensional float32 document vectors from Voyage AI `voyage-code-4` in a product source bank physically separate from the serving index and evaluation metadata.
 
-This phase produces a development- and evaluation-only raw document bank at `<state_root>/raw/embeddings.db`. Normal projects resolve state to `<source_root>/.cidx`; cidx's own evaluation workspace uses `.cidx/test/states/<corpus>/`. `cidx serve` and ordinary search paths neither open nor depend on this database.
+This phase produces the product source bank at `<state_root>/db/embeddings.db` and a separate evaluation-only metadata store. Normal projects resolve state to `<source_root>/.cidx`; cidx's own evaluation workspace uses `.cidx/test/states/<corpus>/`. `cidx serve` and ordinary search paths neither open nor depend on the source bank.
 
 ## 2. Scope
 
@@ -26,18 +37,18 @@ This phase produces a development- and evaluation-only raw document bank at `<st
 - Collect the distinct canonical document inputs referenced by the current active index snapshot.
 - Call the official Voyage AI Embeddings API with explicit `output_dimension=1024`, `output_dtype=float`, `input_type=document`, and `truncation=false`.
 - Preserve validated responses as IEEE-754 float32 little-endian blobs.
-- Provide plan/apply behavior that does not call the API again for an already preserved raw key.
-- Record raw collection runs, successes, terminal failures, retries, and diagnostics.
-- Provide the development-only helper command `cidx dev embeddings capture`.
+- Provide plan/apply behavior that does not call the API again for an already preserved source key.
+- Record collection runs, successes, terminal failures, retries, and diagnostics in the separate evaluation metadata store.
+- Provide shared source-bank capture/reuse services used by public embedding and the development helper command.
 
 ### Out of scope
 
-- An MCP tool or stable general-user CLI.
+- An MCP tool for source-bank mutation.
 - Runtime vector search or updates to `index.db.vector_cache`.
 - Query-embedding persistence or a query cache.
 - Preserving vectors for fixed evaluation queries.
-- Operating the raw DB as a permanent runtime feed.
-- Permanently retaining or switching among multiple serving profiles as a product feature.
+- Operating the source DB as a runtime search feed or fallback.
+- Retaining multiple active serving profiles; only one target is atomically active.
 - Injecting externally created vectors, supporting arbitrary providers, or deciding a future user-facing model-pinning policy.
 - Automatic raw-vector garbage collection, remote backup, or a shared cache.
 
@@ -48,25 +59,25 @@ This phase produces a development- and evaluation-only raw document bank at `<st
 - `canonical_input_sha256` excludes serving dimension, reducer, normalization, metric, and quantization codec.
 - The Voyage client reads `VOYAGE_API_KEY` only from the environment and separates the cost-free plan from paid apply.
 - `.cidx/` is excluded from source enumeration and Git tracking.
-- The central `ModelSpec` registry resolves and validates the sole initial v1 model, `voyage-code-4`, with `SourceDimensions=1024` and allowed targets `{256, 512, 1024}`.
+- The central `ModelSpec` registry resolves and validates the sole initial v1 model, `voyage-code-4`, with `SourceDimensions=1024` and allowed targets `{1024, 512}`.
 - Indexed source files are capped at 1 MiB. A chunk is the complete semantic AST parent, never a user-configured byte slice; embedding segments are AST-derived and never arbitrarily split.
 
 ## 4. Invariants
 
-1. A raw key is `(embedding_source_profile_fingerprint, canonical_input_sha256)`.
+1. A source key is `(embedding_source_profile_fingerprint, canonical_input_sha256)`.
 2. `EmbeddingSourceProfile` contains `provider=voyage-official`, `model=voyage-code-4`, resolved `SourceDimensions=1024`, `output_dtype=float`, document/query `input_type` mappings, `truncation=false`, and the provider-adapter contract version.
-3. Changing serving dimension or switching between the cidx `binary` and `int8` codecs does not change the raw key.
-4. Changing provider, model, resolved source dimension, dtype, input-role mapping, truncation policy, or adapter-contract version changes the source fingerprint and raw key.
-5. If a valid row already exists for a raw key, a later **development capture** does not call the API again. Public document embedding does not read the lab DB, so this cache-hit contract does not apply there.
-6. A raw row is immutable. Never overwrite the same key silently with different vector bytes.
+3. Changing serving dimension between 1024 and 512 does not change the source key.
+4. Changing provider, model, resolved source dimension, dtype, input-role mapping, truncation policy, or adapter-contract version changes the source fingerprint and source key.
+5. If a valid row already exists for a source key, both ordinary document embedding and development capture reuse it without another API call.
+6. A source row is immutable. Never overwrite the same key silently with different vector bytes.
 7. Store an API response only after validating response model, `dimensions == 1024`, response-index uniqueness and range, response count, finite values, and blob length.
-8. Preserve a successful response in the raw bank even if its active-segment reference disappears after the request. It is a paid development asset.
-9. Do not store query text or query vectors in the raw DB, including evaluation queries.
-10. The `cidx serve` import graph and runtime initialization exclude the raw-lab package.
-11. An absent or corrupt raw DB does not prevent already materialized production search from operating.
-12. A Voyage 1024-dimensional source vector permits only `prefix(serving) -> L2` for supported serving dimensions `{256, 512, 1024}`.
+8. Preserve a successful response in the source bank even if its active-segment reference disappears after the request. It is reusable product-owned document source data.
+9. Do not store query text or query vectors in the source bank, including evaluation queries.
+10. The `cidx serve` import graph and runtime initialization exclude both the source-bank writer and the lab package.
+11. An absent or corrupt source DB does not prevent already materialized production search from operating.
+12. A Voyage 1024-dimensional source vector permits only `prefix(serving) -> L2` for supported serving dimensions `{1024, 512}`.
 13. Document requests use `input_type=document`; live and evaluation query requests use `input_type=query`. Provider-added role prompts are identified by the source-profile contract, not by the canonical-input hash.
-14. Never treat Voyage provider `int8`, `uint8`, `binary`, or `ubinary` output as the same encoding as either cidx-owned local codec.
+14. Never treat Voyage provider `int8`, `uint8`, `binary`, or `ubinary` output as the same encoding as the cidx-owned local int8 codec.
 
 ## 5. Packages, Files, and Types to Implement
 
@@ -79,53 +90,49 @@ These paths identify implementation responsibilities. If an earlier phase alread
 | `internal/embedclient/client.go` | provider-independent `EmbeddingClient` interface |
 | `internal/embedclient/voyage.go` | official Voyage AI request/response adapter and code-owned endpoint |
 | `internal/embedclient/validate.go` | response model, count, index, dimension, and finite-value validation |
-| Phase 02 `internal/lab/{schema,store}.go` | lab DB factory extended here with the additive v2 raw-capture provenance migration; production schema is unchanged |
-| `internal/lab/inputs.go` | document canonical-input provenance |
-| `internal/lab/raw_embeddings.go` | immutable raw-row lookup/insert plus run/failure records |
-| `internal/lab/collector.go` | active-input planning, synchronous request grouping, and raw-first persistence |
+| `internal/sourcebank/{schema,store}.go` | product source-bank factory, schema, repository/source-profile identity, and strict file permissions |
+| `internal/sourcebank/embeddings.go` | immutable source-row lookup/insert, f32 validation, and provenance |
+| `internal/lab/{schema,store}.go` | separate evaluation metadata store; no document-vector blobs |
+| `internal/lab/capture_runs.go` | development collection run/failure accounting that references source-bank keys |
+| `internal/app/document_sources.go` | active-input planning and source-hit/provider-miss orchestration shared by ordinary embedding and development capture |
 | `internal/app/dev_capture_embeddings.go` | use case and output model consumed by the Phase 13 development command |
 
 Core types carry these responsibilities:
 
-- `ModelSpec`: provides code-owned `SourceDimensions=1024` and `AllowedServingDimensions={256,512,1024}` for `voyage-code-4`.
+- `ModelSpec`: provides code-owned `SourceDimensions=1024` and `AllowedServingDimensions={1024,512}` for `voyage-code-4`.
 - `EmbeddingSourceProfile`: creates the canonical fingerprint from provider, model, resolved source dimensions, dtype, per-role input type, truncation policy, and adapter version.
-- `RawEmbeddingKey`: contains the source-profile fingerprint and canonical-input hash.
-- `RawEmbeddingRecord`: contains the key, actual dimensions, f32 blob, vector hash, and provenance.
-- `CaptureRawPlan`: contains counts for active distinct inputs, raw hits, paid misses, and failures, plus token and cost estimates.
-- `CaptureRawResult`: contains persisted, reused, failed, and skipped counts plus the run ID.
-- `LabStore`: a read/write port separate from the production-store interface.
+- `SourceEmbeddingKey`: contains the source-profile fingerprint and canonical-input hash.
+- `SourceEmbeddingRecord`: contains the key, actual dimensions, f32 blob, vector hash, and provider provenance.
+- `CaptureSourcePlan`: contains counts for active distinct inputs, source hits, paid misses, and failures, plus token and cost estimates.
+- `CaptureSourceResult`: contains persisted, reused, failed, and skipped counts plus the run ID.
+- `SourceBank`: an immutable product document-source port separate from both serving and evaluation storage.
+- `LabStore`: a run/diagnostic metadata port that stores no document or query vector blob.
 - `EmbeddingClient`: accepts a source profile, input role, and ordered inputs and returns ordered 1024-dimensional f32 results.
 
 ## 6. Schema, API, and CLI Contract
 
-### Lab storage location
+### Product source and evaluation storage locations
 
 ```text
 <state_root>/
   config.json
   db/index.db
+  db/embeddings.db   # immutable product document 1024-f32 source bank
   embed.lock
-  raw/embeddings.db
-  evaluations/       # development/evaluation artifacts only
+  lab/evaluation.db  # development/evaluation metadata only; no vectors
+  evaluations/       # immutable development/evaluation artifacts only
 ```
 
 The state root is project-local in v1. Normal use fixes it to the source project's `.cidx`; the development CLI may inject only a controlling-project-relative `.cidx/test/states/<corpus>` root. Do not expose a production-config path override or promote raw storage to a machine-global cache.
 
-### Logical `<state_root>/raw/embeddings.db` schema
+### Logical `<state_root>/db/embeddings.db` schema
 
-`lab_meta`
+`source_meta`
 
 - `schema_version`
-- creation time and last successful collection time
+- portable repository identity and creation time
 
-`lab_inputs`
-
-- `canonical_input_sha256` primary key
-- canonical-text-profile fingerprint
-- captured generation, manifest, and source-segment provenance
-- exact canonical bytes or the reconstruction information selected by the Phase 02 schema as a production-snapshot reference
-
-`raw_document_embeddings`
+`document_source_embeddings`
 
 - `source_profile_fingerprint`
 - `canonical_input_sha256`
@@ -139,6 +146,13 @@ The state root is project-local in v1. Normal use fixes it to the source project
 - primary key `(source_profile_fingerprint, canonical_input_sha256)`
 - blob length exactly `dimensions * 4`
 
+The source bank stores no canonical source text, query text, query vectors,
+evaluation labels, run state, or serving-profile selection. Exact canonical
+input bytes are reconstructed from the captured production snapshot and
+verified against `canonical_input_sha256` before a provider request.
+
+### Logical `<state_root>/lab/evaluation.db` schema owned by this phase
+
 `capture_runs`
 
 - run ID, captured active generation, and manifest
@@ -148,11 +162,13 @@ The state root is project-local in v1. Normal use fixes it to the source project
 
 `capture_failures`
 
-- run ID and raw key
+- run ID and source key
 - `terminal | retryable` classification
 - error class, sanitized message, attempts, and last-attempt time
 
-Follow the Phase 02 schema's choice between exact bytes and a snapshot reference in `lab_inputs`. Neither option stores query input. The canonical-input hash and source profile remain authoritative for the raw-vector key.
+Lab rows reference source keys but do not duplicate source-vector blobs. The
+canonical-input hash and source profile remain authoritative for the source
+vector key.
 
 ### Voyage AI request contract
 
@@ -164,7 +180,7 @@ Follow the Phase 02 schema's choice between exact bytes and a snapshot reference
 - Omit `encoding_format` so the transport returns a JSON numeric array; keep that transport representation distinct from local `f32-le-v1` storage.
 - Always send `output_dimension=1024`; never depend on the provider default.
 - For every synchronous request group, validate response count, response model, uniqueness and range of `data[].index`, 1024 dimensions for every embedding, and finite values; restore request order from response indices.
-- Fail before an API call if source/serving dimensions conflict with the `ModelSpec` capability. The serving dimension must be one of `{256,512,1024}`.
+- Fail before an API call if source/serving dimensions conflict with the `ModelSpec` capability. The serving dimension must be one of `{1024,512}`.
 - Classify a context-limit error under `truncation=false` as a non-retryable input/segment failure.
 - Do not use Voyage Batch Inference or asynchronous polling. Group regular synchronous Embeddings endpoint requests at most 128 inputs and 256 KiB total input bytes, with at most four concurrent requests and a 30-second request timeout.
 - Retry an initial attempt at most three times after waits of 10, 20, and 30 seconds; a longer provider `Retry-After` wins. Context cancellation stops waiting and retrying.
@@ -180,7 +196,7 @@ cidx dev embeddings capture --apply --retry-failed
 
 - The default execution prints a plan and makes no API call.
 - Only `--apply` performs paid requests.
-- The plan displays raw hits and misses, estimated provider usage, cost or `unknown`, and synchronous request-group count.
+- The plan displays source-bank hits and misses, estimated provider usage, cost or `unknown`, and synchronous request-group count.
 - This command is an unstable development surface. Do not add it to MCP tools or general-user installation documentation.
 
 ## 7. Config Used and Change Impact
@@ -190,7 +206,7 @@ cidx dev embeddings capture --apply --retry-failed
 - `embedding.model`
 - The resolved synchronous request policy: 128 inputs, 256 KiB total input bytes, concurrency 4, 30-second timeout, and the three staged retries (10/20/30 seconds, honoring a longer `Retry-After`). These are operational request/retry settings, not Voyage Batch Inference settings.
 
-The v1 default and sole initially validated `embedding.model` value is `voyage-code-4`. Source output dimension is not user config. The central `ModelSpec` resolves it to 1024 and fixes it in `EmbeddingSourceProfile`. Do not duplicate a configurable raw-DB path or f32 encoding: `<state_root>/raw/embeddings.db` and `f32-le-v1` are code-defined contracts. The preservation policy during initial evaluation is no automatic deletion.
+The v1 default and sole initially validated `embedding.model` value is `voyage-code-4`. Source output dimension is not user config. The central `ModelSpec` resolves it to 1024 and fixes it in `EmbeddingSourceProfile`. Do not duplicate a configurable source-bank path or f32 encoding: `<state_root>/db/embeddings.db` and `f32-le-v1` are code-defined contracts. The preservation policy is no automatic deletion.
 
 ### Change impact
 
@@ -201,7 +217,7 @@ The v1 default and sole initially validated `embedding.model` value is `voyage-c
 | provider, model, resolved source dimensions, or request-semantic contract | yes for every active input | produces a new source profile |
 | serving dimensions | no | only Phase 09 local materialization |
 | reducer, normalization, or metric | no | produces a new vector-space materialization |
-| storage codec (`binary | int8`) | no | produces a new storage materialization |
+| storage codec | not configurable | product storage is fixed to cidx-owned int8 |
 | FTS, RRF, or response-byte settings | no | unrelated to raw vectors |
 
 Validate every user-adjustable codec name once in `ResolvedConfig`. The central code-owned registry/adapter owns the official provider/model capabilities, endpoint, and synchronous request policy; config cannot replace them.
@@ -211,69 +227,70 @@ Validate every user-adjustable codec name once in `ResolvedConfig`. The central 
 1. Fix canonical JSON and fingerprint rules for `EmbeddingSourceProfile`.
 2. Resolve `voyage-code-4` source dimension 1024 and its allowed serving-dimension set from the model-capability registry, and fail fast on invalid combinations.
 3. Define float32 little-endian encode/decode and vector SHA-256 rules.
-4. Open the Phase 02 lab DB schema and migration, and verify its tables and constraints match the raw input/embedding repository contract; do not create a competing schema here.
+4. Implement the product source-bank schema independently from the production index and lab metadata stores; migrate preserved compatible document rows without retaining lab tables in the product file.
 5. Fail closed when portable source/profile/input/manifest identity is incompatible; never compare a persisted absolute checkout path.
 6. Implement a read service that gets distinct canonical inputs and exact canonical bytes from the captured active generation.
-7. Use bounded raw-key lookup groups to separate hits, misses, and previous failures.
+7. Use bounded source-key lookup groups to separate hits, misses, and previous lab-recorded failures.
 8. Implement the cost-free plan result and JSON output.
 9. Implement ordered Voyage synchronous request groups plus response-model/count/index/dimension/finite validation.
-10. Durably commit every successful request group to the lab DB immediately.
-11. Immutably insert validated raw responses even when their active reference has disappeared.
+10. Durably commit every successful validated response group to the product source bank before any serving-target publication, then record evaluation accounting separately when the development command is the caller.
+11. Immutably insert validated source responses even when their active reference has disappeared.
 12. Distinguish terminal from retryable failures and apply bounded retries.
 13. Connect cancellation and the process-wide `embed.lock` shared with public document embedding.
 14. Stabilize the development capture plan/apply request/result contract for the Phase 13 CLI without registering it as MCP.
-15. Verify production `serve` can build without importing the raw package.
+15. Verify production `serve` can build without importing or opening `internal/sourcebank` or `internal/lab`.
 
 ## 9. Failure, Rollback, Concurrency, and Security
 
 ### Failure and rollback
 
-- Errors before an API call modify neither the raw DB nor the production DB.
+- Errors before an API call modify neither the source bank nor the production DB.
 - If any validation fails in a grouped response, store none of that request group.
-- Do not roll back earlier successful request groups when a later group fails; a subsequent run reuses them as hits.
+- Do not roll back earlier successful source groups when a later group fails; a subsequent run reuses them as hits.
 - A process can die after the API succeeds but before local commit. No exactly-once transaction spans an external API and SQLite.
 - Completion documentation must disclose the possible duplicate charge in that response-loss window.
 - If the same key already contains different vector bytes, do not overwrite; stop with `RAW_VECTOR_CONFLICT`.
 
 ### Concurrency
 
-- Within one repository, allow only one combined development raw collection or public document-embedding apply operation under `embed.lock`.
+- Within one repository, allow only one combined development source collection or public document-embedding apply operation under `embed.lock`.
 - Do not hold a production SQLite write transaction during an API call.
-- If the index generation changes during collection, preserve raw results for captured inputs as valid content-addressed development assets.
+- If the index generation changes during collection, preserve source results for captured inputs as valid content-addressed product assets.
 - Collection does not hold a search handler, index read transaction, or production writer gate.
 
 ### Security
 
 - Pass the API key only through the environment; never write it to config, run rows, or error messages.
 - The `--apply` confirmation must state that canonical document inputs are sent to Voyage AI.
-- Treat raw vectors as sensitive source-derived data and restrict lab-directory permissions at least as strongly as production-DB permissions.
+- Treat source vectors as sensitive source-derived data and restrict source-bank permissions at least as strongly as production-DB permissions. Apply the same restriction to lab metadata.
 - Do not leave canonical source text in error bodies or request logs.
-- Never add the lab DB or evaluation artifacts to Git.
+- Never add the source bank, lab DB, or evaluation artifacts to Git.
 
 ## 10. Validation Scenarios
 
 - Run plan twice for the same snapshot and source profile; after the first apply, the second apply has zero API misses.
-- Change only serving dimension and codec and retain the same raw-hit count.
-- Change the model and plan new raw keys without overwriting existing rows.
+- Change only serving dimension between 1024 and 512 and retain the same source-hit count.
+- Change the model and plan new source keys without overwriting existing rows.
 - Reject an entire request group with an invalid response dimension, index, count, NaN/Inf value, or blob length.
 - Interrupt after some successful request groups, resume, and do not request the persisted groups again.
-- Preserve a received raw row even if its active reference disappears while collection is in progress.
-- Start `cidx serve` with a missing or inaccessible lab DB and still provide FTS and existing vector search.
-- Run evaluation queries without increasing the `raw_document_embeddings` row count.
-- Copy a lab DB from another repository and fail repository-identity validation.
+- Preserve a received source row even if its active reference disappears while collection is in progress.
+- Start `cidx serve` with missing or inaccessible source/lab DBs and still provide FTS and existing vector search.
+- Run evaluation queries without increasing the `document_source_embeddings` row count.
+- Copy a source bank from another repository and fail repository-identity validation; moving a complete state root with the same portable repository identity remains supported.
+- Inspect the product source bank and prove it contains no evaluation run tables; inspect the lab DB and prove it contains no vector blobs.
 
 Do not create validation code in this planning-document phase. During implementation, preserve evidence by using the existing harness or phase-specific validation commands that cover these scenarios.
 
 ## 11. Completion Evidence
 
-Implementation evidence is recorded in [Phase 08 evidence](evidence/phase-08/README.md), including the accepted [Revision 4 reconciliation](evidence/phase-08/revision-4.md). The focused fake-backed checks validate cache-first plan/apply, byte-bounded concurrent execution, staged retry and cancellation behavior, all-or-nothing malformed-response rejection, immutable f32 persistence, root isolation, and v1-to-v2 lab migration preservation. Live provider/cost/corpus evidence is **NOT RUN**; no paid operation was authorized or executed.
+The pre-supersession implementation evidence is recorded in [Phase 08 evidence](evidence/phase-08/README.md), including the accepted [Revision 4 reconciliation](evidence/phase-08/revision-4.md). Those focused fake-backed checks validated cache-first plan/apply, byte-bounded concurrent execution, staged retry and cancellation behavior, all-or-nothing malformed-response rejection, immutable f32 persistence, root isolation, and the historical combined-lab migration. They do not prove the new product-source/evaluation-store split. Live provider/cost/corpus evidence was not run at that boundary.
 
-- Raw-DB schema dump and migration version.
+- Product source-bank and separate evaluation-store schema dumps and migration versions.
 - Plan/apply log showing that only the first of two identical inputs incurs a paid call.
 - `voyage-code-4` 1024-dimensional source response and model/count/index/finite-validation record.
 - Report showing raw-row dimensions, blob length, and vector SHA-256 agreement.
 - Resume record demonstrating reuse of already persisted request groups after partial failure.
-- Confirmation that the production-server dependency graph excludes `internal/lab`.
+- Confirmation that the production-server dependency graph excludes both `internal/sourcebank` and `internal/lab`.
 - Review showing that neither API keys nor canonical source appears in logs or DB diagnostic columns.
 
 Separate validations actually executed from validations not yet run in the completion report.
@@ -284,21 +301,21 @@ Provide Phase 09 with only:
 
 - the captured manifest and active `canonical_input_sha256` set;
 - the `EmbeddingSourceProfile` fingerprint;
-- immutable 1024-dimensional f32 raw rows; and
-- raw coverage and the list of missing keys.
+- immutable 1024-dimensional f32 source rows; and
+- source coverage and the list of missing keys.
 
-Phase 09 does not connect the raw DB to search. It uses the bank only to create the single runtime vector representation selected by config.
+Phase 09 does not connect the source bank to search. It uses the bank only to create the single runtime int8 representation selected by config.
 
 ## 13. Decision Log
 
-- Preserve raw f32 document embeddings only to prevent repeat charges during initial development and retrieval evaluation.
-- Keep the raw bank physically separate from the production DB.
-- Do not turn the raw bank into a permanent runtime feed or general-user feature.
+- Preserve source f32 document embeddings as product-owned reusable input for provider-free 1024/512 int8 rematerialization.
+- Keep the source bank physically separate from both the production serving DB and evaluation metadata DB.
+- Do not turn the source bank into a runtime search feed, fallback, or second serving authority.
 - Do not store query f32, including fixed evaluation queries, because product questions can continue to change.
 - Explicitly request `output_dimension=1024` and `output_dtype=float` from `voyage-code-4` for the v1 source float response.
 - Follow the Matryoshka guidance in [Voyage AI Flexible Dimensions and Quantization](https://docs.voyageai.com/docs/flexible-dimensions-and-quantization): select the supported serving prefix, then L2-normalize it.
-- Keep provider-supplied int8/binary output separate from both cidx-owned local codecs; do not mix it into v1 materialization.
+- Keep provider-supplied quantized output separate from the cidx-owned local int8 codec; do not mix it into v1 materialization.
 - The provider may offer a 2048-dimensional option, but v1 excludes it from the source profile, runtime capability registry, and evaluation candidates. Do not request or preserve it without a separate decision.
 - The development CLI is an unstable helper, not an MCP or public product contract.
-- Lab schema v2 adds source-run/failure provenance and vector SHA-256. The additive v1 migration preserves raw blob bytes, derives their SHA-256, and retains snapshot-reference-only inputs; production schema remains unchanged.
-- Revision 4 centralizes byte-bounded synchronous grouping, retries, cancellation, and response validation in `internal/embed`. The lab supplies only its raw-first persistence handler; a successful group is durable before another completed group is handled, while independent failed groups retain earlier commits for resume.
+- The accepted migration splits compatible immutable document f32 rows into the product source bank and keeps run/failure/evaluation metadata in the lab DB; no vector blob remains in the lab DB.
+- Revision 4 centralizes byte-bounded synchronous grouping, retries, cancellation, and response validation in `internal/embed`. The product source handler makes a successful group durable before another completed group is handled; the lab adapter records only development run accounting, while independent failed groups retain earlier source commits for resume.

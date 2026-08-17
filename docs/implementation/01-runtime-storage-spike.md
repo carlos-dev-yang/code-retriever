@@ -9,9 +9,18 @@
 
 - Reopen the [implementation index](README.md), [execution guide](EXECUTION-GUIDE.md), [evaluation contract](EVALUATION-CONTRACT.md), and [status board](STATUS.md) before continuing after context compaction.
 - Re-read the Phase 00 config/constant catalog, typed profile and hash contract, and production/lab boundary. Reopen the current candidate-platform list, spike manifest, and any SQLite, Tree-sitter, codec, or Voyage comparison artifacts already produced.
-- Re-check these critical invariants: production stores no f16/f32; the lab and production databases have separate files, schemas, migrations, and connection factories; parsing and API calls occur outside write transactions; one search snapshot never mixes generations; Voyage source requests explicitly return 1024-dimensional float vectors with document/query roles and `truncation=false`.
+- Re-check these critical invariants: the serving database stores no f16/f32; the product document source bank, serving database, and evaluation state have separate files, schemas, and connection factories; parsing and API calls occur outside write transactions; one search snapshot never mixes generations; Voyage source requests explicitly return 1024-dimensional float vectors with document/query roles and `truncation=false`.
 - Stop if FTS5 cannot be guaranteed in the distributed binary, grammars require runtime downloads, atomic publish cannot preserve old-or-new snapshots, or a candidate stores f32 in production. The only provider request path is source-1024 float; direct serving-dimension provider requests are excluded.
 - Before pausing, update Section 11 evidence, Section 13 decisions, and [STATUS.md](STATUS.md). Record both executed and unexecuted checks; do not reopen the completed phase without a documented contract change.
+
+## 2026-08-17 profile supersession
+
+The SQLite, FTS5, Tree-sitter, WAL/publication, source-f32, and int8 spike
+results remain accepted. Binary and 256-dimensional spike code are retired from
+the product and survive only in historical evidence/version history. Current
+storage uses a product document source bank plus int8-only serving at default
+1024 or explicit compact 512. Later historical Binary paragraphs below do not
+authorize a current implementation path.
 
 ## 1. Goal
 
@@ -21,8 +30,8 @@ Validate and fix the runtime and storage technologies on which the rest of v1 de
 - Go, TypeScript, and TSX Tree-sitter grammars can be included without runtime downloads.
 - A search reader observes one complete state from either before or after index publication.
 - Only short write transactions serialize; scanning, parsing, and external API waits occur outside them.
-- Storage formats for float32 originals and both production codecs (`binary`, `int8`) are explicit and reproducible.
-- The source-1024 float path can be locally reduced only to the allowed serving dimensions `{256,512,1024}`.
+- Storage formats for product source float32 originals and the production int8 codec are explicit and reproducible. The historical Binary spike remains evidence only.
+- The source-1024 float path can be locally reduced only to the allowed serving dimensions `{1024,512}`.
 
 This phase makes no numeric commitment for hit rate, latency, or supported segment count. Measurements are observational inputs for technology choices and later defaults.
 
@@ -36,7 +45,7 @@ This phase makes no numeric commitment for hit rate, latency, or supported segme
 - Validate insert, delete, update, `MATCH`, and rollback behavior for contentless FTS5.
 - Validate Tree-sitter bindings and embedded grammars for Go, TypeScript, and TSX.
 - Collect evidence for the CGO policy and supported OS/architecture set.
-- Define encode, decode, validation, and scoring rules for little-endian float32 blobs and the cidx-owned `binary` and `int8` codecs.
+- Define encode, decode, validation, and scoring rules for little-endian float32 blobs and the cidx-owned int8 codec; preserve the completed Binary comparison only as historical evidence.
 - Confirm that every provider response begins as explicit 1024-dimensional float output before local reduction.
 
 ### Out of scope
@@ -53,7 +62,7 @@ Spike code must not become an alternate route around production packages. Move o
 ## 3. Prerequisites
 
 - The search-generation visibility invariant in r4 Section 4.3 remains unchanged.
-- The boundary that production stores only the selected cidx-owned `binary` or `int8` representation and raw float32 lives only in a separate lab database is approved. `binary` is the resolved v1 default.
+- The current boundary stores only cidx-owned int8 in production, preserves document 1024-f32 in a separate product source bank, and keeps evaluation metadata in a third file. The earlier lab-only f32 and Binary-default decision is superseded.
 - Paid checks against the official Voyage API run only after explicit user approval.
 - Candidate platforms are managed as an explicit deployment-target list, not inferred solely from the local development environment.
 
@@ -66,7 +75,7 @@ Spike code must not become an alternate route around production packages. Move o
 5. Lab and production databases use separate files, schemas, migrations, and connection factories.
 6. A vector blob is valid only after profile, dimensions, codec version, byte length, and finite-value checks pass.
 7. Dimension-reduction and quantization fingerprints can include algorithm version and parameters, not just algorithm names.
-8. A 256-, 512-, or 1024-dimensional serving vector is derived locally from Voyage `output_dimension=1024` float output; no direct serving-dimension provider request is a v1 path.
+8. A 512- or 1024-dimensional serving vector is derived locally from Voyage `output_dimension=1024` float output; no 256 or direct serving-dimension provider request is a current v1 path.
 9. Query float32 is never persisted in spike output or the lab database.
 
 ## 5. Packages, Files, and Types to Implement
@@ -84,10 +93,9 @@ internal/
     response.go           candidate official-API float32 response validation
   vector/
     transform.go          candidate shared reduction and normalization math
-    codec_binary.go       candidate cidx binary encoder/validator/scorer
     codec_int8.go         candidate cidx int8 encoder/validator/scorer
-  lab/
-    f32codec.go           lab-only float32 blob codec candidate
+  sourcebank/
+    f32codec.go           product document-source float32 blob codec
 ```
 
 The spike first fixes these minimum types:
@@ -131,7 +139,7 @@ r4 prefers option 1. Option 2 remains valid if evidence shows that applying a la
 
 ### Voyage source and local serving dimensions
 
-The only v1 direct provider is `voyage-official`, and the only production model is `voyage-code-4`. Requests use only the code-owned endpoint `https://api.voyageai.com/v1/embeddings` and `VOYAGE_API_KEY`. `ModelSpec` records only `SourceDimensions=1024` and `AllowedServingDimensions={256,512,1024}`. Every document and query request explicitly asks for 1024 float dimensions, rather than relying on the provider default, and omits `encoding_format`.
+The only v1 direct provider is `voyage-official`, and the only production model is `voyage-code-4`. Requests use only the code-owned endpoint `https://api.voyageai.com/v1/embeddings` and `VOYAGE_API_KEY`. `ModelSpec` records only `SourceDimensions=1024` and `AllowedServingDimensions={1024,512}`. Every document and query request explicitly asks for 1024 float dimensions, rather than relying on the provider default, and omits `encoding_format`.
 
 The v1 path for both production documents and queries explicitly requests `ModelSpec.SourceDimensions=1024` as float32, then applies the same prefix reducer and L2 normalization to the configured serving dimension. Documents use `input_type=document`; queries use `input_type=query`. This role mapping is part of the retrieval-compatible source-profile contract. Query float32 is discarded immediately after transformation.
 
@@ -159,7 +167,7 @@ Phase 01 does not finalize `.cidx/config.json`. It records candidate values as e
 - SQLite pragmas and `busy_timeout`: operational policy
 - Grammar and parser versions: future index profile
 - Source dimensions: `ModelSpec.SourceDimensions=1024`, the single authority for future `EmbeddingSourceProfile.SourceDimensions` and lab raw
-- Serving dimensions: one member of `ModelSpec.AllowedServingDimensions={256,512,1024}`, the future `VectorSpaceProfile` authority for the production retrieval space
+- Serving dimensions: one member of `ModelSpec.AllowedServingDimensions={1024,512}`, the `VectorSpaceProfile` authority for the production retrieval space
 - Reduction, normalization, quantization codec, and versions: future materialization/serving profile
 
 The production client uses synchronous request grouping: at most 128 inputs and 256 KiB total input bytes per request, at most four concurrent requests, and a 30-second request timeout. It uses one initial attempt plus retries after 10, 20, and 30 seconds, honoring a longer `Retry-After`; no asynchronous Voyage Batch API or exponential backoff is part of v1.

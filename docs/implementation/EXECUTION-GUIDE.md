@@ -77,16 +77,19 @@ Implementation convenience is not authority to change the product contract.
 - Parse configuration once: `RawConfig -> Resolve -> Validate -> immutable ResolvedConfig`.
 - Inject typed profiles into packages; packages must not reread JSON or carry copied dimension/codec constants.
 - Keep code-owned protocol and algorithm identifiers in a central registry.
-- Accept only the code-owned `binary` and `int8` storage-codec IDs in v1. Resolve `binary` as the default, and inject the selected codec together with its matching encoder, validator, and scorer.
+- Accept only the code-owned `int8` storage codec in the product. Keep its ID
+  in profiles and rows, but expose no public codec selector. Historical Binary
+  code and artifacts are evidence-only and must not be reachable from ordinary
+  initialization, materialization, serving, search, or evaluation.
 - Use `serving_dimensions` for the active vector length and `--serving-dim` for its CLI spelling. Never use this value to represent source paths, line ranges, or repository scope.
-- Keep the provider source response fixed at 1024 dimensions and restrict serving dimensions to 256, 512, or 1024.
+- Keep the provider source response fixed at 1024 dimensions, durably preserve document responses in the product source bank, and restrict product serving dimensions to 1024 or 512; ordinary tests use the 1024/int8 default.
 - Treat the 1 MiB source-file ceiling, 1,024-byte AST-aware segment target, 64 KiB inline default, and 1 MiB inline executable ceiling as separate named contracts.
 - Do not reintroduce a configurable chunk byte cap or a read-span line-count cap.
 - Fingerprint resolved semantic values, not the whole config file or environment-specific paths.
 - Treat row-level dimensions and codec identifiers as integrity metadata, not a second configuration source.
 - Classify every setting change as one of: restart/reload only, local reindex, local rematerialization, paid re-embedding, or schema migration.
 - Fail closed on unknown fields, unsupported algorithms, profile mismatch, blob-size mismatch, and incompatible dimensions.
-- Never interpret Voyage provider-side `binary` or `int8` output as a cidx storage codec. Both cidx codecs start from the validated 1024-dimensional float response.
+- Never interpret Voyage provider-side quantized output as the cidx storage codec. The cidx int8 path starts from the validated 1024-dimensional float response.
 
 ## 7. Persistent storage and concurrency discipline
 
@@ -139,7 +142,7 @@ Report Go, TypeScript, TSX, and mixed-repository slices separately where applica
 
 - Use the stage scorecard and denominators in [`EVALUATION-CONTRACT.md`](EVALUATION-CONTRACT.md); never replace them with a weighted total.
 - Preserve both FTS and dense lane observations before RRF and attribute first loss along the provider-union, collapse, fusion, body, and assistant path.
-- Use human relevance for usefulness and exhaustive serving-dimension f32 for binary/int8 fidelity. Neither reference substitutes for the other.
+- Use human relevance for usefulness and exhaustive serving-dimension f32 for int8 fidelity. Historical Binary/256 results remain evidence-only. Neither reference substitutes for the other.
 - Treat required failures and timeouts as denominator members. Use `NOT_OBSERVED` only for a downstream stage that the run contract did not require.
 - Freeze corpus, labels, controls, candidate policy, profile, generation, and artifact checksums. Only compatible paired runs support delta claims.
 - Select parameters and margins on calibration data, freeze them before confirmation, and let only complete confirmation evidence vote for promotion.

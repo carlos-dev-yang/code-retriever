@@ -1,10 +1,10 @@
 # cidx v1 Implementation Plan Index
 
-- Status: Phase 07 consolidated all five isolated chi/RHF dense profiles over
-  every current cohort with no RRF: 512/int8 is the preferred frozen-evaluation
-  candidate, 256/int8 is the memory-constrained alternative, the working
-  1024/binary baseline remains unchanged, and formal freeze still waits on
-  separated human source review
+- Status: explicit product decision now preserves a product-owned 1024-f32
+  document source bank and fixes int8-only serving at 1024 by default or
+  explicit compact 512. Binary/256 implementations are removed while their
+  historical document evidence remains; downstream boundaries are being
+  reconciled before Phase 07 human freeze resumes
 - Canonical design: [Local Code Search MCP v1 Final Target Contract — Revision 4](../../local-code-search-mcp-v1-design-r4.md)
 - Earlier designs: [original](../../local-code-search-mcp-v1-design.md), [r1](../../local-code-search-mcp-v1-design-r1.md), [r2](../../local-code-search-mcp-v1-design-r2.md), [r3](../../local-code-search-mcp-v1-design-r3.md)
 - Execution protocol: [Implementation Execution and Context-Recovery Guide](EXECUTION-GUIDE.md)
@@ -73,18 +73,18 @@ Allowed states are `planned | in_progress | blocked | done`. A phase becomes `do
 | --- | --- | --- | --- | --- | --- |
 | 00 | done | [Shared contracts and configuration](00-shared-contracts-and-config.md) | none | Revision 4 field catalog, profile/hash hierarchy, migration policy, and change-impact rules | [Evidence](evidence/phase-00/README.md) |
 | 01 | done | [Runtime and storage spike](01-runtime-storage-spike.md) | 00 | SQLite/FTS5/Tree-sitter packaging decisions, generation and codec evidence | [Evidence](01-runtime-storage-spike.md#11-completion-evidence) |
-| 02 | done | [Configuration, profiles, and schemas](02-config-profiles-and-schemas.md) | 00, 01 | Separate runtime source/state roots, project-local relative layout, path-free production/lab metadata, and lossless schema/layout migration | [R4 config/wire evidence](evidence/phase-02/revision-4.md); accepted [layout evidence](evidence/phase-02/project-local-layout-reconciliation.md) |
+| 02 | in_progress | [Configuration, profiles, and schemas](02-config-profiles-and-schemas.md) | 00, 01 | Reconcile default 1024/optional 512 validation and fixed int8 fingerprints; add product source-bank identity/location contract; preserve earlier layout work | [R4 config/wire evidence](evidence/phase-02/revision-4.md); accepted [layout evidence](evidence/phase-02/project-local-layout-reconciliation.md) |
 | 03 | done | [Go chunker](03-go-chunker.md) | 02 | Go function, method, and type chunks/projections | [Evidence](03-go-chunker.md#11-completion-evidence) |
 | 04 | done | [TypeScript and TSX chunker](04-typescript-tsx-chunker.md) | 02 | Accepted path-derived retrieval labels and real-corpus overload correction; versioned full reindex handoff | [Evidence](evidence/phase-04/README.md) |
 | 05 | done | [Worktree indexing pipeline](05-worktree-index-pipeline.md) | 03, 04, reconciled 02 | Remove the chunk-cap contract, inject `target_segment_bytes`, preserve atomic local reindex, and safely rekey proven-equivalent pre-R4 vectors | [R4 evidence](evidence/phase-05/revision-4.md) |
 | 06 | done | [FTS search](06-fts-search.md) | 05 | Contentless FTS, safe queries, BM25 chunk candidates | [Evidence](06-fts-search.md#11-completion-evidence) |
-| 07 | in_progress | [Lexical evaluation](07-lexical-evaluation.md) | 06, corrected 04 inventory | Completed FTS/Voyage/AI-advisory measurement and provider-free five-profile cohort/answer consolidation; preserve immutable ranks and complete the required separated human source review before label freeze | [Evidence](evidence/phase-07/README.md) |
-| 08 | done | [Initial raw-embedding lab](08-raw-embedding-lab.md) | reconciled 02, 05 | Isolated 1024-dimensional document f32 capture through the shared synchronous request policy | [R4 evidence](evidence/phase-08/revision-4.md) |
-| 09 | done | [Vector materialization](09-vector-materialization.md) | 01, 02, 05, 08 | Shared reduction/normalization, binary/int8 codecs, and selected-profile publish | [Evidence](09-vector-materialization.md#11-completion-evidence) |
-| 10 | done | [Embedding orchestration and reconciliation](10-embedding-orchestration-and-reconciliation.md) | reconciled 05, 08, existing 09 | Byte-bounded concurrent document requests, shared retry execution, and profile reconciliation | [Accepted R4 evidence](evidence/phase-10/revision-4.md) |
-| 11 | done | [Vector and hybrid search](11-vector-and-hybrid-search.md) | 06, 09, reconciled 10 | Shared query request/retry policy, codec scan, RRF, fallback, and body packaging | [Accepted R4 evidence](evidence/phase-11/revision-4.md) |
+| 07 | blocked | [Lexical evaluation](07-lexical-evaluation.md) | 06, corrected 04 inventory, reconciled 02/08/09/11 | Preserve five-profile evidence; resume current calibration at 1024/int8 after runtime reconciliation, then complete separated human source review | [Evidence](evidence/phase-07/README.md) |
+| 08 | blocked | [Document source-vector bank](08-raw-embedding-lab.md) | reconciled 02, 05 | Split durable product 1024-f32 source storage from evaluation-only run/artifact state while retaining the shared synchronous executor | [Historical R4 evidence](evidence/phase-08/revision-4.md) |
+| 09 | blocked | [Vector materialization](09-vector-materialization.md) | reconciled 02, existing 01/05/08 | Remove Binary from production selection and publish int8 at 512/1024 only | [Historical evidence](09-vector-materialization.md#11-completion-evidence) |
+| 10 | blocked | [Embedding orchestration and reconciliation](10-embedding-orchestration-and-reconciliation.md) | reconciled 02/09, existing 05/08 | Publish fixed int8 through the accepted executor | [Historical R4 evidence](evidence/phase-10/revision-4.md) |
+| 11 | blocked | [Vector and hybrid search](11-vector-and-hybrid-search.md) | reconciled 02/09/10, existing 06 | Int8-only scan, RRF, fallback, and body packaging | [Historical R4 evidence](evidence/phase-11/revision-4.md) |
 | 12 | blocked | [Retrieval evaluation](12-retrieval-evaluation.md) | 07, reconciled 08, 09, 11 | Accepted Revision 4 corpus-independent adapter; official corpus evaluation and promotion remain externally gated | [Accepted R4 core evidence](evidence/phase-12/revision-4.md) |
-| 13 | done | [CLI and MCP](13-cli-and-mcp.md) | reconciled 05, 10, 11 and Phase 12 corpus-independent core | Provider-free Revision 4 init plus revalidated four-tool MCP and concurrent dispatch | [Accepted R4 evidence](evidence/phase-13/revision-4.md) |
+| 13 | blocked | [CLI and MCP](13-cli-and-mcp.md) | reconciled 02/08/11 and existing Phase 12 core | Int8-only 1024-default init/help, local 512 rematerialization, and unchanged four-tool MCP | [Historical R4 evidence](evidence/phase-13/revision-4.md) |
 | 14 | blocked | [Packaging and host integration](14-packaging-and-host-integration.md) | 13 | Accepted local darwin/arm64 package, offline MCP verifier, and Codex project-config-read checkpoint; official release-candidate evidence remains externally gated | [R4 local checkpoint evidence](evidence/phase-14/revision-4.md) |
 
 `STATUS.md` is the operational ledger. Keep this summary table synchronized with it whenever a phase changes state.
@@ -160,9 +160,9 @@ live working tree
 ```text
 active document canonical input from an explicitly resolved source root
 -> request Voyage document-role 1024-dimensional float32 embedding
--> persist document f32 in <state_root>/raw/embeddings.db
+-> persist document f32 in the product source bank at <state_root>/db/embeddings.db
 -> choose one candidate serving dimension/reducer/normalizer in project config
--> use the default `binary` codec or explicitly select the only alternative, `int8`
+-> apply the fixed cidx-owned `int8` codec
 -> run cidx index to reconcile active profile and segment keys
 -> materialize the current profile locally and publish one serving-vector set
 -> create each evaluation query as a Voyage query-role 1024-dimensional vector in memory
@@ -170,7 +170,7 @@ active document canonical input from an explicitly resolved source root
 -> reapply the selected config, reconcile, and prepare production vector_cache
 ```
 
-This is a development aid for economical repository-specific quality exploration. Query f32 is never persisted. Production does not open the lab DB and does not require the raw bank after evaluation.
+This supports ordinary dimension changes and economical repository-specific quality exploration. Query f32 is never persisted. Serving/search does not open the product source bank or lab, and the active int8 target remains authoritative if either auxiliary store is unavailable.
 
 Normal use resolves `state_root=<source_root>/.cidx` and production SQLite to
 `<state_root>/db/index.db`. The cidx development workspace keeps disposable
@@ -184,10 +184,10 @@ exists.
 ```text
 new document input
 -> Voyage document-role 1024-dimensional float32 embedding
+-> durably store immutable source f32 in the product source bank
 -> shared active-profile transform
--> encode with the selected cidx storage codec (`binary` by default, or `int8`)
--> persist the selected quantized serving vector
--> discard source f32
+-> encode with the fixed cidx int8 codec
+-> persist the selected int8 serving vector
 
 hybrid query
 -> Voyage query-role 1024-dimensional float32 embedding
@@ -196,7 +196,7 @@ hybrid query
 -> discard query f32
 ```
 
-Runtime observes one profile. `serving_dimensions`, reducer, normalizer, metric, and codec come only from validated `ResolvedConfig`. The lab raw bank is neither a runtime data source nor a fallback.
+Runtime observes one profile. `serving_dimensions`, reducer, normalizer, metric, and fixed int8 codec come only from validated `ResolvedConfig`. The product document source bank is neither a runtime data source nor a fallback.
 
 ### 3.4 Revision 4 fixed operational target
 
@@ -206,8 +206,8 @@ Runtime observes one profile. `serving_dimensions`, reducer, normalizer, metric,
 | Chunking | whole named function/method/type; no configurable chunk byte cap |
 | Segmentation | AST-boundary target of 1,024 bytes; evaluate 768/1,024/1,536 |
 | Provider source | `voyage-code-4`, explicit 1024-dimensional float, role-aware, no truncation |
-| Serving dimensions | one active value from 256/512/1024; unrelated to source scope |
-| Storage codec | `binary` by default; `int8` is the only alternative |
+| Serving dimensions | 1024 by default or explicit compact 512; unrelated to source scope |
+| Storage codec | fixed cidx-owned `int8`; no selector |
 | Search | `fts` by default; hybrid is explicit and may incur query-embedding cost |
 | Provider execution | regular synchronous endpoint only; no asynchronous Batch Inference |
 | Request grouping | 128 inputs, 256 KiB aggregate input, concurrency 4, timeout 30 seconds |
@@ -227,15 +227,15 @@ The retry schedule is linear/staged, not exponential. Request grouping is not Vo
 4. **Atomic publish:** failure while preparing or publishing a new generation does not damage the previously searchable generation.
 5. **Single serving profile:** search reads one active vector-space/storage profile. Dimension or codec mismatch fails closed or falls back to FTS as documented.
 6. **Shared transform:** document materialization and query transformation use the same reducer, normalizer, implementation version, and fingerprint.
-7. **Runtime/lab isolation:** production stores only the active profile's cidx-owned `binary` or `int8` serving vectors. `binary` is the v1 default. `serve`, `search`, and production storage never import, open, or attach the lab DB.
-8. **Bounded raw purpose:** the 1024-dimensional document f32 bank exists only to reduce repeated initial evaluation cost. It is not a query cache, long-term raw lake, or multi-profile runtime.
+7. **Serving/source/lab isolation:** `index.db` stores only the active cidx-owned int8 serving vectors. `embeddings.db` stores immutable document-role 1024-f32 source rows. `serve` and `search` open neither the source bank nor evaluation state.
+8. **Bounded source purpose:** the product-owned 1024-dimensional document f32 bank exists for provider-free document reuse and 1024/512 rematerialization. It is not a query cache, search fallback, or multi-profile runtime authority.
 9. **Derived readiness:** `ready` derives only from a valid vector row joined to an active key; no mutable ready flag is authoritative.
 10. **Source-volume control:** `max_inline_bytes` limits body bytes without changing rank or the identity/order/count of the up-to-k result set.
 11. **Freshness:** search bodies come from the indexed snapshot. Live hashes are separate annotations, and `read_span` refuses a mismatched expected hash.
 12. **Small stable surface:** MCP exposes only `status`, `search`, `read_span`, and `reindex`. Development lab commands are not MCP tools.
 13. **SQLite authority:** the persistent index is authoritative. Go heap caches may be bounded accelerators but never a second source of truth.
 14. **Stage-separated evidence:** parser, FTS, dense, collapse, RRF, body packaging, assistant use, and operations retain independent denominators and first-loss states. No weighted total replaces them.
-15. **Dual dense references:** human relevance measures usefulness; exhaustive serving-f32 ranking measures binary/int8 fidelity. HNSW/ANN metrics are excluded.
+15. **Dual dense references:** human relevance measures usefulness; exhaustive serving-f32 ranking measures current int8 fidelity. Historical Binary evidence is not an executable arm. HNSW/ANN metrics are excluded.
 16. **Paired promotion:** calibration selects settings and margins; only frozen compatible confirmation runs may vote for promotion. Activation is not quality admission.
 
 ---
@@ -256,7 +256,7 @@ config.json
 ### 5.1 Values managed in config
 
 - embedding model and selected `serving_dimensions`;
-- supported reducer, normalizer, metric, and storage codec ID (`binary | int8`);
+- supported reducer, normalizer, metric, and the fixed storage codec identity (`int8`);
 - enabled supported languages;
 - source-file eligibility and AST-aware segment target;
 - synchronous embedding request grouping, retry, timeout, and concurrency limits;
@@ -272,13 +272,14 @@ A config key does not imply arbitrary algorithm extensibility. Every enum value 
 - database schema/migration and MCP wire-schema versions;
 - hash domain separators and canonical byte framing;
 - provider identity `voyage-official`, endpoint `https://api.voyageai.com/v1/embeddings`, and credential variable name `VOYAGE_API_KEY`;
-- `voyage-code-4` source dimension 1024 and allowed targets `{256, 512, 1024}`;
+- `voyage-code-4` source dimension 1024 and allowed targets `{1024, 512}`;
 - document/query `input_type`, `output_dtype=float`, `truncation=false`, and adapter contract version;
 - codec blob byte order, rounding, scale layout, and algorithm version;
-- binary bit-value convention, packing order, padding validation, and matching score algorithm/version;
 - supported enums, absolute safety ceilings, error codes, and generation-publish protocol.
 
-Users select a supported `storage_codec` ID; they cannot invent an implementation version such as `quantization_version: 7`.
+The config records the fixed `storage_codec=int8` identity for fingerprinting;
+users cannot select another codec or invent an implementation version such as
+`quantization_version: 7`.
 
 ### 5.3 Change-impact table
 
@@ -287,9 +288,9 @@ Users select a supported `storage_codec` ID; they cannot invent an implementatio
 | chunker/projection/segment/FTS rules | index profile | full or affected local reindex | none |
 | canonical input byte rules | input hash | recompute input keys and embed changed inputs | yes |
 | Voyage provider/model/1024 source space/role contract | source profile | document embedding | yes |
-| supported serving dimension | vector-space profile | rematerialize from compatible lab raw, otherwise embed | conditional |
-| reducer/normalizer/metric | vector-space profile | rematerialize from the same compatible source raw | none when raw exists |
-| storage codec (`binary | int8`) | storage profile | rematerialize from compatible vector-space f32 | none when raw exists |
+| supported serving dimension | vector-space profile | rematerialize from compatible product source bank, otherwise embed missing sources | conditional |
+| reducer/normalizer/metric | vector-space profile | rematerialize from the same compatible product source rows | none when sources exist |
+| fixed int8 implementation/profile version | storage profile | rematerialize from compatible product source rows | none when sources exist |
 | candidate/return k or RRF | none | reload/restart | none |
 | inline-body or read-span byte policy | none | serve reload/restart | none |
 | schema version | database | migration | none |
@@ -328,7 +329,7 @@ The user will select evaluation repositories. The implementation must not choose
 
 ## 7. Decisions intentionally deferred
 
-- Initial serving dimension: choose from 256, 512, and 1024 after Phase 12 evaluation. The provider source response remains 1024-dimensional. The initial storage codec defaults to `binary`; `int8` remains the only alternative v1 codec.
+- Product serving dimension: 1024 is the default and 512 is the explicit compact option. The provider source response is durably preserved in the product document source bank. Production serving storage is fixed to cidx-owned `int8`; Binary and 256 are historical document evidence only and have no product code path.
 - Numeric hit@k, MRR, p50, or p95 acceptance thresholds: measure, but do not predefine them as v1 release gates.
 - ANN/HNSW: decide only after measuring the practical codec-aware full-scan limit.
 - Additional languages such as Python.
@@ -346,6 +347,7 @@ Do not introduce a deferred item implicitly for implementation convenience.
 
 | Date | Change | Reason |
 | --- | --- | --- |
+| 2026-08-17 | Made 1024/int8 the default, retained compact 512/int8, productized durable document source-1024 f32, and removed Binary/256 code paths | Preserve maximum measured int8 fidelity by default while making dimension changes provider-free and keeping retired evidence document-only |
 | 2026-08-14 | Created the phase-oriented implementation plan | Decompose the r3 contract into executable work and evidence |
 | 2026-08-14 | Separated the 1024-dimensional document-f32 lab from runtime serving | Reduce repeated initial evaluation cost without creating a multi-profile runtime |
 | 2026-08-14 | Excluded query-raw persistence | Questions change, and a persistent query cache is not a product goal |

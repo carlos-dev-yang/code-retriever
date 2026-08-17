@@ -1,8 +1,14 @@
 # Phase 02 Configuration, Profiles, and Schema Evidence
 
 - Phase: `02-config-profiles-and-schemas`
-- State: `complete; main-agent commit-boundary validation passed`
+- State: `historical completion; reopened by the 2026-08-17 int8/source-bank contract`
 - Date: 2026-08-15
+
+The checks below remain accepted for their original boundary. Current Phase 02
+completion additionally requires default 1024/optional 512, fixed int8 with no
+Binary/256 path, and separate serving, product-source, and vector-free lab
+stores. See the [source-bank decision](../../SOURCE-VECTOR-BANK-DECISION.md)
+and [retired-profile contract](../../RETIRED-VECTOR-PROFILES.md).
 
 ## Implemented contracts
 

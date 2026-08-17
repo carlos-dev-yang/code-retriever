@@ -1,6 +1,7 @@
 # 02. Configuration, Profiles, and Storage Schemas
 
-- Status: `done` — the user-directed project-local source/state layout, path-free production/lab schema migrations, real chi/RHF state preservation, relocation proof, and one final boundary validation are complete
+- Status: `in_progress` — reconcile config/profile validation and fixtures to
+  int8-only 512/1024 product support; prior schema/layout evidence remains accepted
 - Prerequisite phases: `00-shared-contracts-and-config`, `01-runtime-storage-spike`
 - Downstream phases: `03-go-chunker`, `04-typescript-tsx-chunker`, `05-worktree-index-pipeline`, `08-raw-embedding-lab`
 - Design basis: `local-code-search-mcp-v1-design-r4.md` Sections 4.4, 6, and 9
@@ -10,20 +11,28 @@
 
 - Reopen the [implementation index](README.md), [execution guide](EXECUTION-GUIDE.md), [evaluation contract](EVALUATION-CONTRACT.md), and [status board](STATUS.md) before continuing after context compaction.
 - Reopen the Phase 00 config/constant catalog and fingerprint contract, plus Phase 01 artifacts for selected SQLite/Tree-sitter bindings, connection pragmas, atomic publication, f32/binary/int8 blob validation, platform constraints, and the source-1024 local-serving-dimension decision.
-- Re-check these critical invariants: only `internal/config` reads JSON; one resolved source dimension, one resolved serving dimension, and one resolved storage codec feed every consumer; desired config never partially overrides applied database profiles; production stores only the selected cidx `binary` or `int8` representation and defaults to `binary`; lab and production use different files, schemas, migrations, handles, and dependency paths; document raw f32 is dev-only and query f32 is never stored.
+- Re-check these critical invariants: only `internal/config` reads JSON; one resolved source dimension, one resolved serving dimension, and the fixed int8 storage codec feed every consumer; desired config never partially overrides applied database profiles; product dimensions are default 1024/optional 512 and ordinary tests use 1024; Binary/256 are unsupported and have no executable path; product source-bank, serving, and lab state use distinct files/handles; document f32 is durable product state and query f32 is never stored.
 - Stop before schema or API implementation if Phase 01 handoff is incomplete, fingerprint semantics are ambiguous, a config value has competing authorities, a runtime package would import `lab`, or a migration cannot fail atomically before serving.
 - Before pausing, update Section 11 evidence, Section 13 decisions, and [STATUS.md](STATUS.md). Preserve `in_progress` status while schema snapshots, profile fixtures, or dependency evidence remain missing.
 
+## 2026-08-17 product-profile supersession
+
+Phase 02 now owns complete removal of Binary and 256, a 1024 default,
+supported explicit 1024, fixed int8 profile identity, and actionable legacy
+errors. It does not delete old config or database rows. The current authority
+is [`RETIRED-VECTOR-PROFILES.md`](RETIRED-VECTOR-PROFILES.md); older Binary/256
+details below remain historical until the focused Phase 02 boundary closes.
+
 ## 1. Goal
 
-Implement strict typed configuration and two SQLite storage boundaries so the entire project observes the same desired configuration and applied profiles.
+Implement strict typed configuration and three SQLite storage boundaries so the entire project observes the same desired configuration and applied profiles.
 
 - Read `.cidx/config.json` once and inject the validated immutable `ResolvedConfig` into every runtime service.
 - Separate the index profile that invalidates source chunks and FTS from the source, vector-space, and storage profile hierarchy.
 - Establish one authority for model, serving dimensions, metric, text format, and quantization codec/version.
 - Distinguish user-desired config from profiles actually applied to the database.
-- Fully separate production `index.db` from the initial development/evaluation f32 lab database at the file, schema, migration, and package-dependency levels.
-- Make it possible to determine mechanically whether a dimension or quantization change requires local reindexing, no-cost rematerialization from compatible lab raw, or new paid document embedding.
+- Fully separate serving `index.db`, product source `embeddings.db`, and evaluation `lab/evaluation.db` at the file, schema, migration, and package-dependency levels.
+- Make it possible to determine mechanically whether a dimension/profile change requires local reindexing, no-cost rematerialization from compatible product source rows, or new approved document embedding.
 - Fix language-neutral chunk, range, and projection interfaces first so Go and TypeScript chunkers can be implemented in parallel.
 
 ## 2. Scope and Non-Goals
@@ -35,7 +44,7 @@ Implement strict typed configuration and two SQLite storage boundaries so the en
 - Canonical JSON and SHA-256 profile fingerprints
 - Canonical embedding-input hashes and the vector/cache key hierarchy
 - Production database schema, migrations, and connection factory
-- Separate lab database schema, migrations, and connection factory
+- Separate product source-bank and lab database schemas, migrations, and connection factories
 - Minimum store API for active serving profile and derived ready/pending/failed state
 - Profile-mismatch and required-reconciliation planning
 - Shared `Chunker` interface and source byte/line range and projection value types and validators
@@ -53,12 +62,12 @@ Implement strict typed configuration and two SQLite storage boundaries so the en
 - Concurrent search across multiple serving profiles, profile aliases, or automatic profile switching
 - Operating the lab database as a permanent production runtime source
 
-The raw lab is an auxiliary facility for initial codec, dimension, and retrieval-quality evaluation and for avoiding repeated charges during construction. Correct v1 runtime behavior, `serve`, `search`, and normal `embed --apply` never depend on its existence.
+The product document source bank is durable auxiliary state for avoiding repeated compatible document calls and rematerializing 1024/int8 or 512/int8. Correct serving, `serve`, `search`, and MCP never depend on its existence after an active target is published. Evaluation metadata remains a separate lab facility.
 
 ## 3. Prerequisites
 
 - Phase 01 has selected the SQLite and Tree-sitter bindings, WAL pragmas, and atomic-publication approach.
-- Minimum f32, binary, and int8 blob-validation/scoring rules are decided.
+- Minimum source-f32 and int8 blob-validation/scoring rules are decided; the Binary spike is historical evidence only.
 - The v1 reference path applies the same reducer to explicit 1024-dimensional float output for documents and queries, producing only local serving dimensions.
 - Source and state roots are separate runtime values. Normal use fixes state to `<source-root>/.cidx`; development evaluation may inject a controlling-project-relative `.cidx/test/states/<name>` state root for a separate `.cidx/test/corpora/<name>` source checkout.
 
@@ -71,9 +80,9 @@ The raw lab is an auxiliary facility for initial codec, dimension, and retrieval
 5. The quantization codec and version come from the same active `VectorStorageProfile`.
 6. Applied profiles in database `meta` are authoritative for currently searchable data. Search never partially applies desired config during a mismatch.
 7. Exactly one serving-vector profile is active at a time. A production vector table may retain multiple cache rows, but retrieval and coverage observe only the active fingerprint.
-8. Production stores only the active profile's serving `binary` or `int8` representation. It has no f32/f16 column and no codec outside this closed v1 enum.
-9. The lab database has a separate file, schema version, migration, and connection type. The dependency graphs of `serve` and `search` contain no `lab` package. Production is `<state_root>/db/index.db`; lab raw is `<state_root>/raw/embeddings.db`.
-10. The only raw embedding persisted in the lab is 1024-dimensional Voyage source f32 created with `input_type=document`. Search-invisible derived materializations and evaluation provenance may use other lab tables, but query f32 is never stored.
+8. Production stores only the active profile's serving int8 representation. It has no f32/f16 column and no alternate codec enum.
+9. Serving, product source, and evaluation stores have separate files, schema versions, migrations, and connection types. The dependency graphs of `serve` and `search` contain neither source-bank nor lab packages. Serving is `<state_root>/db/index.db`; product document source is `<state_root>/db/embeddings.db`; evaluation metadata uses a separate lab namespace.
+10. The only durable f32 is a 1024-dimensional Voyage document-role source row in the product source bank. The lab stores vector-free run/evaluation provenance, and query f32 is never stored anywhere.
 11. Canonical-input identity does not change when serving dimensions or quantization change.
 12. Schema-migration versions and profile versions or fingerprints never substitute for one another.
 
@@ -111,6 +120,10 @@ internal/
     chunks.go
     embeddings.go           # segment, codec-tagged vector, and failure metadata
     runs.go
+  sourcebank/
+    options.go              # code-owned source-bank path and portable repository identity
+    store.go                # product document-source connection factory
+    schema.go               # source-only schema and migrations
   lab/
     options.go              # fixed lab path and repository identity derived from root
     store.go                # lab-only connection factory
@@ -139,8 +152,10 @@ Core types have these responsibilities:
 - `CanonicalInputSHA256`: input identity independent of serving dimensions and quantization
 - `ServingVectorKey`: serving-profile fingerprint plus canonical-input hash
 - `AppliedProfiles`: index and serving profiles, active generation, manifest digest, and active serving profile actually applied to the database
-- `ConfigImpactPlan`: `none | restart_only | local_reindex | local_rematerialize_if_raw | paid_embedding_required | schema_migration`, with reasons
+- `ConfigImpactPlan`: `none | restart_only | local_reindex | local_rematerialize_if_source | paid_embedding_required | schema_migration`, with reasons
 - `ProductionStore`: handle that opens only the production schema and retains source/state roots in memory
+- `SourceBankOptions`: source-bank open values derived from the explicit source/state roots
+- `SourceBank`: handle that opens only the immutable document-source schema and implements no serving/search interface
 - `LabOptions`: store-open values containing the explicit state root; owns no source-path identity or embedding semantics
 - `LabStore`: handle that opens only the lab schema and implements no production interface
 - `Chunker`, `ChunkRequest`, `ChunkResult`: context-aware shared language-adapter interface for parallel Phases 03 and 04; request source/path/policy are immutable inputs, results carry parser metadata and typed diagnostics
@@ -170,11 +185,11 @@ The final target contract fixes the safety and request-group values below; seman
   },
   "embedding": {
     "model": "voyage-code-4",
-    "serving_dimensions": "<one of 256, 512, 1024 selected after evaluation>",
+    "serving_dimensions": 1024,
     "reducer": "prefix_truncate_l2_v1",
     "normalizer": "l2_v1",
     "metric": "cosine",
-    "storage_codec": "binary",
+    "storage_codec": "int8",
     "request": {
       "max_inputs": 128,
       "max_total_input_bytes": 262144,
@@ -206,11 +221,11 @@ The final target contract fixes the safety and request-group values below; seman
 }
 ```
 
-The remaining placeholder marks the serving-dimension choice, not a literal JSON value. Phase 02 resolves the fixed operational defaults from one central default table. It must not silently choose `serving_dimensions`, which initial evaluation must select. `storage_codec` defaults to `binary` and accepts only `binary` or `int8`; search defaults to `fts`. `voyage-code-4` is both the v1 default and the only allowed production value for `embedding.model`. The source-file limit is 1 MiB, the segment target is 1024 bytes, the MCP hard inline default is 64 KiB, and the executable absolute inline ceiling is 1 MiB. Executable-owned chunker, formatter, provider-adapter, and codec implementation versions appear in resolved semantic profiles or code-owned policy, not as user-incrementable config fields. Request and retry values remain validated operational config and do not affect an index/vector fingerprint.
+Phase 02 resolves `serving_dimensions` to 1024 by default and accepts explicit compact 512. `storage_codec` remains an explicit fingerprint field but is fixed to `int8`; it is not a CLI choice. Historical `binary` or 256 config values are unsupported and have no executable compatibility path. The code-owned product document source-bank path is `<state_root>/db/embeddings.db`; it is not configurable or part of the semantic source fingerprint. Search defaults to `fts`. `voyage-code-4` is both the v1 default and the only allowed production value for `embedding.model`. The source-file limit is 1 MiB, the segment target is 1024 bytes, the MCP hard inline default is 64 KiB, and the executable absolute inline ceiling is 1 MiB. Executable-owned chunker, formatter, provider-adapter, and codec implementation versions appear in resolved semantic profiles or code-owned policy, not as user-incrementable config fields. Request and retry values remain validated operational config and do not affect an index/vector fingerprint.
 
-Raw config has no `output_dimensions`. For `voyage-code-4`, v1 `ModelSpec` provides `Provider=voyage-official`, `SourceDimensions=1024`, and `AllowedServingDimensions={256,512,1024}`. Document and query requests explicitly set `output_dimension=1024`, `output_dtype=float`, and `truncation=false`, and omit `encoding_format`. Documents use `input_type=document`; queries use `input_type=query`. The response validator requires exactly 1024 finite floats. V1 excludes the asynchronous Voyage Batch API: it groups synchronous requests to at most 128 inputs and 256 KiB total input bytes, runs at most four groups concurrently, and times out each request after 30 seconds. It makes an initial attempt plus at most three retries after 10, 20, and 30 seconds, using a longer `Retry-After` when supplied.
+Raw config has no `output_dimensions`. For `voyage-code-4`, v1 `ModelSpec` provides `Provider=voyage-official`, `SourceDimensions=1024`, and `AllowedServingDimensions={512,1024}`. Document and query requests explicitly set `output_dimension=1024`, `output_dtype=float`, and `truncation=false`, and omit `encoding_format`. Documents use `input_type=document`; queries use `input_type=query`. The response validator requires exactly 1024 finite floats. V1 excludes the asynchronous Voyage Batch API: it groups synchronous requests to at most 128 inputs and 256 KiB total input bytes, runs at most four groups concurrently, and times out each request after 30 seconds. It makes an initial attempt plus at most three retries after 10, 20, and 30 seconds, using a longer `Retry-After` when supplied.
 
-Documents and queries apply the same `VectorSpaceProfile` prefix reducer and L2 normalizer to 1024-dimensional source float, producing an allowed `serving_dimensions` value. Query f32 is discarded after codec-specific query preparation and scanning. Provider requests remain source-1024 f32; direct 512- or 256-dimensional provider requests are not a v1 path. Provider `output_dtype=int8|binary` is distinct from the cidx `int8` and `binary` codecs applied after local prefix reduction and L2 normalization, so provider-quantized output is neither requested nor used as a storage codec ID.
+Documents and queries apply the same `VectorSpaceProfile` prefix reducer and L2 normalizer to 1024-dimensional source float, producing an allowed `serving_dimensions` value. Query f32 is discarded after int8 query preparation and scanning. Provider requests remain source-1024 f32; direct 512-dimensional provider requests are not a v1 path. Provider-quantized output is never requested or used as a storage codec ID.
 
 The official endpoint `https://api.voyageai.com/v1/embeddings` and credential environment variable `VOYAGE_API_KEY` are code-owned constants. Reject provider, endpoint, wire-field overrides, and unsupported models as unknown or unsupported config. Resolve `embedding.request` and `embedding.retry` once and inject them into every provider caller; do not replace their byte boundary with an unverified token cap or add an asynchronous Batch API path.
 
@@ -265,20 +280,20 @@ Do not add a `ready` enum column. A segment is ready when a `vector_cache` row f
 
 Store `vector_cache.dimensions` on every row only as integrity metadata that must equal the active profile dimension, not as support for arbitrary multi-profile serving.
 
-### 6.4 Separate lab database
+### 6.4 Separate product source bank and lab database
 
-The path is `<state_root>/raw/embeddings.db`, separate from production. Normal cidx development evaluation selects a named state root below `.cidx/test/states/`. `serve` startup never creates or opens it.
+The product source path is `<state_root>/db/embeddings.db`, separate from serving `index.db`. Normal cidx development evaluation selects a named state root below `.cidx/test/states/` and uses the same source-bank contract there. `serve` startup never creates or opens it. Evaluation metadata is stored separately in `<state_root>/lab/evaluation.db`.
 
-- `lab_meta`: lab schema version and creation/collection timestamps; no machine path
-- `lab_inputs`: document canonical-input hash and reproducible canonical bytes or a snapshot reference
-- `raw_document_embeddings`: source-profile-plus-input-hash key, immutable 1024-dimensional Voyage document-role f32 blob, dimensions, checksum, API response model, and creation time
+- source-bank `source_meta`: schema version, portable repository identity, and creation time
+- source-bank `document_source_embeddings`: source-profile-plus-input-hash key, immutable 1024-dimensional Voyage document-role f32 blob, dimensions, checksum, API response model/provenance, and creation time
+- lab `lab_meta`: lab schema version and creation timestamps; no machine path or vector blob
 - `capture_runs`: target generation, source profile, requested/hit/miss/success/failure counts, and cost metadata
-- `materialization_runs`: candidate vector-space/storage profile, raw coverage, output checksum, and evaluation-run link
+- `materialization_runs`: candidate vector-space/storage profile, source coverage, output checksum, and evaluation-run link
 - `evaluation_runs`: repository, generation, query manifest, candidate profile, and result-artifact location
 
-The lab raw key is `(embedding_source_profile_fingerprint, canonical_input_sha256)`. A capture run references the active `EmbeddingSourceProfile` and retention provenance but creates no new vector-space authority. The lab schema contains neither query input nor query f32.
+The product source key is `(embedding_source_profile_fingerprint, canonical_input_sha256)`. A capture run references it but creates no new vector-space authority. The lab schema contains no document/query vector blob, query input, or query f32.
 
-Only a future explicit offline materialization path may write from the lab into production. That optional path aids initial construction and evaluation; it is not a prerequisite for production embed.
+Only explicit document embedding or local rematerialization may read the source bank and write a complete target into production. Search/serve never opens the source bank, and product materialization never depends on the lab store.
 
 ### 6.5 Portable evaluation contracts
 
@@ -294,28 +309,29 @@ Phase 02 provides:
 - `config.FingerprintProfiles(ResolvedConfig) (DesiredProfiles, error)`
 - `config.PlanImpact(desired, applied, expectedProductionSchemaVersion) ConfigImpactPlan`; the store caller supplies the database-schema authority so it is never conflated with the config-file version
 - `store.OpenProductionAt(sourceRoot, stateRoot, resolvedConfig) (ProductionStore, error)`; the default wrapper resolves state to `<sourceRoot>/.cidx`
+- `sourcebank.Open(sourceBankOptions{SourceRoot, StateRoot}) (SourceBank, error)`
 - `lab.OpenStore(labOptions{StateRoot}) (LabStore, error)`
-- separate production and lab `Migrate` and `InspectSchemaVersion`
+- separate production, source-bank, and lab `Migrate` and `InspectSchemaVersion`
 - strict `evalcontract` encode/decode/validate and canonical artifact-checksum functions
 
-This phase does not duplicate CLI/MCP behavior. Application assembly resolves one source root plus one state root and injects both into the same production services. Default commands use `<source-root>/.cidx`; development commands may inject a validated controlling-project-relative `.cidx/test/states/<name>`. Config is `<state_root>/config.json`, lab raw is `<state_root>/raw/embeddings.db`, and evaluation artifacts are `<state_root>/evaluations`. Always read model, serving dimension, reducer, normalizer, metric, and codec from that one state config. Never inject `LabOptions` or `LabStore` into a production runtime service.
+This phase does not duplicate CLI/MCP behavior. Application assembly resolves one source root plus one state root and injects both into the same production services. Default commands use `<source-root>/.cidx`; development commands may inject a validated controlling-project-relative `.cidx/test/states/<name>`. Config is `<state_root>/config.json`, the product source bank is `<state_root>/db/embeddings.db`, and evaluation artifacts use a separate lab namespace. Always read model, serving dimension, reducer, normalizer, metric, and codec from that one state config. Never inject source-bank or lab handles into serving/search services.
 
 ## 7. Config Usage and Change Impact
 
 | Setting class | Example | Impact |
 | --- | --- | --- |
 | Index profile | chunker/projection/segment/symbol/FTS version | full local reindex |
-| Canonical text format | executable-owned `CanonicalTextProfile` | recompute canonical inputs and hashes; only keys whose actual bytes/hash changed lose raw compatibility and require paid document embedding; identical hashes reuse data |
-| Model/source space | `embedding.model` plus provider, 1024 source, dtype, input-type mapping, truncation, and adapter version from the model registry | existing raw and vectors are incompatible; paid document embedding required |
-| Serving dimensions | `embedding.serving_dimensions` | rematerialize from compatible lab raw; without it, create a new document embedding |
-| Reduction/normalization | `embedding.reducer`, `normalizer` | rematerialize from compatible lab raw; only Phase 01-approved combinations are valid |
-| Quantization | `embedding.storage_codec` | rematerialize from compatible lab raw; otherwise use normal embed to produce a serving vector |
+| Canonical text format | executable-owned `CanonicalTextProfile` | recompute canonical inputs and hashes; only keys whose actual bytes/hash changed lose source compatibility and require approved document embedding; identical hashes reuse data |
+| Model/source space | `embedding.model` plus provider, 1024 source, dtype, input-type mapping, truncation, and adapter version from the model registry | existing source rows and vectors are incompatible; approved document embedding required |
+| Serving dimensions | `embedding.serving_dimensions` | rematerialize from compatible product source rows; without them, embed only missing document sources after approval |
+| Reduction/normalization | `embedding.reducer`, `normalizer` | rematerialize from compatible product source rows; only Phase 01-approved combinations are valid |
+| Quantization | fixed `embedding.storage_codec=int8` | profile identity only; no alternate product codec selector |
 | Metric | `embedding.metric` | regenerate the serving vector/profile and verify search compatibility |
 | Search policy | candidate/return/RRF/default mode | no reindex or re-embedding; restart or reload only |
 | MCP hard maximum | inline source-byte cap | no reindex or re-embedding |
-| Schema version | production/lab migration | maintenance migration |
+| Schema version | production/source/lab migration | maintenance migration |
 
-The presence of raw data does not guarantee rematerialization. Compatibility requires the same embedding-source profile and canonical input, a `serving_dimensions` member of `ModelSpec.AllowedServingDimensions`, and a transform supported by the binary. Otherwise the result is `paid_embedding_required`.
+The presence of source data does not guarantee rematerialization. Compatibility requires the same embedding-source profile and canonical input, a `serving_dimensions` member of `ModelSpec.AllowedServingDimensions`, and a transform supported by the executable. Otherwise the result is `paid_embedding_required`.
 
 Database schema version, config schema version, required MCP protocol fields, and supported absolute ceilings are central named constants and validators, not freely editable user config.
 
@@ -330,9 +346,9 @@ Database schema version, config schema version, required MCP protocol fields, an
 7. Implement desired/applied profile comparison and the change-impact planner.
 8. Build the production connection factory with Phase 01-selected pragmas.
 9. Implement the production schema and versioned migrations.
-10. Use a closed codec enum and codec-specific validated value types so the production vector-write API accepts only cidx `binary` or `int8` rows.
-11. Implement a separate lab connection factory and lab schema/migrations.
-12. Verify package direction prevents a `lab` import anywhere on `serve` or `search` dependency paths.
+10. Use a fixed int8 identity and validated value types so the production vector-write API cannot accept another codec.
+11. Implement distinct product source-bank and lab connection factories and migrations; only the source bank stores document f32.
+12. Verify package direction prevents `sourcebank` or `lab` imports anywhere on `serve` or `search` dependency paths.
 13. Define queries that derive ready/pending/failed state and coverage from the active snapshot.
 14. Define typed errors for schema and profile mismatch.
 15. Implement language-neutral chunk/range/projection values and validators so Phases 03 and 04 never edit the same files.
@@ -345,10 +361,10 @@ Database schema version, config schema version, required MCP protocol fields, an
 
 - If config validation fails, do not create a database file, migrate, or begin profile reconciliation.
 - Do not run migrations while the server accepts search. A transaction failure must roll back schema version and data together.
-- Fail closed when production and lab paths are confused. Store kind and schema shape distinguish the databases; runtime path ownership and portable manifest/profile/input identity replace persisted canonical-root equality.
-- A production database must not open under lab migrations, and a lab database must not open under production migrations.
-- Read `VOYAGE_API_KEY` only from the process environment; never store it in `config.json`, the lab database, or evaluation metadata.
-- Error messages contain no source body, raw vector, or credential.
+- Fail closed when serving, source-bank, and lab paths are confused. Store kind and schema shape distinguish the databases; runtime path ownership and portable manifest/profile/input identity replace persisted canonical-root equality.
+- No database may open under another store kind's migrations.
+- Read `VOYAGE_API_KEY` only from the process environment; never store it in `config.json`, any database, or evaluation metadata.
+- Error messages contain no source body, source vector, or credential.
 - SQLite connections separate WAL reader/writer roles and do not use `BEGIN EXCLUSIVE` on normal paths.
 - During a desired/applied mismatch, hybrid is marked for FTS-only fallback and makes no paid API call.
 - Stale vector-cache rows do not count as ready or coverage unless their active serving profile and key match.
@@ -363,11 +379,11 @@ Validate the following during implementation; this planning phase adds no test c
 - Document and query API requests and response validators use the same resolved 1024 source dimensions and their correct `input_type` values.
 - API requests explicitly use `output_dtype=float` and `truncation=false`, and use neither `encoding_format` nor provider-side quantized output.
 - Reducer, quantizer, vector decoder, and scanner use the same resolved serving dimensions.
-- Changing serving dimensions or codec leaves the index-profile fingerprint unchanged and changes only serving-profile fingerprints.
+- Changing between 1024 and 512 leaves the index-profile fingerprint unchanged and changes only serving-profile fingerprints.
 - A chunker or FTS-version change is classified as an index-profile mismatch.
 - Types or constraints reject any path attempting to write a float32 blob to production.
-- Production cannot be opened as a lab store, and the lab cannot be opened as a production store.
-- `init` and an FTS-only runtime can be assembled without a lab database.
+- Serving, source-bank, and lab files reject every wrong store factory.
+- `init` and an FTS-only runtime can be assembled without opening source-bank or lab databases.
 - A vector row for a profile other than the active profile is excluded from ready state and coverage.
 - When a valid vector exists, ready state wins over an old failure; success upsert and failure deletion can occur in one transaction.
 - After migration failure, the previous schema still opens or a clear migration-required error is returned.
@@ -384,12 +400,12 @@ The user-directed project-local source/state reconciliation, real chi/RHF
 migration, relocation proof, and current boundary checks are recorded in
 [the project-local layout evidence](evidence/phase-02/project-local-layout-reconciliation.md).
 
-- Strict immutable `ResolvedConfig`, profile hierarchy/fingerprints, impact planning, separate schemas, active-codec validation, chunk/projection contracts, normalizer, and portable evaluation types are implemented.
+- The earlier strict immutable `ResolvedConfig`, profile hierarchy/fingerprints, impact planning, serving/lab schemas, codec validation, chunk/projection contracts, normalizer, and portable evaluation types remain historical accepted evidence. Current completion additionally requires int8-only profiles plus the product source-bank/evaluation-store split.
 - The canonical-text and embedding-source Phase 00 fixtures reproduce; defaulted and explicit equivalent configs share semantic fingerprints.
-- Historical v1 production/lab schemas used atomic user-version migration checks, canonical-root matching, and owner-only paths where supported. The current project-local layout migration supersedes that machine-path identity while preserving the separation: production contains no raw f32/f16 storage or lab runtime dependency.
+- Historical v1 production/lab schemas used atomic user-version migration checks, canonical-root matching, and owner-only paths where supported. The current project-local layout and product source-bank contract supersede that machine-path identity while preserving separation: `index.db` contains no raw f32/f16, `embeddings.db` contains immutable document f32 only, and serving has no lab dependency.
 - Exact successful and intentionally unrun checks, including RFC-8785 finite-number/Unicode conformance, transaction-pinned active state, immutable lab rows, and real strict JSON-Schema validation, are recorded in the evidence file.
 
-Revision 4 reconciles the config/profile/evaluation-wire boundary without changing the production or lab relational schemas. It strictly requires `embedding.serving_dimensions`, defaults and caps source, segment, request, retry, and inline values centrally, removes the chunk/read-span line settings, returns a typed pre-R4 mapping error before a store can open, and changes vector/evaluation JSON to `serving_dimensions`. Existing request executor, segmentation, query retry, filesystem-init, and public CLI work remains owned by Phases 05, 08, 10, 11, and 13.
+The historical Revision 4 boundary reconciled config/profile/evaluation wires without changing the then-current serving or lab relational schemas. The 2026-08-17 contract now requires an additional source-bank schema and removal of f32 blobs from the lab schema; that work must be revalidated before Phase 02 returns to done.
 
 The later project-local layout reconciliation does change only the storage
 identity schemas: production v4 and lab v6 remove the obsolete absolute
@@ -411,7 +427,7 @@ Provide Phase 05 and embedding phases with:
 - production transaction and store APIs;
 - the atomic-publication value object and active-profile metadata;
 - canonical-input and vector-key functions;
-- lab-raw compatibility rules;
+- product source compatibility rules and separate lab metadata boundary;
 - the profile-change impact planner; and
 - the common identifier normalizer for FTS symbol input.
 
@@ -428,10 +444,11 @@ Provide Phases 07 and 12 with the versioned `evalcontract` types/schemas, stable
 | Serving-dimension authority | fixed: active `VectorSpaceProfile.ServingDimensions` | Prevent reducer, codec, and scanner dimension mismatch. |
 | Quantization authority | fixed: codec/version in the active `VectorStorageProfile` | Guarantee one production serving format. |
 | Active serving-profile count | fixed: one | Keep the auxiliary MCP runtime path simple. |
-| Production raw vector | excluded | Production stores only the selected cidx-owned binary or int8 representation. |
-| Lab storage | fixed: separate database, schema, and package | Isolate initial evaluation data from runtime state. |
-| Lab role | fixed: initial development and evaluation aid | It is not a permanent runtime feed or serving dependency. |
-| Query f32 storage | excluded | The repeated-evaluation raw bank applies only to documents. |
+| Production serving raw vector | excluded | `index.db` stores only cidx-owned int8; source f32 lives in the separate product source bank. |
+| Product source storage | fixed: `<state_root>/db/embeddings.db` | Preserve immutable document 1024-f32 for provider-free 1024/512 rematerialization without making it a serving authority. |
+| Lab storage | fixed: separate database, schema, and package | Isolate evaluation run metadata from both serving and source data. |
+| Lab role | fixed: development and evaluation metadata | It is not a runtime feed, vector bank, or serving dependency. |
+| Query f32 storage | excluded | Only document source f32 is durable. |
 | Evaluation wire contract | fixed before runners | Preserve stage denominators, first loss, paired controls, and hard-gate evidence across lexical, dense, hybrid, packaging, and assistant phases. |
 | Canonical-input hash | fixed: independent of serving dimension and quantization | Reuse transformations of identical source raw. |
 | Allowed reductions | selected: `prefix-l2-v1` with `l2-v1` | Phase 01 fixed the local source-1024 prefix plus L2 contract. Direct serving-dimension provider requests are excluded. |

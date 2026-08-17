@@ -1,6 +1,6 @@
 # Phase 00 Cross-Phase Terminology Review
 
-- State: `complete`
+- State: `superseded and reconciled` — 2026-08-17 product source-bank/int8 decision
 - Scope: implementation plans 01 through 14 plus Revision 4 and the evaluation contract
 
 ## Terms that every phase must consume unchanged
@@ -15,10 +15,11 @@
 - `CanonicalInputSHA256`
 - `ServingVectorKey`
 - `ConfigImpactPlan`
-- source 1024 and serving dimensions 256/512/1024
-- storage codecs `binary|int8`, default `binary`
-- production authority `.cidx/index.db`
-- optional lab `.cidx/lab/embeddings.db`
+- product document source 1024 and serving dimensions 1024/512
+- fixed storage codec `int8`, default target 1024
+- serving authority `.cidx/db/index.db`
+- product document source bank `.cidx/db/embeddings.db`, never opened by search
+- separate evaluation metadata `.cidx/lab/evaluation.db`, with no vector blobs
 - stable MCP tools `status|search|read_span|reindex`
 - stage-separated evaluation, dual dense references, scoped promotion, and no HNSW/ANN metrics
 
@@ -67,6 +68,16 @@ Expected historical non-conflicts retained:
 - r3 references OpenAI only as an unsupported provider or Voyage benchmark comparator.
 - Phase 01 may compare provider direct 512/256 output with local 1024-prefix reduction, but production continues to request source 1024.
 - Phase 08 names provider 2048 only to state that v1 excludes it.
+
+## 2026-08-17 supersession review record
+
+The prior review results above are preserved as historical evidence. The owner
+subsequently fixed the product to default 1024/int8 with explicit compact
+512/int8, accepted a durable product document source bank, and removed all
+Binary/256 executable paths. The current terminology audit therefore requires
+`AllowedServingDimensions={1024,512}`, fixed `storage_codec=int8`, source
+storage at `.cidx/db/embeddings.db`, vector-free evaluation metadata at
+`.cidx/lab/evaluation.db`, and no source-bank/lab dependency in search or MCP.
 
 ## Revision 4 reconciliation record
 

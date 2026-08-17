@@ -32,15 +32,15 @@ If these sources disagree, stop implementation and reconcile the documentation f
 - Paid document embedding and paid hybrid-query embedding are explicit, separately authorized operations.
 - The v1 provider/model is the official Voyage AI API with `voyage-code-4`.
 - Document and query requests explicitly use source dimension 1024, `output_dtype=float`, `truncation=false`, and their respective `input_type` values.
-- Serving target dimensions are restricted to 256, 512, or 1024 and are read from one validated `ResolvedConfig`.
-- Production storage contains only the selected cidx-owned quantized representation. V1 supports `binary` and `int8`, defaults to `binary`, and never mixes codecs inside one active serving profile. Development raw storage is isolated, document-only, and not a runtime dependency.
+- Serving target dimensions are restricted to 1024 or 512 and are read from one validated `ResolvedConfig`. Ordinary tests, initialization, and evaluation default to 1024; 512 is an explicit compact option.
+- The product-owned source bank persistently stores validated 1024-dimensional document f32 so either supported int8 target can be rematerialized locally without another provider call. Production serving storage contains only the active cidx-owned `int8` representation, and search/MCP never opens the source bank. Query f32 is never persisted. Binary and 256-dimensional code paths are absent from the product; only their historical artifacts and reports remain as evidence, and any reproduction requires new explicit user approval in a separate non-product tool.
 - SQLite is the persistent authority. Search must observe one committed active generation and must not depend on a second authoritative in-memory index.
 - Stable MCP exposes exactly `status`, `search`, `read_span`, and `reindex`.
 - `search.max_inline_bytes` limits inline source bytes without changing rank or result identity.
 - Configuration and semantic profile fingerprints are single sources of truth; do not duplicate dimensions, codecs, or business rules across packages.
 - Evaluation is stage-separated and uses explicit denominators, first-loss attribution, frozen paired runs, standalone FTS/dense evidence, and hard gates. Do not create a weighted total quality score or treat activation as quality proof.
 - Promotion results are scoped. Phase 12 may establish `core_retrieval`; only a later immutable Phase 14 result that references core plus assistant/host evidence may establish `release_candidate`.
-- Binary/int8 fidelity is measured against exhaustive target-dimension f32, while product usefulness is measured against human relevance and paired assistant tasks. These are separate references; HNSW/ANN metrics are out of scope.
+- Int8 fidelity is measured against exhaustive target-dimension f32, while product usefulness is measured against human relevance and paired assistant tasks. Historical Binary/256 measurements remain evidence only. These are separate references; HNSW/ANN metrics are out of scope.
 
 ## Evaluation corpus rules
 

@@ -18,11 +18,11 @@ There is no configurable chunk byte cap. A semantic function, method, or type re
 | JSON field | Resolved owner | Required validation | Fingerprint/impact |
 | --- | --- | --- | --- |
 | `embedding.model` | `EmbeddingSourceProfile` via `ModelSpec` | v1 accepts only `voyage-code-4` | paid document embedding required on change |
-| `embedding.serving_dimensions` | `VectorSpaceProfile` | required member of `{256,512,1024}` and not above source 1024 | local rematerialization from compatible raw, otherwise paid embed |
-| `embedding.reducer` | `VectorSpaceProfile` | code-owned supported reducer ID | local rematerialization from compatible raw |
-| `embedding.normalizer` | `VectorSpaceProfile` | code-owned supported normalizer ID | local rematerialization from compatible raw |
+| `embedding.serving_dimensions` | `VectorSpaceProfile` | defaults to 1024; explicit 512 is the only alternative | provider-free local rematerialization from compatible product source rows; only missing source rows need approved embedding |
+| `embedding.reducer` | `VectorSpaceProfile` | code-owned supported reducer ID | local rematerialization from compatible product source rows |
+| `embedding.normalizer` | `VectorSpaceProfile` | code-owned supported normalizer ID | local rematerialization from compatible product source rows |
 | `embedding.metric` | `VectorSpaceProfile` | v1 accepts only `cosine` | local rematerialization and scorer compatibility check |
-| `embedding.storage_codec` | `VectorStorageProfile` | `binary|int8`; resolves to `binary` when omitted | local rematerialization; changes serving fingerprint only |
+| `embedding.storage_codec` | `VectorStorageProfile` | fixed `int8`; recorded explicitly but not user-selectable | local rematerialization; changes serving fingerprint only when the code-owned int8 version changes |
 | `embedding.request.max_inputs` | shared provider request policy | positive and at most 128 | restart/reload only; no semantic fingerprint |
 | `embedding.request.max_total_input_bytes` | shared provider request policy | positive and at most 256 KiB of canonical UTF-8 input | restart/reload only; never reported as a token cap |
 | `embedding.request.max_concurrency` | shared provider request policy | positive and at most 4 across the injected executor | restart/reload only |

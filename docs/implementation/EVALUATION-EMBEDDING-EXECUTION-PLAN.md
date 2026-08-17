@@ -1,7 +1,7 @@
 # cidx Retrieval Evaluation and Embedding Execution Plan
 
 - Status: operational plan; no paid action or promotion evidence is authorized by this document
-- Date: 2026-08-16
+- Date: 2026-08-17
 - Governing authority: [cidx v1 Evaluation and Promotion Contract](EVALUATION-CONTRACT.md)
 - Owning phases: [Phase 07 lexical evaluation](07-lexical-evaluation.md), [Phase 12 retrieval evaluation](12-retrieval-evaluation.md), and the later assistant-use portion of [Phase 14](14-packaging-and-host-integration.md)
 
@@ -12,6 +12,11 @@ This document defines how to prepare the approved corpora and human labels, when
 It is an execution companion to the canonical evaluation contract, not a replacement for it. If this document, an implementation phase, an adviser response, or a chat summary conflicts with the canonical contract, the canonical contract wins. This document does not itself authorize a paid embedding or official evaluation; the status/evidence ledger separately records operations that were approved and completed.
 
 The plan was independently discussed with ChatGPT and Grok. Their common recommendations—provider-free preparation first, explicit spend gates, immutable paired runs, first-loss diagnosis, and limited claims from the current two repositories—are incorporated. Their advice is not ground truth. Section 16 records the material corrections made during reconciliation.
+
+The current product-profile authority is
+[`RETIRED-VECTOR-PROFILES.md`](RETIRED-VECTOR-PROFILES.md). Dated descriptions
+of Binary and 256 experiments below are preserved provenance. They do not
+authorize a current Binary/256 run or make those profiles selectable.
 
 ## 2. Current starting point
 
@@ -42,8 +47,8 @@ retrieval quality or supports promotion. The current blockers remain:
 - the deterministic simple-search baseline is frozen and measured for v2, but
   chi G12's source-corrected v3 wording requires its simple/opened-arm pool
   refresh before those passes begin;
-- the canonical `voyage-code-4` model/price, complete document raw bank, and
-  1024/binary materialization are confirmed; the exact 12 chi + 20 RHF
+- the canonical `voyage-code-4` model/price, complete product document source bank, and
+  historical five-profile materializations are confirmed; the exact 12 chi + 20 RHF
   exploratory series completed once under its $0.01 ceiling and its approval
   is consumed; those immutable rankings were regrouped by cohort without a
   repeat, while the new chi v3 wording is not yet a measured query;
@@ -54,16 +59,22 @@ retrieval quality or supports promotion. The current blockers remain:
 
 The user confirmed that the immediate goal is to close the chi and react-hook-form calibration cases first. Mixed-language corpus work and promotion confirmation are later stages and do not block the current document capture or exploratory calibration loop.
 
-For this immediate slice, `1024 / binary` means:
+For the resumed immediate slice, the ordinary `1024 / int8` profile means:
 
 ```text
 segment_target_bytes = 1024
 source_dimensions = 1024
 serving_dimensions = 1024
-storage_codec = binary
+storage_codec = int8
 ```
 
-This is the first working retrieval profile, not a claim that 1,024 serving dimensions are the final promoted winner. The compatible source-f32 bank still permits later 256/512 serving-dimension and int8 materialization without another document call. The user has now opened one evaluation-only 1,024-dimensional int8 diagnostic before label freeze: it leaves production binary active, locally encodes int8 documents once, obtains one fresh query f32 per case, and independently scans target-f32, binary, and int8 to top 20 with no FTS or RRF.
+This is the product default and the ordinary test profile. `512/int8` remains
+an explicit supported compact option. Document-role 1024 f32 is durably stored
+in the product source bank but never used as a serving fallback. The compatible
+bank can rematerialize 1024/int8 or 512/int8 locally without another document call. Binary and 256
+artifacts already measured in this plan are retained only as historical
+evidence; reproducing either requires a new explicit approval and a dedicated
+development evidence path.
 
 The immediate workflow is:
 
@@ -72,12 +83,12 @@ The immediate workflow is:
 | A | Provider-free chi/RHF corpus, inclusion, parser, chunker, parent, and 1,024-byte segment audit | Only exceptions, exclusions, or ambiguous parent boundaries need a user decision |
 | B | Author a versioned working cohort set from real code behavior; use the 12 identifier smoke cases only as reference | Review question intent, direct/support parents, answer mode, and task/signal assignment |
 | C | Produce a no-network document-capture plan with exact fingerprints, pending inputs/bytes, request count, and spend ceiling | Explicit document-embedding approval is mandatory |
-| D | Capture document f32 once and materialize the 1,024/binary working profile | No further choice if execution still matches the approved plan |
+| D | Capture document f32 once and materialize the 1024/int8 working profile | No further choice if execution still matches the approved plan |
 | E | Run bounded, explicitly approved exploratory query operations; inspect first loss and revise the working cohort direction | Approve each exact apply or one explicitly bounded series |
 | F | Close the chi/RHF calibration cohort, blind-pool judgments, perform review passes, and freeze calibration labels | Approve the frozen calibration dataset |
 | G | Select a genuine mixed-language corpus and author independent promotion confirmation | Deferred until chi/RHF closure |
 
-Document embedding is intentionally early relative to final label freeze because it embeds the frozen corpus document inputs, not the evaluation labels. The long interval after capture is where provisional questions, dense candidate pools, first-loss traces, cohort balance, and judgments are tested. Changing those questions or labels does not invalidate a compatible document raw bank.
+Document embedding is intentionally early relative to final label freeze because it embeds the frozen corpus document inputs, not the evaluation labels. The long interval after capture is where provisional questions, dense candidate pools, first-loss traces, cohort balance, and judgments are tested. Changing those questions or labels does not invalidate compatible product source rows.
 
 ### 2.2 Development workspace versus inspected project
 
@@ -85,11 +96,11 @@ The production engine and the evaluation engine are the same code path. The
 separation is in application assembly and storage ownership, not in ranking or
 indexing behavior:
 
-| Context | Source root | State root | Production DB | Raw/evaluation state |
+| Context | Source root | State root | Serving DB | Product source / evaluation state |
 | --- | --- | --- | --- | --- |
-| Normal project use | target Git project | `<source>/.cidx` | `<state>/db/index.db` | not opened by normal runtime |
-| cidx development: chi | `.cidx/test/corpora/chi` | `.cidx/test/states/chi` | `<state>/db/index.db` | `<state>/raw/embeddings.db`, `<state>/evaluations/` |
-| cidx development: RHF | `.cidx/test/corpora/react-hook-form` | `.cidx/test/states/react-hook-form` | `<state>/db/index.db` | `<state>/raw/embeddings.db`, `<state>/evaluations/` |
+| Normal project use | target Git project | `<source>/.cidx` | `<state>/db/index.db` | `<state>/db/embeddings.db`; search does not open it |
+| cidx development: chi | `.cidx/test/corpora/chi` | `.cidx/test/states/chi` | `<state>/db/index.db` | `<state>/db/embeddings.db`, separate lab/evaluations |
+| cidx development: RHF | `.cidx/test/corpora/react-hook-form` | `.cidx/test/states/react-hook-form` | `<state>/db/index.db` | `<state>/db/embeddings.db`, separate lab/evaluations |
 
 All explicit development paths are relative to the controlling cidx Git
 project and confined below these namespaces. Corpus bindings live in ignored
@@ -217,10 +228,11 @@ The calibration count is not a promotion threshold. Freeze its planned counts an
 
 Before final label freeze, reviewers must see the unique top candidates from
 every arm opened for the selected calibration grid. The current user-selected
-initial grid is 1,024 dimensions with binary serving, so its pool consists of
-simple search, FTS, serving f32, active binary, and their applicable RRF arms.
-Int8 or another dimension enters the pool only if that alternative is explicitly
-opened before freeze; it is not silently added to the current grid. To avoid lane
+initial grid is 1,024 dimensions with int8 serving, so its pool consists of
+simple search, FTS, exhaustive target-dimension f32, active int8, and their
+applicable RRF arms. The supported compact 512/int8 option enters the pool only if it
+is explicitly opened before freeze. Retired Binary and 256 evidence never
+enters a current pool without a new approval. To avoid lane
 and rank bias:
 
 - combine and deduplicate candidates by semantic parent;
@@ -319,7 +331,7 @@ Before approval, produce a provider-free plan containing:
 - provider/model/role/source-dimension/dtype/truncation settings;
 - request grouping and retry policy;
 - estimated tokens/cost and a hard maximum spend;
-- the ignored raw-bank path and proof that production storage is not a destination.
+- the ignored product source-bank path and proof that serving `index.db` is not a source-f32 destination.
 
 The first capture should use the canonical 1,024-byte target. Changing the segment target changes segment boundaries and therefore changes the document text universe. It is not a free local rematerialization. Evaluate 768 or 1,536 with provider calls only when provider-free structure evidence or 1,024-byte dense first-loss evidence justifies a separate, explicitly approved capture under a distinct compatibility fingerprint. Segment-target calibration is therefore the first, hierarchical calibration tier; it cannot be folded into the later zero-document-call dimension/codec grid.
 
@@ -340,25 +352,25 @@ cidx dev embeddings materialize --activate
 
 - capture only missing compatible document inputs;
 - require complete finite 1,024-dimensional f32 coverage before evaluation;
-- materialize the initial 1,024-dimensional binary working profile;
-- retain the ability to derive 256/512 locally later; for the currently opened int8 diagnostic, keep binary active and derive the int8 candidate bank only in the development evaluator;
+- materialize the initial 1,024-dimensional int8 working profile;
+- retain the ability to derive the supported compact 512/int8 option locally later;
 - evaluate one active serving profile at a time;
 - never copy raw f32 into production storage.
 
-For an approved alternative segment target, first select that target, run `cidx index` to establish its canonical input set, and capture it under its own approved raw-bank fingerprint. Exact unchanged inputs may be reused only when the implementation proves their canonical hashes compatible.
+For an approved alternative segment target, first select that target, run `cidx index` to establish its canonical input set, and capture it under its own approved source-profile/input fingerprint. Exact unchanged inputs may be reused only when the implementation proves their canonical hashes compatible.
 
-Exit: every approved compatible raw bank is complete and each later dimension/codec candidate for that segment target can be materialized without another document call.
+Exit: the approved product source bank is complete and either supported int8 dimension for that segment target can be materialized without another document call.
 
 ### Stage 7 — Explore cohort direction, then freeze calibration labels
 
-Entry: the candidate grid, provisional calibration queries, raw coverage, and local materializations are complete.
+Entry: the supported target set, provisional calibration queries, source coverage, and local materializations are complete.
 
 Actions:
 
 - run the default evaluation command first to validate and estimate without network access;
 - request a bounded paid-query approval for the exact exploratory operations;
-- run the 1,024/binary working profile and inspect per-query lane results, first loss, parent collapse, RRF behavior, and body survival;
-- run the separate `--mode codec` diagnostic once for chi and RHF: use a vector-only production snapshot, locally encode each int8 document once, prepare binary and int8 query representations once per case in their own scorers, and record only isolated target-f32/binary/int8 segment and parent top-20 rankings plus depths 1/5/10/20 metrics and f32 fidelity;
+- run the 1024/int8 working profile and inspect per-query lane results, first loss, parent collapse, RRF behavior, and body survival;
+- compare active int8 only with exhaustive same-dimension f32 when fidelity evidence is required; do not fuse profile ranks;
 - revise query wording, task/signal assignment, answer mode, expected alternatives, and cohort balance only in a new working-dataset version;
 - repeat only when another separately approved apply or an approved bounded series remains in scope;
 - once the cohort direction is stable, obtain blind candidate pools across the required arms;
@@ -370,8 +382,8 @@ Actions:
 Measured checkpoint (2026-08-17): the one-time codec diagnostic is complete
 for both corpora. It kept all three scorers isolated, used 32 successful query
 operations, and performed no RRF or document call. Int8 tracked exhaustive f32
-far more closely than binary; production remains binary until separated human
-review and an explicit later codec-selection decision. Label-only replay uses
+far more closely than binary. The later product decision removed Binary from
+current code. Label-only replay uses
 the immutable rankings and does not repeat Voyage. See
 [`evidence/phase-07/codec-top20-diagnostic-r4.md`](evidence/phase-07/codec-top20-diagnostic-r4.md).
 
@@ -383,15 +395,15 @@ to `1.0000` mean top-20 retention across both corpora and both dimensions. The
 by only `7.12%` beyond 512 and show more shallow-rank variability. Because no
 query vector is persisted and all fresh query hashes differ across checkpoints,
 cross-dimension changes are not causal paired deltas. Carry 512/int8 as the
-preferred compact candidate and 256/int8 as the memory-constrained alternative;
+ordinary product profile; the 256 result is preserved only as retired evidence;
 see the [512](evidence/phase-07/codec-int8-512-diagnostic-r4.md) and
 [256](evidence/phase-07/codec-int8-256-diagnostic-r4.md) evidence.
 
 The subsequent provider-free five-profile consolidation compares every current
 language, signal, and task cohort plus the actual answer placements without
 FTS, RRF, or codec-rank fusion. It advances 512/int8 as the next
-frozen-evaluation candidate, retains 256/int8 as the memory-constrained
-alternative, and leaves production at 1024/binary. See the
+frozen-evaluation candidate. The later product decision retired both the
+Binary and 256 arms represented in that report. See the
 [five-profile comparison](evidence/phase-07/five-profile-cohort-comparison-r4.md).
 
 Exit: the chi/RHF cohort direction and calibration truth are frozen. Exploratory and pool-generation runs remain preparation evidence and do not vote for promotion.
@@ -428,7 +440,7 @@ Entry: the chi/RHF cohort/calibration work is closed, the policy is frozen, the 
 Actions:
 
 - run provider-free validation and FTS pooling;
-- obtain separately approved, bounded paid-query pool-generation runs for serving-f32, binary, int8, and RRF candidates; a development-only same-query codec pool may keep binary active and derive int8 locally, while any formal current-profile claim still selects one profile and restores the selected profile before confirmation;
+- obtain separately approved, bounded paid-query pool-generation runs for exhaustive f32 reference, the selected int8 profile, and applicable RRF candidates; do not include retired Binary/256 evidence without a new explicit authorization and a separate non-product tool;
 - blind and deduplicate the pool;
 - finish both label passes, including corpus-wide negative evidence;
 - verify that the frozen judgment pool covers every parent through the deepest formal scoring cutoff or declare the affected metric incomplete;
@@ -520,7 +532,10 @@ Every compatible Phase 12 run records, as applicable:
 11. inline-body packaging and body-survival diagnostics;
 12. optional assistant-use only in the later product-usefulness evaluation.
 
-Binary and int8 remain separate production current profiles. The development codec diagnostic is deliberately not a hybrid run: it records three isolated dense arms and performs no FTS or RRF. A correct full hybrid result cannot hide a failed FTS lane, dense lane, collapse stage, or package stage.
+Production has one int8 current profile. Historical multi-codec diagnostics
+remain immutable reports only and are not executable arms in the current
+program. A correct full hybrid result cannot hide a failed FTS lane, dense
+lane, collapse stage, or package stage.
 
 ## 9. First-loss diagnosis and permitted action
 
@@ -537,7 +552,7 @@ Binary and int8 remain separate production current profiles. The development cod
 | Query/provider operation | Timeout, response validation, retry exhaustion, cancellation | Fix operations and rerun; retain failures in denominators | Incomplete/failed as contracted; never drop the case |
 | Assistant use | Tool selection, source use, false lead, task outcome | Tune only in a separately declared assistant experiment | Does not rewrite core retrieval evidence |
 
-When serving f32 misses human truth, changing binary versus int8 cannot repair the model's semantic miss. When the provider union misses, fusion cannot manufacture the answer. When confirmation fails, lower thresholds, removed cases, relabeled cohorts, changed margins, and post-hoc budgets are forbidden; the result is `NOT_PROMOTION_READY` or an invalid run.
+When exhaustive serving-dimension f32 misses human truth, int8 quantization cannot repair the model's semantic miss. When the provider union misses, fusion cannot manufacture the answer. When confirmation fails, lower thresholds, removed cases, relabeled cohorts, changed margins, and post-hoc budgets are forbidden; the result is `NOT_PROMOTION_READY` or an invalid run.
 
 ## 10. Embedding execution ledger
 
@@ -551,28 +566,28 @@ When serving f32 misses human truth, changing binary versus int8 cannot repair t
 | Dataset/schema/digest validation | No | Validated data contract |
 | Lexical/simple/FTS evaluation | No | Immutable lexical artifacts |
 | Evaluation preflight and cost estimate without `--apply` | No | Plan only |
-| Serving-dimension reduction, normalization, binary/int8 encoding | No | Candidate serving vectors |
+| Serving-dimension reduction, normalization, int8 encoding | No | Candidate serving vectors |
 | Dense scan, collapse, RRF, body packaging, metrics | No additional call after query vector exists | Run artifacts |
 
 ### 10.2 Paid document operation
 
 One explicitly approved capture operation may use many synchronous HTTP requests under the fixed grouping, concurrency, timeout, and retry policy. “One operation” does not mean one literal request.
 
-The compatible raw-bank key includes at least:
+The compatible product source key includes at least:
 
 - corpus and selected-file/content fingerprints;
 - parser/chunker and canonical document-text framing;
 - segment target, boundaries, and exact canonical input set;
 - provider/model, `input_type=document`, source dimension, dtype, and truncation policy.
 
-Only missing inputs under the same compatible key may resume into that bank. A complete bank can be rematerialized locally into 256/512/1024 and binary/int8 without another document call.
+Only missing inputs under the same compatible key may resume into that bank. A complete bank can be rematerialized locally into default 1024/int8 or supported compact 512/int8 without another document call. Historical Binary/256 reproduction remains outside the product and requires a separately approved standalone evidence tool.
 
 Keep the three unrelated size fields explicit in every plan and manifest:
 
 ```text
 segment_target_bytes = 1024
 source_dimensions = 1024
-serving_dimensions = 256 | 512 | 1024
+serving_dimensions = 1024 | 512
 ```
 
 Cross-segment-target results use different canonical input universes and do not share an ordinary same-bank serving-f32 fidelity reference.
@@ -589,23 +604,23 @@ Provider attempts are never a retrieval denominator. A classified required provi
 
 `observed_total_tokens` contains only provider-reported successful-response usage, `token_observed_attempts = validated_responses`, and accounting is incomplete after any failed attempt, including retry-then-success. Failed-attempt token usage, actual chosen backoff/`Retry-After`, per-attempt status/latency lineage, and input/output token splits remain `NOT_OBSERVED`; an observed provider zero is numeric `0`, and embedding generated-response tokens are `NOT_APPLICABLE`.
 
-The series plan must also record dataset unique-query count, planned invocation/profile count, logical operations per invocation, total logical operations across the series, maximum provider attempts/spend, and actual attempts. The same query ID in binary pooling, int8 pooling, calibration, and formal confirmation is a new logical operation each time; never deduplicate operational counts across runs.
+The series plan must also record dataset unique-query count, planned invocation/profile count, logical operations per invocation, total logical operations across the series, maximum provider attempts/spend, and actual attempts. The same query ID in separate profile pooling, calibration, and formal confirmation is a new logical operation each time; never deduplicate operational counts across runs.
 
 ### 10.4 Invalidation and recomputation matrix
 
-| Change | Document raw bank | Local materialization | Query evaluation |
+| Change | Product document source bank | Local materialization | Query evaluation |
 | --- | --- | --- | --- |
 | Source file, include policy, corpus commit, canonical text | New/updated compatible document inputs required | Rebuild affected candidates | Rerun |
 | Parser/chunker/projection change that alters canonical input | New/updated document inputs required | Rebuild | Rerun |
 | Segment target or boundaries | Distinct document-input universe; new explicit capture required except exact reusable hashes | Rebuild | Rerun |
 | Provider/model/document role/source dimension/dtype/truncation | Incompatible; new capture required | Rebuild | Rerun |
-| Serving dimension, reducer, normalizer, binary/int8 codec | Reuse compatible raw bank | Recompute locally | Rerun for the new current profile |
+| Supported serving dimension, reducer, normalizer, int8 codec | Reuse compatible source rows | Recompute locally | Rerun for the new current profile |
 | FTS weights, candidate/return limits, RRF `k`, body budget | Reuse | Reuse unless the serving key itself changes | Rerun; no document call |
 | Query text | Reuse | Reuse | New dataset digest and paid query operation |
 | Label grade/group/cohort only | Reuse | Reuse | New dataset version; formal comparable evidence must be regenerated |
 | Retrieval implementation code with identical canonical inputs | Usually reuse, but paired-run code compatibility changes | Recompute if affected | Rerun |
 
-Label changes never invalidate a compatible document raw bank. Conversely, a changed segment target cannot be treated as a local-only candidate change.
+Label changes never invalidate compatible document source rows. Conversely, a changed segment target cannot be treated as a local-only candidate change.
 
 ## 11. Profile selection and policy stability
 
@@ -675,7 +690,7 @@ The manifest and trace set must bind:
 - dataset digest, case counts, review records, grades, groups, cohorts, answer modes, and evidence spans;
 - code commit and build version;
 - parser, chunker, FTS schema/tokenizer, SQLite, generation, and canonical-input fingerprints;
-- provider/model/source profile, raw-bank coverage/fingerprint, reducer, serving dimension, codec, and active profile;
+- provider/model/source profile, source-bank coverage/fingerprint, reducer, serving dimension, codec, and active profile;
 - candidate, collapse, RRF, body, tie, and MCP-schema policy;
 - query-vector hash but never query-vector bytes;
 - exact per-stage candidates, native ranks/scores, parent mapping, body survival, first loss, and failure state;
@@ -690,14 +705,14 @@ Portable artifacts must not contain credentials, absolute checkout paths, raw do
 Stop before a document call when:
 
 - the corpus, canonical input, source profile, or estimate differs from approval;
-- the raw bank is already complete;
+- the source bank is already complete;
 - the operation exceeds the approved input or spend cap;
-- the staging destination is not the isolated lab;
+- source-bank or evaluation-state destinations do not match the approved project-local state root;
 - the segment target is not the approved document universe.
 
 Stop before a query call when:
 
-- corpus, dataset, label, profile, raw coverage, candidate policy, or build fingerprints differ from the approved plan;
+- corpus, dataset, label, profile, source coverage, candidate policy, or build fingerprints differ from the approved plan;
 - current vectors require reconciliation or materialization;
 - the operation type—pool generation, calibration, or confirmation—was not explicitly approved;
 - the confirmation policy, margins, arms, or denominators are not sealed;
@@ -740,7 +755,7 @@ The earlier hybrid exploratory query series completed after compatible raw docum
 Both side-panel advisers agreed on the staged shape, explicit paid boundaries, first-loss diagnosis, immutable evidence, per-language gates, regression stability, and the limited claim supported by the current corpora. The user-designated `kb-guide` then checked the draft's measurement semantics against the live schemas, validators, and accounting wire. The following advice was corrected or tightened to match the repository contract and live implementation:
 
 - Final relevance-label freeze is not a prerequisite for document capture. Document capture depends on a frozen corpus, parser/chunker framing, canonical document input universe, and source embedding profile. Dense candidates are needed before final pooled label freeze.
-- A 768/1,024/1,536 segment-target change is not automatically served by one raw bank. It changes canonical segment text and requires a distinct compatible document capture except for exact reusable inputs. The live workflow does not define a cross-profile union bank.
+- A 768/1,024/1,536 segment-target change is not automatically served by one source bank key set. It changes canonical segment text and requires a distinct compatible document capture except for exact reusable inputs. The live workflow does not define a cross-profile union bank.
 - Label, cohort, or query changes do not invalidate compatible document vectors. They create a new dataset/query operation and invalidate direct evaluation deltas.
 - Paid query embedding is required for dense pool generation and calibration before the serving policy is selected, not only after profile freeze. Formal confirmation still requires a separate later approval.
 - Genuine mixed-language behavior must come from one searchable mixed-language project. It is not created by crossing independent chi and react-hook-form result sets.

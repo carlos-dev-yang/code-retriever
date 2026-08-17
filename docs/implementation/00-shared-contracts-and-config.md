@@ -1,6 +1,8 @@
 # 00. Shared Contracts and Configuration
 
-- Status: `done` — Revision 4 catalog/hash evidence reconciled on 2026-08-15; pre-R4 evidence remains historical in Git
+- Status: `done` — Revision 4 catalog/hash evidence reconciled on 2026-08-15;
+  int8-only 512/1024 product-profile reconciliation accepted on 2026-08-17;
+  Binary/256 evidence remains historical
 - Prerequisite phases: none
 - Downstream phases: all phases 01 through 14
 - Baseline design: [r4](../../local-code-search-mcp-v1-design-r4.md)
@@ -9,9 +11,19 @@
 
 - Reopen the [implementation index](README.md), [execution guide](EXECUTION-GUIDE.md), [evaluation contract](EVALUATION-CONTRACT.md), and [status board](STATUS.md) before continuing after context compaction.
 - Re-read the r4 cost, snapshot, retrieval, and response contracts. Phase 00 has no prerequisite implementation artifact, but its config catalog, constant catalog, and profile/hash fixtures become prerequisites for every later phase.
-- Re-check these critical invariants: FTS paths never call Voyage; the only v1 provider/model pair is `voyage-official`/`voyage-code-4`; document and query source requests explicitly produce 1024-dimensional float vectors with their distinct input roles; production stores only one active cidx-owned `binary` or `int8` representation and defaults to `binary`; only dev lab capture may persist document-role source f32; runtime never imports or opens the lab.
+- Re-check these critical invariants: FTS paths never call Voyage; the only v1 provider/model pair is `voyage-official`/`voyage-code-4`; document and query source requests explicitly produce 1024-dimensional float vectors with their distinct input roles; the product source bank durably stores document f32; serving storage uses only cidx-owned int8 at default 1024 or optional 512 and ordinary tests use 1024; Binary/256 implementations are absent; query f32 is never persisted; search/MCP never opens the source bank or lab.
 - Stop if the provider/model contract, source or allowed serving dimensions, canonical framing, profile ownership, or production/lab boundary is unresolved or conflicts with the final target contract. Do not let a downstream phase invent a local interpretation.
 - Before pausing, update Section 11 evidence, Section 13 decisions, and [STATUS.md](STATUS.md). Keep the phase `planned` while any required evidence remains a placeholder.
+
+## 2026-08-17 product-profile supersession
+
+The normative current profile contract is
+[`RETIRED-VECTOR-PROFILES.md`](RETIRED-VECTOR-PROFILES.md): product dimensions
+are 1024 and 512, default/ordinary-test dimension is 1024, and production codec
+is fixed int8. Earlier Binary/256 catalog, fixtures, and evidence described
+below remain historical proof only and do not authorize runtime selection.
+Phase 00 reconciliation evidence is
+[`evidence/phase-00/int8-profile-retirement-r4.md`](evidence/phase-00/int8-profile-retirement-r4.md).
 
 ## 1. Goal and Resulting Capabilities
 
@@ -42,8 +54,8 @@ Completion must make it possible to:
 
 - Actual Go packages and migrations: Phase 02
 - Exact SQLite and Tree-sitter binding selection: Phase 01
-- Initial serving-dimension selection: after Phase 12 evaluation
-- Exact `binary` and `int8` codec algorithms and versioned blob/scorer contracts: Phase 01; v1 config exposes only these two IDs and defaults to `binary`
+- Product serving-dimension selection: 1024 by default or explicit compact 512
+- Exact int8 codec algorithm and versioned blob/scorer contract: Phase 01; v1 config exposes no codec selector
 - Preselected universal hit-rate, latency, or noninferiority thresholds; calibration freezes project-specific margins before confirmation
 - A future fixed-model policy for general users or an external-vector injection policy
 - A product for long-term raw-embedding retention or synchronization
@@ -79,8 +91,8 @@ Voyage documentation describes MRL, or Matryoshka Representation Learning, outpu
 
 ### 4.3 Runtime and lab
 
-1. Production `<state_root>/db/index.db` contains only the active profile's cidx-owned quantized vectors. Normal use resolves `state_root` to `<source_root>/.cidx`. V1 permits `binary` and `int8`, defaults to `binary`, and never mixes them in one active profile.
-2. The only raw embedding that initial-evaluation `<state_root>/raw/embeddings.db` may persist is a 1024-dimensional Voyage f32 vector created with `input_type=document`. Search-invisible derived variants and run provenance may use separate lab tables.
+1. Production `<state_root>/db/index.db` contains only the active profile's cidx-owned int8 vectors. Normal use resolves `state_root` to `<source_root>/.cidx`. The fixed codec is fingerprinted but not user-selectable.
+2. The product source bank `<state_root>/db/embeddings.db` persists only immutable 1024-dimensional Voyage f32 document vectors. Search-invisible derived variants and run provenance use a separate evaluation store.
 3. Query f32 is never persisted, for either fixed evaluation queries or live queries.
 4. Production `serve`, `search`, `status`, `index`, and normal `embed` never open or attach the lab database.
 5. The lab is neither a continuous runtime vector source nor a fallback.
@@ -151,11 +163,11 @@ The following schema illustrates the final v1 field shapes and defaults. `max_ch
   },
   "embedding": {
     "model": "voyage-code-4",
-    "serving_dimensions": "<one of 256, 512, 1024 selected after evaluation>",
+    "serving_dimensions": 1024,
     "reducer": "<supported reducer id>",
     "normalizer": "<supported normalizer id>",
     "metric": "cosine",
-    "storage_codec": "binary",
+    "storage_codec": "int8",
     "request": {
       "max_inputs": 128,
       "max_total_input_bytes": 262144,
@@ -187,7 +199,7 @@ The following schema illustrates the final v1 field shapes and defaults. `max_ch
 }
 ```
 
-`init` receives `--serving-dim` or an initial-evaluation workflow writes `serving_dimensions`. `storage_codec` resolves to `binary` when omitted and accepts only `binary` or `int8`; search defaults to `fts`. Hybrid serving must not start before a serving dimension is selected. The source-file limit is 1 MiB, the normal segment target is 1024 bytes, and the MCP hard inline default is 64 KiB; their user-facing values may never exceed the executable's 1 MiB source/inline safety ceilings.
+`init` defaults `--serving-dim` to 1024 and accepts only explicit compact 512. `storage_codec` resolves to and accepts only `int8`; it is recorded for profile identity, not exposed as a selector. Search defaults to `fts`. The source-file limit is 1 MiB, the normal segment target is 1024 bytes, and the MCP hard inline default is 64 KiB; their user-facing values may never exceed the executable's 1 MiB source/inline safety ceilings.
 
 ### 6.2 Resolution and validation
 
@@ -208,12 +220,12 @@ Required validation:
 - Raw config does not accept `provider`, `endpoint`, `output_dimensions`, `output_dimension`, `output_dtype`, `input_type`, or `truncation`.
 - The only v1 direct provider and production model are `voyage-official` and `voyage-code-4`.
 - The endpoint `https://api.voyageai.com/v1/embeddings` and credential name `VOYAGE_API_KEY` are code-owned constants and are absent from config and fingerprints.
-- `ModelSpec` owns `SourceDimensions=1024` and `AllowedServingDimensions={256,512,1024}` in one place.
+- `ModelSpec` owns `SourceDimensions=1024` and `AllowedServingDimensions={512,1024}` in one place.
 - Document and query source requests both explicitly use `output_dimension=1024`.
 - Requests explicitly use `output_dtype=float` and `truncation=false`, omit `encoding_format`, and apply the registry's document/query input-type mapping.
 - `serving_dimensions` must be a member of `ModelSpec.AllowedServingDimensions`.
 - The only v1 metric is cosine.
-- The reducer, normalizer, and codec combination must be implemented. V1 accepts only `storage_codec=binary|int8`, with `binary` as the resolved default.
+- The reducer, normalizer, and fixed int8 codec combination must be implemented. No Binary or 256-dimensional current value is accepted.
 - Source files are at most 1 MiB. A segment target is 1024 bytes; evaluation may compare only 768, 1024, and 1536-byte candidates. Segment packing uses AST boundaries and never cuts an AST unit arbitrarily; an oversized unit remains whole.
 - Voyage calls are synchronous request groups, never the asynchronous Voyage Batch API. A group permits at most 128 inputs and 256 KiB total input bytes; at most four groups run concurrently and each request times out after 30 seconds. `embedding.request` and `embedding.retry` own these operational values; their resolved defaults are shared by every provider caller.
 - Retry uses one initial attempt plus at most three retries after 10, 20, and 30 seconds. A longer provider `Retry-After` wins; this schedule is staged/linear, never exponential. Do not invent an unverified token-cap substitute.
@@ -234,7 +246,7 @@ Build `ResolvedConfig` once at process start or an explicit reload. Give each mo
 | Canonical formatter | `CanonicalTextProfile` |
 | Voyage client validator | `EmbeddingSourceProfile` and synchronous request/retry limits |
 | Document/query transformer | the same `VectorSpaceProfile` |
-| codec encoder/scanner | the same `VectorStorageProfile`; `binary` or `int8` selects a matched encoder, validator, query preparation, and scorer |
+| int8 encoder/scanner | the same `VectorStorageProfile`; it selects the one matched encoder, validator, query preparation, and scorer |
 | Store validator | all applied fingerprints and blob constraints |
 | Search | search policy, active serving profile, and inline limits |
 | MCP adapter | request limits and schema constants |
@@ -304,13 +316,13 @@ Voyage source f32 (`output_dimension=1024`, `output_dtype=float`)
 -> validate finite values and length
 -> select the first serving_dimensions components
 -> L2 normalize
--> encode with the selected cidx codec (`binary` by default, or `int8`)
+-> encode with the fixed cidx int8 codec
 -> validate row and blob
 ```
 
-Documents and queries use `input_type=document` and `input_type=query`, respectively, while sharing the same `VectorSpaceProfile` and transformer function. Query vectors are never persisted; after serving-space transformation they remain only in the codec-specific in-memory representation required by the scanner. Provider requests always use source 1024 f32. Voyage provider-side `output_dtype=int8|binary` is distinct from the cidx codecs applied after local L2 normalization. Provider-quantized output is neither requested nor treated as a production codec ID.
+Documents and queries use `input_type=document` and `input_type=query`, respectively, while sharing the same `VectorSpaceProfile` and transformer function. Document source f32 is durably persisted in the product source bank; query vectors are never persisted and remain only in the int8 in-memory representation required by the scanner. Provider requests always use source 1024 f32. Provider-quantized output is neither requested nor treated as a production codec ID.
 
-The `binary` codec is a complete encoder/validator/query-preparation/scorer contract, not merely a smaller blob label. Phase 01 must fix its bit-value rule, bit order, padding validation, similarity calculation, and versioned codec ID together. The `int8` codec likewise fixes scale, rounding, clamp, norm, and scorer behavior. A production row is valid only under the exact active codec contract.
+The int8 codec fixes scale, rounding, clamp, norm, scorer behavior, and versioned codec ID together. A serving row is valid only under that exact contract. The retired Binary algorithm is preserved only in historical reports and version history, not current source.
 
 `metric=cosine` names the serving float vector space. A quantized codec may only approximate float cosine ordering. It must not label a Hamming, asymmetric, or reconstructed score as exact cosine; its profile ID and evaluation report must identify the codec-specific scorer used.
 
@@ -332,11 +344,11 @@ The `binary` codec is a complete encoder/validator/query-preparation/scorer cont
 | --- | --- | --- |
 | `restart_only` | return/candidate k, RRF, inline cap | keep DB vectors and FTS |
 | `local_reindex` | chunker, projection, FTS tokenizer | publish a new local generation |
-| `local_rematerialize_if_raw` | serving dimension, reducer, normalizer, codec | use the dev materializer when compatible lab raw exists; runtime never reads the lab automatically |
-| `paid_embedding_required` | model, canonical bytes, lab miss | explicit normal embed or dev capture |
+| `local_rematerialize_if_source` | serving dimension, reducer, normalizer, int8 implementation | use explicit materialization when compatible product source rows exist; serving never reads the bank automatically |
+| `paid_embedding_required` | model, canonical bytes, source-bank miss | explicit normal embed or development capture |
 | `schema_migration` | DB schema version | offline or startup migration |
 
-After a serving-dimension change, `index` only reconnects active segments to the new serving key; it does not convert data automatically from the lab database. During initial evaluation, the user must run the dev materializer or explicitly run normal embed. Before the dev materializer may publish to production, its candidate profile must equal the current project config and active segment key. It never edits config automatically. FTS remains available throughout.
+After a serving-dimension change, `index` only reconnects active segments to the new serving key; it does not convert data automatically. The user explicitly plans/applies product source-bank materialization. Before publication, the candidate profile must equal the current project config and active segment key. Materialization never edits config automatically. FTS remains available throughout.
 
 ## 8. Implementation Checklist
 
@@ -408,7 +420,7 @@ Before changing the phase to `done`, every item below must be complete:
 - Cross-phase terminology review: [complete](evidence/phase-00/cross-phase-review.md)
 - Checks actually run and results: Git initialization/status/ignore checks, RFC 8785 digest recomputation, and documentation structure/link/terminology checks are recorded in the [evidence index](evidence/phase-00/README.md) and [cross-phase review](evidence/phase-00/cross-phase-review.md).
 - Checks not run: no implementation code, tests, builds, provider calls, SQLite migrations, Tree-sitter bindings, codec algorithms, or platform checks exist yet.
-- Remaining decisions assigned to later phases: initial serving dimension (Phase 12), exact binary/int8 algorithm contracts and SQLite/Tree-sitter binding selection (Phase 01).
+- Historical Phase 00 boundary left the serving dimension and dual-codec choice to later phases; the 2026-08-17 supersession below resolves them to default 1024/optional 512 and fixed int8.
 
 The status remains `planned` while any evidence entry is a placeholder.
 
@@ -437,6 +449,7 @@ Provide Phases 03 through 14 with:
 
 | Date | Decision | Rationale |
 | --- | --- | --- |
+| 2026-08-17 | Persist product document source-1024 f32, default to 1024/int8, allow local 512/int8 rematerialization, and remove Binary/256 source paths. | Keep maximum measured int8 fidelity by default while avoiding repeat provider calls for compact-profile changes. |
 | 2026-08-14 | Request explicit 1024-dimensional float output for Voyage documents and queries. | Keep one v1 source space and derive the allowed local serving dimensions from the same raw vectors. |
 | 2026-08-14 | Persist 1024-dimensional source f32 only in the initial document-evaluation lab. | Reduce repeated API cost without turning runtime into a permanent multi-profile system. |
 | 2026-08-14 | Never persist raw query vectors. | Queries may change and a persistent query cache is not a product goal. |

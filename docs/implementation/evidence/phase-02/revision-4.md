@@ -1,9 +1,13 @@
 # Phase 02 Revision 4 Reconciliation Evidence
 
-- State: done
+- State: historical accepted Revision 4 boundary; superseded for int8/source-bank reconciliation on 2026-08-17
 - Owner: `/root/r4_phase02_config` (terra/high implementation agent); Codex validates once at the commit boundary
 - Entry commit: `a6f1f53`
 - Entry evidence: Revision 4 canonical design, execution guide, evaluation contract, Phase 00 R4 evidence, Phase 01 evidence, historical Phase 02 evidence, and the supersession policy were checked.
+
+This evidence remains authoritative for strict decoding, operational defaults,
+legacy-field rejection, and evaluation-wire naming. It does not prove the
+later 1024-default/int8-only config or product-source/evaluation-store split.
 
 ## Owned reconciliation
 

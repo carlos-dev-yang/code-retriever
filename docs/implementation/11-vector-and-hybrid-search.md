@@ -1,6 +1,7 @@
 # 11. Vector Scan and Hybrid Search
 
-- Status: `done` — `/root/r4_phase11_executor` implemented, `/root/r4_phase11_review` independently reviewed, and Codex accepted the commit boundary
+- Status: `blocked` — Phase 02/09/10 int8-only reconciliation must land before
+  the runtime scanner and hybrid boundary are revalidated
 - Prerequisites: `06-fts-search`, `09-vector-materialization`, `10-embedding-orchestration-and-reconciliation`
 - Followed by: `12-retrieval-evaluation`, `13-cli-and-mcp`
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 8 and 9.2
@@ -12,10 +13,19 @@ Read the [implementation index](README.md), [execution guide](EXECUTION-GUIDE.md
 - Confirm Phase 06 provides deterministic FTS results, Phase 09 provides the shared transform/codec/scorer, and Phase 10 provides one active serving profile plus coverage and reconciliation state.
 - Re-check that `mode=fts` never calls Voyage AI and hybrid preflight runs before any paid query request.
 - Re-check the query contract: `voyage-code-4`, `input_type=query`, explicit 1024-dimensional float output, `truncation=false`, no `encoding_format`, and the same serving-dimension reduction/normalization as documents.
-- Re-check that query text and query f32 are nonpersistent, production search reads one active codec profile (`binary` by default or `int8`), and the shared body packager is transport-independent. Phase 13 owns only MCP schema and transport adaptation.
+- Re-check that query text and query f32 are nonpersistent, production search reads one active int8 profile, and the shared body packager is transport-independent. Phase 13 owns only MCP schema and transport adaptation.
 - Re-check that one search result uses one committed generation/profile snapshot and deterministic scan, aggregation, tie-break, and RRF rules.
 - Stop if profile consistency, coverage semantics, query privacy, or snapshot materialization is unresolved. Do not introduce ANN, graph search, caching, or multi-profile serving.
 - Before pausing, update this phase's evidence and decision log, then update [STATUS.md](STATUS.md) with checked scenarios, remaining risks, and the next action.
+
+## 2026-08-17 product-profile supersession
+
+The product runtime scanner accepts int8 rows only at 1024 or 512 dimensions;
+ordinary fixtures use 1024. It never opens the product document source bank.
+Binary scoring code and every 256 path are removed;
+only immutable historical evidence remains. Earlier dual-codec text below is historical where it
+conflicts with
+[`RETIRED-VECTOR-PROFILES.md`](RETIRED-VECTOR-PROFILES.md).
 
 ## Historical pre-Revision-4 Entry Gate Record
 
@@ -51,7 +61,7 @@ Read the [implementation index](README.md), [execution guide](EXECUTION-GUIDE.md
 
 Return assistant-oriented code-search results by combining FTS results from the active index snapshot with semantic results from the single codec-specific serving profile selected by current config.
 
-A hybrid query explicitly requests a 1024-dimensional f32 embedding from Voyage AI `voyage-code-4`, applies the same `prefix(serving_dimensions) -> L2` transform as documents, and keeps query f32 out of the production DB, raw lab, and evaluation artifacts.
+A hybrid query explicitly requests a 1024-dimensional f32 embedding from Voyage AI `voyage-code-4`, applies the same `prefix(serving_dimensions) -> L2` transform as documents, and keeps query f32 out of the serving DB, product document source bank, lab, and evaluation artifacts.
 
 ## 2. Scope and Non-goals
 
@@ -60,7 +70,7 @@ A hybrid query explicitly requests a 1024-dimensional f32 embedding from Voyage 
 - Explicit paid boundary between `fts` and `hybrid` modes.
 - Hybrid preflight and fallback before an API call.
 - Shared serving-space transform for 1024-dimensional query f32.
-- Full scan of current active binary or int8 vectors using the matching scorer.
+- Full scan of current active int8 vectors using the int8 scorer.
 - Segment-score aggregation to source chunks.
 - Deterministic RRF across FTS and vector rankings.
 - Rank-invariant indexed-body packaging under an already validated effective byte maximum.
@@ -69,7 +79,7 @@ A hybrid query explicitly requests a 1024-dimensional f32 embedding from Voyage 
 
 ### Out of scope
 
-- Raw-lab access, query/result caches, or automatic document embedding.
+- Product source-bank or lab access, query/result caches, or automatic document embedding.
 - Any API source output other than 1024 dimensions.
 - HNSW, graph traversal, or remote vector databases.
 - Learned reranking or generated summaries.
@@ -79,7 +89,7 @@ A hybrid query explicitly requests a 1024-dimensional f32 embedding from Voyage 
 ## 3. Prerequisites
 
 - FTS search, source chunks, and segment mappings are available from one active-generation snapshot.
-- Phase 09 implements the shared `VectorTransformer`, `VectorCodec`, and codec-aware scoring.
+- Phase 09 implements the shared `VectorTransformer`, fixed `Int8Codec`, and int8 scoring.
 - Phase 10 exposes active `ServingVectorProfile`, valid coverage, and reconciliation state.
 - The Voyage query client is injected separately from document request orchestration.
 - The Revision 4 design defines `max_inline_bytes`, current-source hash checks, and `read_span`. This phase owns the transport-independent body packager so Phase 12 evaluates the same path that MCP later exposes. Phase 13 validates the caller/server maximum, annotates live freshness, and owns `read_span` plus MCP serialization.
@@ -99,7 +109,7 @@ A hybrid query explicitly requests a 1024-dimensional f32 embedding from Voyage 
 11. Hybrid failure does not fail FTS; it returns an explicit fallback reason.
 12. Map order, SQLite row order, and scheduling cannot affect RRF output.
 13. Coverage counts active segment references, not unreferenced cache rows.
-14. Raw-lab state cannot influence runtime results.
+14. Product source-bank and lab state cannot influence runtime results.
 15. Explicitly send `input_type=query`, `output_dimension=1024`, `output_dtype=float`, and `truncation=false`; omit `encoding_format`.
 16. Use a response only after model, count, unique in-range indexes, 1024 dimensions, and finite values validate.
 17. Voyage-native quantization is neither the document codec nor a query shortcut.
@@ -177,7 +187,7 @@ Never supplement a closed snapshot by reading chunks or vectors from a newer gen
 - Do not introduce arbitrary symbol multipliers.
 - MCP inputs remain `query`, optional `k`, optional `mode`, and required `max_inline_bytes`; expose no model/dimension/codec override.
 - Return requested/effective mode, `query_embedding_used`, stable fallback reason, active fingerprints, coverage numerator/denominator, generation/manifest, and per-hit lexical/vector ranks plus fused score. If API usage is exposed, include query input tokens but never vector values.
-- Treat codec scores as codec-specific ranking inputs. Do not expose binary Hamming/asymmetric or int8 reconstructed scores as exact cosine; RRF consumes ranks, so cross-codec raw-score calibration is not required.
+- Treat int8 reconstructed scores as codec-specific ranking inputs, not exact f32 cosine. RRF consumes ranks, so raw-score fusion is not used.
 
 ### Indexed-body packaging
 
@@ -192,7 +202,7 @@ Stable fallback values are `PAID_QUERY_DISABLED`, `PROFILE_RECONCILIATION_REQUIR
 
 ## 7. Configuration and Change Impact
 
-Embedding inputs are model, serving dimensions, reducer, normalizer, metric, storage codec, and code-defined query-formatter version. `voyage-code-4` is the v1 default and only initially validated model. `ModelSpec` resolves source 1024 and allowed serving dimensions `{256,512,1024}`; source dimensions are not configurable.
+Embedding inputs are model, serving dimensions, reducer, normalizer, metric, storage codec, and code-defined query-formatter version. `voyage-code-4` is the v1 default and only initially validated model. `ModelSpec` resolves source 1024 and allowed serving dimensions `{1024,512}`; source dimensions are not configurable.
 
 Search defaults to `fts`; hybrid is explicit or selected only by a later user configuration change. Search inputs are paid-query permission, default/maximum `k`, FTS/vector `candidate_k`, RRF constant, and caller/server inline-source limits.
 
@@ -264,7 +274,7 @@ The service uses immutable `ResolvedConfig` created at server start rather than 
 - Partial-coverage numerator and denominator agree with active segment references.
 - A shared vector is scored once and produces the same chunk aggregation.
 - SQLite row reordering does not change top-k or RRF ties.
-- Removing or locking the raw lab does not alter search.
+- Removing or locking the product source bank or evaluation store does not alter an already-active search target.
 - No query f32 row appears in either DB before or after a query.
 - Concurrent publication during CPU scanning never mixes generations within one response.
 - Zero, small, sufficient, and clamped-effective body maxima leave ranked IDs/order/count unchanged.
@@ -313,7 +323,7 @@ Not run: a real Voyage request, API-key retrieval, network access, corpus select
 
 ## 12. Handoff
 
-Phase 12 calls this exact transform, scorer, aggregation, RRF, and body-packaging implementation. It must not create a second evaluation-only ranker or packager. Its only additional path is a development-only in-memory serving-f32 document baseline sourced from the raw bank; production search cannot import or select that path.
+Phase 12 calls this exact transform, int8 scorer, aggregation, RRF, and body-packaging implementation. It must not create a second evaluation-only ranker or packager. Its only additional path is an evaluation-only in-memory serving-f32 document baseline sourced through the product source-bank reader; production search cannot import or select that path.
 
 ## 13. Decision Log
 
@@ -321,7 +331,7 @@ Phase 12 calls this exact transform, scorer, aggregation, RRF, and body-packagin
 - Every query gets a fresh nonpersistent `voyage-code-4` 1024 f32 embedding.
 - Fixed evaluation questions do not justify a runtime query cache.
 - Documents and queries do not have separate serving dimensions or source-output paths.
-- Production reads one active binary or int8 profile and uses shared Voyage Matryoshka prefix plus L2 followed by the active codec's scorer contract.
+- Production reads one active int8 profile and uses shared Voyage Matryoshka prefix plus L2 followed by the int8 scorer contract.
 - Start with brute-force scan; decide on ANN or graphs only after measurement.
 - Observe latency and hit rate, but do not make them numeric completion gates here.
 - Own body allocation in the search core so offline evaluation and MCP transport observe one policy; Phase 13 only validates transport input and serializes the packaged result.
