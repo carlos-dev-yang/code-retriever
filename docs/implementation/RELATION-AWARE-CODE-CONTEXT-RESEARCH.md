@@ -964,3 +964,19 @@ supply relationships, and packaging supplies usable context. None of them
 alone determines natural-language relevance. The first sidecar experiment must
 measure every transition rather than treating graph adjacency as proof of an
 answer.
+
+## 14. Measured diagnostic outcome
+
+The bounded implementation and clean chi/RHF replay are complete. Compiler
+resolution recovered the exact G09 call, X08/T09/T10 type relations, and the
+G09 reverse caller lookup at pinned byte ranges. The graph therefore closes
+the relation-extraction uncertainty.
+
+It did not close answer identification. The fixed label-blind selector saw 88
+reachable facts for G09 and 944 for X08, selected a different fact in each
+case, and preserved complete-at-five at `30/32`. Both failures are attributed
+to `RELATION_ADMISSION`. The measured conclusion is that a relation graph is a
+useful candidate-evidence layer but not a sufficient answer selector. Current
+production integration is rejected; exact artifacts, hashes, and the next
+boundary are recorded in
+[`evidence/phase-07/relation-usage-graph-diagnostic-r4.md`](evidence/phase-07/relation-usage-graph-diagnostic-r4.md).

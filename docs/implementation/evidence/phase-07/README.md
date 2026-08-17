@@ -12,6 +12,11 @@ Current product authority: [Retired Vector Profiles and Evidence Boundary](../..
 Current frozen calibration checkpoint: [dual-AI calibration freeze and
 provider-free replay — Revision 4](dual-ai-calibration-freeze-r4.md).
 
+Current relation-graph conclusion: [compiler-resolved relation/usage graph
+diagnostic — Revision 4](relation-usage-graph-diagnostic-r4.md). Exact relation
+recovery passed, but the fixed label-blind selector preserved `30/32` rather
+than closing G09/X08, so no production graph integration is authorized.
+
 ### 2026-08-17 solo-project relevance-authority revision
 
 The owner explicitly replaced the unavailable human-pass gate after separate
