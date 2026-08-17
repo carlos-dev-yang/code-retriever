@@ -150,7 +150,7 @@ func TestStableCLIJSONUsesSnakeCaseFields(t *testing.T) {
 	}{
 		{app.StatusResponse{Desired: config.AppliedProfiles{ActiveGeneration: 1}, ObservedGeneration: 1, Files: 2}, `"desired"`, `"Desired"`},
 		{index.Result{ManifestSHA256: "hash", PlannedEmbeddingsPending: 1}, `"planned_embeddings_pending"`, `"PlannedEmbeddingsPending"`},
-		{app.PublicEmbeddingPlan{ActiveDistinct: 1, ManifestSHA256: "hash"}, `"active_distinct"`, `"ActiveDistinct"`},
+		{app.PublicEmbeddingPlan{ActiveDistinct: 1, ManifestSHA256: "hash"}, `"voyage_input_count"`, `"paid_input_count"`},
 		{app.PublicEmbeddingResult{ActualTokens: 1}, `"actual_tokens"`, `"ActualTokens"`},
 	} {
 		encoded, err := json.Marshal(fixture.value)

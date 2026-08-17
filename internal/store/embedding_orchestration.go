@@ -166,7 +166,10 @@ func (store *ProductionStore) FinishEmbeddingRun(ctx context.Context, id int64, 
 		return fmt.Errorf("invalid embedding run completion")
 	}
 	payable := run.Planned - run.Ready - run.Skipped
-	if run.Planned < 0 || run.Ready < 0 || run.Skipped < 0 || run.Requested < 0 || run.Succeeded < 0 || run.Failed < 0 || run.Discarded < 0 || run.EstimatedTokens < 0 || run.ActualTokens < 0 || run.Ready+run.Skipped > run.Planned || run.Succeeded+run.Failed+run.Discarded > payable || run.Requested < run.Succeeded+run.Failed+run.Discarded {
+	// Requested counts provider attempts. Source-bank materialization can
+	// succeed or fail without a provider request, so outcome counts are bounded
+	// by payable inputs rather than by Requested.
+	if run.Planned < 0 || run.Ready < 0 || run.Skipped < 0 || run.Requested < 0 || run.Succeeded < 0 || run.Failed < 0 || run.Discarded < 0 || run.EstimatedTokens < 0 || run.ActualTokens < 0 || run.Ready+run.Skipped > run.Planned || run.Succeeded+run.Failed+run.Discarded > payable {
 		return fmt.Errorf("invalid embedding run counts")
 	}
 	if status == "succeeded" && run.Succeeded != run.Planned-run.Ready-run.Skipped {

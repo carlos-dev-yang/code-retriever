@@ -13,6 +13,7 @@ import (
 	"cidx/internal/embedclient"
 	"cidx/internal/index"
 	"cidx/internal/search/lexical"
+	"cidx/internal/sourcebank"
 	"cidx/internal/store"
 	"cidx/internal/vector"
 )
@@ -130,7 +131,7 @@ func TestPublicEmbeddingRetainsFirstBatchAfterLaterFailure(t *testing.T) {
 	}
 	service := PublicEmbedding{Production: production, Resolved: resolved}
 	plan, err := service.Plan(ctx)
-	if err != nil || plan.PaidInputs != 2 {
+	if err != nil || plan.VoyageInputs != 2 {
 		t.Fatalf("plan=%#v err=%v", plan, err)
 	}
 	fake := &sequenceDocumentEmbedder{}
@@ -155,7 +156,7 @@ func TestPublicEmbeddingRetainsFirstBatchAfterLaterFailure(t *testing.T) {
 		t.Fatalf("states ready=%d failed=%d", ready, failed)
 	}
 	next, err := service.Plan(ctx)
-	if err != nil || next.Ready != 1 || next.SkippedTerminal != 1 || next.PaidInputs != 0 {
+	if err != nil || next.Ready != 1 || next.SkippedTerminal != 1 || next.VoyageInputs != 0 {
 		t.Fatalf("next=%#v err=%v", next, err)
 	}
 	db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "db", "index.db"))
@@ -187,7 +188,7 @@ func TestPublicEmbeddingOutOfOrderConcurrentPartialFailurePreservesSuccess(t *te
 	}
 	service := PublicEmbedding{Production: production, Resolved: resolved}
 	plan, err := service.Plan(ctx)
-	if err != nil || plan.PaidInputs != 2 {
+	if err != nil || plan.VoyageInputs != 2 {
 		t.Fatalf("plan=%#v err=%v", plan, err)
 	}
 	client := &outOfOrderDocumentEmbedder{failureStarted: make(chan struct{}, 1), releaseFailure: make(chan struct{})}
@@ -264,7 +265,7 @@ func TestPublicEmbeddingCancellationRecordsRetryableFailure(t *testing.T) {
 	}
 	service := PublicEmbedding{Production: production, Resolved: resolved}
 	plan, err := service.Plan(ctx)
-	if err != nil || plan.PaidInputs != 1 {
+	if err != nil || plan.VoyageInputs != 1 {
 		t.Fatalf("plan=%#v err=%v", plan, err)
 	}
 	applyCtx, cancel := context.WithCancel(ctx)
@@ -285,7 +286,7 @@ func TestPublicEmbeddingCancellationRecordsRetryableFailure(t *testing.T) {
 		t.Fatalf("status=%q err=%v", status, err)
 	}
 	next, err := service.Plan(ctx)
-	if err != nil || next.PaidInputs != 1 || next.SkippedTerminal != 0 {
+	if err != nil || next.VoyageInputs != 1 || next.SkippedTerminal != 0 {
 		t.Fatalf("next=%#v err=%v", next, err)
 	}
 }
@@ -328,7 +329,7 @@ func TestPublicEmbeddingClassifiesResponseAndTransformFailures(t *testing.T) {
 			}
 			service := PublicEmbedding{Production: production, Resolved: resolved}
 			plan, err := service.Plan(ctx)
-			if err != nil || plan.PaidInputs != 1 {
+			if err != nil || plan.VoyageInputs != 1 {
 				t.Fatalf("plan=%#v err=%v", plan, err)
 			}
 			result, err := service.Apply(ctx, plan, PublicEmbeddingApply{Approved: true, Client: documentEmbedderFunc(func(_ context.Context, request embedclient.EmbeddingRequest) (embedclient.EmbeddingResponse, error) {
@@ -431,7 +432,7 @@ func TestPublicEmbeddingDiscardsResponseForRemovedActiveKey(t *testing.T) {
 	}
 	close(blocking.release)
 	completed := <-done
-	if completed.err != nil || completed.result.Discarded != plan.PaidInputs {
+	if completed.err != nil || completed.result.Discarded != plan.VoyageInputs {
 		t.Fatalf("result=%#v err=%v", completed.result, completed.err)
 	}
 	var vectors, failures int
@@ -446,7 +447,7 @@ func TestPublicEmbeddingDiscardsResponseForRemovedActiveKey(t *testing.T) {
 	}
 	var discarded int
 	var status string
-	if err := db.QueryRowContext(ctx, `SELECT discarded_count,status FROM embedding_runs ORDER BY id DESC LIMIT 1`).Scan(&discarded, &status); err != nil || discarded != plan.PaidInputs || status != "failed" {
+	if err := db.QueryRowContext(ctx, `SELECT discarded_count,status FROM embedding_runs ORDER BY id DESC LIMIT 1`).Scan(&discarded, &status); err != nil || discarded != plan.VoyageInputs || status != "failed" {
 		t.Fatalf("late inactive run discarded=%d status=%q err=%v", discarded, status, err)
 	}
 }
@@ -522,7 +523,7 @@ func (f *fakeDocumentEmbedder) Embed(_ context.Context, request embedclient.Embe
 	return embedclient.EmbeddingResponse{Model: embedclient.Model, Data: data, TotalTokens: len(request.Inputs)}, nil
 }
 
-func TestPublicEmbeddingPlansWithoutProviderAndAppliesDirectlyToProduction(t *testing.T) {
+func TestPublicEmbeddingPersistsSourceAndReusesItWithoutProvider(t *testing.T) {
 	ctx, root := context.Background(), t.TempDir()
 	runGit(t, root, "init")
 	mustWriteFile(t, filepath.Join(root, ".cidx", "config.json"), "{}")
@@ -539,7 +540,7 @@ func TestPublicEmbeddingPlansWithoutProviderAndAppliesDirectlyToProduction(t *te
 	}
 	service := PublicEmbedding{Production: production, Resolved: resolved}
 	plan, err := service.Plan(ctx)
-	if err != nil || plan.ActiveDistinct == 0 || plan.PaidInputs == 0 {
+	if err != nil || plan.ActiveDistinct == 0 || plan.VoyageInputs == 0 {
 		t.Fatalf("plan=%#v err=%v", plan, err)
 	}
 	fake := &fakeDocumentEmbedder{}
@@ -573,7 +574,7 @@ func TestPublicEmbeddingPlansWithoutProviderAndAppliesDirectlyToProduction(t *te
 	close(blocking.release)
 	completed := <-done
 	result, err := completed.result, completed.err
-	if err != nil || result.Succeeded != plan.PaidInputs {
+	if err != nil || result.Succeeded != plan.VoyageInputs {
 		t.Fatalf("result=%#v err=%v", result, err)
 	}
 	if blocking.request.Role != embedclient.DocumentRole || blocking.request.Source.SourceDimensions != 1024 || blocking.request.Source.OutputDType != "float" || blocking.request.Source.Truncation || blocking.request.Source.DocumentInputType != "document" {
@@ -583,7 +584,7 @@ func TestPublicEmbeddingPlansWithoutProviderAndAppliesDirectlyToProduction(t *te
 		t.Fatalf("completed plan reused: calls=%d err=%v", fake.calls, err)
 	}
 	again, err := service.Plan(ctx)
-	if err != nil || again.Ready != again.ActiveDistinct || again.PaidInputs != 0 {
+	if err != nil || again.Ready != again.ActiveDistinct || again.VoyageInputs != 0 {
 		t.Fatalf("ready plan=%#v err=%v", again, err)
 	}
 	db, err := sql.Open("sqlite", filepath.Join(root, ".cidx", "db", "index.db"))
@@ -608,6 +609,29 @@ func TestPublicEmbeddingPlansWithoutProviderAndAppliesDirectlyToProduction(t *te
 	if string(blob) != string(expected.Blob) {
 		t.Fatalf("public vector differs from shared transform/codec")
 	}
+	var inputHash string
+	if err := db.QueryRowContext(ctx, `SELECT canonical_input_sha256 FROM vector_cache LIMIT 1`).Scan(&inputHash); err != nil {
+		t.Fatal(err)
+	}
+	sources, err := sourcebank.OpenExisting(ctx, sourcebank.Options{StateRoot: production.StateRoot})
+	if err != nil {
+		t.Fatal(err)
+	}
+	record, err := sources.GetDocument(ctx, sourcebank.Key{SourceProfile: string(resolved.Profiles.Fingerprints.Source), InputHash: inputHash})
+	if closeErr := sources.Close(); err != nil || closeErr != nil || record.Dimensions != 1024 || record.VectorSHA256 == "" {
+		t.Fatalf("source record=%#v err=%v close=%v", record, err, closeErr)
+	}
+	if _, err := db.ExecContext(ctx, `DELETE FROM vector_cache`); err != nil {
+		t.Fatal(err)
+	}
+	reusePlan, err := service.Plan(ctx)
+	if err != nil || reusePlan.SourceInputs != 1 || reusePlan.VoyageInputs != 0 || reusePlan.EstimatedTokens != 0 || reusePlan.BatchCount != 0 {
+		t.Fatalf("source reuse plan=%#v err=%v", reusePlan, err)
+	}
+	reused, err := service.Apply(ctx, reusePlan, PublicEmbeddingApply{})
+	if err != nil || reused.Succeeded != 1 || reused.Requested != 0 || reused.ActualTokens != 0 || fake.calls != 0 {
+		t.Fatalf("source reuse result=%#v calls=%d err=%v", reused, fake.calls, err)
+	}
 	var rawColumns int
 	if err := db.QueryRowContext(ctx, `SELECT count(*) FROM pragma_table_info('vector_cache') WHERE name LIKE '%f32%' OR name LIKE '%float%'`).Scan(&rawColumns); err != nil {
 		t.Fatal(err)
@@ -616,7 +640,7 @@ func TestPublicEmbeddingPlansWithoutProviderAndAppliesDirectlyToProduction(t *te
 		t.Fatal("production stored f32 column")
 	}
 	var runs int
-	if err := db.QueryRowContext(ctx, `SELECT count(*) FROM embedding_runs WHERE status='succeeded'`).Scan(&runs); err != nil || runs != 1 {
+	if err := db.QueryRowContext(ctx, `SELECT count(*) FROM embedding_runs WHERE status='succeeded'`).Scan(&runs); err != nil || runs != 2 {
 		t.Fatalf("runs=%d err=%v", runs, err)
 	}
 }

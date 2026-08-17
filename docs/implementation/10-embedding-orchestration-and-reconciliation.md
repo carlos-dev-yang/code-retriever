@@ -1,7 +1,7 @@
 # 10. Embedding Orchestration and Profile Reconciliation
 
-- Status: `in_progress` — Phase 09 is accepted; reconcile source-bank-first
-  document publication and compatible provider-free reuse
+- Status: `done` — source-bank-first document publication, provider-free
+  compatible reuse, and provider-only request accounting accepted
 - Prerequisites: `05-worktree-index-pipeline`, `08-raw-embedding-lab`, `09-vector-materialization`
 - Followed by: `11-vector-and-hybrid-search`, `13-cli-and-mcp`
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 4.4, 6, and 7
@@ -240,6 +240,13 @@ Keep these sources of truth separate:
 - A mid-run config change never publishes a mixed profile.
 
 ## 11. Completion Evidence
+
+Current product boundary (2026-08-17):
+
+- [`evidence/phase-10/source-bank-first-document-publication.md`](evidence/phase-10/source-bank-first-document-publication.md)
+  records immutable source persistence before serving publication, local
+  source reuse, the public source/Voyage plan split, provider-only request
+  accounting, and the final offline boundary.
 
 See the resumable [Phase 10 evidence index](evidence/phase-10/README.md) for
 the current executed-check record.

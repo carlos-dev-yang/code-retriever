@@ -194,8 +194,8 @@ func indexCommand(ctx context.Context, args []string, deps Dependencies) error {
 func embedCommand(ctx context.Context, args []string, deps Dependencies) error {
 	flags := flag.NewFlagSet("embed", flag.ContinueOnError)
 	flags.SetOutput(deps.Stderr)
-	dry := flags.Bool("dry-run", false, "plan paid embedding inputs")
-	apply := flags.Bool("apply", false, "perform explicitly approved paid document embedding")
+	dry := flags.Bool("dry-run", false, "plan source-bank reuse and Voyage document inputs")
+	apply := flags.Bool("apply", false, "materialize source hits and run approved Voyage document inputs")
 	retry := flags.Bool("retry-failed", false, "retry terminal failures")
 	root := flags.String("root", ".", "repository root")
 	if err := flags.Parse(args); err != nil {
@@ -220,11 +220,15 @@ func embedCommand(ctx context.Context, args []string, deps Dependencies) error {
 	if !*apply {
 		return json.NewEncoder(deps.Stdout).Encode(plan)
 	}
-	key := os.Getenv("VOYAGE_API_KEY")
-	if key == "" {
-		return fmt.Errorf("VOYAGE_API_KEY_REQUIRED")
+	var client embedclient.EmbeddingClient
+	if plan.VoyageInputs > 0 {
+		key := os.Getenv("VOYAGE_API_KEY")
+		if key == "" {
+			return fmt.Errorf("VOYAGE_API_KEY_REQUIRED")
+		}
+		client = embedclient.VoyageClient{APIKey: key, HTTPClient: &http.Client{Timeout: time.Duration(application.Resolved.Embedding.Request.TimeoutSeconds) * time.Second}}
 	}
-	result, err := service.Apply(ctx, plan, app.PublicEmbeddingApply{Approved: true, Client: embedclient.VoyageClient{APIKey: key, HTTPClient: &http.Client{Timeout: time.Duration(application.Resolved.Embedding.Request.TimeoutSeconds) * time.Second}}})
+	result, err := service.Apply(ctx, plan, app.PublicEmbeddingApply{Approved: plan.VoyageInputs > 0, Client: client})
 	if err != nil {
 		return err
 	}

@@ -71,7 +71,7 @@ func Group(inputs []RequestInput, limits RequestLimits) ([]RequestGroup, error) 
 
 type Plan struct {
 	Inputs          []Input
-	PaidInputs      []Input
+	ProviderInputs  []Input
 	RetryFailed     bool
 	ActiveDistinct  int
 	Ready           int
@@ -116,13 +116,13 @@ func BuildPlan(inputs []Input, retryFailed bool, maxInputs, maxTotalBytes int) (
 			}
 			fallthrough
 		case store.EmbeddingPending:
-			plan.PaidInputs = append(plan.PaidInputs, input)
+			plan.ProviderInputs = append(plan.ProviderInputs, input)
 			plan.EstimatedTokens += ConservativeInputTokenUpperBound(input.Bytes)
 		default:
 			return Plan{}, fmt.Errorf("unknown embedding state")
 		}
 	}
-	groups, err := requestGroups(plan.PaidInputs, maxInputs, maxTotalBytes)
+	groups, err := requestGroups(plan.ProviderInputs, maxInputs, maxTotalBytes)
 	if err != nil {
 		return Plan{}, err
 	}

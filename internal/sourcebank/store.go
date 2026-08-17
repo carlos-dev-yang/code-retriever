@@ -37,6 +37,8 @@ type Record struct {
 
 func (s *Store) Close() error { return s.db.Close() }
 
+func (s *Store) StateRoot() string { return s.stateRoot }
+
 func (s *Store) InspectSchemaVersion(ctx context.Context) (int, error) {
 	var version int
 	err := s.db.QueryRowContext(ctx, `SELECT schema_version FROM source_meta WHERE id=1`).Scan(&version)

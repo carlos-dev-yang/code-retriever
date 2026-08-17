@@ -3,6 +3,7 @@ package sourcebank
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -13,6 +14,8 @@ import (
 )
 
 const SchemaVersion = 1
+
+var ErrCoverageIncomplete = errors.New("SOURCE_COVERAGE_INCOMPLETE")
 
 const sourceMetaTable = `CREATE TABLE source_meta (id INTEGER PRIMARY KEY CHECK(id=1), schema_version INTEGER NOT NULL CHECK(schema_version=1), created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')))`
 const documentSourcesTable = `CREATE TABLE document_source_embeddings (source_profile_fingerprint TEXT NOT NULL, canonical_input_sha256 TEXT NOT NULL, dimensions INTEGER NOT NULL CHECK(dimensions=1024), checksum INTEGER NOT NULL, vector_f32_le BLOB NOT NULL CHECK(length(vector_f32_le)=4096), vector_sha256 TEXT NOT NULL, requested_model TEXT NOT NULL, response_model TEXT NOT NULL, request_id TEXT NOT NULL DEFAULT '', encoding TEXT NOT NULL CHECK(encoding='cidx-source-f32-le-v1'), created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), PRIMARY KEY(source_profile_fingerprint,canonical_input_sha256))`
@@ -58,8 +61,14 @@ func OpenExisting(ctx context.Context, options Options) (*Store, error) {
 		return nil, err
 	}
 	info, err := os.Lstat(path)
-	if err != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 {
-		return nil, fmt.Errorf("SOURCE_COVERAGE_INCOMPLETE")
+	if os.IsNotExist(err) {
+		return nil, ErrCoverageIncomplete
+	}
+	if err != nil {
+		return nil, err
+	}
+	if !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 {
+		return nil, fmt.Errorf("source-bank database path must be a regular file")
 	}
 	store, err := openDatabase(ctx, path, stateRoot, true)
 	if err != nil {

@@ -1,7 +1,7 @@
 # 11. Vector Scan and Hybrid Search
 
-- Status: `blocked` — Phase 02/09/10 int8-only reconciliation must land before
-  the runtime scanner and hybrid boundary are revalidated
+- Status: `in_progress` — Phase 09/10 are accepted; revalidate the int8-only
+  runtime scan and remove retired comparison surfaces from current evidence
 - Prerequisites: `06-fts-search`, `09-vector-materialization`, `10-embedding-orchestration-and-reconciliation`
 - Followed by: `12-retrieval-evaluation`, `13-cli-and-mcp`
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 8 and 9.2

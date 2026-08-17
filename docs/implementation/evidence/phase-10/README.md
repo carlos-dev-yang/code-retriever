@@ -1,5 +1,7 @@
 # Phase 10 Embedding Orchestration Evidence
 
+- Current source-bank-first product evidence:
+  [source-bank-first-document-publication.md](source-bank-first-document-publication.md)
 - Revision 4 reconciliation evidence: [revision-4.md](revision-4.md)
 - Historical state: accepted at the pre-Revision-4 main-agent commit boundary; it is not evidence of the current request-policy reconciliation.
 - No credential was read and no network, provider, corpus, or paid operation was used.

@@ -2,11 +2,8 @@ package app
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/binary"
 	"errors"
 	"fmt"
-	"math"
 	"sort"
 	"time"
 
@@ -15,6 +12,7 @@ import (
 	"cidx/internal/embedclient"
 	"cidx/internal/embedlock"
 	"cidx/internal/index/canonicaltext"
+	"cidx/internal/sourcebank"
 	"cidx/internal/store"
 	"cidx/internal/vector"
 )
@@ -24,6 +22,7 @@ import (
 // explicit approval and an already-authorized embedding client for apply.
 type PublicEmbedding struct {
 	Production *store.ProductionStore
+	Sources    *sourcebank.Store
 	Resolved   config.ResolvedConfig
 }
 type PublicEmbeddingOptions struct{ RetryFailed bool }
@@ -41,7 +40,8 @@ type PublicEmbeddingPlan struct {
 	ActiveDistinct  int    `json:"active_distinct"`
 	Ready           int    `json:"ready_count"`
 	SkippedTerminal int    `json:"skipped_terminal_count"`
-	PaidInputs      int    `json:"paid_input_count"`
+	SourceInputs    int    `json:"source_input_count"`
+	VoyageInputs    int    `json:"voyage_input_count"`
 	EstimatedTokens int    `json:"estimated_tokens"`
 	BatchCount      int    `json:"batch_count"`
 	ManifestSHA256  string `json:"manifest_sha256"`
@@ -50,7 +50,13 @@ type PublicEmbeddingPlan struct {
 }
 type embeddingPlanAuthorization struct {
 	source, space, storage string
-	paidHashes             []string
+	sourceHashes           []string
+	voyageHashes           []string
+}
+
+type embeddingWorkPlan struct {
+	sourceInputs []embed.Input
+	voyageInputs []embed.Input
 }
 type PublicEmbeddingResult struct {
 	RunID        int64 `json:"run_id"`
@@ -71,15 +77,13 @@ func (p PublicEmbedding) PlanWithOptions(ctx context.Context, options PublicEmbe
 	if err := p.Resolved.ValidateIntegrity(); err != nil {
 		return PublicEmbeddingPlan{}, err
 	}
-	snapshot, inputs, err := p.reconstructInputs(ctx)
+	sources, closeSources, err := p.openSourceBank(ctx, false)
 	if err != nil {
 		return PublicEmbeddingPlan{}, err
 	}
-	plan, err := embed.BuildPlan(inputs, options.RetryFailed, p.Resolved.Embedding.Request.MaxInputs, p.Resolved.Embedding.Request.MaxTotalInputBytes)
-	if err != nil {
-		return PublicEmbeddingPlan{}, err
-	}
-	return publicPlan(snapshot.Applied, plan), nil
+	defer closeSources()
+	plan, _, err := p.currentPlan(ctx, options.RetryFailed, sources)
+	return plan, err
 }
 
 func (p PublicEmbedding) reconstructInputs(ctx context.Context) (store.EmbeddingPlanningSnapshot, []embed.Input, error) {
@@ -117,21 +121,18 @@ func (p PublicEmbedding) reconstructInputs(ctx context.Context) (store.Embedding
 	return snapshot, inputs, nil
 }
 
-func publicPlan(applied config.AppliedProfiles, plan embed.Plan) PublicEmbeddingPlan {
-	hashes := make([]string, 0, len(plan.PaidInputs))
-	for _, input := range plan.PaidInputs {
-		hashes = append(hashes, input.Hash)
-	}
-	sort.Strings(hashes)
-	return PublicEmbeddingPlan{Generation: applied.ActiveGeneration, ManifestSHA256: applied.ManifestSHA256, ActiveDistinct: plan.ActiveDistinct, Ready: plan.Ready, SkippedTerminal: plan.SkippedTerminal, PaidInputs: len(plan.PaidInputs), EstimatedTokens: plan.EstimatedTokens, BatchCount: plan.BatchCount, RetryFailed: plan.RetryFailed, authorization: embeddingPlanAuthorization{source: string(applied.Fingerprints.Source), space: string(applied.Fingerprints.VectorSpace), storage: string(applied.Fingerprints.VectorStorage), paidHashes: hashes}}
+func publicPlan(applied config.AppliedProfiles, base embed.Plan, work embeddingWorkPlan, estimatedTokens, batchCount int) PublicEmbeddingPlan {
+	sourceHashes := inputHashes(work.sourceInputs)
+	voyageHashes := inputHashes(work.voyageInputs)
+	return PublicEmbeddingPlan{Generation: applied.ActiveGeneration, ManifestSHA256: applied.ManifestSHA256, ActiveDistinct: base.ActiveDistinct, Ready: base.Ready, SkippedTerminal: base.SkippedTerminal, SourceInputs: len(work.sourceInputs), VoyageInputs: len(work.voyageInputs), EstimatedTokens: estimatedTokens, BatchCount: batchCount, RetryFailed: base.RetryFailed, authorization: embeddingPlanAuthorization{source: string(applied.Fingerprints.Source), space: string(applied.Fingerprints.VectorSpace), storage: string(applied.Fingerprints.VectorStorage), sourceHashes: sourceHashes, voyageHashes: voyageHashes}}
 }
 
 func (p PublicEmbedding) Apply(ctx context.Context, plan PublicEmbeddingPlan, apply PublicEmbeddingApply) (result PublicEmbeddingResult, err error) {
-	if !apply.Approved {
-		return result, fmt.Errorf("embedding apply requires explicit approval")
+	if plan.VoyageInputs > 0 && !apply.Approved {
+		return result, fmt.Errorf("Voyage document embedding requires explicit approval")
 	}
-	if apply.Client == nil {
-		return result, fmt.Errorf("embedding client is required for paid apply")
+	if plan.VoyageInputs > 0 && apply.Client == nil {
+		return result, fmt.Errorf("embedding client is required for Voyage inputs")
 	}
 	if p.Production == nil {
 		return result, fmt.Errorf("production store is required")
@@ -139,7 +140,7 @@ func (p PublicEmbedding) Apply(ctx context.Context, plan PublicEmbeddingPlan, ap
 	if err := p.Resolved.ValidateIntegrity(); err != nil {
 		return result, err
 	}
-	if plan.Generation < 0 || plan.ManifestSHA256 == "" || len(plan.authorization.paidHashes) != plan.PaidInputs || plan.authorization.source == "" || plan.authorization.space == "" || plan.authorization.storage == "" {
+	if plan.Generation < 0 || plan.ManifestSHA256 == "" || len(plan.authorization.sourceHashes) != plan.SourceInputs || len(plan.authorization.voyageHashes) != plan.VoyageInputs || plan.authorization.source == "" || plan.authorization.space == "" || plan.authorization.storage == "" {
 		return result, fmt.Errorf("invalid embedding plan")
 	}
 	release, err := embedlock.AcquireState(ctx, p.Production.StateRoot)
@@ -147,10 +148,16 @@ func (p PublicEmbedding) Apply(ctx context.Context, plan PublicEmbeddingPlan, ap
 		return result, err
 	}
 	defer release()
+	sources, closeSources, err := p.openSourceBank(ctx, true)
+	if err != nil {
+		return result, err
+	}
+	defer closeSources()
 	// A plan is only an approval preview. Under the document lock, derive a
-	// fresh immutable snapshot and require it to be exactly the approved paid
-	// set; never trust caller-owned plan bytes or silently expand a charge.
-	fresh, freshPlan, err := p.currentPlan(ctx, plan.RetryFailed)
+	// fresh immutable snapshot and require it to be exactly the approved
+	// source/Voyage split; never trust caller-owned plan bytes or silently
+	// expand a provider operation.
+	fresh, freshPlan, err := p.currentPlan(ctx, plan.RetryFailed, sources)
 	if err != nil {
 		return result, err
 	}
@@ -193,45 +200,60 @@ func (p PublicEmbedding) Apply(ctx context.Context, plan PublicEmbeddingPlan, ap
 	if p.Resolved.Embedding.StorageCodec != config.StorageCodecInt8 || p.Resolved.Profiles.VectorStorage.StorageCodecID != vector.Int8CodecID {
 		return result, fmt.Errorf("unsupported serving codec")
 	}
-	requestInputs, byKey := embeddingRequestInputs(freshPlan.PaidInputs)
-	outcomes, executeErr := embed.Execute(ctx, apply.Client, source, embedclient.DocumentRole, requestInputs, embed.ExecuteOptions{
-		Limits:         embed.RequestLimits{MaxInputs: p.Resolved.Embedding.Request.MaxInputs, MaxTotalBytes: p.Resolved.Embedding.Request.MaxTotalInputBytes},
-		MaxConcurrency: p.Resolved.Embedding.Request.MaxConcurrency,
-		AttemptTimeout: time.Duration(p.Resolved.Embedding.Request.TimeoutSeconds) * time.Second,
-		MaxRetries:     p.Resolved.Embedding.Retry.MaxRetries,
-		RetryWaits:     resolvedRetryWaits(p.Resolved),
-	}, func(handlerCtx context.Context, outcome embed.Outcome) error {
-		for i, requestInput := range outcome.Group.Inputs {
-			input := byKey[requestInput.Key]
-			space, transformErr := transformer.Transform(outcome.Vectors[i])
-			if transformErr != nil {
-				written, writeErr := p.Production.RecordCurrentEmbeddingFailure(handlerCtx, p.Resolved, expected, input.Hash, "terminal", "transform", "embedding transform rejected", outcome.Attempts)
-				if writeErr != nil {
-					return writeErr
+	if err := p.publishSourceInputs(ctx, sources, expected, freshPlan.sourceInputs, transformer, &result); err != nil {
+		return result, err
+	}
+	requestInputs, byKey := embeddingRequestInputs(freshPlan.voyageInputs)
+	var outcomes []embed.Outcome
+	var executeErr error
+	if len(requestInputs) > 0 {
+		outcomes, executeErr = embed.Execute(ctx, apply.Client, source, embedclient.DocumentRole, requestInputs, embed.ExecuteOptions{
+			Limits:         embed.RequestLimits{MaxInputs: p.Resolved.Embedding.Request.MaxInputs, MaxTotalBytes: p.Resolved.Embedding.Request.MaxTotalInputBytes},
+			MaxConcurrency: p.Resolved.Embedding.Request.MaxConcurrency,
+			AttemptTimeout: time.Duration(p.Resolved.Embedding.Request.TimeoutSeconds) * time.Second,
+			MaxRetries:     p.Resolved.Embedding.Retry.MaxRetries,
+			RetryWaits:     resolvedRetryWaits(p.Resolved),
+		}, func(handlerCtx context.Context, outcome embed.Outcome) error {
+			for i, requestInput := range outcome.Group.Inputs {
+				input := byKey[requestInput.Key]
+				sourceVector, sourceErr := sourcebank.NewF32Vector(outcome.Vectors[i], source.SourceDimensions)
+				if sourceErr != nil {
+					return sourceErr
 				}
-				if written {
-					result.Failed++
+				if sourceErr := sources.PutDocumentSource(handlerCtx, sourcebank.DocumentSource{SourceProfile: string(p.Resolved.Profiles.Fingerprints.Source), InputHash: input.Hash, RequestedModel: source.Model, ResponseModel: outcome.Response.Model, RequestID: outcome.Response.RequestID, Vector: sourceVector}, source.SourceDimensions); sourceErr != nil {
+					return sourceErr
+				}
+				space, transformErr := transformer.Transform(sourceVector.Values)
+				if transformErr != nil {
+					written, writeErr := p.Production.RecordCurrentEmbeddingFailure(handlerCtx, p.Resolved, expected, input.Hash, "terminal", "transform", "embedding transform rejected", outcome.Attempts)
+					if writeErr != nil {
+						return writeErr
+					}
+					if written {
+						result.Failed++
+					} else {
+						result.Discarded++
+					}
+					continue
+				}
+				stored, encodeErr := vector.EncodeInt8(space)
+				if encodeErr != nil {
+					return encodeErr
+				}
+				rawSHA := sourcebank.VectorSHA256(sourcebank.EncodeF32(sourceVector.Values))
+				published, publishErr := p.Production.PublishEmbeddedVector(handlerCtx, p.Resolved, expected, input.Hash, rawSHA, stored)
+				if publishErr != nil {
+					return publishErr
+				}
+				if published {
+					result.Succeeded++
 				} else {
 					result.Discarded++
 				}
-				continue
 			}
-			stored, encodeErr := vector.EncodeInt8(space)
-			if encodeErr != nil {
-				return encodeErr
-			}
-			published, publishErr := p.Production.PublishEmbeddedVector(handlerCtx, p.Resolved, expected, input.Hash, rawF32SHA256(outcome.Vectors[i]), stored)
-			if publishErr != nil {
-				return publishErr
-			}
-			if published {
-				result.Succeeded++
-			} else {
-				result.Discarded++
-			}
-		}
-		return nil
-	})
+			return nil
+		})
+	}
 	for _, outcome := range outcomes {
 		result.Requested += len(outcome.Group.Inputs) * outcome.Attempts
 		if outcome.Err == nil {
@@ -310,20 +332,124 @@ func publicEmbeddingFailure(outcome embed.Outcome) (classification, errorClass, 
 	return "terminal", "provider", "embedding request failed"
 }
 
-func (p PublicEmbedding) currentPlan(ctx context.Context, retryFailed bool) (PublicEmbeddingPlan, embed.Plan, error) {
+func (p PublicEmbedding) currentPlan(ctx context.Context, retryFailed bool, sources *sourcebank.Store) (PublicEmbeddingPlan, embeddingWorkPlan, error) {
 	snapshot, inputs, err := p.reconstructInputs(ctx)
 	if err != nil {
-		return PublicEmbeddingPlan{}, embed.Plan{}, err
+		return PublicEmbeddingPlan{}, embeddingWorkPlan{}, err
 	}
-	plan, err := embed.BuildPlan(inputs, retryFailed, p.Resolved.Embedding.Request.MaxInputs, p.Resolved.Embedding.Request.MaxTotalInputBytes)
+	base, err := embed.BuildPlan(inputs, retryFailed, p.Resolved.Embedding.Request.MaxInputs, p.Resolved.Embedding.Request.MaxTotalInputBytes)
 	if err != nil {
-		return PublicEmbeddingPlan{}, embed.Plan{}, err
+		return PublicEmbeddingPlan{}, embeddingWorkPlan{}, err
 	}
-	return publicPlan(snapshot.Applied, plan), plan, nil
+	work := embeddingWorkPlan{}
+	hits := map[string]bool{}
+	if sources != nil && len(base.ProviderInputs) > 0 {
+		hashes := inputHashes(base.ProviderInputs)
+		hits, err = sources.ExistingKeys(ctx, string(p.Resolved.Profiles.Fingerprints.Source), hashes)
+		if err != nil {
+			return PublicEmbeddingPlan{}, embeddingWorkPlan{}, err
+		}
+	}
+	for _, input := range base.ProviderInputs {
+		if hits[input.Hash] {
+			work.sourceInputs = append(work.sourceInputs, input)
+		} else {
+			input.State = store.EmbeddingPending
+			work.voyageInputs = append(work.voyageInputs, input)
+		}
+	}
+	provider, err := embed.BuildPlan(work.voyageInputs, true, p.Resolved.Embedding.Request.MaxInputs, p.Resolved.Embedding.Request.MaxTotalInputBytes)
+	if err != nil {
+		return PublicEmbeddingPlan{}, embeddingWorkPlan{}, err
+	}
+	return publicPlan(snapshot.Applied, base, work, provider.EstimatedTokens, provider.BatchCount), work, nil
 }
 
 func sameApprovedPlan(old, fresh PublicEmbeddingPlan) bool {
-	return old.Generation == fresh.Generation && old.ManifestSHA256 == fresh.ManifestSHA256 && old.ActiveDistinct == fresh.ActiveDistinct && old.Ready == fresh.Ready && old.SkippedTerminal == fresh.SkippedTerminal && old.PaidInputs == fresh.PaidInputs && old.EstimatedTokens == fresh.EstimatedTokens && old.BatchCount == fresh.BatchCount && old.RetryFailed == fresh.RetryFailed && old.authorization.source == fresh.authorization.source && old.authorization.space == fresh.authorization.space && old.authorization.storage == fresh.authorization.storage && stringSliceEqual(old.authorization.paidHashes, fresh.authorization.paidHashes)
+	return old.Generation == fresh.Generation && old.ManifestSHA256 == fresh.ManifestSHA256 && old.ActiveDistinct == fresh.ActiveDistinct && old.Ready == fresh.Ready && old.SkippedTerminal == fresh.SkippedTerminal && old.SourceInputs == fresh.SourceInputs && old.VoyageInputs == fresh.VoyageInputs && old.EstimatedTokens == fresh.EstimatedTokens && old.BatchCount == fresh.BatchCount && old.RetryFailed == fresh.RetryFailed && old.authorization.source == fresh.authorization.source && old.authorization.space == fresh.authorization.space && old.authorization.storage == fresh.authorization.storage && stringSliceEqual(old.authorization.sourceHashes, fresh.authorization.sourceHashes) && stringSliceEqual(old.authorization.voyageHashes, fresh.authorization.voyageHashes)
+}
+
+func inputHashes(inputs []embed.Input) []string {
+	hashes := make([]string, len(inputs))
+	for index, input := range inputs {
+		hashes[index] = input.Hash
+	}
+	sort.Strings(hashes)
+	return hashes
+}
+
+func (p PublicEmbedding) openSourceBank(ctx context.Context, create bool) (*sourcebank.Store, func(), error) {
+	if p.Sources != nil {
+		if p.Sources.StateRoot() != p.Production.StateRoot {
+			return nil, func() {}, fmt.Errorf("source bank state root does not match production")
+		}
+		return p.Sources, func() {}, nil
+	}
+	options := sourcebank.Options{StateRoot: p.Production.StateRoot}
+	var sources *sourcebank.Store
+	var err error
+	if create {
+		sources, err = sourcebank.Open(ctx, options)
+	} else {
+		sources, err = sourcebank.OpenExisting(ctx, options)
+		if errors.Is(err, sourcebank.ErrCoverageIncomplete) {
+			return nil, func() {}, nil
+		}
+	}
+	if err != nil {
+		return nil, func() {}, err
+	}
+	return sources, func() { _ = sources.Close() }, nil
+}
+
+func (p PublicEmbedding) publishSourceInputs(ctx context.Context, sources *sourcebank.Store, expected store.EmbeddingWriteExpectation, inputs []embed.Input, transformer vector.Transformer, result *PublicEmbeddingResult) error {
+	if len(inputs) == 0 {
+		return nil
+	}
+	records, err := sources.Documents(ctx, string(p.Resolved.Profiles.Fingerprints.Source), inputHashes(inputs))
+	if err != nil {
+		return err
+	}
+	if len(records) != len(inputs) {
+		return fmt.Errorf("SOURCE_COVERAGE_INCOMPLETE")
+	}
+	for _, input := range inputs {
+		record, present := records[input.Hash]
+		if !present || record.Dimensions != p.Resolved.Embedding.Model.SourceDimensions {
+			return fmt.Errorf("SOURCE_COVERAGE_INCOMPLETE")
+		}
+		decoded, decodeErr := sourcebank.DecodeF32(record.VectorF32LE, record.Dimensions, record.Checksum)
+		if decodeErr != nil {
+			return decodeErr
+		}
+		space, transformErr := transformer.Transform(decoded.Values)
+		if transformErr != nil {
+			written, writeErr := p.Production.RecordCurrentEmbeddingFailure(ctx, p.Resolved, expected, input.Hash, "terminal", "transform", "embedding transform rejected", 1)
+			if writeErr != nil {
+				return writeErr
+			}
+			if written {
+				result.Failed++
+			} else {
+				result.Discarded++
+			}
+			continue
+		}
+		stored, encodeErr := vector.EncodeInt8(space)
+		if encodeErr != nil {
+			return encodeErr
+		}
+		published, publishErr := p.Production.PublishEmbeddedVector(ctx, p.Resolved, expected, input.Hash, record.VectorSHA256, stored)
+		if publishErr != nil {
+			return publishErr
+		}
+		if published {
+			result.Succeeded++
+		} else {
+			result.Discarded++
+		}
+	}
+	return nil
 }
 func stringSliceEqual(left, right []string) bool {
 	if len(left) != len(right) {
@@ -335,12 +461,4 @@ func stringSliceEqual(left, right []string) bool {
 		}
 	}
 	return true
-}
-
-func rawF32SHA256(values []float32) string {
-	bytes := make([]byte, len(values)*4)
-	for i, value := range values {
-		binary.LittleEndian.PutUint32(bytes[i*4:], math.Float32bits(value))
-	}
-	return fmt.Sprintf("%x", sha256.Sum256(bytes))
 }
