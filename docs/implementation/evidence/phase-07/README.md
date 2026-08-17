@@ -55,6 +55,17 @@ vector-only snapshot and dedicated scorers were complete: full `go test
 checks. No new test code, provider call, corpus mutation, profile activation,
 or production-vector write was performed during implementation validation.
 
+The first real chi apply stopped after its first successful query embedding and
+before artifact publication because top-20 exposed two distinct chunk ranges
+with the same portable `path + indexed hash + qualified symbol` parent key.
+RHF was not started. The failed process persisted no query vector or partial
+artifact; that one extra provider operation is recorded here with provider
+token usage unavailable. The dedicated path now ranks every collapsed chunk,
+keeps the best-scoring chunk for each portable semantic-parent identity, and
+only then fills 20 unique parents. Segment rankings continue to preserve the
+actual distinct segment/chunk observations. Focused search/eval/devlab tests,
+build, formatting, and diff checks passed after the correction.
+
 ### 2026-08-17 historical pre-run FTS decision boundary
 
 Repeated AND/OR, OR/minimum-two-token, and OR 5:1/5:5 experiments are now

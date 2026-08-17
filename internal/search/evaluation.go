@@ -359,15 +359,15 @@ func (session EvaluationSession) EvaluateCodecArms(ctx context.Context, query []
 	if err != nil {
 		return EvaluationCodecArms{}, err
 	}
-	target, err := collapseVectorScores(ctx, session.snapshot, targetScores, maxResults)
+	target, err := collapseVectorScores(ctx, session.snapshot, targetScores, len(session.snapshot.Chunks))
 	if err != nil {
 		return EvaluationCodecArms{}, err
 	}
-	active, err := collapseVectorScores(ctx, session.snapshot, activeScores, maxResults)
+	active, err := collapseVectorScores(ctx, session.snapshot, activeScores, len(session.snapshot.Chunks))
 	if err != nil {
 		return EvaluationCodecArms{}, err
 	}
-	int8Values, err := collapseVectorScores(ctx, session.snapshot, int8Scores, maxResults)
+	int8Values, err := collapseVectorScores(ctx, session.snapshot, int8Scores, len(session.snapshot.Chunks))
 	if err != nil {
 		return EvaluationCodecArms{}, err
 	}
@@ -375,9 +375,9 @@ func (session EvaluationSession) EvaluateCodecArms(ctx context.Context, query []
 		TargetF32Segments:     evaluationSegments(session.snapshot, targetScores),
 		ServingActiveSegments: evaluationSegments(session.snapshot, activeScores),
 		CandidateInt8Segments: evaluationSegments(session.snapshot, int8Scores),
-		TargetF32:             evaluationVectorOnlyHits(session.snapshot, target),
-		ServingActiveCodec:    evaluationVectorOnlyHits(session.snapshot, active),
-		CandidateInt8:         evaluationVectorOnlyHits(session.snapshot, int8Values),
+		TargetF32:             evaluationVectorOnlyHits(session.snapshot, target, maxResults),
+		ServingActiveCodec:    evaluationVectorOnlyHits(session.snapshot, active, maxResults),
+		CandidateInt8:         evaluationVectorOnlyHits(session.snapshot, int8Values, maxResults),
 	}, nil
 }
 
@@ -578,16 +578,26 @@ func evaluationHits(snapshot store.HybridSearchSnapshot, ranked []rankedChunk, s
 	return result
 }
 
-func evaluationVectorOnlyHits(snapshot store.HybridSearchSnapshot, values map[int64]vectorChunk) []EvaluationRankedHit {
+func evaluationVectorOnlyHits(snapshot store.HybridSearchSnapshot, values map[int64]vectorChunk, limit int) []EvaluationRankedHit {
 	ordered := make([]vectorChunk, 0, len(values))
 	for _, value := range values {
 		ordered = append(ordered, value)
 	}
 	sort.Slice(ordered, func(i, j int) bool { return vectorChunkBefore(ordered[i], ordered[j]) })
-	ranked := make([]rankedChunk, 0, len(ordered))
+	ranked := make([]rankedChunk, 0, min(limit, len(ordered)))
+	seen := map[string]bool{}
 	for index := range ordered {
 		value := ordered[index]
-		ranked = append(ranked, rankedChunk{chunkID: value.segment.ChunkID, path: value.path, startByte: value.startByte, vectorRank: index + 1, segment: &value.segment})
+		chunk := snapshot.Chunks[value.segment.ChunkID]
+		key := chunk.Path + "\x00" + chunk.IndexedSHA256 + "\x00" + chunk.QualifiedSymbol
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		ranked = append(ranked, rankedChunk{chunkID: value.segment.ChunkID, path: value.path, startByte: value.startByte, vectorRank: len(ranked) + 1, segment: &value.segment})
+		if len(ranked) == limit {
+			break
+		}
 	}
 	return evaluationHits(snapshot, ranked, evaluationVectorScore(values))
 }
