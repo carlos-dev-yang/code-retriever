@@ -18,6 +18,8 @@ Current measured cohort decision: [chi/RHF cohort score review — Revision 4](c
 
 Current measured retrieval loop: [provider-free FTS decisions and provenance-safe Voyage comparator — Revision 4](measured-retrieval-loop-r4.md).
 
+Current isolated codec diagnostic: [paired f32/binary/int8 top-20 diagnostic — Revision 4](codec-top20-diagnostic-r4.md).
+
 ### 2026-08-17 paired codec diagnostic entry gate
 
 The user opened one additional measured diagnostic before human label freeze:
@@ -46,7 +48,7 @@ and cohort summaries, separate binary/int8 fidelity-to-f32, and provider usage.
 It contains no FTS, RRF, query vector, raw document vector, source body,
 credential, or absolute checkout path. Existing production and historical
 retrieval paths remain available unchanged. The real chi/RHF apply and source
-accuracy review remain pending at this checkpoint.
+accuracy review were pending at that implementation checkpoint.
 
 The implementation boundary passed one consolidated validation after the
 vector-only snapshot and dedicated scorers were complete: full `go test
@@ -65,6 +67,23 @@ keeps the best-scoring chunk for each portable semantic-parent identity, and
 only then fills 20 unique parents. Segment rankings continue to preserve the
 actual distinct segment/chunk observations. Focused search/eval/devlab tests,
 build, formatting, and diff checks passed after the correction.
+
+The corrected clean executable at commit
+`11f3046a16c73a618a4d9847295a942f99db8868` then completed both corpora.
+The successful series made 32 query operations, validated all 32 responses
+without retry or failure, observed 646 tokens, and accounted USD `0.00007752`.
+It made no document provider call and persisted no query vector. The immutable
+artifacts show that int8 retained `.9958` of chi and `.9925` of RHF f32 top-20
+membership with zero top-1 mismatch; binary retained `.7042` and `.7575`, with
+top-1 mismatch `.25` and `.15`.
+
+A rank/score/codec-hidden source review covered every relation in the pooled
+top-20 union: 311 chi and 499 RHF question–chunk relations. This single-root
+review is advisory, not a human label freeze. It confirms that binary's
+occasional Hit@1/Hit@5 improvements coexist with materially lower useful
+top-20 recall and pooled NDCG, while int8 tracks f32 almost exactly. Exact run
+IDs, checksums, direct metrics, source-review metrics, and the decision to keep
+all codec rankings isolated are recorded in the linked codec diagnostic.
 
 ### 2026-08-17 historical pre-run FTS decision boundary
 

@@ -367,6 +367,14 @@ Actions:
 - freeze the calibration dataset digest;
 - rerun deterministic simple search and FTS against that final digest; the provisional Stage 4 results are not the official frozen-label baselines.
 
+Measured checkpoint (2026-08-17): the one-time codec diagnostic is complete
+for both corpora. It kept all three scorers isolated, used 32 successful query
+operations, and performed no RRF or document call. Int8 tracked exhaustive f32
+far more closely than binary; production remains binary until separated human
+review and an explicit later codec-selection decision. Label-only replay uses
+the immutable rankings and does not repeat Voyage. See
+[`evidence/phase-07/codec-top20-diagnostic-r4.md`](evidence/phase-07/codec-top20-diagnostic-r4.md).
+
 Exit: the chi/RHF cohort direction and calibration truth are frozen. Exploratory and pool-generation runs remain preparation evidence and do not vote for promotion.
 
 ### Stage 8 — Run paid calibration and select one policy
