@@ -4,6 +4,7 @@
 - Date: 2026-08-17
 - Canonical authority: [`local-code-search-mcp-v1-design-r4.md`](../../../../local-code-search-mcp-v1-design-r4.md)
 - Historical checkpoint: `b3a6cb1`
+- Final corpus-independent design review: [current int8/source-profile implementation review](int8-source-profile-final-review.md)
 
 Revision 4 changes the public config/profile vocabulary and fixed operational request limits. Earlier phase evidence remains an accurate record of checks performed against the earlier contract, but it is not proof of Revision 4 compliance and is not rewritten as if those checks covered the new contract.
 

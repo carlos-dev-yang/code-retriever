@@ -11,6 +11,7 @@
 - Evaluation and promotion contract: [cidx v1 Evaluation and Promotion Contract](EVALUATION-CONTRACT.md)
 - Evaluation execution: [Retrieval Evaluation and Embedding Execution Plan](EVALUATION-EMBEDDING-EXECUTION-PLAN.md)
 - Persistent state: [Phase Status Ledger](STATUS.md)
+- Final corpus-independent review: [int8/source-profile implementation-to-design review](evidence/revision-4/int8-source-profile-final-review.md)
 - Last updated: 2026-08-17
 
 This directory is the executable implementation plan for cidx v1. It decomposes the canonical product contract into phase-owned packages, schemas, CLIs, validation work, and completion evidence. A design change must update this index, every affected phase, the dependency graph, the change-impact table, and the persistent status ledger together.
