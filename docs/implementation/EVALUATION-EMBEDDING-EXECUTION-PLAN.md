@@ -375,6 +375,18 @@ review and an explicit later codec-selection decision. Label-only replay uses
 the immutable rankings and does not repeat Voyage. See
 [`evidence/phase-07/codec-top20-diagnostic-r4.md`](evidence/phase-07/codec-top20-diagnostic-r4.md).
 
+The separately authorized 512- and 256-dimensional follow-ups are also
+complete. Each transformed the existing 1,024-f32 document bank locally and
+used one fresh query operation per case. Same-run int8 remained within `.9917`
+to `1.0000` mean top-20 retention across both corpora and both dimensions. The
+256 controls halve vector payload again but reduce the complete SQLite files
+by only `7.12%` beyond 512 and show more shallow-rank variability. Because no
+query vector is persisted and all fresh query hashes differ across checkpoints,
+cross-dimension changes are not causal paired deltas. Carry 512/int8 as the
+preferred compact candidate and 256/int8 as the memory-constrained alternative;
+see the [512](evidence/phase-07/codec-int8-512-diagnostic-r4.md) and
+[256](evidence/phase-07/codec-int8-256-diagnostic-r4.md) evidence.
+
 Exit: the chi/RHF cohort direction and calibration truth are frozen. Exploratory and pool-generation runs remain preparation evidence and do not vote for promotion.
 
 ### Stage 8 — Run paid calibration and select one policy
@@ -709,7 +721,7 @@ Provider-free actions 1–4 below are complete. The immediate sequence is:
 
 The deterministic simple baseline must still freeze before official frozen-label lexical scoring, but it is not on the critical path to the document capture above. Mixed-language corpus selection and promotion confirmation are deliberately deferred until chi/RHF calibration closure.
 
-The earlier hybrid exploratory query series completed after compatible raw document coverage and local candidate materializations were proved; its one-series approval is consumed. The user has separately approved the current 32-query codec-only series under the existing USD 5 billing cap and project-local credential boundary. That authorization is consumed after one chi+RHF codec run; any later pool/calibration/confirmation apply requires its own approval. Formal confirmation approval is requested only after the selected policy, final pooled confirmation labels, margins, denominators, arms, and promotion contract are sealed.
+The earlier hybrid exploratory query series completed after compatible raw document coverage and local candidate materializations were proved; its one-series approval is consumed. The user separately approved and consumed the 1,024-, 512-, and final 256-dimensional 32-query codec-only series under the existing USD 5 billing cap and project-local credential boundary. Any later pool/calibration/confirmation apply requires its own approval. Formal confirmation approval is requested only after the selected policy, final pooled confirmation labels, margins, denominators, arms, and promotion contract are sealed.
 
 ## 16. Adviser reconciliation
 

@@ -1,7 +1,7 @@
 # Phase 07 Lexical Evaluation Evidence
 
 - Phase: `07-lexical-evaluation`
-- State: `in_progress` — the isolated 1,024 and 512 codec diagnostics are recorded; 512/int8 is the preferred compact candidate, the working 1024/binary baseline remains unchanged, and formal label freeze is blocked only on the required separated human review.
+- State: `in_progress` — the isolated 1,024, 512, and 256 codec diagnostics are recorded; 512/int8 remains the preferred compact candidate, 256/int8 is the memory-constrained alternative, the working 1024/binary baseline remains unchanged, and formal label freeze is blocked only on the required separated human review.
 - Date: 2026-08-17
 
 Current real-data audit: [chi/RHF structural audit — Revision 4](chi-rhf-structural-audit-r4.md).
@@ -21,6 +21,23 @@ Current measured retrieval loop: [provider-free FTS decisions and provenance-saf
 Current isolated codec diagnostic: [paired f32/binary/int8 top-20 diagnostic — Revision 4](codec-top20-diagnostic-r4.md).
 
 Current 512-dimensional follow-up: [512-dimensional int8 diagnostic — Revision 4](codec-int8-512-diagnostic-r4.md).
+
+Current 256-dimensional follow-up: [256-dimensional int8 diagnostic — Revision 4](codec-int8-256-diagnostic-r4.md).
+
+### 2026-08-17 256-dimensional int8 follow-up
+
+The final compact-dimension series completed with 32 successful Voyage query
+operations, 646 tokens, zero retry/failure, zero document operations, no FTS,
+and no RRF. Against same-run exhaustive 256-f32, int8 retained `.9917` of chi
+and `.9950` of RHF top-20 membership, with zero top-1 mismatch and every direct
+answer retained. Provider-free 256-int8 materialization halved vector payload
+again relative to 512, but reduced the two complete SQLite files by only a
+combined `7.12%`. Source inspection found more shallow-rank variability,
+especially RHF T12, while all direct answers remained present by top 20.
+Because the fresh query-vector hashes differ between checkpoints, this is not
+a causal same-query dimension comparison. The result keeps 512/int8 preferred
+and 256/int8 as a viable memory-constrained alternative; neither is production
+selection or promotion evidence.
 
 ### 2026-08-17 512-dimensional int8 follow-up
 

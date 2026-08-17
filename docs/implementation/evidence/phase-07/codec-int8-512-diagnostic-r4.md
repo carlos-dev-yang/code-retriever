@@ -1,5 +1,7 @@
 # 512-dimensional int8 follow-up — Revision 4
 
+Follow-up: [256-dimensional int8 diagnostic — Revision 4](codec-int8-256-diagnostic-r4.md).
+
 - Date: 2026-08-17
 - Authority: calibration diagnostic only; not a human label freeze or promotion evidence
 - Working baseline: `serving_dimensions=1024`, `storage_codec=binary` (unchanged)
