@@ -1,6 +1,6 @@
 # 07. Lexical Chunking and Search Evaluation
 
-- Status: `in_progress` — the existing 12 chi + 20 RHF measured rankings are regrouped by cohort; all four current binary failures remain deliberate diagnostic cases, no case is added, and chi G12 alone advances to draft-v3 wording before its simple/opened-arm pool refresh. Formal label freeze, calibration, confirmation, and promotion remain separately gated.
+- Status: `in_progress` — one final isolated 256-dimensional f32/binary/int8 diagnostic is authorized over the existing 12 chi + 20 RHF questions before returning to separated human source review. Existing 1,024/512 checkpoints and the working `1024/binary` baseline remain unchanged; formal label freeze, calibration, confirmation, and promotion remain separately gated.
 - Prerequisite phase: `06-fts-search`
 - Follow-up phase: `12-retrieval-evaluation`
 - Design basis: `local-code-search-mcp-v1-design-r4.md` §13, §14
@@ -53,12 +53,12 @@ The active Phase 07 diagnostic exception is a development-only, non-promotion
 codec comparison over the already authorized chi/RHF raw document bank and
 query set. It leaves the working `1024/binary` baseline unchanged. The original
 checkpoint compares 1,024-dimensional target-f32/binary/int8; the authorized
-follow-up uses separate development state, locally reduces the same 1,024-f32
-document bank to 512 dimensions, and compares same-run 512-dimensional
-target-f32/binary/int8. Each run reuses one ephemeral Voyage query f32 across
+follow-ups use separate development state, locally reduce the same 1,024-f32
+document bank to 512 or 256 dimensions, and compare target-f32/binary/int8 at
+the selected dimension. Each run reuses one ephemeral Voyage query f32 across
 its three arms and captures isolated top-20 parent rankings without FTS or RRF.
-The 512-versus-1,024 result is a comparison of separate checkpoints, not a
-same-query paired delta, and does not open a second production serving profile.
+Cross-dimension results are comparisons of separate checkpoints, not same-query
+paired deltas, and no diagnostic opens another production serving profile.
 
 ## 3. Prerequisites
 
@@ -502,6 +502,7 @@ Phase 12 extends the shared Phase 07 `internal/eval` dataset, ground-truth, metr
 | Open one paired f32/binary/int8 top-20 diagnostic before human freeze. | The user explicitly requested an int8 comparison and wider candidate review. One Voyage query vector per case is reused across all three isolated dense arms; candidate int8 documents are locally derived once from the existing raw bank, production remains binary, and no RRF enters the codec comparison. | The corpus, questions, serving dimension, transform, document bank, or codec implementation changes. |
 | Measure one isolated 512-dimension int8 follow-up. | The user considers 1,024-dimensional int8 too large for the intended local footprint. Reuse the approved 1,024-f32 raw document bank and shared prefix-L2 transform in separate development state; request fresh query embeddings once because query vectors are not persisted. Compare 512-int8 only to same-run 512-f32 for codec fidelity, and report 512 versus 1,024 as separate checkpoints. | The bound corpus, questions, source model/dimension, transform, raw bank, or codec implementation changes. |
 | Carry 512/int8 as the compact candidate without changing the working baseline. | The completed follow-up halved int8 vector payload, reduced the two complete SQLite files by `26.48%`, retained every direct answer by top 20, and preserved `1.0000` chi / `.9950` RHF same-run f32 top-20 membership. The 32 draft questions are not sufficient for production promotion. | Separated human review or confirmation evidence contradicts the result, or the bound model/transform/codec/profile changes. |
+| Measure one final isolated 256-dimension int8 follow-up. | The user wants the smaller supported serving dimension measured before choosing between compact candidates. Reuse the approved 1,024-f32 raw document bank and shared prefix-L2 transform in separate development state; request each of the same 32 query embeddings once because query vectors are not persisted. Compare 256-int8 only to same-run 256-f32 for codec fidelity and report cross-dimension results as separate checkpoints. | The bound corpus, questions, source model/dimension, transform, raw bank, or codec implementation changes. |
 | Retain int8 as the measured candidate without changing production binary. | The clean paired run showed int8 top-20 retention above `.992` on both corpora with zero top-1 mismatch against exhaustive f32. Binary retained `.7042` on chi and `.7575` on RHF and lost useful source-reviewed neighborhoods even when a raw hit metric improved. The codecs remain isolated and are never fused with one another. | Separated human review or a new confirmation corpus contradicts the calibration result, or the bound codec/transform/profile changes. |
 | Prefer representative cohort intents and reject quota-padding edge cases. | The user wants questions that expose material failure modes, not detail added only to reach a count. Difficult cases remain valuable when they isolate a real parser, parent-collapse, type/wrapper, codec, or retrieval distinction. | New evidence shows a missing material failure mode that cannot be covered by a representative question. |
 | Use measured cohort failures before revising questions; keep G07/T01/X01/X08 and narrow only G12. | Repeated advisory grading was slower and less decisive than the existing real rankings. The four misses each retain a distinct source-backed diagnostic boundary, while G12 alone contained wording broader than the Go source contract. | A new measured run or source change invalidates one of those distinct boundaries. |

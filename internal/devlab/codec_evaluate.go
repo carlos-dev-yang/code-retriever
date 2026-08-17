@@ -79,8 +79,8 @@ func PrepareCodecComparisonExperimentAt(ctx context.Context, application *app.Ap
 	}
 	resolved := application.Resolved
 	servingDimensions := resolved.Embedding.ServingDimensions
-	if resolved.Embedding.Model.SourceDimensions != 1024 || (servingDimensions != 512 && servingDimensions != 1024) || resolved.Embedding.StorageCodec != config.StorageCodecBinary || resolved.Search.CandidateK < 20 {
-		return codecComparisonPrepared{}, fmt.Errorf("codec comparison requires source dimension 1024, serving dimension 512 or 1024, active binary, and candidate_k at least 20")
+	if resolved.Embedding.Model.SourceDimensions != 1024 || !resolved.Embedding.Model.SupportsServingDimensions(servingDimensions) || resolved.Embedding.StorageCodec != config.StorageCodecBinary || resolved.Search.CandidateK < 20 {
+		return codecComparisonPrepared{}, fmt.Errorf("codec comparison requires source dimension 1024, a model-supported serving dimension, active binary, and candidate_k at least 20")
 	}
 	if options.ExperimentSeriesID == "" || options.SeriesQueryOperationsPlanned != 32 || options.AuthorizationReference == "" || !isFinitePositive(options.USDCap) || options.PricingTableIdentity == "" || !isFinitePositive(options.USDPerMillionTokens) {
 		return codecComparisonPrepared{}, fmt.Errorf("incomplete codec comparison authority or pricing controls")
