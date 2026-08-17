@@ -57,6 +57,45 @@ func binaryQuery(values []float32) ([]byte, error) {
 	return query.Blob, nil
 }
 
+// PreparedBinaryQuery packs one query once for a complete binary scan. The
+// scoring formula and bit layout are identical to ScoreBinary.
+type PreparedBinaryQuery struct {
+	dimensions int
+	blob       []byte
+}
+
+func PrepareBinaryQuery(query []float32) (PreparedBinaryQuery, error) {
+	blob, err := binaryQuery(query)
+	if err != nil {
+		return PreparedBinaryQuery{}, err
+	}
+	return PreparedBinaryQuery{dimensions: len(query), blob: blob}, nil
+}
+
+func ScorePreparedBinary(query PreparedBinaryQuery, stored StoredVector) (float64, error) {
+	if err := ValidateBinary(stored); err != nil {
+		return 0, err
+	}
+	return scorePreparedBinary(query, stored)
+}
+
+func scorePreparedBinary(query PreparedBinaryQuery, stored StoredVector) (float64, error) {
+	if query.dimensions <= 0 || len(query.blob) != (query.dimensions+7)/8 {
+		return 0, fmt.Errorf("invalid prepared binary query")
+	}
+	if query.dimensions != stored.Dimensions {
+		return 0, ErrInvalidDimensions
+	}
+	matches := 0
+	for index := range query.blob {
+		matches += 8 - bits.OnesCount8(query.blob[index]^stored.Blob[index])
+	}
+	if remainder := stored.Dimensions % 8; remainder != 0 {
+		matches -= 8 - remainder
+	}
+	return (2*float64(matches))/float64(stored.Dimensions) - 1, nil
+}
+
 // ScoreBinary returns a normalized sign-agreement score in [-1, 1]. It is a
 // codec approximation of target-space cosine, never an exact cosine value.
 func ScoreBinary(query []float32, stored StoredVector) (float64, error) {
@@ -66,16 +105,9 @@ func ScoreBinary(query []float32, stored StoredVector) (float64, error) {
 	if len(query) != stored.Dimensions {
 		return 0, ErrInvalidDimensions
 	}
-	queryBlob, err := binaryQuery(query)
+	prepared, err := PrepareBinaryQuery(query)
 	if err != nil {
 		return 0, err
 	}
-	matches := 0
-	for index := range queryBlob {
-		matches += 8 - bits.OnesCount8(queryBlob[index]^stored.Blob[index])
-	}
-	if remainder := stored.Dimensions % 8; remainder != 0 {
-		matches -= 8 - remainder // padding bits agree by construction but are excluded
-	}
-	return (2*float64(matches))/float64(stored.Dimensions) - 1, nil
+	return scorePreparedBinary(prepared, stored)
 }

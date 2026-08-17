@@ -18,6 +18,43 @@ Current measured cohort decision: [chi/RHF cohort score review — Revision 4](c
 
 Current measured retrieval loop: [provider-free FTS decisions and provenance-safe Voyage comparator — Revision 4](measured-retrieval-loop-r4.md).
 
+### 2026-08-17 paired codec diagnostic entry gate
+
+The user opened one additional measured diagnostic before human label freeze:
+isolated `target_f32`, active `binary`, and candidate `int8` dense rankings at
+depths 1/5/10/20 for the same chi/RHF cases. Production remains
+`serving_dimensions=1024, storage_codec=binary`. Candidate int8 document
+vectors are derived locally once from the existing raw f32 bank, and each case
+must make exactly one fresh Voyage query-embedding operation whose ephemeral
+f32 result is reused by all three arms. The comparison performs the shared
+segment-to-semantic-parent collapse but no FTS or RRF. Artifact review will
+keep human relevance, complete requirements, hard negatives, top-20 parent
+inspection, and f32 codec fidelity separate. No success or metric result is
+claimed at this entry boundary.
+
+Implementation now provides a dedicated `cidx dev retrieval evaluate --mode
+codec` path. It opens one vector-only production snapshot for the whole corpus
+run, loads/transforms the compatible raw f32 document bank once, locally
+encodes the candidate int8 bank once, and performs exactly one accounted
+Voyage query operation per case. Each successful query prepares one binary
+bit representation and one int8 quantized representation independently; the
+binary and int8 scorers share neither encoded values nor score arithmetic.
+Only the common target-f32 input, active snapshot identity, and established
+segment-to-parent collapse are shared. The dedicated artifact contains
+top-20 parent and segment rankings, per-query metrics at 1/5/10/20, language
+and cohort summaries, separate binary/int8 fidelity-to-f32, and provider usage.
+It contains no FTS, RRF, query vector, raw document vector, source body,
+credential, or absolute checkout path. Existing production and historical
+retrieval paths remain available unchanged. The real chi/RHF apply and source
+accuracy review remain pending at this checkpoint.
+
+The implementation boundary passed one consolidated validation after the
+vector-only snapshot and dedicated scorers were complete: full `go test
+-count=1 ./...`; focused race runs for vector/search/eval/devlab/store; full
+`go vet ./...`; `go build ./...`; `go mod tidy -diff`; formatting; and diff
+checks. No new test code, provider call, corpus mutation, profile activation,
+or production-vector write was performed during implementation validation.
+
 ### 2026-08-17 historical pre-run FTS decision boundary
 
 Repeated AND/OR, OR/minimum-two-token, and OR 5:1/5:5 experiments are now

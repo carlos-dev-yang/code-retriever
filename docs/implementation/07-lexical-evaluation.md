@@ -49,6 +49,13 @@ This phase does not copy a passing score or SLA from another project. It builds 
 - Automated scoring by a generative-model judge.
 - Treating an MCP host's final context-token use as a product guarantee.
 
+The active Phase 07 diagnostic exception is a development-only, non-promotion
+codec comparison over the already authorized chi/RHF raw document bank and
+query set. It leaves the production `1024/binary` profile unchanged, derives
+candidate int8 vectors locally, reuses one ephemeral Voyage query f32 across
+target-f32/binary/int8, and captures isolated top-20 parent rankings without
+FTS or RRF. It does not open a second production serving profile.
+
 ## 3. Prerequisites
 
 - Phase 03 and Phase 04 chunkers return exact source ranges and retrieval projections.
@@ -488,6 +495,7 @@ Phase 12 extends the shared Phase 07 `internal/eval` dataset, ground-truth, metr
 | Reject OR fusion as a serving candidate under the current draft evidence. | The coherent Voyage run showed lower complete-required@5 than pure dense for both corpora, with no chi rescue and concrete chi/RHF required-parent regressions despite isolated RHF rescues. Aggregate RHF also concealed a TypeScript decline and TSX rise. | Human-frozen labels plus a new structural fusion design show no required-group regression in every protected slice. |
 | Report RHF support relevance as a two-endpoint NDCG sensitivity range. | The two complete blind AI passes agree on direct truth after reconciliation but differ on 101 subjective grade-0/grade-1 relations. A single forced label map or midpoint would manufacture precision; Hit/Recall/MRR use the reconciled direct map and completeness/first loss use unchanged draft groups. | Compliant human review resolves every support relation. |
 | Do not repeat Voyage when only labels change. | The corpus, query texts, profiles, document bank, query vectors' resulting immutable ranks, and retrieval policies are already bound and complete; rescoring new labels is provider-free. | Any bound corpus, question, embedding, or retrieval-policy identity changes. |
+| Open one paired f32/binary/int8 top-20 diagnostic before human freeze. | The user explicitly requested an int8 comparison and wider candidate review. One Voyage query vector per case is reused across all three isolated dense arms; candidate int8 documents are locally derived once from the existing raw bank, production remains binary, and no RRF enters the codec comparison. | The corpus, questions, serving dimension, transform, document bank, or codec implementation changes. |
 | Prefer representative cohort intents and reject quota-padding edge cases. | The user wants questions that expose material failure modes, not detail added only to reach a count. Difficult cases remain valuable when they isolate a real parser, parent-collapse, type/wrapper, codec, or retrieval distinction. | New evidence shows a missing material failure mode that cannot be covered by a representative question. |
 | Use measured cohort failures before revising questions; keep G07/T01/X01/X08 and narrow only G12. | Repeated advisory grading was slower and less decisive than the existing real rankings. The four misses each retain a distinct source-backed diagnostic boundary, while G12 alone contained wording broader than the Go source contract. | A new measured run or source change invalidates one of those distinct boundaries. |
 | Accept the T10 and G09 source-backed label revisions. | `PathImpl` and `PathInternal` directly implement T10 while public `Path` is useful support; `walkXFF` is a reviewed misleading implementation for the deprecated G09 contract. | Pinned source identity or the question intent changes. |

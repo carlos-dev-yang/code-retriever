@@ -131,13 +131,28 @@ func (value *retrievalProviderUsageRecorder) Finish(ctx context.Context, client 
 }
 
 func (value *retrievalProviderUsageRecorder) Finalize(prepared retrievalPrepared, dataset eval.EvaluationDataset, run eval.RetrievalEvaluationRun) (retrievalProviderUsage, error) {
+	usage, err := value.FinalizeOperations(prepared, dataset)
+	if err != nil {
+		return retrievalProviderUsage{}, err
+	}
+	if err := usage.Validate(prepared, dataset, run); err != nil {
+		return retrievalProviderUsage{}, err
+	}
+	return usage, nil
+}
+
+// FinalizeOperations closes the shared one-operation-per-query accounting
+// contract for development evaluators that do not produce the Phase 12 RRF
+// wire. The codec comparator uses it without weakening the existing retrieval
+// run validation below.
+func (value *retrievalProviderUsageRecorder) FinalizeOperations(prepared retrievalPrepared, dataset eval.EvaluationDataset) (retrievalProviderUsage, error) {
 	value.mu.Lock()
 	defer value.mu.Unlock()
 	if len(value.usage.QueryOperations) != len(dataset.Cases) || len(value.finished) != len(dataset.Cases) {
 		return retrievalProviderUsage{}, fmt.Errorf("provider usage operations are incomplete")
 	}
 	value.usage.Aggregate = deriveProviderUsageAggregate(value.usage.QueryOperations)
-	if err := value.usage.Validate(prepared, dataset, run); err != nil {
+	if err := value.usage.ValidateOperations(prepared, dataset); err != nil {
 		return retrievalProviderUsage{}, err
 	}
 	return value.usage, nil
@@ -233,7 +248,22 @@ func deriveProviderUsageAggregate(operations []retrievalProviderQueryOperation) 
 }
 
 func (value retrievalProviderUsage) Validate(prepared retrievalPrepared, dataset eval.EvaluationDataset, run eval.RetrievalEvaluationRun) error {
-	if value.SchemaVersion != evalcontract.SchemaVersion || value.Kind != retrievalProviderUsageKind || value.RetryPolicyIdentity != retrievalRetryPolicyIdentity || value.MaxAttempts <= 0 || value.AttemptTimeoutSeconds <= 0 || value.SourceProfile == "" || value.Provider == "" || value.Model == "" || value.AdapterVersion <= 0 || len(value.ConfiguredRetryWaitSeconds) != value.MaxAttempts-1 || len(value.QueryOperations) != len(dataset.Cases) || len(run.Cases) != len(dataset.Cases) {
+	if len(run.Cases) != len(dataset.Cases) {
+		return fmt.Errorf("invalid provider usage wire")
+	}
+	if err := value.ValidateOperations(prepared, dataset); err != nil {
+		return err
+	}
+	for index, operation := range value.QueryOperations {
+		if run.Cases[index].Case.QueryID != operation.QueryID || !providerUsageMatchesRun(operation, run.Cases[index]) {
+			return fmt.Errorf("provider usage does not match evaluation run")
+		}
+	}
+	return nil
+}
+
+func (value retrievalProviderUsage) ValidateOperations(prepared retrievalPrepared, dataset eval.EvaluationDataset) error {
+	if value.SchemaVersion != evalcontract.SchemaVersion || value.Kind != retrievalProviderUsageKind || value.RetryPolicyIdentity != retrievalRetryPolicyIdentity || value.MaxAttempts <= 0 || value.AttemptTimeoutSeconds <= 0 || value.SourceProfile == "" || value.Provider == "" || value.Model == "" || value.AdapterVersion <= 0 || len(value.ConfiguredRetryWaitSeconds) != value.MaxAttempts-1 || len(value.QueryOperations) != len(dataset.Cases) {
 		return fmt.Errorf("invalid provider usage wire")
 	}
 	if prepared.application != nil {
@@ -257,9 +287,6 @@ func (value retrievalProviderUsage) Validate(prepared retrievalPrepared, dataset
 			}
 		} else if operation.TerminalStatus != providerUsageTerminalFailed || operation.ObservedTotalTokens != nil || operation.TokenObservedAttempts != 0 || operation.TokenAccountingComplete {
 			return fmt.Errorf("invalid failed provider usage operation")
-		}
-		if run.Cases[index].Case.QueryID != operation.QueryID || !providerUsageMatchesRun(operation, run.Cases[index]) {
-			return fmt.Errorf("provider usage does not match evaluation run")
 		}
 	}
 	if expected := deriveProviderUsageAggregate(value.QueryOperations); !equalProviderUsageAggregate(expected, value.Aggregate) {

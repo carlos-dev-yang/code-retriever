@@ -82,11 +82,11 @@ For each run, explicitly request queries from Voyage AI with `output_dimension=1
 1. No corpus network access, checkout creation/update, indexing, or embedding occurs until the user explicitly approves that corpus and action.
 2. A tracked manifest contains portable identity and integrity data, never an absolute local path; local bindings are ignored or passed explicitly.
 3. Every dimension/codec comparison uses the same approved corpus commit, clean/content hash, document source fingerprint, manifest, and canonical input set.
-4. One run evaluates one current production `ServingVectorProfile`.
+4. One production run evaluates one current `ServingVectorProfile`. A development-only codec diagnostic may keep binary as that singular active profile while deriving an int8 candidate bank from the same raw f32 solely in run memory; it cannot activate, publish, or serve the candidate.
 5. Changing a candidate requires an explicit config edit, `cidx index` reconciliation, then `cidx dev embeddings materialize --activate`.
 6. Evaluation never writes config or changes the active serving profile.
 7. Each run creates a fresh query from current `voyage-code-4` at 1024 dimensions and never persists it or reuses it in another run.
-8. Within one run, one ephemeral serving-space query may be reused across the f32 baseline, active codec scan, and hybrid variants, then discarded.
+8. Within one run, one ephemeral serving-space query may be reused across the f32 baseline, active codec scan, and hybrid variants, then discarded. The isolated codec diagnostic reuses it across f32, binary, and int8 dedicated scorers, but never crosses scores or feeds those rankings into RRF.
 9. Document serving-f32 baselines apply the current reducer/normalizer to raw documents in memory and never enter production storage.
 10. Production binary/int8 variants read only the current active serving profile.
 11. Document and query both start at source 1024 and use the same prefix plus L2 transform.
@@ -388,6 +388,7 @@ If results are inconclusive, record candidates, why they remain undecided, and w
 - The initial 1024-f32 document bank is reusable for setup evaluation only, not permanent product workflow.
 - Query f32 is never stored, even for fixed questions, and is not a cache foundation.
 - Candidates are evaluated sequentially by changing current config; runtime still serves one profile.
+- The user-opened chi/RHF codec diagnostic is the only exception to sequential candidate activation: a dedicated vector-only development path keeps production binary active, creates an in-memory int8 bank from the same raw f32, prepares binary and int8 queries independently from one ephemeral f32, and records separate top-20 rankings without FTS or RRF.
 - The f32 baseline exists only in development-run memory.
 - Source output stays explicitly 1024; only targets 256, 512, and 1024 are candidates.
 - Serving dimension is chosen after measurements. Storage defaults to binary; int8 requires an explicit user selection after comparison.

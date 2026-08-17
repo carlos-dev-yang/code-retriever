@@ -63,7 +63,7 @@ serving_dimensions = 1024
 storage_codec = binary
 ```
 
-This is the first working retrieval profile, not a claim that 1,024 serving dimensions are the final promoted winner. The compatible source-f32 bank still permits later 256/512 serving-dimension and int8 materialization without another document call. Those alternatives stay out of the first loop until chi/RHF cohort direction is stable.
+This is the first working retrieval profile, not a claim that 1,024 serving dimensions are the final promoted winner. The compatible source-f32 bank still permits later 256/512 serving-dimension and int8 materialization without another document call. The user has now opened one evaluation-only 1,024-dimensional int8 diagnostic before label freeze: it leaves production binary active, locally encodes int8 documents once, obtains one fresh query f32 per case, and independently scans target-f32, binary, and int8 to top 20 with no FTS or RRF.
 
 The immediate workflow is:
 
@@ -341,7 +341,7 @@ cidx dev embeddings materialize --activate
 - capture only missing compatible document inputs;
 - require complete finite 1,024-dimensional f32 coverage before evaluation;
 - materialize the initial 1,024-dimensional binary working profile;
-- retain the ability to derive 256/512 and int8 locally later, but do not open that comparison grid during the first cohort-direction loop;
+- retain the ability to derive 256/512 locally later; for the currently opened int8 diagnostic, keep binary active and derive the int8 candidate bank only in the development evaluator;
 - evaluate one active serving profile at a time;
 - never copy raw f32 into production storage.
 
@@ -358,6 +358,7 @@ Actions:
 - run the default evaluation command first to validate and estimate without network access;
 - request a bounded paid-query approval for the exact exploratory operations;
 - run the 1,024/binary working profile and inspect per-query lane results, first loss, parent collapse, RRF behavior, and body survival;
+- run the separate `--mode codec` diagnostic once for chi and RHF: use a vector-only production snapshot, locally encode each int8 document once, prepare binary and int8 query representations once per case in their own scorers, and record only isolated target-f32/binary/int8 segment and parent top-20 rankings plus depths 1/5/10/20 metrics and f32 fidelity;
 - revise query wording, task/signal assignment, answer mode, expected alternatives, and cohort balance only in a new working-dataset version;
 - repeat only when another separately approved apply or an approved bounded series remains in scope;
 - once the cohort direction is stable, obtain blind candidate pools across the required arms;
@@ -385,7 +386,7 @@ Actions:
 - use a separate explicit paid-query approval for the exact calibration apply or explicitly bounded apply series;
 - evaluate required arms with the same ephemeral query vector inside each run;
 - compare serving f32 with the active codec in the same run;
-- treat binary-versus-int8 cross-run deltas as paired only when all recorded controls, including query hashes, match;
+- the opened development-only codec diagnostic is a valid paired comparison because one query f32, one document-f32 bank, one snapshot, and one parent-collapse policy feed all three independently scored arms; outside that exact pipeline, treat binary-versus-int8 cross-run deltas as paired only when all recorded controls, including query hashes, match;
 - begin with the confirmed 1,024-byte segment, 1,024-dimension, binary profile. Open alternative segment/dimension/codec candidates only after the working cohort is stable and first-loss evidence justifies the added comparison/capture cost;
 - then choose any opened candidate plus FTS weights, candidate limits, RRF `k`, body budget, and paired noninferiority margins;
 - inspect every material regression by language, task cohort, signal class, and first loss;
@@ -400,7 +401,7 @@ Entry: the chi/RHF cohort/calibration work is closed, the policy is frozen, the 
 Actions:
 
 - run provider-free validation and FTS pooling;
-- obtain separately approved, bounded paid-query pool-generation runs for serving-f32, binary, int8, and RRF candidates; binary and int8 remain sequential current-profile runs, and the selected profile is restored before formal confirmation;
+- obtain separately approved, bounded paid-query pool-generation runs for serving-f32, binary, int8, and RRF candidates; a development-only same-query codec pool may keep binary active and derive int8 locally, while any formal current-profile claim still selects one profile and restores the selected profile before confirmation;
 - blind and deduplicate the pool;
 - finish both label passes, including corpus-wide negative evidence;
 - verify that the frozen judgment pool covers every parent through the deepest formal scoring cutoff or declare the affected metric incomplete;
@@ -492,7 +493,7 @@ Every compatible Phase 12 run records, as applicable:
 11. inline-body packaging and body-survival diagnostics;
 12. optional assistant-use only in the later product-usefulness evaluation.
 
-Binary and int8 are separate current-profile runs. A correct full hybrid result cannot hide a failed FTS lane, dense lane, collapse stage, or package stage.
+Binary and int8 remain separate production current profiles. The development codec diagnostic is deliberately not a hybrid run: it records three isolated dense arms and performs no FTS or RRF. A correct full hybrid result cannot hide a failed FTS lane, dense lane, collapse stage, or package stage.
 
 ## 9. First-loss diagnosis and permitted action
 
@@ -700,7 +701,7 @@ Provider-free actions 1–4 below are complete. The immediate sequence is:
 
 The deterministic simple baseline must still freeze before official frozen-label lexical scoring, but it is not on the critical path to the document capture above. Mixed-language corpus selection and promotion confirmation are deliberately deferred until chi/RHF calibration closure.
 
-The one current exploratory query series completed after compatible raw document coverage and local candidate materializations were proved; its one-series approval is consumed. Any repeat or later pool/calibration/confirmation apply requires its own approval. Formal confirmation approval is requested only after the selected policy, final pooled confirmation labels, margins, denominators, arms, and promotion contract are sealed.
+The earlier hybrid exploratory query series completed after compatible raw document coverage and local candidate materializations were proved; its one-series approval is consumed. The user has separately approved the current 32-query codec-only series under the existing USD 5 billing cap and project-local credential boundary. That authorization is consumed after one chi+RHF codec run; any later pool/calibration/confirmation apply requires its own approval. Formal confirmation approval is requested only after the selected policy, final pooled confirmation labels, margins, denominators, arms, and promotion contract are sealed.
 
 ## 16. Adviser reconciliation
 

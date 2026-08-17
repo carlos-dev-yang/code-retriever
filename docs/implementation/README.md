@@ -1,6 +1,6 @@
 # cidx v1 Implementation Plan Index
 
-- Status: Phase 07's provider-free FTS loop, clean 12+20 Voyage stage run, refreshed blind pools, and dual-AI advisory replays are complete; production remains AND, OR fusion is rejected for serving, and formal freeze waits on separated human source review
+- Status: Phase 07 is adding one codec-isolated chi/RHF target-f32/binary/int8 top-20 diagnostic; production remains 1024/binary, the prior FTS/RRF run stays immutable, and formal freeze still waits on separated human source review
 - Canonical design: [Local Code Search MCP v1 Final Target Contract — Revision 4](../../local-code-search-mcp-v1-design-r4.md)
 - Earlier designs: [original](../../local-code-search-mcp-v1-design.md), [r1](../../local-code-search-mcp-v1-design-r1.md), [r2](../../local-code-search-mcp-v1-design-r2.md), [r3](../../local-code-search-mcp-v1-design-r3.md)
 - Execution protocol: [Implementation Execution and Context-Recovery Guide](EXECUTION-GUIDE.md)

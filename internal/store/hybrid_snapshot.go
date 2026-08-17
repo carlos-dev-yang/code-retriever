@@ -137,6 +137,17 @@ func (store *ProductionStore) HybridSearchSnapshot(ctx context.Context, resolved
 	if err := validateSnapshotRequest(request); err != nil {
 		return HybridSearchSnapshot{}, err
 	}
+	return store.vectorSnapshot(ctx, resolved, &request.FTS)
+}
+
+// VectorSearchSnapshot loads the authoritative active vector/segment/parent
+// state without constructing or running an FTS request. It is the snapshot
+// entry point for isolated dense-codec evaluation.
+func (store *ProductionStore) VectorSearchSnapshot(ctx context.Context, resolved config.ResolvedConfig) (HybridSearchSnapshot, error) {
+	return store.vectorSnapshot(ctx, resolved, nil)
+}
+
+func (store *ProductionStore) vectorSnapshot(ctx context.Context, resolved config.ResolvedConfig, ftsRequest *FTSSearchRequest) (HybridSearchSnapshot, error) {
 	tx, err := store.Read.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
 		return HybridSearchSnapshot{}, err
@@ -147,13 +158,15 @@ func (store *ProductionStore) HybridSearchSnapshot(ctx context.Context, resolved
 		return HybridSearchSnapshot{}, err
 	}
 	out := HybridSearchSnapshot{Applied: applied, ProfileMatches: profilesMatch(resolved, applied), Chunks: map[int64]HybridChunk{}, Vectors: map[string]vector.StoredVector{}}
-	fts, chunks, err := loadFTSCandidates(ctx, tx, request.FTS, out.Chunks)
-	if err != nil {
-		return HybridSearchSnapshot{}, err
-	}
-	out.FTSCandidates = fts
-	for id, chunk := range chunks {
-		out.Chunks[id] = chunk
+	if ftsRequest != nil {
+		fts, chunks, err := loadFTSCandidates(ctx, tx, *ftsRequest, out.Chunks)
+		if err != nil {
+			return HybridSearchSnapshot{}, err
+		}
+		out.FTSCandidates = fts
+		for id, chunk := range chunks {
+			out.Chunks[id] = chunk
+		}
 	}
 	rows, err := tx.QueryContext(ctx, `SELECT s.id,s.chunk_id,s.canonical_input_sha256,s.display_start_byte,s.display_end_byte FROM embedding_segments s JOIN meta m ON m.id=1 WHERE s.serving_profile=m.active_serving_profile ORDER BY s.id`)
 	if err != nil {

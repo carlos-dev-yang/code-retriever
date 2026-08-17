@@ -26,6 +26,7 @@ const (
 	VariantHybridFTSActiveCodec RetrievalVariant = "hybrid_fts_active_codec"
 	VariantHybridWithoutFTS     RetrievalVariant = "hybrid_without_fts"
 	VariantHybridWithoutDense   RetrievalVariant = "hybrid_without_dense"
+	VariantCandidateInt8        RetrievalVariant = "candidate_int8"
 )
 
 var requiredRetrievalVariants = []RetrievalVariant{
@@ -390,7 +391,7 @@ func CompareCodecFidelity(evaluationCase evalcontract.EvaluationCase, targetF32,
 	if err := evaluationCase.Validate(); err != nil {
 		return CodecFidelity{}, err
 	}
-	if targetF32.QueryID != evaluationCase.ID || codec.QueryID != evaluationCase.ID || targetF32.Variant != VariantTargetF32 || codec.Variant != VariantServingActiveCodec || k <= 0 {
+	if targetF32.QueryID != evaluationCase.ID || codec.QueryID != evaluationCase.ID || targetF32.Variant != VariantTargetF32 || (codec.Variant != VariantServingActiveCodec && codec.Variant != VariantCandidateInt8) || k <= 0 {
 		return CodecFidelity{}, fmt.Errorf("invalid codec fidelity comparison")
 	}
 	if err := targetF32.Validate(); err != nil {
@@ -734,6 +735,9 @@ func (value CorePromotionEvidence) Validate() error {
 var coreEvidencePaths = []string{"run-manifest.json", "per-query-trace.jsonl", "fts-candidates.jsonl", "dense-segment-candidates.jsonl", "collapsed-parent-candidates.jsonl", "rrf-results.jsonl", "inline-body-packages.jsonl", "per-query-metrics.jsonl", "aggregate-metrics.json", "cohort-language-report.json", "first-loss-report.json", "provider-usage.json", "implementation-audit.json", "promotion-contract.json", "promotion-result.json", "report.md"}
 
 func knownVariant(value RetrievalVariant) bool {
+	if value == VariantCandidateInt8 {
+		return true
+	}
 	for _, variant := range requiredRetrievalVariants {
 		if value == variant {
 			return true
@@ -1122,7 +1126,7 @@ func validRetrievalFailureStage(variant RetrievalVariant, value evalcontract.Fai
 	switch variant {
 	case VariantFTS:
 		return stage == evalcontract.StageFTSCandidate || stage == evalcontract.StageOperational
-	case VariantTargetF32, VariantServingActiveCodec, VariantHybridWithoutFTS:
+	case VariantTargetF32, VariantServingActiveCodec, VariantCandidateInt8, VariantHybridWithoutFTS:
 		return stage == evalcontract.StageDenseSegment || stage == evalcontract.StageParentCollapse || stage == evalcontract.StageOperational
 	case VariantProviderUnion:
 		return stage == evalcontract.StageFTSCandidate || stage == evalcontract.StageDenseSegment || stage == evalcontract.StageProviderUnion || stage == evalcontract.StageOperational

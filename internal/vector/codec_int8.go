@@ -79,6 +79,52 @@ func finitePositive(value float32) bool {
 	return value > 0 && !math.IsInf(float64(value), 0) && !math.IsNaN(float64(value))
 }
 
+// PreparedInt8Query is the immutable request-local quantized query used by an
+// exhaustive int8 scan. Its payload remains private so callers cannot forge
+// codec metadata between document scores.
+type PreparedInt8Query struct {
+	dimensions int
+	blob       []byte
+	scale      float32
+	norm       float32
+}
+
+// PrepareInt8Query quantizes one query once for a complete exhaustive scan.
+// It is especially important for evaluation, where every candidate document
+// must be compared with the exact same query approximation.
+func PrepareInt8Query(query []float32) (PreparedInt8Query, error) {
+	stored, err := EncodeInt8(query)
+	if err != nil {
+		return PreparedInt8Query{}, err
+	}
+	return PreparedInt8Query{dimensions: stored.Dimensions, blob: stored.Blob, scale: stored.Scale, norm: stored.Norm}, nil
+}
+
+// ScorePreparedInt8 scores one stored document against a query prepared once
+// for the surrounding scan.
+func ScorePreparedInt8(query PreparedInt8Query, stored StoredVector) (float64, error) {
+	if err := ValidateInt8(stored); err != nil {
+		return 0, err
+	}
+	return scorePreparedInt8(query, stored)
+}
+
+func scorePreparedInt8(query PreparedInt8Query, stored StoredVector) (float64, error) {
+	if query.dimensions <= 0 || len(query.blob) != query.dimensions || !finitePositive(query.scale) || !finitePositive(query.norm) {
+		return 0, fmt.Errorf("invalid prepared int8 query")
+	}
+	if query.dimensions != stored.Dimensions {
+		return 0, ErrInvalidDimensions
+	}
+	var dot float64
+	for index, value := range query.blob {
+		dot += float64(int8(value)) * float64(int8(stored.Blob[index]))
+	}
+	dot *= float64(query.scale) * float64(stored.Scale)
+	score := dot / (float64(query.norm) * float64(stored.Norm))
+	return math.Max(-1, math.Min(1, score)), nil
+}
+
 // ScoreInt8 calculates cosine of the reconstructed query and document
 // approximations. The result is a codec score, not exact target-f32 cosine.
 func ScoreInt8(query []float32, stored StoredVector) (float64, error) {
@@ -88,15 +134,9 @@ func ScoreInt8(query []float32, stored StoredVector) (float64, error) {
 	if len(query) != stored.Dimensions {
 		return 0, ErrInvalidDimensions
 	}
-	prepared, err := EncodeInt8(query)
+	prepared, err := PrepareInt8Query(query)
 	if err != nil {
 		return 0, err
 	}
-	var dot float64
-	for index, value := range prepared.Blob {
-		dot += float64(int8(value)) * float64(int8(stored.Blob[index]))
-	}
-	dot *= float64(prepared.Scale) * float64(stored.Scale)
-	score := dot / (float64(prepared.Norm) * float64(stored.Norm))
-	return math.Max(-1, math.Min(1, score)), nil
+	return scorePreparedInt8(prepared, stored)
 }

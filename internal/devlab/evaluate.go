@@ -65,6 +65,7 @@ type RetrievalEvaluationPlan struct {
 
 type RetrievalExperimentOptions struct {
 	FTSPolicy                    *search.EvaluationFTSPolicy
+	VectorOnly                   bool
 	ExperimentSeriesID           string
 	SeriesQueryOperationsPlanned int
 	AuthorizationReference       string
@@ -222,7 +223,12 @@ func PrepareRetrievalEvaluationExperimentAt(ctx context.Context, application *ap
 	// This is the exact Phase 11 no-provider snapshot preflight. It rejects a
 	// profile mismatch, corrupt row, or incomplete current materialization
 	// before --apply can request even the first query vector.
-	preflightSession, err := startRetrievalEvaluationSession(ctx, application, dataset.Cases[0].Text, experiment.FTSPolicy)
+	var preflightSession search.EvaluationSession
+	if experiment.VectorOnly {
+		preflightSession, err = application.Search.StartCodecEvaluationSession(ctx)
+	} else {
+		preflightSession, err = startRetrievalEvaluationSession(ctx, application, dataset.Cases[0].Text, experiment.FTSPolicy)
+	}
 	if err != nil {
 		return retrievalPrepared{}, err
 	}
@@ -267,6 +273,14 @@ func PrepareRetrievalEvaluationExperimentAt(ctx context.Context, application *ap
 }
 
 func validateRetrievalExperiment(application *app.Application, experiment RetrievalExperimentOptions, queryCount, estimatedTokens int) error {
+	if experiment.VectorOnly {
+		copy := experiment
+		copy.VectorOnly = false
+		if copy != (RetrievalExperimentOptions{}) {
+			return fmt.Errorf("vector-only preflight cannot carry retrieval experiment controls")
+		}
+		return nil
+	}
 	if experiment.FTSPolicy == nil {
 		if experiment != (RetrievalExperimentOptions{}) {
 			return fmt.Errorf("experimental metadata requires an evaluation FTS policy")

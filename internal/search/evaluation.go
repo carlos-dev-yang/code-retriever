@@ -164,6 +164,17 @@ type EvaluationVectorArms struct {
 	ActiveCodecBodies     []Hit
 }
 
+// EvaluationCodecArms is a development-only dense comparison. It deliberately
+// contains no FTS, provider-union, RRF, or body-packaging result.
+type EvaluationCodecArms struct {
+	TargetF32Segments     []EvaluationSegmentHit
+	ServingActiveSegments []EvaluationSegmentHit
+	CandidateInt8Segments []EvaluationSegmentHit
+	TargetF32             []EvaluationRankedHit
+	ServingActiveCodec    []EvaluationRankedHit
+	CandidateInt8         []EvaluationRankedHit
+}
+
 // ValidateEvaluationQuery applies the same local query policy used by the
 // production search service without loading a snapshot or contacting a
 // provider. Development planning uses it for every frozen dataset case.
@@ -195,6 +206,28 @@ func (service *Service) StartEvaluationSessionWithFTSPolicy(ctx context.Context,
 		return EvaluationSession{}, err
 	}
 	return service.startEvaluationSession(ctx, query, &policy)
+}
+
+// StartCodecEvaluationSession freezes only the active vector/segment/parent
+// snapshot. It neither tokenizes nor runs FTS and cannot produce an RRF input.
+func (service *Service) StartCodecEvaluationSession(ctx context.Context) (EvaluationSession, error) {
+	if service == nil {
+		return EvaluationSession{}, fmt.Errorf("search service is required")
+	}
+	snapshot, err := service.store.VectorSearchSnapshot(ctx, service.resolved)
+	if err != nil {
+		return EvaluationSession{}, err
+	}
+	if !snapshot.ProfileMatches {
+		return EvaluationSession{}, fmt.Errorf("PROFILE_RECONCILIATION_REQUIRED")
+	}
+	if snapshot.InvalidVectorRows {
+		return EvaluationSession{}, fmt.Errorf("VECTOR_SNAPSHOT_INVALID")
+	}
+	if len(snapshot.Vectors) == 0 || snapshot.CoverageNumerator != snapshot.CoverageDenominator {
+		return EvaluationSession{}, fmt.Errorf("MATERIALIZATION_REQUIRED")
+	}
+	return EvaluationSession{snapshot: snapshot, resolved: service.resolved, candidateK: service.resolved.Search.CandidateK}, nil
 }
 
 func (service *Service) startEvaluationSession(ctx context.Context, query string, policy *EvaluationFTSPolicy) (EvaluationSession, error) {
@@ -300,6 +333,54 @@ func (session EvaluationSession) EvaluateVectorArms(ctx context.Context, query [
 	}, nil
 }
 
+// EvaluateCodecArms scans target f32, the singular active production codec,
+// and a locally materialized candidate int8 bank from one query vector. It
+// shares the production segment-to-parent collapse and deterministic ordering
+// while intentionally bypassing FTS and RRF.
+func (session EvaluationSession) EvaluateCodecArms(ctx context.Context, query []float32, targetDocuments map[string][]float32, candidateInt8Documents map[string]vector.StoredVector, maxResults int) (EvaluationCodecArms, error) {
+	if err := session.validate(maxResults); err != nil {
+		return EvaluationCodecArms{}, err
+	}
+	if session.resolved.Embedding.StorageCodec != config.StorageCodecBinary {
+		return EvaluationCodecArms{}, fmt.Errorf("codec comparison requires active binary production profile")
+	}
+	if err := vector.ValidateF32(query, session.resolved.Embedding.ServingDimensions); err != nil {
+		return EvaluationCodecArms{}, err
+	}
+	targetScores, err := targetVectorScores(ctx, query, session.snapshot, targetDocuments)
+	if err != nil {
+		return EvaluationCodecArms{}, err
+	}
+	activeScores, err := binaryEvaluationScores(ctx, query, session.snapshot)
+	if err != nil {
+		return EvaluationCodecArms{}, err
+	}
+	int8Scores, err := candidateInt8VectorScores(ctx, query, session.snapshot, candidateInt8Documents)
+	if err != nil {
+		return EvaluationCodecArms{}, err
+	}
+	target, err := collapseVectorScores(ctx, session.snapshot, targetScores, maxResults)
+	if err != nil {
+		return EvaluationCodecArms{}, err
+	}
+	active, err := collapseVectorScores(ctx, session.snapshot, activeScores, maxResults)
+	if err != nil {
+		return EvaluationCodecArms{}, err
+	}
+	int8Values, err := collapseVectorScores(ctx, session.snapshot, int8Scores, maxResults)
+	if err != nil {
+		return EvaluationCodecArms{}, err
+	}
+	return EvaluationCodecArms{
+		TargetF32Segments:     evaluationSegments(session.snapshot, targetScores),
+		ServingActiveSegments: evaluationSegments(session.snapshot, activeScores),
+		CandidateInt8Segments: evaluationSegments(session.snapshot, int8Scores),
+		TargetF32:             evaluationVectorOnlyHits(session.snapshot, target),
+		ServingActiveCodec:    evaluationVectorOnlyHits(session.snapshot, active),
+		CandidateInt8:         evaluationVectorOnlyHits(session.snapshot, int8Values),
+	}, nil
+}
+
 func (session EvaluationSession) validate(maxResults int) error {
 	if session.candidateK <= 0 || maxResults <= 0 || maxResults > session.candidateK || session.resolved.ValidateIntegrity() != nil {
 		return fmt.Errorf("invalid evaluation session")
@@ -328,6 +409,62 @@ func targetVectorScores(ctx context.Context, query []float32, snapshot store.Hyb
 			return nil, fmt.Errorf("RAW_COVERAGE_INCOMPLETE")
 		}
 		score, err := vector.Cosine(query, document)
+		if err != nil {
+			return nil, err
+		}
+		scores[key] = score
+	}
+	return scores, nil
+}
+
+func candidateInt8VectorScores(ctx context.Context, query []float32, snapshot store.HybridSearchSnapshot, documents map[string]vector.StoredVector) (map[string]float64, error) {
+	prepared, err := vector.PrepareInt8Query(query)
+	if err != nil {
+		return nil, err
+	}
+	keys := make([]string, 0, len(snapshot.Vectors))
+	for key := range snapshot.Vectors {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	scores := make(map[string]float64, len(keys))
+	for _, key := range keys {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		document, ok := documents[key]
+		if !ok {
+			return nil, fmt.Errorf("RAW_COVERAGE_INCOMPLETE")
+		}
+		score, err := vector.ScorePreparedInt8(prepared, document)
+		if err != nil {
+			return nil, err
+		}
+		scores[key] = score
+	}
+	return scores, nil
+}
+
+func binaryEvaluationScores(ctx context.Context, query []float32, snapshot store.HybridSearchSnapshot) (map[string]float64, error) {
+	prepared, err := vector.PrepareBinaryQuery(query)
+	if err != nil {
+		return nil, err
+	}
+	keys := make([]string, 0, len(snapshot.Vectors))
+	for key := range snapshot.Vectors {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	scores := make(map[string]float64, len(keys))
+	for _, key := range keys {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		stored := snapshot.Vectors[key]
+		if stored.CodecID != vector.BinaryCodecID {
+			return nil, fmt.Errorf("codec comparison binary lane received non-binary vector")
+		}
+		score, err := vector.ScorePreparedBinary(prepared, stored)
 		if err != nil {
 			return nil, err
 		}
@@ -439,6 +576,20 @@ func evaluationHits(snapshot store.HybridSearchSnapshot, ranked []rankedChunk, s
 		result = append(result, hit)
 	}
 	return result
+}
+
+func evaluationVectorOnlyHits(snapshot store.HybridSearchSnapshot, values map[int64]vectorChunk) []EvaluationRankedHit {
+	ordered := make([]vectorChunk, 0, len(values))
+	for _, value := range values {
+		ordered = append(ordered, value)
+	}
+	sort.Slice(ordered, func(i, j int) bool { return vectorChunkBefore(ordered[i], ordered[j]) })
+	ranked := make([]rankedChunk, 0, len(ordered))
+	for index := range ordered {
+		value := ordered[index]
+		ranked = append(ranked, rankedChunk{chunkID: value.segment.ChunkID, path: value.path, startByte: value.startByte, vectorRank: index + 1, segment: &value.segment})
+	}
+	return evaluationHits(snapshot, ranked, evaluationVectorScore(values))
 }
 
 func evaluationFTSScore(item rankedChunk) (float64, bool) {
