@@ -8,6 +8,7 @@ import (
 
 	"cidx/internal/config"
 	"cidx/internal/profile"
+	"cidx/internal/vector"
 )
 
 type legacySpaceWire struct {
@@ -54,7 +55,7 @@ func TestLegacyServingVectorRekeyRejectsUnprovenRows(t *testing.T) {
 	}{
 		{"dimension", func(t *testing.T, p *ProductionStore, desired config.ResolvedConfig, inputHash string) {
 			t.Helper()
-			mutateLegacySpace(t, p, desired, func(space *legacySpaceWire) { space.TargetDimensions = 512 })
+			mutateLegacySpace(t, p, desired, func(space *legacySpaceWire) { space.TargetDimensions = 256 })
 		}},
 		{"reducer", func(t *testing.T, p *ProductionStore, desired config.ResolvedConfig, inputHash string) {
 			t.Helper()
@@ -68,7 +69,17 @@ func TestLegacyServingVectorRekeyRejectsUnprovenRows(t *testing.T) {
 		}},
 		{"codec", func(t *testing.T, p *ProductionStore, desired config.ResolvedConfig, inputHash string) {
 			t.Helper()
-			if _, err := p.Write.db.Exec(`UPDATE meta SET vector_storage_profile='forged'`); err != nil {
+			legacy := legacyMetadata(t, desired)
+			storage := profile.VectorStorageProfile{VectorSpaceProfileFingerprint: legacy.spaceFingerprint, StorageCodecID: vector.BinaryCodecID}
+			encoded, err := config.CanonicalJSON(storage)
+			if err != nil {
+				t.Fatal(err)
+			}
+			fingerprint, err := config.Fingerprint(storage, config.VectorStorageDomain)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := p.Write.db.Exec(`UPDATE meta SET vector_storage_profile=?,vector_storage_profile_json=?,active_serving_profile=?`, fingerprint, encoded, fingerprint); err != nil {
 				t.Fatal(err)
 			}
 		}},
@@ -184,8 +195,12 @@ func legacyRekeyFixture(t *testing.T) (*ProductionStore, config.ResolvedConfig, 
 	}
 	writeLegacyMeta(t, p, desired)
 	legacy := legacyMetadata(t, desired)
-	stored := validBinary(t, desired.Embedding.ServingDimensions)
-	if _, err := p.Write.db.ExecContext(ctx, `INSERT INTO vector_cache(serving_profile,canonical_input_sha256,dimensions,codec_id,codec_version,blob,scale,norm,materialization_fingerprint,source_profile,vector_space_profile,raw_vector_sha256,materialized_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`, legacy.storageFingerprint, inputHash, stored.Dimensions, stored.CodecID, stored.CodecVersion, stored.Blob, nil, nil, legacy.storageFingerprint, legacy.sourceFingerprint, legacy.spaceFingerprint, inputHash, time.Now().UTC().Format(time.RFC3339Nano)); err != nil {
+	stored, err := vector.EncodeInt8(makeUnitValues(desired.Embedding.ServingDimensions))
+	if err != nil {
+		p.Close()
+		t.Fatal(err)
+	}
+	if _, err := p.Write.db.ExecContext(ctx, `INSERT INTO vector_cache(serving_profile,canonical_input_sha256,dimensions,codec_id,codec_version,blob,scale,norm,materialization_fingerprint,source_profile,vector_space_profile,raw_vector_sha256,materialized_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`, legacy.storageFingerprint, inputHash, stored.Dimensions, stored.CodecID, stored.CodecVersion, stored.Blob, stored.Scale, stored.Norm, legacy.storageFingerprint, legacy.sourceFingerprint, legacy.spaceFingerprint, inputHash, time.Now().UTC().Format(time.RFC3339Nano)); err != nil {
 		p.Close()
 		t.Fatal(err)
 	}

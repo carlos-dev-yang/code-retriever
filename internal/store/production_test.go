@@ -360,7 +360,7 @@ func TestDesiredEmbeddingStatesUsesInactiveDesiredProfileCache(t *testing.T) {
 
 func testResolvedConfig(t *testing.T) config.ResolvedConfig {
 	t.Helper()
-	resolved, err := config.Resolve(config.RawConfig{Version: 1, Index: config.RawIndex{Languages: []string{"go"}, MaxSourceFileBytes: 512, TargetSegmentBytes: 256}, Embedding: config.RawEmbedding{ServingDimensions: intPointer(256), Request: config.RawRequest{MaxInputs: 1, MaxTotalInputBytes: 1, TimeoutSeconds: 1}}, MCP: config.RawMCP{HardMaxInlineBytes: 1}})
+	resolved, err := config.Resolve(config.RawConfig{Version: 1, Index: config.RawIndex{Languages: []string{"go"}, MaxSourceFileBytes: 512, TargetSegmentBytes: 256}, Embedding: config.RawEmbedding{ServingDimensions: intPointer(1024), Request: config.RawRequest{MaxInputs: 1, MaxTotalInputBytes: 1, TimeoutSeconds: 1}}, MCP: config.RawMCP{HardMaxInlineBytes: 1}})
 	if err != nil {
 		t.Fatal(err)
 	}

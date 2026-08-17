@@ -21,6 +21,13 @@ profile active or reusable. Only 512/1024 int8 may become current. The focused
 reproof follows Phase 02 and is governed by
 [`RETIRED-VECTOR-PROFILES.md`](RETIRED-VECTOR-PROFILES.md).
 
+The focused reproof is accepted in
+[`evidence/phase-05/int8-serving-key-reproof.md`](evidence/phase-05/int8-serving-key-reproof.md).
+The existing implementation needed no semantic change: strict equivalence
+already admits only the currently requested int8 dimension. Existing fixtures
+now show that canonical historical 256 and Binary profiles remain pending,
+while an exactly equivalent 1024/int8 row can still be atomically rekeyed.
+
 ## 1. Goal
 
 Discover searchable files from the Git working tree as it exists when indexing starts, hash, parse, and chunk each file from the same bytes, then atomically publish a new local search state to SQLite.

@@ -395,7 +395,7 @@ func TestR4IndexProfileForcesFullLocalRebuildWhileFTSUsesWholeParent(t *testing.
 	mustWrite(t, filepath.Join(root, "big.go"), source)
 	runGit(t, root, "add", "big.go")
 	target := 32
-	dim := 256
+	dim := 1024
 	resolved, err := config.Resolve(config.RawConfig{Version: 1, Index: config.RawIndex{Languages: []string{"go"}, MaxSourceFileBytes: 1024 * 1024, TargetSegmentBytes: target}, Embedding: config.RawEmbedding{ServingDimensions: &dim, Request: config.RawRequest{MaxInputs: 1, MaxTotalInputBytes: 1, TimeoutSeconds: 1}}, MCP: config.RawMCP{HardMaxInlineBytes: 1}})
 	if err != nil {
 		t.Fatal(err)
@@ -474,7 +474,7 @@ func TestR4LegacyVectorRekeyAppearsInDryRunAndAppliesWithFullRebuild(t *testing.
 	if err := rows.Close(); err != nil || len(hashes) != 2 {
 		t.Fatalf("hashes=%v err=%v", hashes, err)
 	}
-	stored, err := vector.EncodeBinary(func() []float32 {
+	stored, err := vector.EncodeInt8(func() []float32 {
 		values := make([]float32, resolved.Embedding.ServingDimensions)
 		values[0] = 1
 		return values
@@ -482,7 +482,7 @@ func TestR4LegacyVectorRekeyAppearsInDryRunAndAppliesWithFullRebuild(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := db.ExecContext(ctx, `INSERT INTO vector_cache(serving_profile,canonical_input_sha256,dimensions,codec_id,codec_version,blob,scale,norm,materialization_fingerprint,source_profile,vector_space_profile,raw_vector_sha256,materialized_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`, legacyProfile.storage, hashes[0], stored.Dimensions, stored.CodecID, stored.CodecVersion, stored.Blob, nil, nil, legacyProfile.storage, legacyProfile.source, legacyProfile.space, hashes[0], "2026-01-02T03:04:05Z"); err != nil {
+	if _, err := db.ExecContext(ctx, `INSERT INTO vector_cache(serving_profile,canonical_input_sha256,dimensions,codec_id,codec_version,blob,scale,norm,materialization_fingerprint,source_profile,vector_space_profile,raw_vector_sha256,materialized_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`, legacyProfile.storage, hashes[0], stored.Dimensions, stored.CodecID, stored.CodecVersion, stored.Blob, stored.Scale, stored.Norm, legacyProfile.storage, legacyProfile.source, legacyProfile.space, hashes[0], "2026-01-02T03:04:05Z"); err != nil {
 		t.Fatal(err)
 	}
 	preview, err := s.Execute(ctx, Request{Root: root, DryRun: true, Reason: ReasonManual, Config: resolved})
@@ -609,7 +609,7 @@ func TestCanonicalOnlyReconciliationPreservesASTAndFTS(t *testing.T) {
 	}
 }
 func testConfig(t *testing.T) config.ResolvedConfig {
-	return testConfigDim(t, 256)
+	return testConfigDim(t, 1024)
 }
 func testConfigDim(t *testing.T, d int) config.ResolvedConfig {
 	t.Helper()
