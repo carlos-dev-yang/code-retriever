@@ -120,11 +120,11 @@ internal/
     embeddings.go           # segment, codec-tagged vector, and failure metadata
     runs.go
   sourcebank/               # Phase 08 implementation target under this contract
-    options.go              # code-owned source-bank path and portable repository identity
+    options.go              # code-owned source-bank path; portable identity is the content-addressed source key
     store.go                # product document-source connection factory
     schema.go               # source-only schema and migrations
   lab/
-    options.go              # fixed lab path and repository identity derived from root
+    options.go              # fixed vector-free evaluation path under the explicit state root
     store.go                # lab-only connection factory
     schema.go               # lab-only schema and migrations
   evalcontract/
@@ -283,7 +283,7 @@ Store `vector_cache.dimensions` on every row only as integrity metadata that mus
 
 The product source path is `<state_root>/db/embeddings.db`, separate from serving `index.db`. Normal cidx development evaluation selects a named state root below `.cidx/test/states/` and uses the same source-bank contract there. `serve` startup never creates or opens it. Evaluation metadata is stored separately in `<state_root>/lab/evaluation.db`.
 
-- source-bank `source_meta`: schema version, portable repository identity, and creation time
+- source-bank `source_meta`: schema version and creation time; no absolute path or duplicate repository identity
 - source-bank `document_source_embeddings`: source-profile-plus-input-hash key, immutable 1024-dimensional Voyage document-role f32 blob, dimensions, checksum, API response model/provenance, and creation time
 - lab `lab_meta`: lab schema version and creation timestamps; no machine path or vector blob
 - `capture_runs`: target generation, source profile, requested/hit/miss/success/failure counts, and cost metadata

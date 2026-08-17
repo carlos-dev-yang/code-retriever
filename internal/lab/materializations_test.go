@@ -19,7 +19,7 @@ func TestMaterializationRunTransitionsReadyToPublished(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	stored, err := vector.EncodeBinary([]float32{1, -1, 1, -1, 1, -1, 1, -1})
+	stored, err := vector.EncodeInt8([]float32{1, -1, 1, -1, 1, -1, 1, -1})
 	if err != nil {
 		t.Fatal(err)
 	}

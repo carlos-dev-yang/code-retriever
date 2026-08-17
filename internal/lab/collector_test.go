@@ -99,10 +99,10 @@ func TestAttemptTimeoutRetriesButParentCancellationStops(t *testing.T) {
 }
 func testCollector(t *testing.T, store *Store, client embedclient.EmbeddingClient) Collector {
 	t.Helper()
-	return Collector{Store: store, Client: client, Source: embedclient.EmbeddingSourceSpec{Provider: embedclient.ProviderID, Model: embedclient.Model, SourceDimensions: embedclient.SourceDimensions, OutputDType: embedclient.OutputDType, DocumentInputType: "document", QueryInputType: "query", AdapterVersion: embedclient.AdapterVersion}, SourceProfile: "source-fingerprint", RequestLimits: embed.RequestLimits{MaxInputs: 10, MaxTotalBytes: 100000}, MaxConcurrency: 1, AttemptTimeout: time.Second, MaxRetries: 3, RetryWaits: []time.Duration{time.Millisecond, time.Millisecond, time.Millisecond}, Wait: func(context.Context, time.Duration) error { return nil }}
+	return Collector{Store: store, Client: client, Source: embedclient.EmbeddingSourceSpec{Provider: embedclient.ProviderID, Model: embedclient.Model, SourceDimensions: embedclient.SourceDimensions, OutputDType: embedclient.OutputDType, DocumentInputType: "document", QueryInputType: "query", AdapterVersion: embedclient.AdapterVersion}, SourceProfile: testDigest, RequestLimits: embed.RequestLimits{MaxInputs: 10, MaxTotalBytes: 100000}, MaxConcurrency: 1, AttemptTimeout: time.Second, MaxRetries: 3, RetryWaits: []time.Duration{time.Millisecond, time.Millisecond, time.Millisecond}, Wait: func(context.Context, time.Duration) error { return nil }}
 }
 func testInput() CaptureInput {
-	return CaptureInput{InputRecord: InputRecord{InputHash: "hash", CanonicalTextProfile: "text", CanonicalBytes: []byte("path: a.go\nbody:\nfunc A() {}\n"), Generation: 1, ManifestSHA256: "manifest", SegmentID: 1}}
+	return CaptureInput{InputRecord: InputRecord{InputHash: testDigest, CanonicalTextProfile: "text", CanonicalBytes: []byte("path: a.go\nbody:\nfunc A() {}\n"), Generation: 1, ManifestSHA256: "manifest", SegmentID: 1}}
 }
 
 func TestCapturePlanApplyAndResume(t *testing.T) {
@@ -150,7 +150,7 @@ func TestPartialResumeOnlyRequestsUnpersistedBatch(t *testing.T) {
 	c := testCollector(t, s, client)
 	c.RequestLimits.MaxInputs = 1
 	second := testInput()
-	second.InputHash = "second"
+	second.InputHash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 	second.CanonicalBytes = []byte("second\n")
 	p, err := c.Plan(ctx, []CaptureInput{testInput(), second})
 	if err != nil {
@@ -180,8 +180,8 @@ func TestCaptureRejectsInvalidBatchBeforeWrite(t *testing.T) {
 	if _, err = collector.Apply(ctx, plan, 1, "manifest"); err == nil {
 		t.Fatal("invalid response accepted")
 	}
-	hits, err := store.ExistingKeys(ctx, "source-fingerprint", []string{"hash"})
-	if err != nil || hits["hash"] {
+	hits, err := store.ExistingKeys(ctx, testDigest, []string{testDigest})
+	if err != nil || hits[testDigest] {
 		t.Fatalf("invalid batch persisted: %#v %v", hits, err)
 	}
 }
@@ -241,11 +241,11 @@ func TestCapturePlanSkipsTerminalFailureUnlessRequested(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer store.Close()
-	id, err := store.StartCapture(ctx, CaptureRun{Generation: 1, ManifestSHA256: "m", SourceProfile: "source-fingerprint"})
+	id, err := store.StartCapture(ctx, CaptureRun{Generation: 1, ManifestSHA256: "m", SourceProfile: testDigest})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := store.RecordFailure(ctx, id, RawEmbeddingKey{SourceProfile: "source-fingerprint", InputHash: "hash"}, "terminal", "provider", "safe", 1); err != nil {
+	if err := store.RecordFailure(ctx, id, RawEmbeddingKey{SourceProfile: testDigest, InputHash: testDigest}, "terminal", "provider", "safe", 1); err != nil {
 		t.Fatal(err)
 	}
 	collector := testCollector(t, store, &fakeEmbeddingClient{})
@@ -257,11 +257,11 @@ func TestCapturePlanSkipsTerminalFailureUnlessRequested(t *testing.T) {
 	if err != nil || plan.PaidMisses != 1 {
 		t.Fatalf("override %#v %v", plan, err)
 	}
-	id2, err := store.StartCapture(ctx, CaptureRun{Generation: 1, ManifestSHA256: "m", SourceProfile: "source-fingerprint"})
+	id2, err := store.StartCapture(ctx, CaptureRun{Generation: 1, ManifestSHA256: "m", SourceProfile: testDigest})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := store.RecordFailure(ctx, id2, RawEmbeddingKey{SourceProfile: "source-fingerprint", InputHash: "hash"}, "retryable", "provider", "safe", 1); err != nil {
+	if err := store.RecordFailure(ctx, id2, RawEmbeddingKey{SourceProfile: testDigest, InputHash: testDigest}, "retryable", "provider", "safe", 1); err != nil {
 		t.Fatal(err)
 	}
 	plan, err = collector.Plan(ctx, []CaptureInput{testInput()})
@@ -295,7 +295,7 @@ func TestAtomicRawBatchConflictRollsBack(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	base := DocumentRaw{SourceProfile: "s", InputHash: "old", ResponseModel: "voyage-code-4", Vector: fv}
+	base := DocumentRaw{SourceProfile: testDigest, InputHash: testDigest, ResponseModel: "voyage-code-4", Vector: fv}
 	if err := s.PutDocumentSource(ctx, base, 1024); err != nil {
 		t.Fatal(err)
 	}
@@ -303,14 +303,14 @@ func TestAtomicRawBatchConflictRollsBack(t *testing.T) {
 	changed[1] = 1
 	bad, _ := NewF32Vector(changed, 1024)
 	newRaw := base
-	newRaw.InputHash = "new"
+	newRaw.InputHash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 	conflict := base
 	conflict.Vector = bad
 	if err := s.PutDocumentSources(ctx, []DocumentRaw{newRaw, conflict}, 1024); err == nil {
 		t.Fatal("conflict accepted")
 	}
-	hits, err := s.ExistingKeys(ctx, "s", []string{"new"})
-	if err != nil || hits["new"] {
+	hits, err := s.ExistingKeys(ctx, testDigest, []string{newRaw.InputHash})
+	if err != nil || hits[newRaw.InputHash] {
 		t.Fatal("partial batch persisted")
 	}
 }

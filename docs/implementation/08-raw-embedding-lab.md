@@ -1,6 +1,6 @@
 # 08. Product Document Source Bank and Evaluation Capture
 
-- Status: `blocked` — the accepted shared synchronous executor remains, but immutable 1024-f32 document rows must be separated into product-owned source storage before downstream reconciliation
+- Status: `done` — the accepted executor now writes immutable 1024-f32 document rows to product source storage while evaluation SQLite remains vector-free
 - Prerequisite phases: `02-config-profiles-and-schemas`, `05-worktree-index-pipeline`
 - Follow-up phases: `09-vector-materialization`, `12-retrieval-evaluation`
 - Design basis: `local-code-search-mcp-v1-design-r4.md` §7.1–§7.4, §9.1
@@ -8,7 +8,7 @@
 ## Context Recovery Checklist
 
 - Reopen the [implementation index](README.md), [execution guide](EXECUTION-GUIDE.md), and [status ledger](STATUS.md) before continuing.
-- Confirm the Phase 02 production/lab stores and profile schemas, the central `voyage-code-4` `ModelSpec`, the Phase 05 active canonical document inputs, the repository identity contract, and the shared embedding lock are available.
+- Confirm the Phase 02 production/lab stores and profile schemas, the central `voyage-code-4` `ModelSpec`, the Phase 05 active canonical document inputs, the portable content-addressed source-key contract, and the shared embedding lock are available.
 - Re-check these invariants after any context compaction: source requests explicitly use 1024-dimensional float output; the product bank stores immutable document f32 only; document and query roles remain distinct; queries are never persisted; serving/search/MCP never opens the source bank; evaluation run state is separate; provider quantized output is not a cidx codec.
 - Stop before a paid call if repository/profile identity is unresolved, active canonical inputs cannot be reconstructed exactly, `VOYAGE_API_KEY` is missing for apply, synchronous request limits rely on an undocumented model-specific token cap, or response model/count/index/dimension/finite validation fails.
 - Before pausing, record executed evidence in §11, capture new architectural choices in §13, and update [STATUS.md](STATUS.md) with the exact next checklist item and unresolved stop condition.
@@ -130,7 +130,12 @@ The state root is project-local in v1. Normal use fixes it to the source project
 `source_meta`
 
 - `schema_version`
-- portable repository identity and creation time
+- creation time
+
+The portable source identity is not a second repository ID. It is the existing
+content-addressed key `(source_profile_fingerprint,
+canonical_input_sha256)`. No absolute source/state path or duplicated project
+identifier is stored.
 
 `document_source_embeddings`
 
@@ -276,7 +281,7 @@ Validate every user-adjustable codec name once in `ResolvedConfig`. The central 
 - Preserve a received source row even if its active reference disappears while collection is in progress.
 - Start `cidx serve` with missing or inaccessible source/lab DBs and still provide FTS and existing vector search.
 - Run evaluation queries without increasing the `document_source_embeddings` row count.
-- Copy a source bank from another repository and fail repository-identity validation; moving a complete state root with the same portable repository identity remains supported.
+- Copying or moving a source bank remains safe because only rows whose source-profile fingerprint and canonical-input SHA-256 match a requested active key are reusable; no path or separate repository-ID binding is required.
 - Inspect the product source bank and prove it contains no evaluation run tables; inspect the lab DB and prove it contains no vector blobs.
 
 Do not create validation code in this planning-document phase. During implementation, preserve evidence by using the existing harness or phase-specific validation commands that cover these scenarios.
@@ -284,6 +289,9 @@ Do not create validation code in this planning-document phase. During implementa
 ## 11. Completion Evidence
 
 The pre-supersession implementation evidence is recorded in [Phase 08 evidence](evidence/phase-08/README.md), including the accepted [Revision 4 reconciliation](evidence/phase-08/revision-4.md). Those focused fake-backed checks validated cache-first plan/apply, byte-bounded concurrent execution, staged retry and cancellation behavior, all-or-nothing malformed-response rejection, immutable f32 persistence, root isolation, and the historical combined-lab migration. They do not prove the new product-source/evaluation-store split. Live provider/cost/corpus evidence was not run at that boundary.
+
+The current product split and offline boundary are accepted in
+[`evidence/phase-08/int8-source-bank-reconciliation.md`](evidence/phase-08/int8-source-bank-reconciliation.md).
 
 - Product source-bank and separate evaluation-store schema dumps and migration versions.
 - Plan/apply log showing that only the first of two identical inputs incurs a paid call.

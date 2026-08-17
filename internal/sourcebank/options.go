@@ -1,15 +1,11 @@
-package lab
+package sourcebank
 
 import (
 	"fmt"
 	"path/filepath"
-
-	"cidx/internal/sourcebank"
 )
 
 type Options struct {
-	// StateRoot is the explicit state namespace. Root remains a compatibility
-	// input for ordinary project-local development and resolves to Root/.cidx.
 	StateRoot string
 	Root      string
 }
@@ -30,17 +26,13 @@ func (options Options) Path() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(root, "lab", "evaluation.db"), nil
+	return filepath.Join(root, "db", "embeddings.db"), nil
 }
 
-func (options Options) SourceBankOptions() sourcebank.Options {
-	return sourcebank.Options{StateRoot: options.StateRoot, Root: options.Root}
-}
-
-func canonicalRoot(root string) (string, error) {
-	abs, err := filepath.Abs(root)
+func (options Options) LegacyPath() (string, error) {
+	root, err := options.ResolvedStateRoot()
 	if err != nil {
 		return "", err
 	}
-	return filepath.EvalSymlinks(abs)
+	return filepath.Join(root, "raw", "embeddings.db"), nil
 }
