@@ -1,5 +1,10 @@
 # Phase 11 Vector and Hybrid Search Evidence
 
+The current 2026-08-17 int8-only acceptance is recorded in
+[`int8-only-query-search-reconciliation.md`](int8-only-query-search-reconciliation.md).
+The checkpoint below is preserved as historical implementation evidence; its
+dual-codec fixture wording is not a current product capability.
+
 - State: accepted at the Phase 11 commit boundary by the main agent.
 - Date: 2026-08-15
 - Scope: transport-independent core search only. No MCP/CLI adapter, `read_span`, evaluation runner, real provider, API key, network, corpus, lab runtime access, or paid action was used.

@@ -1,7 +1,7 @@
 # 11. Vector Scan and Hybrid Search
 
-- Status: `in_progress` — Phase 09/10 are accepted; revalidate the int8-only
-  runtime scan and remove retired comparison surfaces from current evidence
+- Status: `done` — the int8-only runtime/evaluation scan and retired-surface
+  removal are accepted at the current commit boundary
 - Prerequisites: `06-fts-search`, `09-vector-materialization`, `10-embedding-orchestration-and-reconciliation`
 - Followed by: `12-retrieval-evaluation`, `13-cli-and-mcp`
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 8 and 9.2
@@ -26,6 +26,11 @@ Binary scoring code and every 256 path are removed;
 only immutable historical evidence remains. Earlier dual-codec text below is historical where it
 conflicts with
 [`RETIRED-VECTOR-PROFILES.md`](RETIRED-VECTOR-PROFILES.md).
+
+The accepted current boundary is recorded in
+[`int8-only-query-search-reconciliation.md`](evidence/phase-11/int8-only-query-search-reconciliation.md).
+It supersedes the historical dual-codec validation wording below without
+rewriting the evidence that was actually gathered at that earlier boundary.
 
 ## Historical pre-Revision-4 Entry Gate Record
 
@@ -282,6 +287,24 @@ The service uses immutable `ResolvedConfig` created at server start rather than 
 - FTS-only hits whose full parent does not fit have no invented matched excerpt.
 
 ## 11. Completion Evidence
+
+Current int8-only acceptance (2026-08-17):
+
+- Query embeddings remain request-local 1024-f32, use the shared validated
+  provider executor, and are transformed to the active 1024/int8 or 512/int8
+  space before one prepared int8 query scans the active production rows.
+- Runtime search has no product source-bank or evaluation-store dependency.
+- Removed the obsolete `candidate_int8` comparison alias, the unused
+  vector-only experiment preflight, its public session entry point, and a dead
+  vector-only hit helper. The serving-f32 reference and active-int8 fidelity
+  arms remain because they measure representation fidelity rather than expose
+  another product codec.
+- Snapshot consistency, collapse, deterministic RRF, fallback, coverage, and
+  indexed-body packaging remain unchanged.
+- The focused normal, race, vet, build, format, dependency, schema, module, and
+  diff boundary is recorded in
+  [current evidence](evidence/phase-11/int8-only-query-search-reconciliation.md).
+  No provider, credential, network, corpus, or metric run was performed.
 
 Implementation and main-agent acceptance record (2026-08-15; details in [Phase 11 evidence](evidence/phase-11/README.md)):
 

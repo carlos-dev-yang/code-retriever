@@ -197,28 +197,6 @@ func (service *Service) StartEvaluationSessionWithFTSPolicy(ctx context.Context,
 	return service.startEvaluationSession(ctx, query, &policy)
 }
 
-// StartVectorEvaluationSession freezes only the active vector/segment/parent
-// snapshot. It neither tokenizes nor runs FTS and cannot produce an RRF input.
-func (service *Service) StartVectorEvaluationSession(ctx context.Context) (EvaluationSession, error) {
-	if service == nil {
-		return EvaluationSession{}, fmt.Errorf("search service is required")
-	}
-	snapshot, err := service.store.VectorSearchSnapshot(ctx, service.resolved)
-	if err != nil {
-		return EvaluationSession{}, err
-	}
-	if !snapshot.ProfileMatches {
-		return EvaluationSession{}, fmt.Errorf("PROFILE_RECONCILIATION_REQUIRED")
-	}
-	if snapshot.InvalidVectorRows {
-		return EvaluationSession{}, fmt.Errorf("VECTOR_SNAPSHOT_INVALID")
-	}
-	if len(snapshot.Vectors) == 0 || snapshot.CoverageNumerator != snapshot.CoverageDenominator {
-		return EvaluationSession{}, fmt.Errorf("MATERIALIZATION_REQUIRED")
-	}
-	return EvaluationSession{snapshot: snapshot, resolved: service.resolved, candidateK: service.resolved.Search.CandidateK}, nil
-}
-
 func (service *Service) startEvaluationSession(ctx context.Context, query string, policy *EvaluationFTSPolicy) (EvaluationSession, error) {
 	if service == nil {
 		return EvaluationSession{}, fmt.Errorf("search service is required")
@@ -269,8 +247,8 @@ func (session EvaluationSession) FTS(maxResults int) ([]EvaluationRankedHit, err
 	return evaluationHits(session.snapshot, fuse(session.snapshot, nil, session.resolved.Search.RRFK, maxResults), evaluationFTSScore), nil
 }
 
-// EvaluateVectorArms executes the eight-arm vector portion from one frozen
-// production snapshot. targetDocuments maps active canonical-input hashes to
+// EvaluateVectorArms executes the current target-f32/int8 retrieval arms from
+// one frozen production snapshot. targetDocuments maps active canonical-input hashes to
 // already-transformed target-dimension f32 document vectors supplied by the
 // development raw-bank adapter.
 func (session EvaluationSession) EvaluateVectorArms(ctx context.Context, query []float32, targetDocuments map[string][]float32, maxResults, bodyBudget int) (EvaluationVectorArms, error) {
@@ -461,30 +439,6 @@ func evaluationHits(snapshot store.HybridSearchSnapshot, ranked []rankedChunk, s
 		result = append(result, hit)
 	}
 	return result
-}
-
-func evaluationVectorOnlyHits(snapshot store.HybridSearchSnapshot, values map[int64]vectorChunk, limit int) []EvaluationRankedHit {
-	ordered := make([]vectorChunk, 0, len(values))
-	for _, value := range values {
-		ordered = append(ordered, value)
-	}
-	sort.Slice(ordered, func(i, j int) bool { return vectorChunkBefore(ordered[i], ordered[j]) })
-	ranked := make([]rankedChunk, 0, min(limit, len(ordered)))
-	seen := map[string]bool{}
-	for index := range ordered {
-		value := ordered[index]
-		chunk := snapshot.Chunks[value.segment.ChunkID]
-		key := chunk.Path + "\x00" + chunk.IndexedSHA256 + "\x00" + chunk.QualifiedSymbol
-		if seen[key] {
-			continue
-		}
-		seen[key] = true
-		ranked = append(ranked, rankedChunk{chunkID: value.segment.ChunkID, path: value.path, startByte: value.startByte, vectorRank: len(ranked) + 1, segment: &value.segment})
-		if len(ranked) == limit {
-			break
-		}
-	}
-	return evaluationHits(snapshot, ranked, evaluationVectorScore(values))
 }
 
 func evaluationFTSScore(item rankedChunk) (float64, bool) {

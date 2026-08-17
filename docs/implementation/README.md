@@ -29,10 +29,13 @@ evidence](evidence/phase-10/revision-4.md). Phase 11 now owns request-local
 query embedding and fallback integration.
 
 Phase 11 reconciles the request-local query embedding adapter with that
-accepted executor. Its snapshot, codec scan, collapse, RRF, fallback, and
-body-packaging algorithms remain frozen at the historical accepted boundary.
-Focused offline checks, independent review, and main boundary validation are
-accepted in [the Phase 11 R4 evidence](evidence/phase-11/revision-4.md).
+accepted executor and the current int8-only product profile. Its snapshot,
+collapse, RRF, fallback, and body-packaging algorithms remain frozen at the
+historical accepted boundary. The obsolete comparison alias and vector-only
+preflight surface are removed. Current acceptance is recorded in
+[the int8-only evidence](evidence/phase-11/int8-only-query-search-reconciliation.md),
+while the earlier executor boundary remains in
+[historical R4 evidence](evidence/phase-11/revision-4.md).
 
 Phase 12's corpus-independent provider-usage accounting, artifact wire, and
 isolated lab migration are accepted in [its Revision 4 evidence](evidence/phase-12/revision-4.md).
@@ -82,8 +85,8 @@ Allowed states are `planned | in_progress | blocked | done`. A phase becomes `do
 | 08 | done | [Document source-vector bank](08-raw-embedding-lab.md) | reconciled 02, 05 | Split durable product 1024-f32 source storage from vector-free evaluation run/artifact state while retaining the shared synchronous executor | [Current source-bank evidence](evidence/phase-08/int8-source-bank-reconciliation.md) and [historical R4 evidence](evidence/phase-08/revision-4.md) |
 | 09 | done | [Vector materialization](09-vector-materialization.md) | reconciled 02, existing 01/05/08 | Int8-only 1024-default/512-optional transform, production v5 cache, atomic materialization, and direct scan boundary | [Current evidence](evidence/phase-09/int8-only-materialization-reconciliation.md) and [historical evidence](evidence/phase-09/README.md) |
 | 10 | done | [Embedding orchestration and reconciliation](10-embedding-orchestration-and-reconciliation.md) | reconciled 02/09, existing 05/08 | Source-bank-first Voyage document publication, provider-free source reuse, and provider-only request accounting | [Current evidence](evidence/phase-10/source-bank-first-document-publication.md) and [historical R4 evidence](evidence/phase-10/revision-4.md) |
-| 11 | in_progress | [Vector and hybrid search](11-vector-and-hybrid-search.md) | reconciled 02/09/10, existing 06 | Int8-only request-local scan, RRF, fallback, and body packaging | [Historical R4 evidence](evidence/phase-11/revision-4.md) |
-| 12 | blocked | [Retrieval evaluation](12-retrieval-evaluation.md) | 07, reconciled 08, 09, 11 | Accepted Revision 4 corpus-independent adapter; official corpus evaluation and promotion remain externally gated | [Accepted R4 core evidence](evidence/phase-12/revision-4.md) |
+| 11 | done | [Vector and hybrid search](11-vector-and-hybrid-search.md) | reconciled 02/09/10, existing 06 | Int8-only request-local scan, RRF, fallback, and body packaging | [Current evidence](evidence/phase-11/int8-only-query-search-reconciliation.md) and [historical R4 evidence](evidence/phase-11/revision-4.md) |
+| 12 | in_progress | [Retrieval evaluation](12-retrieval-evaluation.md) | 07, reconciled 08, 09, 11 | Reconcile the accepted corpus-independent adapter to the current int8-only matrix; official corpus evaluation and promotion remain externally gated | [Accepted R4 core evidence](evidence/phase-12/revision-4.md) |
 | 13 | blocked | [CLI and MCP](13-cli-and-mcp.md) | reconciled 02/08/11 and existing Phase 12 core | Int8-only 1024-default init/help, local 512 rematerialization, and unchanged four-tool MCP | [Historical R4 evidence](evidence/phase-13/revision-4.md) |
 | 14 | blocked | [Packaging and host integration](14-packaging-and-host-integration.md) | 13 | Accepted local darwin/arm64 package, offline MCP verifier, and Codex project-config-read checkpoint; official release-candidate evidence remains externally gated | [R4 local checkpoint evidence](evidence/phase-14/revision-4.md) |
 

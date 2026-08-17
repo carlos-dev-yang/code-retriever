@@ -1,6 +1,8 @@
 # 12. Retrieval Evaluation
 
-- Status: `blocked` — the corpus-independent Revision 4 accounting/migration boundary is accepted; official corpus evaluation and promotion await external, user-controlled inputs.
+- Status: `in_progress` — reconcile the accepted corpus-independent adapter to
+  the current int8-only product matrix; official corpus evaluation and
+  promotion remain externally blocked.
 - Prerequisites: `07-lexical-evaluation`, `08-raw-embedding-lab`, `09-vector-materialization`, `11-vector-and-hybrid-search`
 - Followed by: `13-cli-and-mcp`, `14-packaging-and-host-integration`
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 5, 6, and 9
