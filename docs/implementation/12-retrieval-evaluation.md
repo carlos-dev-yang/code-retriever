@@ -1,8 +1,7 @@
 # 12. Retrieval Evaluation
 
-- Status: `in_progress` — reconcile the accepted corpus-independent adapter to
-  the current int8-only product matrix; official corpus evaluation and
-  promotion remain externally blocked.
+- Status: `blocked` — the corpus-independent int8-only adapter is accepted;
+  official corpus evaluation and promotion remain externally blocked.
 - Prerequisites: `07-lexical-evaluation`, `08-raw-embedding-lab`, `09-vector-materialization`, `11-vector-and-hybrid-search`
 - Followed by: `13-cli-and-mcp`, `14-packaging-and-host-integration`
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 5, 6, and 9
@@ -367,6 +366,13 @@ Corpus manifest and dataset paths are development inputs. Artifact location is f
 - Frozen `promotion-contract.json`, `scope=core_retrieval` `promotion-result.json`, first-loss report, implementation audit, and artifact checksums.
 
 The corpus-independent subset is accepted in [Revision 4 evidence](evidence/phase-12/revision-4.md): logical query operations and actual provider attempts are separated, token observability is conservative, the ordered local usage artifact is deterministic, and lab schema v5 preserves pre-R4 counters only as legacy provenance. This does not satisfy the official corpus, quality, selection, or promotion items above.
+
+The current product-profile reconciliation is accepted in
+[int8-only evaluation evidence](evidence/phase-12/int8-only-evaluation-reconciliation.md).
+The executable matrix supports the default 1024/int8 or explicit 512/int8
+profile, records the actual selected dimension, and retains serving-f32 only
+as a nonpersistent fidelity reference. Binary/256 remain historical reports
+only. No official corpus or quality claim was produced at this boundary.
 
 ## 12. Handoff
 

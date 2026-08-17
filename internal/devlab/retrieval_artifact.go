@@ -472,8 +472,8 @@ func buildRetrievalExperimentManifest(prepared retrievalPrepared, run eval.Retri
 	if err := resolved.ValidateIntegrity(); err != nil {
 		return nil, err
 	}
-	if resolved.Embedding.Model.SourceDimensions != 1024 || resolved.Embedding.ServingDimensions != 1024 || resolved.Embedding.StorageCodec != config.StorageCodecInt8 {
-		return nil, fmt.Errorf("retrieval experiment requires the fixed 1024/int8 profile")
+	if resolved.Embedding.Model.SourceDimensions != 1024 || (resolved.Embedding.ServingDimensions != 1024 && resolved.Embedding.ServingDimensions != 512) || resolved.Embedding.StorageCodec != config.StorageCodecInt8 {
+		return nil, fmt.Errorf("retrieval experiment requires a supported 1024/int8 or 512/int8 profile")
 	}
 	if usage.Aggregate.LogicalQueryOperations != len(prepared.dataset.Cases) || usage.Aggregate.ValidatedResponses != len(prepared.dataset.Cases) || usage.Aggregate.FailedAttempts != 0 || usage.Aggregate.Retries != 0 || !usage.Aggregate.TokenAccountingComplete || usage.Aggregate.ObservedTotalTokens == nil {
 		return nil, fmt.Errorf("retrieval experiment provider accounting is incomplete")

@@ -2,7 +2,9 @@
 
 > Historical pre-Revision-4 implementation evidence. The current
 > corpus-independent reconciliation is recorded separately in
-> [Revision 4 evidence](revision-4.md); official evaluation remains blocked.
+> [Revision 4 accounting evidence](revision-4.md) and the
+> [current int8-only profile evidence](int8-only-evaluation-reconciliation.md);
+> official evaluation remains blocked.
 
 - Phase: `12-retrieval-evaluation`
 - State: `blocked` — reusable corpus-independent infrastructure is implemented; official evaluation and promotion evidence require external, user-controlled inputs.

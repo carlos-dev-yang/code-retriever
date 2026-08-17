@@ -1,7 +1,7 @@
 # 13. CLI and MCP Surface Integration
 
-- Status: `blocked` — public init/help/package smoke must be reconciled to
-  default 1024, `--serving-dim <1024|512>`, fixed int8, and source-bank reuse after Phase 02/08/11
+- Status: `in_progress` — reconcile the accepted CLI/MCP adapter to default
+  1024, `--serving-dim <1024|512>`, fixed int8, and source-bank reuse
 - Prerequisites: reconciled `05-worktree-index-pipeline`, `10-embedding-orchestration-and-reconciliation`, and `11-vector-and-hybrid-search`; completed `06-fts-search`; Phase 12 corpus-independent core/API
 - Followed by: `14-packaging-and-host-integration`
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 3, 4, 8, and 10
