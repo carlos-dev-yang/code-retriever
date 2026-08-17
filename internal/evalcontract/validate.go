@@ -123,7 +123,7 @@ func (value StageTrace) Validate() error {
 	return nil
 }
 func (value PromotionResult) Validate() error {
-	if value.SchemaVersion != SchemaVersion || !validScope(value.Scope) || (value.Status != PromotionEvidenceReady && value.Status != NotPromotionReady) || len(value.ApplicableGates) == 0 {
+	if value.SchemaVersion != SchemaVersion || !validScope(value.Scope) || (value.Status != PromotionEvidenceReady && value.Status != NotPromotionReady) || len(value.ApplicableGates) == 0 || !validFrozenReviewAuthority(value.ReviewProtocolVersion, value.RelevanceAuthority, value.ReviewValidation) {
 		return fmt.Errorf("invalid promotion result")
 	}
 	if value.Status == PromotionEvidenceReady && (len(value.FailedGates) != 0 || value.IncompleteReason != "") {
@@ -138,10 +138,13 @@ func (value EvaluationRunManifest) Validate() error {
 	if value.SchemaVersion != SchemaVersion || !validSHA256(value.CorpusManifestSHA256) || !validSHA256(value.QueryManifestSHA256) || !validSHA256(value.ProfileFingerprint) || value.CodeCommit == "" || value.Generation < 0 || value.CandidatePolicy == "" || value.Platform == "" || !value.PairedControls.valid() {
 		return fmt.Errorf("invalid evaluation run manifest")
 	}
+	if (value.ReviewProtocolVersion != "" || value.RelevanceAuthority != "" || value.ReviewValidation != "") && !validFrozenReviewAuthority(value.ReviewProtocolVersion, value.RelevanceAuthority, value.ReviewValidation) {
+		return fmt.Errorf("invalid evaluation review authority")
+	}
 	return nil
 }
 func (value PromotionContract) Validate() error {
-	if value.SchemaVersion != SchemaVersion || !validScope(value.Scope) || len(value.CalibrationEvidenceSHA256) == 0 || len(value.FrozenGates) == 0 || !validSHA256(value.ConfirmationDatasetSHA256) || !value.PairedControls.valid() {
+	if value.SchemaVersion != SchemaVersion || !validScope(value.Scope) || len(value.CalibrationEvidenceSHA256) == 0 || len(value.FrozenGates) == 0 || !validSHA256(value.ConfirmationDatasetSHA256) || !value.PairedControls.valid() || !validFrozenReviewAuthority(value.ReviewProtocolVersion, value.RelevanceAuthority, value.ReviewValidation) {
 		return fmt.Errorf("invalid promotion contract")
 	}
 	for _, digest := range value.CalibrationEvidenceSHA256 {
@@ -239,16 +242,30 @@ func (value ReviewRecord) valid() bool {
 		if pass.ID == "" || pass.Reviewer == "" {
 			return false
 		}
+		if pass.ArtifactSHA256 != "" && !validSHA256(pass.ArtifactSHA256) {
+			return false
+		}
 		if _, exists := ids[pass.ID]; exists {
 			return false
 		}
 		ids[pass.ID] = struct{}{}
 		reviewers[pass.Reviewer] = struct{}{}
 	}
-	if value.State == ReviewFrozen && len(value.Passes) < 2 {
+	if value.State == ReviewDraft {
+		return value.ProtocolVersion == "" && value.RelevanceAuthority == "" && value.ReviewValidation == "" && value.OwnerAdoptionSHA256 == ""
+	}
+	if len(value.Passes) < 2 || len(reviewers) < 2 || value.ProtocolVersion != ReviewProtocolOwnerAdoptedDualAI || value.RelevanceAuthority != RelevanceAuthorityOwnerAdoptedDualAIReview || value.ReviewValidation != ReviewValidationNoIndependentHumanReview || !validSHA256(value.OwnerAdoptionSHA256) {
 		return false
 	}
-	return value.State != ReviewFrozen || len(reviewers) > 1 || value.SoloReviewLimitation != ""
+	for _, pass := range value.Passes {
+		if !validSHA256(pass.ArtifactSHA256) {
+			return false
+		}
+	}
+	return true
+}
+func validFrozenReviewAuthority(protocol string, authority RelevanceAuthority, validation ReviewValidation) bool {
+	return protocol == ReviewProtocolOwnerAdoptedDualAI && authority == RelevanceAuthorityOwnerAdoptedDualAIReview && validation == ReviewValidationNoIndependentHumanReview
 }
 func uniqueNonEmpty(values []string) bool {
 	if len(values) == 0 {

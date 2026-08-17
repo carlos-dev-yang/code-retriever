@@ -56,7 +56,7 @@ func allStageSmokeTrace() StageTrace {
 
 func TestEvaluationCaseAbstainableReviewAndGroupTraceContracts(t *testing.T) {
 	zero := 0
-	base := EvaluationCase{SchemaVersion: SchemaVersion, ID: "q", Text: "none", Language: Go, Cohorts: []string{"hard-negative"}, AnswerMode: Abstainable, ExpectedCardinality: &zero, Split: Confirmation, RequiredConstraints: RequiredConstraints{Identifiers: []string{"none"}, Paths: []string{"pkg/file.go"}, Languages: []Language{Go}, Scopes: []string{"repository"}}, HardNegatives: []HardNegative{{Span: testSpan(), Reason: "reviewed no answer"}}, Judgments: []RelevanceJudgment{{Span: testSpan(), Grade: Irrelevant, Rationale: "not relevant"}}, Review: ReviewRecord{State: ReviewFrozen, Passes: []ReviewPass{{ID: "one", Reviewer: "reviewer"}, {ID: "two", Reviewer: "reviewer"}}, Rationale: "two solo passes", SoloReviewLimitation: "one reviewer"}, Digest: testDigest()}
+	base := EvaluationCase{SchemaVersion: SchemaVersion, ID: "q", Text: "none", Language: Go, Cohorts: []string{"hard-negative"}, AnswerMode: Abstainable, ExpectedCardinality: &zero, Split: Confirmation, RequiredConstraints: RequiredConstraints{Identifiers: []string{"none"}, Paths: []string{"pkg/file.go"}, Languages: []Language{Go}, Scopes: []string{"repository"}}, HardNegatives: []HardNegative{{Span: testSpan(), Reason: "reviewed no answer"}}, Judgments: []RelevanceJudgment{{Span: testSpan(), Grade: Irrelevant, Rationale: "not relevant"}}, Review: frozenReview(), Digest: testDigest()}
 	if err := base.Validate(); err != nil {
 		t.Fatal(err)
 	}
@@ -75,9 +75,9 @@ func TestEvaluationCaseAbstainableReviewAndGroupTraceContracts(t *testing.T) {
 		t.Fatalf("abstainable case with omitted cardinality rejected: %v", err)
 	}
 	base.ExpectedCardinality = &zero
-	base.Review.SoloReviewLimitation = ""
+	base.Review.Passes[1].Reviewer = base.Review.Passes[0].Reviewer
 	if err := base.Validate(); err == nil {
-		t.Fatal("frozen same-reviewer passes accepted without limitation")
+		t.Fatal("frozen same-reviewer passes accepted")
 	}
 	trace := allStageSmokeTrace()
 	trace.Observations[4].GroupObservations[0] = GroupObservation{GroupID: "g1", Present: false, FirstLoss: ProviderUnionMiss}
@@ -137,7 +137,7 @@ func TestEvaluationCaseJudgmentGradeRelationships(t *testing.T) {
 	required, negative, support := testSpan(), testSpan(), testSpan()
 	negative.Path, negative.QualifiedSymbol = "pkg/other.go", "pkg.Other"
 	support.Path, support.QualifiedSymbol = "pkg/support.go", "pkg.Support"
-	caseValue := EvaluationCase{SchemaVersion: SchemaVersion, ID: "answerable", Text: "find F", Language: Go, Cohorts: []string{"identifier"}, AnswerMode: Single, ExpectedCardinality: &cardinality, Split: Calibration, RequiredConstraints: RequiredConstraints{Identifiers: []string{"F"}, Paths: []string{"pkg/file.go"}, Languages: []Language{Go}, Scopes: []string{"declaration"}}, RequiredGroups: []RequiredGroup{{ID: "g1", Alternatives: []ExpectedAlternative{{Spans: []SourceSpan{required}}}}}, HardNegatives: []HardNegative{{Span: negative, Reason: "wrong symbol"}}, Judgments: []RelevanceJudgment{{Span: required, Grade: DirectRequirement, Rationale: "required"}, {Span: negative, Grade: Irrelevant, Rationale: "negative"}, {Span: support, Grade: UsefulSupport, Rationale: "support"}}, Review: ReviewRecord{State: ReviewFrozen, Passes: []ReviewPass{{ID: "one", Reviewer: "a"}, {ID: "two", Reviewer: "b"}}, Rationale: "reviewed"}, Digest: testDigest()}
+	caseValue := EvaluationCase{SchemaVersion: SchemaVersion, ID: "answerable", Text: "find F", Language: Go, Cohorts: []string{"identifier"}, AnswerMode: Single, ExpectedCardinality: &cardinality, Split: Calibration, RequiredConstraints: RequiredConstraints{Identifiers: []string{"F"}, Paths: []string{"pkg/file.go"}, Languages: []Language{Go}, Scopes: []string{"declaration"}}, RequiredGroups: []RequiredGroup{{ID: "g1", Alternatives: []ExpectedAlternative{{Spans: []SourceSpan{required}}}}}, HardNegatives: []HardNegative{{Span: negative, Reason: "wrong symbol"}}, Judgments: []RelevanceJudgment{{Span: required, Grade: DirectRequirement, Rationale: "required"}, {Span: negative, Grade: Irrelevant, Rationale: "negative"}, {Span: support, Grade: UsefulSupport, Rationale: "support"}}, Review: frozenReview(), Digest: testDigest()}
 	if err := caseValue.Validate(); err != nil {
 		t.Fatal(err)
 	}
@@ -153,6 +153,18 @@ func TestEvaluationCaseJudgmentGradeRelationships(t *testing.T) {
 }
 
 func testDigest() string { return "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" }
+
+func frozenReview() ReviewRecord {
+	return ReviewRecord{
+		State:               ReviewFrozen,
+		Passes:              []ReviewPass{{ID: "one", Reviewer: "chatgpt", ArtifactSHA256: testDigest()}, {ID: "two", Reviewer: "grok", ArtifactSHA256: testDigest()}},
+		Rationale:           "source-backed dual-AI reconciliation adopted by the owner",
+		ProtocolVersion:     ReviewProtocolOwnerAdoptedDualAI,
+		RelevanceAuthority:  RelevanceAuthorityOwnerAdoptedDualAIReview,
+		ReviewValidation:    ReviewValidationNoIndependentHumanReview,
+		OwnerAdoptionSHA256: testDigest(),
+	}
+}
 
 func testSpan() SourceSpan {
 	return SourceSpan{Path: "pkg/file.go", ContentSHA256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", QualifiedSymbol: "pkg.F", StartByte: 0, EndByte: 1}

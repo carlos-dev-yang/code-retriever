@@ -34,7 +34,7 @@ Read the [implementation index](README.md), [execution guide](EXECUTION-GUIDE.md
 
 Evaluate the default 1024/int8 target and any explicitly frozen compact 512/int8 arm against the same product-owned `voyage-code-4` 1024-dimensional document source bank and the same question/answer dataset. Each run evaluates exactly one `ServingVectorProfile` selected by `.cidx/config.json`. FTS remains the default search mode. Historical Binary/256 reports do not enter the executable matrix.
 
-Produce a stage-separated scorecard and hard-gate result rather than a weighted total. Human relevance determines usefulness; exhaustive serving-dimension f32 determines representation fidelity. Preserve FTS-only, dense-only, collapse, RRF, and body-survival evidence so a correct hybrid result cannot hide a broken lane or downstream loss.
+Produce a stage-separated scorecard and hard-gate result rather than a weighted total. Frozen source-backed relevance under its recorded authority determines usefulness; exhaustive serving-dimension f32 determines representation fidelity. Preserve FTS-only, dense-only, collapse, RRF, and body-survival evidence so a correct hybrid result cannot hide a broken lane or downstream loss.
 
 The evaluation corpus is a user-selected, pinned open-source project. cidx consumes approved manifests and existing local checkouts; this phase does not search for, select, download, or silently update projects.
 
@@ -96,7 +96,7 @@ For each run, explicitly request queries from Voyage AI with `output_dimension=1
 14. Hit rate and latency are observations, not predeclared automatic candidate gates.
 15. Validate query response model/count/indexes, 1024 dimensions, and finite values; omit `encoding_format`.
 16. Production int8 is the Phase 09 cidx codec, not Voyage provider-quantized output.
-17. Human-gold retrieval and serving-f32 codec fidelity are independent metrics; neither substitutes for the other.
+17. Frozen relevance-gold retrieval and serving-f32 codec fidelity are independent metrics; neither substitutes for the other.
 18. Calibration may select settings and margins but cannot vote for promotion. Confirmation cannot tune any setting, label, budget, or margin.
 19. Required query/API failures and timeouts remain in denominators with an explicit failure stage. Optional unrequested stages are `NOT_OBSERVED`, not zero.
 20. Activation and a valid serving profile are lifecycle evidence only, not quality admission.
@@ -112,7 +112,7 @@ For each run, explicitly request queries from Voyage AI with `output_dimension=1
 | `internal/eval/corpus_manifest.go` | Strict manifest loading, license/revision/hash policy |
 | `internal/eval/corpus_binding.go` | Resolve explicit/ignored local checkout binding |
 | `internal/eval/retrieval_runner.go` | Orchestrate lexical/serving-f32/current-codec/hybrid variants |
-| `internal/eval/retrieval_metrics.go` | Human retrieval, requirement, survival, first-loss, and serving-f32/current-codec fidelity metrics |
+| `internal/eval/retrieval_metrics.go` | Frozen relevance retrieval, requirement, survival, first-loss, and serving-f32/current-codec fidelity metrics |
 | `internal/eval/variants.go` | Variant definitions and common rank adapter |
 | `internal/eval/promotion.go` | Frozen gate contract, paired comparison, and promotion result |
 | `internal/sourcebank/eval_reader.go` | Read-only target-f32 view used only by evaluation assembly |
@@ -174,9 +174,9 @@ stored in ignored `.cidx/test/corpora.local.json`, or an explicit CLI `--corpus-
 
 ### Dataset contract
 
-The tracked dataset implements `EVALUATION-CONTRACT.md`: answer mode, language/cohorts, OR alternatives inside AND requirement groups, durable file/hash/symbol/span truth, relevance grades, hard negatives, review passes, and calibration/confirmation split. A `mixed` case must intentionally cover cross-language retrieval. A query, label, review, or slice change creates a new digest; no prior query vector or promotion vote is reused.
+The tracked dataset implements `EVALUATION-CONTRACT.md`: answer mode, language/cohorts, OR alternatives inside AND requirement groups, durable file/hash/symbol/span truth, relevance grades, hard negatives, review protocol/authority/pass digests, owner-adoption digest, and calibration/confirmation split. A `mixed` case must intentionally cover cross-language retrieval. A query, label, review, or slice change creates a new digest; no prior query vector or promotion vote is reused.
 
-Confirmation is promotion-capable only when it satisfies the documented dataset/review floor. Smaller data is marked smoke-only. No-answer and hard-negative labels require corpus-wide evidence and a second independent review/pass.
+Confirmation is promotion-capable only when it satisfies the documented dataset/review floor. Smaller data is marked smoke-only. Frozen relevance uses `owner-adopted-dual-ai-v1`, records `OWNER_ADOPTED_DUAL_AI_REVIEW` and permanent `NO_INDEPENDENT_HUMAN_REVIEW`, and never claims human review. No-answer and hard-negative labels require corpus-wide evidence and agreement from both independent AI passes.
 
 ### Lab evaluation metadata
 
@@ -287,7 +287,7 @@ Corpus manifest and dataset paths are development inputs. Artifact location is f
 11. Reuse Phase 11 aggregation, tie-break, codec-aware scan, FTS, collapse, and RRF for every standalone, union, hybrid, and ablation arm.
 12. Record success, API failure, fallback, missing-answer, stage survival, and first-loss outcomes explicitly.
 13. Implement per-language/cohort denominators, required-failure inclusion, aggregate-with-slice-count rules, and incomplete-run policy.
-14. Compute paired human-gold metrics and serving-f32-versus-int8 retention, displacement, inversion, missing-neighbor, tie, and determinism diagnostics. Treat 1024/512 cross-run deltas as paired only when source query vectors and all other controls match.
+14. Compute paired frozen relevance-gold metrics and serving-f32-versus-int8 retention, displacement, inversion, missing-neighbor, tie, and determinism diagnostics. Treat 1024/512 cross-run deltas as paired only when source query vectors and all other controls match.
 15. Write artifacts to a temporary location and atomically publish with a completion marker.
 16. Store only vector-free provenance and artifact checksums in `evaluation_runs`.
 17. Freeze development plan/apply request and summary contracts for Phase 13.
@@ -345,7 +345,7 @@ Corpus manifest and dataset paths are development inputs. Artifact location is f
 - Low or high latency/hit rate never automatically selects a profile.
 - Standalone FTS and dense lane regressions remain visible even when RRF retrieves the correct parent.
 - Provider union, collapse, RRF, package, and first-loss requirement coverage is monotonic.
-- Target-f32 fidelity and human relevance can disagree without either metric overwriting the other.
+- Target-f32 fidelity and frozen source-backed relevance can disagree without either metric overwriting the other.
 - Calibration output cannot vote for promotion, and confirmation cannot modify settings or margins.
 - Required failed calls remain in quality, latency, token, and cost denominators.
 
@@ -355,14 +355,14 @@ Corpus manifest and dataset paths are development inputs. Artifact location is f
 - License, commit, clean-tree, slice, and content-hash verification record.
 - Dataset schema/fingerprint and a complete run manifest with corpus/source/profile provenance.
 - Per-language/cohort Hit/Recall/MRR/NDCG, requirement coverage, survival, first-loss, and hard-negative results for every standalone/union/hybrid/ablation arm.
-- Same-run paired serving-f32/int8 retention, missing-neighbor, displacement, inversion, tie, human-gold, determinism, and codec-integrity evidence, plus clearly classified sequential 1024/512 comparison status.
+- Same-run paired serving-f32/int8 retention, missing-neighbor, displacement, inversion, tie, frozen relevance-gold, determinism, and codec-integrity evidence, plus clearly classified sequential 1024/512 comparison status.
 - RRF lane overlap, contribution, rescue, harm, rank movement, and broken-lane detection evidence.
 - Body-package survival, fidelity, density, duplicate, and omission-reason evidence produced by the shared packaging core available at this phase.
 - Sequential reports for 1024/int8 and an explicitly frozen 512/int8 candidate when the user requests that comparison.
 - Per-run query calls/tokens/cost and proof of zero new document calls.
 - Inspection proving no query vector in DBs or artifacts.
 - Incomplete classification for a concurrent manifest/content change.
-- Human decision record for selected config and rationale.
+- Owner decision record for selected config and rationale; this governance decision is separate from relevance labeling.
 - Frozen `promotion-contract.json`, `scope=core_retrieval` `promotion-result.json`, first-loss report, implementation audit, and artifact checksums.
 
 The corpus-independent subset is accepted in [Revision 4 evidence](evidence/phase-12/revision-4.md): logical query operations and actual provider attempts are separated, token observability is conservative, the ordered local usage artifact is deterministic, and lab schema v5 preserves pre-R4 counters only as legacy provenance. This does not satisfy the official corpus, quality, selection, or promotion items above.
@@ -403,7 +403,7 @@ If results are inconclusive, record candidates, why they remain undecided, and w
 - Hit rate and latency are observations, not predeclared gates.
 - Evaluation remains an unstable development surface outside MCP/public compatibility.
 - There is no weighted total quality score; promotion is the conjunction of applicable hard gates.
-- Human relevance and serving-f32 codec fidelity are independent references.
+- Frozen source-backed relevance and serving-f32 codec fidelity are independent references; every usefulness result propagates its authority and `NO_INDEPENDENT_HUMAN_REVIEW`.
 - FTS and dense standalone evidence is mandatory around RRF; fusion cannot admit a broken lane.
 - HNSW/ANN recall, `ef_search`, graph health, and ANN tuning are excluded.
 - Revision 4 corpus-independent reconciliation records one logical dataset

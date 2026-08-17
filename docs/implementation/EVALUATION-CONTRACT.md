@@ -1,6 +1,6 @@
 # cidx v1 Evaluation and Promotion Contract
 
-- Status: pre-implementation normative plan
+- Status: normative; solo-project relevance authority revised 2026-08-17
 - Applies to: Phases 00 through 14 wherever evidence, comparison, or promotion is required
 - Canonical product design: [Revision 4](../../local-code-search-mcp-v1-design-r4.md)
 - Phase index: [README](README.md)
@@ -17,10 +17,10 @@ The contract adapts lessons from the sibling `knowledge-system` project after an
 2. Product usefulness is measured as the marginal effect of adding cidx to those tools, not by forcing an assistant to use cidx and not by evaluating a cidx-only assistant as the primary product arm.
 3. FTS and dense retrieval are parallel provider lanes. They must be measured separately before RRF.
 4. cidx scans every eligible stored vector. Int8 differences from serving-dimension f32 are representation and codec losses, not ANN recall losses. Historical Binary/256 results are evidence-only.
-5. Human relevance truth and serving-dimension f32 ranking are independent references:
-   - human truth measures whether useful code is retrieved;
+5. Frozen source-backed relevance truth and serving-dimension f32 ranking are independent references:
+   - frozen relevance truth measures whether useful code is retrieved under its recorded authority;
    - exhaustive serving-f32 ranking measures whether int8 preserves the chosen vector representation.
-6. A codec may preserve f32 neighbors while the dense model is semantically wrong, or change f32 neighbors while retaining human-gold results. Reports keep both facts visible.
+6. A codec may preserve f32 neighbors while the dense model is semantically wrong, or change f32 neighbors while retaining frozen relevance-gold results. Reports keep both facts visible.
 7. Activation, successful materialization, schema validity, or readiness proves lifecycle correctness only. It is never quality evidence.
 8. Latency, size, tokens, and cost are measured from the start, but they are not release gates until a budget is explicitly frozen before a confirmation run.
 9. Eligible source files are capped at 1 MiB. Chunks are complete semantic AST parents, not user-configured byte slices. Production embedding segments target 1024 bytes; evaluation exercises AST-aligned 768-, 1024-, and 1536-byte segment cases without arbitrary splitting.
@@ -68,7 +68,7 @@ The portable trace wire records one ordered observation for every planned stage.
 | --- | --- | --- | --- |
 | Source discovery and parser/chunker | Frozen eligible files and labeled eligible functions, methods, and types; exact source spans and bodies | File success: all eligible files. Construct recall: all labeled eligible constructs. Emission precision and fidelity: all emitted chunks in the reviewed slice | File success, construct recall, chunk precision, kind/symbol accuracy, byte/span/body fidelity, duplicate/overlap rate, unsupported-syntax classes, stale-row violations, clean-rebuild versus incremental equivalence |
 | FTS candidate retrieval | Gold parent chunks and requirement groups mapped to parent chunks | Hit/MRR: all required answerable queries. Recall/coverage: all gold parents or requirement groups. Known-hard-negative rate: all verified abstainable/hard-negative queries with reviewed misleading targets | Parent Hit@1/5, Recall@k, MRR, NDCG@k, requirement coverage, exact-identifier Hit@1, duplicate rate, known-hard-negative Hit@k, returned candidate count |
-| Dense segment retrieval | Gold source spans mapped to acceptable dense segments and parents | Human metrics: all required dense-relevant queries/groups. Codec fidelity: serving-f32 top-k and fixed-depth ranked pairs | Segment and parent-availability Hit/Recall/MRR/NDCG, serving-f32 top-k retention, missing candidates, rank displacement, pairwise inversion, ties, human-gold retention, vector coverage |
+| Dense segment retrieval | Gold source spans mapped to acceptable dense segments and parents | Relevance metrics: all required dense-relevant queries/groups. Codec fidelity: serving-f32 top-k and fixed-depth ranked pairs | Segment and parent-availability Hit/Recall/MRR/NDCG, serving-f32 top-k retention, missing candidates, rank displacement, pairwise inversion, ties, relevance-gold retention, vector coverage |
 | Segment-to-parent collapse | Gold parents represented by pre-collapse dense segments | Survival: gold parents available before collapse. Alignment: all collapsed candidates. Parent retrieval: all query gold parents/groups | Parent Hit/Recall/MRR/NDCG, gold survival, segment-parent alignment, compression/dedup ratio, parent rank movement, relevant suppression, parent dominance |
 | RRF fusion | Gold parents in the FTS/dense candidate union | Survival: gold parents available in the union. Final retrieval: all required query groups. Contribution: all candidates and gold from each lane | Fused Hit/Recall/MRR/NDCG, per-lane survival, unique-gold contribution, overlap/disagreement, rescue/harm, lane-to-fused rank movement, tie rate, deterministic order |
 | Inline body packaging | Gold requirements present in fused top-k and their frozen indexed bodies | Survival: fused gold requirements. Fidelity: every serialized body. Budget loss: every packaged query | Gold/body survival, source-span/body fidelity, relevant-byte density, duplicate-body ratio, omission/truncation rate, first-gold position, omission reason, serialized bytes and estimated tokens |
@@ -93,7 +93,9 @@ Every frozen query records:
 - required evidence groups and their valid alternatives;
 - explicit hard-negative chunks and reasons;
 - assistant-task requirements when end-to-end use is evaluated;
-- review state, reviewer/pass identifiers, rationale, and dataset digest.
+- review state, protocol version, relevance authority, validation limitation,
+  reviewer/pass artifact digests, owner-adoption artifact digest, rationale,
+  and dataset digest.
 
 Generated chunk and segment row IDs are not durable truth. Map frozen file/hash/symbol/span truth into the active generation. A source-content change invalidates the mapping until reviewed.
 
@@ -148,7 +150,50 @@ A promotion-capable confirmation series starts with at least:
 
 A 12–20 query set is execution smoke evidence only and cannot support a codec, dimension, fusion, or release claim.
 
-Every frozen query receives human review. Freezing should have two recorded independent approvals. In a solo-development run, record two separated review passes and mark the absence of a second reviewer as a limitation; do not silently claim dual review. Every no-answer and hard-negative label requires corpus-wide search evidence and an independent second review/pass.
+The v1 solo-project frozen-label protocol is exactly:
+
+```text
+protocol_version     = owner-adopted-dual-ai-v1
+relevance_authority  = OWNER_ADOPTED_DUAL_AI_REVIEW
+review_validation    = NO_INDEPENDENT_HUMAN_REVIEW
+```
+
+It is the strongest available authority for this one-person project, but it is
+not human review and must never be serialized, documented, or reported as
+`HUMAN_REVIEWED`. The owner is the governance authority; the two AI systems
+perform the source-backed relevance procedure.
+
+Every frozen relation must pass all of these gates:
+
+1. Two different AI systems or model families review independently. Each
+   initial reviewer receives a separately shuffled packet and cannot see the
+   other review, prior labels, arm identity, rank, score, experiment outcome,
+   or owner preference.
+2. Each packet binds the corpus, generation, dataset, arm set, pooling depth,
+   source path/hash/symbol/span, exact reviewed source, shuffle identity, and
+   complete relation set. Every relation is covered and source-attested.
+3. Grade-2 and required-group disagreements are reconciled against the source;
+   zero such conflict may remain. A support relation is grade 1 only when both
+   reviewers agree under the declared support rubric; otherwise the frozen
+   conservative value is grade 0 and the disagreement remains visible in the
+   review artifact. Predeclare which metrics consume grade 1.
+4. Every no-answer and hard-negative label has corpus-wide evidence plus
+   explicit agreement from both reviewers. A pool miss alone is insufficient.
+5. The owner adopts or rejects the reconciled digest as a whole. Owner
+   adoption is not an additional relevance judgment. A relation-level owner
+   override creates a new draft, records source rationale, and reopens both AI
+   passes for the affected relation before any new freeze.
+6. Frozen cases record both pass artifact SHA-256 values, the owner-adoption
+   artifact SHA-256, the exact protocol and authority values above, and the
+   permanent `NO_INDEPENDENT_HUMAN_REVIEW` limitation. Every derived report
+   and promotion result propagates that limitation.
+
+The review lifecycle is
+`MACHINE_PREPARED_UNREVIEWED -> DUAL_AI_REVIEWED_UNRECONCILED ->
+DUAL_AI_RECONCILED -> OWNER_ADOPTED_FROZEN`. The case wire keeps
+`review.state=draft|frozen`; intermediate lifecycle values belong to the
+digest-bound `label-review.json`. `review.state=frozen` is valid only at
+`OWNER_ADOPTED_FROZEN`.
 
 Pool unique top results from FTS, serving f32, active int8, and RRF for relevance review before labels freeze. Historical Binary/256 pools may remain as evidence but do not become current product arms. Pooling expands judgment coverage; it must not alter labels after confirmation results are known.
 
@@ -158,6 +203,10 @@ Pool unique top results from FTS, serving f32, active int8, and RRF for relevanc
 - Confirmation data is independently frozen and cannot tune any of those values.
 - Only a complete confirmation run may vote for promotion.
 - A later label correction creates a new dataset version and invalidates direct delta claims against the old digest.
+- If a label changes after confirmation results were exposed, provider-free
+  rescoring is diagnostic/regression evidence only. It cannot restore that
+  confirmation set's promotion authority. A new promotion claim requires a
+  newly frozen, previously unexposed confirmation unit.
 
 ### 4.7 Paired-run compatibility
 
@@ -259,7 +308,7 @@ ScoreTieRate = tied returned candidate pairs / comparable returned pairs
 BoundaryTieRate = queries whose kth score ties a candidate outside top-k / required queries
 ```
 
-Report repeated-run ranking-hash equality. Every current f32 and int8 arm also reports human-gold metrics. Never call these fidelity measurements ANN recall.
+Report repeated-run ranking-hash equality. Every current f32 and int8 arm also reports frozen relevance-gold metrics and its authority. Never call these fidelity measurements ANN recall.
 
 Do not subtract codec raw scores from f32 cosine unless the codec reconstructs that exact normalized quantity. BM25, f32 cosine, int8 score, and RRF are different scales. Historical binary scores remain incomparable evidence.
 
@@ -319,7 +368,7 @@ Freeze margins before confirmation for:
 
 - Hit/Recall/MRR/NDCG and requirement coverage;
 - exact-identifier, semantic, multi-answer, hard-negative, stale/dirty, and language cohorts;
-- serving-f32 codec retention, human-gold retention, rank displacement, inversion, and ties;
+- serving-f32 codec retention, relevance-gold retention, rank displacement, inversion, and ties;
 - parent-collapse, RRF, and body-package gold survival;
 - per-query regression count and maximum material-regressed cohort count;
 - end-to-end task success, requirement coverage, false leads, and test results when product-usefulness evidence is required.
@@ -349,14 +398,14 @@ No numeric performance SLA is a v1 default or implied by these observations.
 - Do not use provider benchmarks as cidx usefulness evidence.
 - Do not compare runs with different corpus, labels, parser/tokenizer, limits, body budget, or query controls as a paired delta.
 - Do not call f32-versus-codec retention ANN recall.
-- Do not equate f32 rank retention with human relevance or human relevance with codec fidelity.
+- Do not equate f32 rank retention with frozen source-backed relevance or frozen relevance with codec fidelity.
 - Do not compare BM25, cosine, binary, int8, and RRF raw scores.
 - Do not interpret cosine or RRF as probability/confidence.
 - Do not treat profile activation as quality admission.
 - Do not let fusion hide a broken lane.
 - Do not count several segments from one parent as several relevant results.
 - Do not label only one span when several implementations are valid.
-- Do not accept generated no-answer labels without exhaustive human verification.
+- Do not accept generated no-answer labels without corpus-wide evidence and explicit agreement from both independent AI review passes.
 - Do not average missing observations as zero or omit failed calls from latency/cost.
 - Do not force assistant use of cidx.
 - Do not treat a 12–20 query smoke set as promotion evidence.
@@ -465,9 +514,9 @@ Required implementation evidence for each current config candidate:
 - blob integrity, corruption rejection, and one-active-profile publication;
 - repeated ranking-hash equality for controlled scorer fixtures;
 - size, transform-time, memory, and zero-provider-call observations;
-- no full human-gold or cross-codec promotion claim before Phase 12.
+- no full frozen relevance-gold or cross-codec promotion claim before Phase 12.
 
-No codec receives quality credit merely for smaller size. Full f32/int8 and human-gold comparison belongs to Phase 12; Binary/256 are retired evidence.
+No codec receives quality credit merely for smaller size. Full f32/int8 and frozen relevance-gold comparison belongs to Phase 12; Binary/256 are retired evidence.
 
 ### Phase 11: hybrid RRF
 
@@ -478,7 +527,7 @@ Required evidence:
 - no broken-lane masking;
 - fused package survival and deterministic tie behavior.
 
-Phase 11 proves instrumentation and deterministic implementation behavior. Phase 12 owns promotion-capable per-language/cohort nonregression and human-gold conclusions.
+Phase 11 proves instrumentation and deterministic implementation behavior. Phase 12 owns promotion-capable per-language/cohort nonregression and frozen relevance-gold conclusions.
 
 ### Phase 12: confirmation and promotion evidence
 
@@ -487,7 +536,7 @@ Required evidence:
 - frozen candidate and promotion contract before execution;
 - independent confirmation dataset;
 - complete per-query records for FTS, serving f32, the current active codec, union, collapse, RRF, body packaging, and lane ablations;
-- same-run serving-f32 versus active-codec retention/displacement/inversion/tie metrics plus human-gold metrics;
+- same-run serving-f32 versus active-codec retention/displacement/inversion/tie metrics plus frozen relevance-gold metrics and authority;
 - current int8 reports against serving-f32, with historical Binary/256 reports preserved but excluded from activation;
 - complete hard-gate result;
 - implementation invariant audit;
@@ -527,7 +576,7 @@ The 2026-08-14 advisory review used these `knowledge-system` sources as design r
 Decisions:
 
 - Use stage-separated scorecards and first-loss attribution; never a single weighted score.
-- Use human relevance and exhaustive serving-f32 fidelity as separate references.
+- Use frozen source-backed relevance and exhaustive serving-f32 fidelity as separate references. Every usefulness artifact records its authority and the permanent absence of independent human validation.
 - Preserve standalone FTS and dense evidence around RRF.
 - Use paired hard gates with calibration/confirmation separation.
 - Exclude HNSW construction, ANN recall, `ef_search`, graph health, and ANN tuning from cidx v1 evaluation.

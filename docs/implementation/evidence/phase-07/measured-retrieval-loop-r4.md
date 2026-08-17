@@ -4,8 +4,13 @@
 - Date: 2026-08-17
 - Authority: calibration pool-building only
 - Promotion eligible: no
-- Labels: draft, two separated human passes pending
+- Labels at this checkpoint: draft; the then-required human passes were not performed
 - Fixed serving profile: Voyage `voyage-code-4`, source 1,024, serving 1,024, binary
+
+Current authority supersession: this is historical Binary-era measurement
+evidence. Current product evaluation uses default 1024/int8, and fresh frozen
+labels use `owner-adopted-dual-ai-v1` with
+`OWNER_ADOPTED_DUAL_AI_REVIEW` / `NO_INDEPENDENT_HUMAN_REVIEW`.
 
 ## Decision rule
 
@@ -208,9 +213,9 @@ performed at this checkpoint.
 ## Exact next action
 
 Do not rerun Voyage while only labels change. Preserve the rejected OR-fusion
-decision, keep production AND and current dense behavior unchanged, and hand
-the digest-bound chi/RHF packets to the required separated human review
-passes. Human review can adopt labels in hash-bound batches plus explicit
-exceptions, but every relation must be covered and source-inspected. Only a
-compliant human label freeze may establish the accepted calibration baseline
-or authorize another retrieval-policy comparison.
+decision, keep production AND and current dense behavior unchanged, regenerate
+the current digest-bound chi/RHF pools, and hand independently shuffled copies
+to ChatGPT and Grok. Every relation must be covered and source-inspected;
+reconciliation and whole-digest owner adoption must follow the current
+contract before a calibration baseline is frozen or another retrieval-policy
+comparison is authorized.

@@ -77,7 +77,7 @@ writer, decoder, scorer, or evaluator may accept it.
 ## Evaluation rule
 
 Current calibration and confirmation use `1024/int8` unless a frozen plan
-explicitly declares the supported `512/int8` arm. Human relevance remains the
-product-quality reference. When codec or dimensional fidelity evidence is
-needed, use exhaustive f32 as a separate reference and never combine ranks
-across profiles with RRF.
+explicitly declares the supported `512/int8` arm. Frozen source-backed
+relevance under the recorded authority remains the product-quality reference.
+When codec or dimensional fidelity evidence is needed, use exhaustive f32 as a
+separate reference and never combine ranks across profiles with RRF.

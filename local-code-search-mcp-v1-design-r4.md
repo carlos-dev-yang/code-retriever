@@ -260,12 +260,23 @@ Go, TypeScript, TSX, and mixed repositories are reported separately because pars
 Evaluation separates, rather than blends:
 
 - operational correctness and failures;
-- human-judged retrieval usefulness;
+- source-backed retrieval usefulness under the versioned label authority;
 - FTS, dense, provider-union, parent-collapse, RRF, body-packaging, and assistant first-loss stages;
 - exhaustive serving-dimension f32 versus int8 representation fidelity;
 - storage, memory, request count, latency, and cost observations.
 
 There is no weighted total score. HNSW recall and ANN tuning are excluded because v1 scans all eligible stored vectors. Failures and timeouts stay in required denominators. Calibration selects candidate settings; frozen confirmation evidence supports promotion. A metric observed during development does not become a release threshold retroactively.
+
+The v1 solo-project label authority is `OWNER_ADOPTED_DUAL_AI_REVIEW` under
+protocol `owner-adopted-dual-ai-v1`, permanently qualified by
+`NO_INDEPENDENT_HUMAN_REVIEW`. Two different AI systems independently review
+source-complete, rank/score/arm-hidden packets; the owner may adopt or reject
+the reconciled digest but does not silently re-grade individual relations.
+This authority may support internal calibration, confirmation, and
+`core_retrieval` evidence when every evaluation gate passes, but it must never
+be described as human-reviewed. The detailed blindness, reconciliation,
+freeze, correction, and disclosure rules are normative in the linked
+evaluation contract.
 
 The initial matrix includes:
 

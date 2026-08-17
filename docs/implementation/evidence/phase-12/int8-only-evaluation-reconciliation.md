@@ -16,8 +16,8 @@
   Serving-f32 is a nonpersistent fidelity reference, not a production storage
   option.
 - FTS-only, f32 dense, int8 dense, provider union, both RRF arms, and both lane
-  ablations remain separate. Human usefulness and int8/f32 fidelity remain
-  separate metrics.
+  ablations remain separate. Frozen source-backed usefulness and int8/f32
+  fidelity remain separate metrics.
 - Current code cannot generate, activate, or score Binary/256 candidates.
   Their prior reports remain immutable historical evidence only.
 
@@ -49,7 +49,12 @@ the current evaluation, lab, search, or schema execution surface.
 This boundary proves adapter/profile consistency only. The frozen-label,
 current-corpus, provider-query, per-language/cohort, confirmation, and
 `scope=core_retrieval` promotion evidence described by Phase 12 still must be
-run separately after the user-controlled inputs are ready.
+run separately. Frozen labels now use `owner-adopted-dual-ai-v1` with
+`OWNER_ADOPTED_DUAL_AI_REVIEW` and permanent
+`NO_INDEPENDENT_HUMAN_REVIEW`; no unavailable human pass remains an input.
+Promotion contract/result wire and `CorePromotionEvidence` now require and
+cross-check the same authority tuple, so an official result cannot omit or
+rename that limitation.
 
 ## Handoff
 

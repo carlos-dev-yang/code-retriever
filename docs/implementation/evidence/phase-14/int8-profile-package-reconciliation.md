@@ -92,6 +92,7 @@ from the clean independent local clone above.
 This checkpoint supports only local darwin/arm64. It does not establish another
 platform or host, signing/notarization, official Phase 12 `core_retrieval`,
 paired assistant usefulness, or `scope=release_candidate`. Phase 14 therefore
-remains blocked rather than done. The next product work is the separated human
-Phase 07 label freeze and immutable replay, followed by official Phase 12 and
-assistant/host promotion evidence when their external inputs are available.
+remains blocked rather than done. The next product work is the Phase 07
+owner-adopted dual-AI label freeze and immutable replay, with permanent
+`NO_INDEPENDENT_HUMAN_REVIEW`, followed by official Phase 12 and assistant/host
+promotion evidence when their other inputs are available.

@@ -707,7 +707,7 @@ func (value CorePromotionEvidence) Validate() error {
 	if err := value.Artifacts.Validate(); err != nil || !value.Artifacts.Complete {
 		return fmt.Errorf("incomplete core evidence artifacts")
 	}
-	if value.Contract.Scope != evalcontract.CoreRetrieval || value.Result.Scope != evalcontract.CoreRetrieval || value.Contract.ConfirmationDatasetSHA256 != value.ConfirmationManifest.QueryManifestSHA256 || value.Contract.PairedControls != value.ConfirmationManifest.PairedControls || !validSHA256(value.ArtifactChecksum) {
+	if value.Contract.Scope != evalcontract.CoreRetrieval || value.Result.Scope != evalcontract.CoreRetrieval || value.Contract.ConfirmationDatasetSHA256 != value.ConfirmationManifest.QueryManifestSHA256 || value.Contract.PairedControls != value.ConfirmationManifest.PairedControls || value.Contract.ReviewProtocolVersion != value.ConfirmationManifest.ReviewProtocolVersion || value.Contract.RelevanceAuthority != value.ConfirmationManifest.RelevanceAuthority || value.Contract.ReviewValidation != value.ConfirmationManifest.ReviewValidation || value.Result.ReviewProtocolVersion != value.Contract.ReviewProtocolVersion || value.Result.RelevanceAuthority != value.Contract.RelevanceAuthority || value.Result.ReviewValidation != value.Contract.ReviewValidation || !validSHA256(value.ArtifactChecksum) {
 		return fmt.Errorf("incompatible core promotion evidence")
 	}
 	checksum, err := evalcontract.ArtifactChecksum(value.Artifacts.Entries)

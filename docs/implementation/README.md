@@ -4,7 +4,7 @@
   document source bank and fixes int8-only serving at 1024 by default or
   explicit compact 512. Binary/256 implementations are removed while their
   historical document evidence remains. All corpus-independent implementation
-  and local package boundaries are reconciled; Phase 07 human freeze is next
+  and local package boundaries are reconciled; Phase 07 owner-adopted dual-AI freeze is active
 - Canonical design: [Local Code Search MCP v1 Final Target Contract — Revision 4](../../local-code-search-mcp-v1-design-r4.md)
 - Earlier designs: [original](../../local-code-search-mcp-v1-design.md), [r1](../../local-code-search-mcp-v1-design-r1.md), [r2](../../local-code-search-mcp-v1-design-r2.md), [r3](../../local-code-search-mcp-v1-design-r3.md)
 - Execution protocol: [Implementation Execution and Context-Recovery Guide](EXECUTION-GUIDE.md)
@@ -82,7 +82,7 @@ Allowed states are `planned | in_progress | blocked | done`. A phase becomes `do
 | 04 | done | [TypeScript and TSX chunker](04-typescript-tsx-chunker.md) | 02 | Accepted path-derived retrieval labels and real-corpus overload correction; versioned full reindex handoff | [Evidence](evidence/phase-04/README.md) |
 | 05 | done | [Worktree indexing pipeline](05-worktree-index-pipeline.md) | 03, 04, reconciled 02 | Remove the chunk-cap contract, inject `target_segment_bytes`, preserve atomic local reindex, and safely rekey only current int8-equivalent legacy vectors | [Current int8 reproof](evidence/phase-05/int8-serving-key-reproof.md) and [historical R4 evidence](evidence/phase-05/revision-4.md) |
 | 06 | done | [FTS search](06-fts-search.md) | 05 | Contentless FTS, safe queries, BM25 chunk candidates | [Evidence](06-fts-search.md#11-completion-evidence) |
-| 07 | blocked | [Lexical evaluation](07-lexical-evaluation.md) | 06, corrected 04 inventory, reconciled 02/08/09/11 | Preserve five-profile evidence; resume current calibration at 1024/int8 after runtime reconciliation, then complete separated human source review | [Evidence](evidence/phase-07/README.md) |
+| 07 | in_progress | [Lexical evaluation](07-lexical-evaluation.md) | 06, corrected 04 inventory, reconciled 02/08/09/11 | Preserve five-profile evidence; regenerate current 1024/int8-centered blind pools, complete independent dual-AI source review, reconcile, and record owner adoption | [Evidence](evidence/phase-07/README.md) |
 | 08 | done | [Document source-vector bank](08-raw-embedding-lab.md) | reconciled 02, 05 | Split durable product 1024-f32 source storage from vector-free evaluation run/artifact state while retaining the shared synchronous executor | [Current source-bank evidence](evidence/phase-08/int8-source-bank-reconciliation.md) and [historical R4 evidence](evidence/phase-08/revision-4.md) |
 | 09 | done | [Vector materialization](09-vector-materialization.md) | reconciled 02, existing 01/05/08 | Int8-only 1024-default/512-optional transform, production v5 cache, atomic materialization, and direct scan boundary | [Current evidence](evidence/phase-09/int8-only-materialization-reconciliation.md) and [historical evidence](evidence/phase-09/README.md) |
 | 10 | done | [Embedding orchestration and reconciliation](10-embedding-orchestration-and-reconciliation.md) | reconciled 02/09, existing 05/08 | Source-bank-first Voyage document publication, provider-free source reuse, and provider-only request accounting | [Current evidence](evidence/phase-10/source-bank-first-document-publication.md) and [historical R4 evidence](evidence/phase-10/revision-4.md) |
@@ -134,7 +134,7 @@ flowchart TD
 
 - Phases 03 and 04 may run in parallel after Phase 02 because their file ownership is disjoint.
 - The free lexical path in Phases 06–07 and the optional embedding path in Phases 08–10 may partially overlap after Phase 05 when prerequisites and ownership permit.
-- Phase 07 has selected, pinned, and measured chi/RHF corpora, but cannot produce an official baseline until the required separated human source review freezes the labels.
+- Phase 07 has selected, pinned, and measured chi/RHF corpora. Its next official baseline requires fresh current-profile blind pools, independent ChatGPT/Grok source reviews, reconciliation, and whole-digest owner adoption under `owner-adopted-dual-ai-v1`; it must retain `NO_INDEPENDENT_HUMAN_REVIEW`.
 - Phase 12 chooses the initial serving profile from core retrieval evidence. It measures and reports results but does not impose a preselected universal numeric quality threshold.
 - The external corpus gate blocks official Phase 12 evidence and promotion, not the corpus-independent Phase 13 CLI/MCP adapter implementation; those adapters must consume the frozen Phase 12 core rather than recreate it.
 - Phase 13 completion requires the corpus-independent Phase 12 core/API and synthetic adapter parity, not an official corpus run or `core_retrieval` promotion result. Official core promotion is a Phase 14 release-candidate prerequisite.
@@ -239,7 +239,7 @@ The retry schedule is linear/staged, not exponential. Request grouping is not Vo
 12. **Small stable surface:** MCP exposes only `status`, `search`, `read_span`, and `reindex`. Development lab commands are not MCP tools.
 13. **SQLite authority:** the persistent index is authoritative. Go heap caches may be bounded accelerators but never a second source of truth.
 14. **Stage-separated evidence:** parser, FTS, dense, collapse, RRF, body packaging, assistant use, and operations retain independent denominators and first-loss states. No weighted total replaces them.
-15. **Dual dense references:** human relevance measures usefulness; exhaustive serving-f32 ranking measures current int8 fidelity. Historical Binary evidence is not an executable arm. HNSW/ANN metrics are excluded.
+15. **Dual dense references:** frozen source-backed relevance under the recorded review authority measures usefulness; exhaustive serving-f32 ranking measures current int8 fidelity. The solo-project authority is `OWNER_ADOPTED_DUAL_AI_REVIEW` with `NO_INDEPENDENT_HUMAN_REVIEW`, never `HUMAN_REVIEWED`. Historical Binary evidence is not an executable arm. HNSW/ANN metrics are excluded.
 16. **Paired promotion:** calibration selects settings and margins; only frozen compatible confirmation runs may vote for promotion. Activation is not quality admission.
 
 ---

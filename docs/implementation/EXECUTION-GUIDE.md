@@ -142,7 +142,7 @@ Report Go, TypeScript, TSX, and mixed-repository slices separately where applica
 
 - Use the stage scorecard and denominators in [`EVALUATION-CONTRACT.md`](EVALUATION-CONTRACT.md); never replace them with a weighted total.
 - Preserve both FTS and dense lane observations before RRF and attribute first loss along the provider-union, collapse, fusion, body, and assistant path.
-- Use human relevance for usefulness and exhaustive serving-dimension f32 for int8 fidelity. Historical Binary/256 results remain evidence-only. Neither reference substitutes for the other.
+- Use frozen source-backed relevance under the recorded authority for usefulness and exhaustive serving-dimension f32 for int8 fidelity. The current solo-project authority is `OWNER_ADOPTED_DUAL_AI_REVIEW` with permanent `NO_INDEPENDENT_HUMAN_REVIEW`; never relabel it as human-reviewed. Historical Binary/256 results remain evidence-only. Neither reference substitutes for the other.
 - Treat required failures and timeouts as denominator members. Use `NOT_OBSERVED` only for a downstream stage that the run contract did not require.
 - Freeze corpus, labels, controls, candidate policy, profile, generation, and artifact checksums. Only compatible paired runs support delta claims.
 - Select parameters and margins on calibration data, freeze them before confirmation, and let only complete confirmation evidence vote for promotion.

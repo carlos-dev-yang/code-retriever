@@ -7,7 +7,7 @@
 
 ## 1. Purpose and authority
 
-This document defines how to prepare the approved corpora and human labels, when document and query embeddings may be purchased, how candidate search profiles are calibrated, and how a frozen confirmation run produces or fails to produce `core_retrieval` evidence.
+This document defines how to prepare the approved corpora and source-backed relevance labels, when document and query embeddings may be purchased, how candidate search profiles are calibrated, and how a frozen confirmation run produces or fails to produce `core_retrieval` evidence.
 
 It is an execution companion to the canonical evaluation contract, not a replacement for it. If this document, an implementation phase, an adviser response, or a chat summary conflicts with the canonical contract, the canonical contract wins. This document does not itself authorize a paid embedding or official evaluation; the status/evidence ledger separately records operations that were approved and completed.
 
@@ -43,7 +43,7 @@ original 12 smoke cases prove only that the provider-free corpus, indexing,
 evaluator, artifact, and replay path works. Neither set proves semantic
 retrieval quality or supports promotion. The current blockers remain:
 
-- two recorded human label-review passes are incomplete;
+- fresh current-profile blind pools and the two independent AI source-review passes required by `owner-adopted-dual-ai-v1` are incomplete;
 - the deterministic simple-search baseline is frozen and measured for v2, but
   chi G12's source-corrected v3 wording requires its simple/opened-arm pool
   refresh before those passes begin;
@@ -85,7 +85,7 @@ The immediate workflow is:
 | C | Produce a no-network document-capture plan with exact fingerprints, pending inputs/bytes, request count, and spend ceiling | Explicit document-embedding approval is mandatory |
 | D | Capture document f32 once and materialize the 1024/int8 working profile | No further choice if execution still matches the approved plan |
 | E | Run bounded, explicitly approved exploratory query operations; inspect first loss and revise the working cohort direction | Approve each exact apply or one explicitly bounded series |
-| F | Close the chi/RHF calibration cohort, blind-pool judgments, perform review passes, and freeze calibration labels | Approve the frozen calibration dataset |
+| F | Close the chi/RHF calibration cohort, perform independent ChatGPT/Grok blind-pool judgments, reconcile, and freeze under `OWNER_ADOPTED_DUAL_AI_REVIEW` | Adopt or reject the reconciled digest as owner |
 | G | Select a genuine mixed-language corpus and author independent promotion confirmation | Deferred until chi/RHF closure |
 
 Document embedding is intentionally early relative to final label freeze because it embeds the frozen corpus document inputs, not the evaluation labels. The long interval after capture is where provisional questions, dense candidate pools, first-loss traces, cohort balance, and judgments are tested. Changing those questions or labels does not invalidate compatible product source rows.
@@ -135,7 +135,7 @@ The following are not calibration choices:
 - raw document f32 storage is development-only and never a production dependency;
 - query vectors are fresh, operation-scoped, reused only among comparable arms in that run, and never persisted;
 - production has one active serving profile per project;
-- human relevance and serving-f32 codec fidelity are separate references;
+- frozen source-backed relevance and serving-f32 codec fidelity are separate references;
 - no weighted total quality score is permitted;
 - required failures stay in their declared denominators;
 - confirmation cannot tune labels, settings, budgets, margins, or cohort definitions;
@@ -212,9 +212,9 @@ The confirmation floor is fixed by the canonical contract:
 - at least 18 reviewed `ABSTAINABLE` or hard-negative cases, with at least 6 per language;
 - at least 10 cases in every critical cohort; cohorts may overlap;
 - a frozen explicit count of genuine mixed-language cases in addition to the per-language floors; a `mixed` case does not satisfy or triple-count toward the 30 Go, 30 TypeScript, or 30 TSX minimum;
-- human review of every frozen case;
-- two independent approvals when possible, or two separated passes with the single-reviewer limitation recorded;
-- corpus-wide evidence and a distinct second review/pass for every no-answer or hard-negative label.
+- source inspection of every frozen case by two independent AI systems under `owner-adopted-dual-ai-v1`;
+- whole-digest owner adoption, with `OWNER_ADOPTED_DUAL_AI_REVIEW` and permanent `NO_INDEPENDENT_HUMAN_REVIEW` recorded and propagated;
+- corpus-wide evidence and agreement from both passes for every no-answer or hard-negative label.
 
 Do not infer a 108-case unique denominator by adding 90 and 18. An answerable query may contain a reviewed hard-negative target, so `answerable_queries`, `abstainable_queries`, `hard_negative_queries`, and `answerable_with_hard_negative_queries` have distinct counts and an explicit intersection. Freeze whether mixed negative cases are required and their count before authoring. Each case contributes once to the global query denominator even when it contributes to one language, one task, one signal, and multiple diagnostic cohort reports.
 
@@ -375,7 +375,7 @@ Actions:
 - repeat only when another separately approved apply or an approved bounded series remains in scope;
 - once the cohort direction is stable, obtain blind candidate pools across the required arms;
 - do not present aggregate candidate quality to labelers;
-- complete human adjudication and the second pass;
+- complete both independent AI passes, source-backed reconciliation, and whole-digest owner adoption;
 - freeze the calibration dataset digest;
 - rerun deterministic simple search and FTS against that final digest; the provisional Stage 4 results are not the official frozen-label baselines.
 
@@ -512,8 +512,8 @@ ranking.
 The clean draft-v2 chi and RHF control artifacts are accepted preparation
 evidence, not official promotion evidence. Chi G12's source-corrected draft-v3
 query changes its dataset digest, so its provider-free simple result and
-opened-arm pool must be refreshed from clean provenance before human label
-review. The algorithm itself is not reopened by that refresh.
+opened-arm pool must be refreshed from clean provenance before the dual-AI
+label review. The algorithm itself is not reopened by that refresh.
 
 ## 8. Required retrieval arms
 
@@ -552,7 +552,7 @@ lane, collapse stage, or package stage.
 | Query/provider operation | Timeout, response validation, retry exhaustion, cancellation | Fix operations and rerun; retain failures in denominators | Incomplete/failed as contracted; never drop the case |
 | Assistant use | Tool selection, source use, false lead, task outcome | Tune only in a separately declared assistant experiment | Does not rewrite core retrieval evidence |
 
-When exhaustive serving-dimension f32 misses human truth, int8 quantization cannot repair the model's semantic miss. When the provider union misses, fusion cannot manufacture the answer. When confirmation fails, lower thresholds, removed cases, relabeled cohorts, changed margins, and post-hoc budgets are forbidden; the result is `NOT_PROMOTION_READY` or an invalid run.
+When exhaustive serving-dimension f32 misses frozen relevance truth, int8 quantization cannot repair the model's semantic miss. When the provider union misses, fusion cannot manufacture the answer. When confirmation fails, lower thresholds, removed cases, relabeled cohorts, changed margins, and post-hoc budgets are forbidden; the result is `NOT_PROMOTION_READY` or an invalid run.
 
 ## 10. Embedding execution ledger
 
@@ -643,7 +643,7 @@ For a new language, build a complete language slice covering the primary tasks, 
 `go-chi` plus `react-hook-form` is sufficient for:
 
 - real Go, TypeScript, and TSX parser/chunker inspection;
-- provider-free lexical smoke and initial human-label preparation;
+- provider-free lexical smoke and initial source-backed label preparation;
 - initial repository-specific dense and hybrid calibration after approval;
 - detecting obvious parent, segment, codec, fusion, and packaging defects.
 
@@ -736,8 +736,10 @@ sequence is:
 
 1. Preserve the five immutable profile rankings and the provider-free
    [combined comparison](evidence/phase-07/five-profile-cohort-comparison-r4.md).
-2. Complete the independently randomized separated human source-review passes
-   over the digest-bound pools, leaving no unresolved human disagreement.
+2. Complete independently randomized ChatGPT and Grok source-review passes
+   over the digest-bound pools, reconcile every grade-2/group conflict, apply
+   the conservative dual-agreement support rule, and record whole-digest owner
+   adoption with no independent-human claim.
 3. Replay the immutable rankings provider-free after label changes; do not
    call Voyage merely to rescore labels.
 4. Freeze the calibration dataset digest and rerun the deterministic simple
@@ -755,6 +757,7 @@ The earlier hybrid exploratory query series completed after compatible raw docum
 Both side-panel advisers agreed on the staged shape, explicit paid boundaries, first-loss diagnosis, immutable evidence, per-language gates, regression stability, and the limited claim supported by the current corpora. The user-designated `kb-guide` then checked the draft's measurement semantics against the live schemas, validators, and accounting wire. The following advice was corrected or tightened to match the repository contract and live implementation:
 
 - Final relevance-label freeze is not a prerequisite for document capture. Document capture depends on a frozen corpus, parser/chunker framing, canonical document input universe, and source embedding profile. Dense candidates are needed before final pooled label freeze.
+- A label correction after confirmation exposure makes provider-free rescoring diagnostic/regression evidence only. It does not restore that confirmation set's promotion authority; a new unexposed confirmation unit is required.
 - A 768/1,024/1,536 segment-target change is not automatically served by one source bank key set. It changes canonical segment text and requires a distinct compatible document capture except for exact reusable inputs. The live workflow does not define a cross-profile union bank.
 - Label, cohort, or query changes do not invalidate compatible document vectors. They create a new dataset/query operation and invalidate direct evaluation deltas.
 - Paid query embedding is required for dense pool generation and calibration before the serving policy is selected, not only after profile freeze. Formal confirmation still requires a separate later approval.

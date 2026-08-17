@@ -1,15 +1,74 @@
 # Phase 07 Lexical Evaluation Evidence
 
 - Phase: `07-lexical-evaluation`
-- State: `blocked` — the five independent historical arms are consolidated,
-  and their immutable artifacts remain preserved. A later explicit user
-  decision selected `1024/int8` as the ordinary test and product default,
-  retained compact `512/int8` as the only other product profile, and removed Binary
-  plus every 256-dimensional profile from current code. Formal label
-  work resumes after the implementation is reconciled to that boundary.
+- State: `in_progress` — the five independent historical arms remain
+  preserved, the default `1024/int8` and compact `512/int8` product boundary
+  is reconciled, and Phase 07 is now preparing fresh blind pools under the
+  owner-adopted dual-AI authority below.
 - Date: 2026-08-17
 
 Current product authority: [Retired Vector Profiles and Evidence Boundary](../../RETIRED-VECTOR-PROFILES.md).
+
+### 2026-08-17 solo-project relevance-authority revision
+
+The owner explicitly replaced the unavailable human-pass gate after separate
+side-panel review by ChatGPT and Grok. Both reviewers accepted the same strict
+solo-project contract:
+
+```text
+protocol_version     = owner-adopted-dual-ai-v1
+relevance_authority  = OWNER_ADOPTED_DUAL_AI_REVIEW
+review_validation    = NO_INDEPENDENT_HUMAN_REVIEW
+```
+
+The owner is the governance authority, not a hidden third relevance reviewer.
+ChatGPT and Grok independently inspect separately shuffled, source-complete
+packets with arm, rank, score, prior labels, experiment results, the other
+review, and owner preference hidden. Every relation needs source attestation;
+grade-2/group conflicts must be reconciled; grade 1 requires dual agreement;
+and no-answer/hard-negative labels require corpus-wide evidence plus both
+reviews. The owner adopts or rejects the reconciled digest as a whole. Any
+relation-level override reopens both reviews.
+
+This authority may support internal calibration, confirmation, and later
+`core_retrieval` evidence when every other frozen gate passes. It must never be
+called `HUMAN_REVIEWED`, and every derived artifact carries
+`NO_INDEPENDENT_HUMAN_REVIEW`. A label correction after confirmation exposure
+permits provider-free diagnostic rescoring but cannot restore that confirmation
+set's promotion authority; a new unexposed confirmation unit is required.
+
+All older sections below remain accurate historical provenance. Their
+statements that AI work was advisory or that human passes were pending describe
+the authority in force at that checkpoint; they do not override this current
+contract. The old 191-chi/281-RHF packets also predate the current profile/pool
+boundary and cannot be adopted directly. The next proof must regenerate fresh
+current pools before the two independent reviews.
+
+The live evaluation wire now enforces this boundary. A frozen case requires
+the exact protocol, authority, and validation constants; two distinct reviewer
+identities; one SHA-256 per review artifact; and an owner-adoption artifact
+SHA-256. Draft cases cannot claim frozen authority. Official run manifests may
+carry the same authority tuple, while promotion contracts and results require
+it; `CorePromotionEvidence` rejects disagreement among the confirmation
+manifest, contract, and result. The former same-person
+`solo_review_limitation` escape hatch is removed.
+
+One focused contract boundary passed without a credential, corpus operation,
+provider request, or network access:
+
+```text
+env -u VOYAGE_API_KEY GOPROXY=off go test -count=1 ./internal/evalcontract ./internal/eval ./internal/devlab
+env -u VOYAGE_API_KEY GOPROXY=off go test -count=1 -race ./internal/evalcontract ./internal/eval
+env -u VOYAGE_API_KEY GOPROXY=off go vet ./internal/evalcontract ./internal/eval ./internal/devlab
+env -u VOYAGE_API_KEY GOPROXY=off go build ./...
+go mod tidy -diff
+gofmt -l internal/evalcontract internal/eval
+jq -e . schemas/evaluation/*.json
+git diff --check
+```
+
+All commands passed. This proves authority framing and propagation only; it
+does not claim that the fresh chi/RHF review packets or frozen labels exist.
 
 The dated sections below describe the measurements and decisions as they were
 made. References to an active Binary profile or a 256 candidate are historical
@@ -408,13 +467,14 @@ The focused tests cover portable/duplicate-field manifest rejection, local Git b
 
 ## Next action
 
-Hand the digest-bound refreshed chi/RHF packets to the required separated human
-passes. Hash-bound batch adoption plus explicit exceptions is allowed, but
-every relation must be source-inspected and covered. After a compliant human
-freeze, replay the already immutable rankings provider-free; do not call
-Voyage again while corpus, questions, retrieval policies, and embeddings are
+Regenerate the current digest-bound chi/RHF blind pools from simple, FTS,
+serving-f32, active 1024/int8, applicable RRF, existing truth, and declared
+hard-negative sources. Give independently shuffled copies to ChatGPT and Grok,
+reconcile every relation, record the owner-adoption artifact, freeze the label
+digests, and replay the immutable rankings provider-free. Do not call Voyage
+again while corpus, questions, retrieval policies, and embeddings are
 unchanged. Any future hard-negative or no-answer label still needs corpus-wide
-search evidence and a second review/pass.
+evidence and explicit agreement from both passes.
 
 The ignored source-link review views are
 `.cidx/test/states/chi/evaluations/review/pass1-v2-chi-review.md` and

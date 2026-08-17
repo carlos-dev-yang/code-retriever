@@ -8,6 +8,13 @@
 - Retrieval boundary: independent exhaustive dense ranks only; no FTS, RRF, or cross-codec fusion
 - Provider activity for this consolidation: none
 
+Current authority supersession: this report preserves the historical
+five-profile decision input. The owner later selected default 1024/int8,
+optional compact 512/int8, and complete Binary/256 product removal. Its
+references to a Binary baseline or human freeze are historical, not current
+instructions. Current label work uses `owner-adopted-dual-ai-v1` with
+`NO_INDEPENDENT_HUMAN_REVIEW`.
+
 ## 1. Scope and interpretation
 
 This report consolidates the already-published immutable codec-ranking
@@ -285,9 +292,10 @@ Local provider-free binary control paths:
    causal dimension comparison should persist one authorized source query
    response in-memory long enough to reduce it to 1,024/512/256 within one run.
 
-This is a provisional profile direction, not production activation. The next
-quality action remains separated human source review and provider-free replay
-of the same immutable rankings.
+This is historical calibration evidence, not production activation. The next
+quality action is a fresh current-profile blind pool, independent ChatGPT/Grok
+source review, reconciliation, whole-digest owner adoption, and provider-free
+replay of compatible immutable rankings.
 
 ## 10. Evidence and validation
 

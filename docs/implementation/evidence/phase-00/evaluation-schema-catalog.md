@@ -6,7 +6,7 @@ Phase 02 owns strict versioned wire types and schemas. Phases 07 and 12 own trut
 
 | Schema | Required identity and controls |
 | --- | --- |
-| Query contract | query ID/text, language/cohorts, answer mode, required groups, OR alternatives, relevance grades, hard negatives, durable file/hash/symbol/spans, review passes, calibration/confirmation split, digest |
+| Query contract | query ID/text, language/cohorts, answer mode, required groups, OR alternatives, relevance grades, hard negatives, durable file/hash/symbol/spans, review protocol/authority/validation, pass and owner-adoption artifact digests, calibration/confirmation split, digest |
 | Corpus manifest | corpus ID, upstream URL, pinned commit, SPDX/license evidence, root subdirectory, languages, include/exclude policy, clean-tree rule, tree/content hash |
 | Run manifest | corpus/query/code/config/profile/generation/MCP fingerprints, arm definitions, candidate/collapse/RRF/body policy, platform and assistant controls, start/end state |
 | Per-query stage trace | lane candidates/ranks/native scores, collapse mapping, RRF components, package ranges/bytes, assistant presented/used evidence, operation outcomes, exact denominators |
@@ -22,6 +22,8 @@ Phase 02 owns strict versioned wire types and schemas. Phases 07 and 12 own trut
 - Answer mode: `SINGLE|BEST_N|EXHAUSTIVE|ABSTAINABLE`
 - Relevance: `0=irrelevant/wrong/stale/hard-negative`, `1=useful support`, `2=direct requirement`
 - Dataset split: `calibration|confirmation`
+- Frozen relevance authority: `OWNER_ADOPTED_DUAL_AI_REVIEW`
+- Review protocol/validation: `owner-adopted-dual-ai-v1` / `NO_INDEPENDENT_HUMAN_REVIEW`
 - Promotion scope: `core_retrieval|release_candidate`
 - Promotion status: `PROMOTION_EVIDENCE_READY|NOT_PROMOTION_READY`
 
@@ -43,7 +45,7 @@ The primary retrieval first loss is `PROVIDER_UNION_MISS` only when neither prov
 
 ## Metric ownership
 
-- Human relevance owns Hit/Recall/MRR/NDCG, requirement coverage, complete hit, known-hard-negative hits, and assistant usefulness.
+- Frozen source-backed relevance owns Hit/Recall/MRR/NDCG, requirement coverage, complete hit, known-hard-negative hits, and assistant usefulness; every result propagates its authority and validation limitation.
 - Exhaustive serving-dimension f32 owns current int8 representation fidelity: retention, missing candidates, displacement, inversion, and ties. Historical Binary metrics remain immutable reports only.
 - FTS, dense, union, collapse, RRF, body, and assistant stages keep separate denominators and first-loss attribution.
 - BM25, cosine, int8, and RRF raw scores are never compared directly or interpreted as confidence.
@@ -59,7 +61,7 @@ The primary retrieval first loss is `PROVIDER_UNION_MISS` only when neither prov
 ## Explicit exclusions
 
 - No HNSW/ANN recall, graph-health, or `ef_search` schema.
-- No generated judge as truth authority.
+- No unversioned generated judge or result-aware automated grader as truth authority. The explicit dual-AI protocol is source-backed, independently blinded, digest-bound, owner-adopted, and permanently disclosed as lacking independent human review.
 - No persistent query-vector field.
 - No weighted total or automatic profile activation field.
 - No abstention accuracy until v1 defines a confidence threshold; use reviewed known-hard-negative hits and assistant false leads instead.

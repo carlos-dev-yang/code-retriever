@@ -1,8 +1,8 @@
 # 07. Lexical Chunking and Search Evaluation
 
-- Status: `blocked` — five-profile evidence is preserved, but current
-  calibration resumes only after the int8-only 1024/512 runtime reconciliation;
-  ordinary evaluation then uses 1024/int8 before separated human label freeze
+- Status: `in_progress` — five-profile evidence and the int8-only 1024/512
+  runtime boundary are preserved; current work is fresh 1024/int8-centered
+  blind-pool review under `owner-adopted-dual-ai-v1`
 - Prerequisite phase: `06-fts-search`
 - Follow-up phase: `12-retrieval-evaluation`
 - Design basis: `local-code-search-mcp-v1-design-r4.md` §13, §14
@@ -86,7 +86,7 @@ reference, and no current run can derive, activate, or score Binary/256.
 4. Corpus identity is verified using the pinned commit, clean-tree state, and expected tree/content hash before an official baseline run.
 5. This phase neither chooses nor downloads a corpus absent exact user authorization, and it never calls an embedding API.
 6. A dirty worktree is never ignored. An official baseline fails when dirty; a diagnostic run must be marked explicitly as nonbaseline.
-7. A human reviewer defines ground truth using source-chunk path, kind, and qualified symbol.
+7. Frozen ground truth uses source-chunk path, kind, and qualified symbol under the recorded `OWNER_ADOPTED_DUAL_AI_REVIEW` authority; it is never described as human-reviewed.
 8. Numeric metrics are observations. This document does not create release pass/fail thresholds.
 9. No-hit and wrong-hit outcomes retain causal categories rather than being hidden in one aggregate number.
 10. Production must not receive per-query exceptions or large symbol boosts merely to improve evaluation results.
@@ -94,7 +94,7 @@ reference, and no current run can derive, activate, or score Binary/256.
 12. Result artifacts omit full source bodies by default and use path, symbol, range, and hash for reproduction.
 13. Final token counts vary by tokenizer and host; they are supplementary observations rather than authority for byte limits or retrieval quality.
 14. The evaluator follows `EVALUATION-CONTRACT.md`: stage denominators remain separate, required failures stay in denominators, calibration cannot vote for promotion, and confirmation cannot tune settings.
-15. Human relevance truth is the product reference. Later codec fidelity uses serving-dimension f32 as a second independent reference; Phase 07 must not pre-label f32 results as truth.
+15. Frozen source-backed relevance truth is the product reference. Later codec fidelity uses serving-dimension f32 as a second independent reference; Phase 07 must not pre-label f32 results as truth.
 
 ## 5. Packages, Files, and Types to Implement
 
@@ -252,7 +252,17 @@ Represent valid alternatives as OR entries within a required group and separate 
 
 Create separate calibration and confirmation splits. A promotion-capable confirmation series starts with at least 90 answerable queries (30 each for Go, TypeScript, and TSX), 18 verified abstainable/hard-negative queries (6 each), and 10 cases in every critical cohort; cohorts may overlap. A 12–20 query set is smoke evidence only.
 
-Every frozen query receives human review. Record two independent approvals when possible. Solo development records two separated review passes and the single-reviewer limitation. No-answer and hard-negative labels require corpus-wide search evidence and a second independent review/pass. Pool unique top results from simple search, FTS, current f32/int8/RRF arms, and already-preserved historical diagnostic reports before final label freeze.
+Every frozen query follows `owner-adopted-dual-ai-v1`: two different AI
+systems independently inspect shuffled, rank/score/arm/prior-label-hidden,
+source-complete packets; reconciliation leaves no grade-2 or required-group
+conflict; support receives grade 1 only on dual agreement; and the owner adopts
+or rejects the reconciled digest without relation-level regrading. Frozen
+records use `OWNER_ADOPTED_DUAL_AI_REVIEW` plus permanent
+`NO_INDEPENDENT_HUMAN_REVIEW`, never `HUMAN_REVIEWED`. No-answer and
+hard-negative labels require corpus-wide search evidence and explicit agreement
+from both passes. Pool unique top results from simple search, FTS, current
+serving-f32/int8/RRF arms, existing truth parents, and relevant historical
+diagnostic provenance before final label freeze.
 
 Before retaining a difficult calibration question, record its real
 `source_basis`, nearest existing query IDs, the distinct parser/chunker,
@@ -268,15 +278,13 @@ denominators are reported separately and are never summed to reconstruct the
 global denominator.
 
 Every pooled `(query_id, semantic_parent_id)` relation must receive two final
-effective human judgments. Pass 1 remains machine-label-blind. Pass 2 or final
-reconciliation may use a hash-bound batch approval plus exceptions instead of
-individual clicks, but the record must enumerate every covered relation and
-include packet digest, reviewer, timestamps, source-inspection attestation,
-default decision, exceptions, and machine-overlay digest/provenance. The
-materialized result still stores grade, rationale, required-group assignment,
-and `source_verified` per relation. Compare complete pass maps and adjudicate
-every disagreement; an uncovered relation is `UNREVIEWED`, never implicit
-grade 0.
+independent AI judgments. Both initial passes remain blind to machine labels,
+arm, score, rank, outcomes, owner preference, and the other pass. The record
+enumerates every covered relation and includes packet/pass digests, reviewer
+system identity, timestamps, source-inspection attestation, decision,
+rationale, required-group assignment, and `source_verified`. Reconciliation
+must resolve grade-2/group conflicts against source; grade 1 requires dual
+agreement. An uncovered relation is `UNREVIEWED`, never implicit grade 0.
 
 The final pool is the semantic-parent-deduplicated union, at the frozen pooling
 depth, of every opened arm plus existing truth parents. Before label freeze,
@@ -433,7 +441,9 @@ Its immutable draft-v2 artifacts record chi Hit@5 `5/12` and RHF Hit@5
 deduplicate the top five parents from FTS, serving f32, active int8, RRF, and
 simple control plus every draft-v2 truth parent. They contain 133 chi and 175
 RHF query-parent relations, with all labels and lane/rank/score information
-hidden. Two separated human passes remain incomplete.
+hidden. Those historical packets predate the current authority and profile
+boundary. Fresh digest-bound packets and both independent AI passes remain
+incomplete.
 
 The later measured cohort review reuses the immutable Voyage embedding-search
 rankings and clean simple artifacts without another provider request. Under
@@ -455,11 +465,12 @@ USD `0.00007752` accounted cost, zero document provider operations, and no
 query-vector persistence. The run showed real fusion rescues and regressions;
 OR fusion is rejected as a serving candidate and production AND is unchanged.
 
-The refreshed blind unions contain 191 chi and 281 RHF relations. Two AI
-reviewers independently covered every relation with rank, score, arm, prior
-label, and experiment result hidden. These are supplementary advisory reviews,
-not the two effective human judgments required above. Chi has a complete
-reconciled advisory label map. RHF direct relevance is fully reconciled and
+The historical refreshed blind unions contain 191 chi and 281 RHF relations.
+Two AI reviewers independently covered every relation with rank, score, arm,
+prior label, and experiment result hidden. These remain advisory because they
+predate the current profile/pool and `owner-adopted-dual-ai-v1` adoption wire;
+they cannot be relabeled retroactively as the required fresh passes. Chi has a
+complete reconciled advisory label map. RHF direct relevance is fully reconciled and
 matches all 22 existing draft direct parents, while 101 grade-0/grade-1 support
 differences remain deliberately separate. RHF NDCG is reported as the two
 support-map endpoints and their min/max label-sensitivity range, not a
@@ -468,11 +479,13 @@ the unchanged draft required-group topology. The exact run, packet, pass,
 reconciliation, and replay hashes are recorded in
 [`measured-retrieval-loop-r4.md`](evidence/phase-07/measured-retrieval-loop-r4.md).
 
-Formal Phase 07 completion is still blocked on the separated human source
-passes. A human may adopt a digest-bound batch plus explicit exceptions, but
-must cover every relation, attest source inspection, and leave zero unresolved
-human disagreement. If only labels change, rescore the immutable rankings
-provider-free; do not call Voyage again.
+Formal Phase 07 completion now requires fresh current-profile packets, two
+independent AI source passes, deterministic reconciliation, and an owner-adopted
+digest with zero unreviewed relation or unresolved grade-2/group conflict. If
+only calibration labels change, rescore immutable rankings provider-free; do
+not call Voyage again. If confirmation labels change after results were
+exposed, that rescore is diagnostic/regression only and a new unexposed
+confirmation unit is required for promotion.
 
 Completion reports must not use the metric value itself as a success declaration. They should demonstrate that the evaluation is reproducible and that failures are traceable.
 
@@ -486,8 +499,8 @@ Provide Phases 08–12 with:
 - the evaluator contract used to compare exhaustive f32 with active int8 at the same serving dimension; historical Binary/256 reports remain document evidence only; and
 - the fixed `candidate_k`, `return_k`, and RRF input conditions used by hybrid comparison.
 - frozen calibration/confirmation digests and the lexical baseline that later lanes must protect.
-- the AI-advisory direct map and support-label sensitivity endpoints as review
-  preparation only, never as frozen human truth or policy-selection evidence.
+- historical AI-advisory direct maps and support-label sensitivity endpoints as
+  preparation only; only a fresh owner-adopted dual-AI digest is frozen truth.
 
 Embedding phases must not silently modify dataset answers. If a correction is required, increment the dataset version and record the annotation reason. They also must not infer corpus download or embedding authorization from the existence of a manifest or local binding.
 
@@ -503,23 +516,23 @@ Phase 12 extends the shared Phase 07 `internal/eval` dataset, ground-truth, metr
 | Separate portable tracked manifests from ignored local bindings. | Reproducibility needs pinned provenance while machine paths must not enter version control. | A dedicated portable workspace resolver is designed. |
 | Never select, download, or embed a corpus in Phase 07 without explicit user authorization. | This phase is a free, local lexical evaluator and a manifest alone is not authorization for external actions or paid work. | A separate user-authorized acquisition or embedding workflow is designed. |
 | Observe hit@k/MRR without a numeric gate. | The corpus and product usage pattern are not yet sufficiently settled. | Representative corpora and product requirements accumulate. |
-| Use generative-model judgments only as supplementary blind-review preparation. | The user explicitly delegated sanitized public-corpus review to ChatGPT and Grok, but the evaluation contract still requires effective human judgments. AI outputs may expose ambiguity and produce sensitivity endpoints; they cannot freeze labels, select policy, or satisfy promotion gates. | The human-review authority contract is explicitly versioned and changed. |
+| Use `OWNER_ADOPTED_DUAL_AI_REVIEW` as the solo-project frozen relevance authority. | The sole owner cannot produce an independent human pass. ChatGPT and Grok independently accepted a strict source-backed, rank/score/arm-hidden two-system protocol with whole-digest owner adoption and permanent `NO_INDEPENDENT_HUMAN_REVIEW`. | An independent human review program becomes available or the authority contract is explicitly versioned again. |
 | Use the accepted deterministic simple-search policy as an evaluation-only control. | On 2026-08-16 the user accepted a corpus-independent `ANY` normalized-token admission rule over the authoritative semantic-parent snapshot, followed by exact qualified/symbol, path, matched-token, and stable identity ordering. It adds no alias, BM25, embedding, boost, public wire, or production-ranking change. | A later evaluation-contract revision explicitly replaces the control. |
 | Stop FTS micro-tuning and carry safe OR 5:1 only as a provenance-bound development comparator. | Repeated AND/OR, minimum-two-token, and 5:1/5:5 experiments showed that aggregate gains can conceal lost required Go/TSX parents. One coherent 32-query Voyage run now provides the missing f32, binary, fusion, and body evidence while production remains AND. | The blinded two-pass pool review is complete and a measured structural change is justified without cross-slice correctness regression. |
-| Reject OR fusion as a serving candidate under the current draft evidence. | The coherent Voyage run showed lower complete-required@5 than pure dense for both corpora, with no chi rescue and concrete chi/RHF required-parent regressions despite isolated RHF rescues. Aggregate RHF also concealed a TypeScript decline and TSX rise. | Human-frozen labels plus a new structural fusion design show no required-group regression in every protected slice. |
-| Report RHF support relevance as a two-endpoint NDCG sensitivity range. | The two complete blind AI passes agree on direct truth after reconciliation but differ on 101 subjective grade-0/grade-1 relations. A single forced label map or midpoint would manufacture precision; Hit/Recall/MRR use the reconciled direct map and completeness/first loss use unchanged draft groups. | Compliant human review resolves every support relation. |
+| Reject OR fusion as a serving candidate under the current draft evidence. | The coherent Voyage run showed lower complete-required@5 than pure dense for both corpora, with no chi rescue and concrete chi/RHF required-parent regressions despite isolated RHF rescues. Aggregate RHF also concealed a TypeScript decline and TSX rise. | Authority-compliant frozen labels plus a new structural fusion design show no required-group regression in every protected slice. |
+| Report the historical RHF support relevance as a two-endpoint NDCG sensitivity range. | The old blind AI passes agree on direct truth but differ on 101 subjective grade-0/grade-1 relations. They predate the current authority, pool, and profile boundary, so a forced midpoint would manufacture precision. | The fresh dual-AI review freezes the current support map; grade 1 requires dual agreement. |
 | Do not repeat Voyage when only labels change. | The corpus, query texts, profiles, document bank, query vectors' resulting immutable ranks, and retrieval policies are already bound and complete; rescoring new labels is provider-free. | Any bound corpus, question, embedding, or retrieval-policy identity changes. |
 | Open one paired f32/binary/int8 top-20 diagnostic before human freeze. | The user explicitly requested an int8 comparison and wider candidate review. One Voyage query vector per case is reused across all three isolated dense arms; candidate int8 documents are locally derived once from the existing raw bank, production remains binary, and no RRF enters the codec comparison. | The corpus, questions, serving dimension, transform, document bank, or codec implementation changes. |
 | Measure one isolated 512-dimension int8 follow-up. | The user considers 1,024-dimensional int8 too large for the intended local footprint. Reuse the approved 1,024-f32 raw document bank and shared prefix-L2 transform in separate development state; request fresh query embeddings once because query vectors are not persisted. Compare 512-int8 only to same-run 512-f32 for codec fidelity, and report 512 versus 1,024 as separate checkpoints. | The bound corpus, questions, source model/dimension, transform, raw bank, or codec implementation changes. |
-| Carry 512/int8 as the compact candidate without changing the working baseline. | The completed follow-up halved int8 vector payload, reduced the two complete SQLite files by `26.48%`, retained every direct answer by top 20, and preserved `1.0000` chi / `.9950` RHF same-run f32 top-20 membership. The 32 draft questions are not sufficient for production promotion. | Separated human review or confirmation evidence contradicts the result, or the bound model/transform/codec/profile changes. |
+| Carry 512/int8 as the compact candidate without changing the working baseline. | The completed follow-up halved int8 vector payload, reduced the two complete SQLite files by `26.48%`, retained every direct answer by top 20, and preserved `1.0000` chi / `.9950` RHF same-run f32 top-20 membership. The 32 draft questions are not sufficient for production promotion. | Authority-compliant frozen review or confirmation evidence contradicts the result, or the bound model/transform/codec/profile changes. |
 | Measure one final isolated 256-dimension int8 follow-up. | The user wants the smaller supported serving dimension measured before choosing between compact candidates. Reuse the approved 1,024-f32 raw document bank and shared prefix-L2 transform in separate development state; request each of the same 32 query embeddings once because query vectors are not persisted. Compare 256-int8 only to same-run 256-f32 for codec fidelity and report cross-dimension results as separate checkpoints. | The bound corpus, questions, source model/dimension, transform, raw bank, or codec implementation changes. |
 | Keep 512/int8 preferred and retain 256/int8 as a memory-constrained alternative. | The completed 256 run preserved `.9917` chi / `.9950` RHF same-run f32 top-20 membership and every direct answer by top 20, but saved only another `7.12%` of the two complete SQLite files beyond 512 and showed less stable shallow placement, most clearly RHF T12. Fresh query hashes differ across checkpoints, so this is an observed practical choice rather than a causal paired dimension claim. | A frozen same-source-query comparison or confirmation evidence reverses the storage/quality tradeoff. |
-| Advance 512/int8 as the preferred frozen-evaluation candidate after five-profile consolidation. | Provider-free replay of all 32 questions found 31/32 direct and complete answers by top 5, useful source code for 32/32 by top 5, `.9969` same-run f32 top-20 retention, and a complete DB only `13.53%` larger than the 1,024-binary controls. 256/int8 is closer to binary size but loses shallow T12 evidence; binary has lower useful precision and a G07 complete-answer loss. This changes no production profile and never fuses codec ranks. | Human-frozen labels, a causal same-source-query dimension grid, or confirmation evidence reverses the result. |
-| Retain int8 as the measured candidate without changing production binary. | The clean paired run showed int8 top-20 retention above `.992` on both corpora with zero top-1 mismatch against exhaustive f32. Binary retained `.7042` on chi and `.7575` on RHF and lost useful source-reviewed neighborhoods even when a raw hit metric improved. The codecs remain isolated and are never fused with one another. | Separated human review or a new confirmation corpus contradicts the calibration result, or the bound codec/transform/profile changes. |
+| Advance 512/int8 as the preferred historical evaluation candidate after five-profile consolidation. | Provider-free replay of all 32 questions found 31/32 direct and complete answers by top 5, useful source code for 32/32 by top 5, `.9969` same-run f32 top-20 retention, and a complete DB only `13.53%` larger than the 1,024-binary controls. The later owner decision made 1024/int8 the default and retained 512/int8 only as the compact option. | Authority-compliant frozen labels, a causal same-source-query dimension grid, or confirmation evidence reverses the result. |
+| Retain the paired Binary/int8 run as historical decision evidence. | The clean paired run showed int8 top-20 retention above `.992` on both corpora with zero top-1 mismatch against exhaustive f32, while Binary retained materially less of the f32 neighborhood. Binary is now removed from the executable product. | Authority-compliant frozen review or a new confirmation corpus contradicts the calibration result, or the bound codec/transform/profile changes. |
 | Prefer representative cohort intents and reject quota-padding edge cases. | The user wants questions that expose material failure modes, not detail added only to reach a count. Difficult cases remain valuable when they isolate a real parser, parent-collapse, type/wrapper, codec, or retrieval distinction. | New evidence shows a missing material failure mode that cannot be covered by a representative question. |
 | Use measured cohort failures before revising questions; keep G07/T01/X01/X08 and narrow only G12. | Repeated advisory grading was slower and less decisive than the existing real rankings. The four misses each retain a distinct source-backed diagnostic boundary, while G12 alone contained wording broader than the Go source contract. | A new measured run or source change invalidates one of those distinct boundaries. |
 | Accept the T10 and G09 source-backed label revisions. | `PathImpl` and `PathInternal` directly implement T10 while public `Path` is useful support; `walkXFF` is a reviewed misleading implementation for the deprecated G09 contract. | Pinned source identity or the question intent changes. |
-| Use human-reviewed path/kind/symbol targets as ground truth. | These map directly to the code-search unit. | Multi-hop task evaluation is added separately. |
+| Use authority-compliant source-reviewed path/kind/symbol targets as ground truth. | These map directly to the code-search unit while keeping the absence of independent human review explicit. | Multi-hop task evaluation or a new review authority is added separately. |
 | Preserve failure taxonomy alongside metrics. | It identifies which implementation layer should change next. | Never. |
 | Call production services directly. | This prevents divergence between evaluation and actual behavior. | Never. |
 | Expose evaluation only through development surfaces. | Keep the public user and MCP surfaces small and stable. | Productization is explicitly requested. |

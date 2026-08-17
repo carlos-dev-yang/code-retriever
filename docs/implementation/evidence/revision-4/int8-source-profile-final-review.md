@@ -6,8 +6,9 @@
 - Reviewed head: `ec9c733`
 - Current product authority: default 1024/int8, explicit compact 512/int8,
   durable document source-1024 f32, and no Binary/256 product path
-- Promotion status: not promotion-ready; Phase 07 human label freeze, official
-  Phase 12, paired assistant evidence, and release-candidate scope remain gated
+- Promotion status: not promotion-ready; Phase 07 owner-adopted dual-AI label
+  freeze, official Phase 12, paired assistant evidence, and release-candidate
+  scope remain gated
 
 ## Authority and scope
 
@@ -88,12 +89,12 @@ not whole-binary symbol exclusion.
 ## Result and remaining work
 
 The current corpus-independent implementation matches the superseded int8-only
-product contract. No further code reconciliation is required before Phase 07
-human review resumes.
+product contract. Phase 07 now resumes under `owner-adopted-dual-ai-v1`; it
+must propagate `NO_INDEPENDENT_HUMAN_REVIEW` and must not claim human review.
 
 The remaining gates are evidence work, not hidden implementation completion:
 
-1. separated human chi/RHF label passes and digest freeze;
+1. independent ChatGPT/Grok chi/RHF source passes, reconciliation, owner adoption, and digest freeze;
 2. immutable rank replay and official Phase 12 `core_retrieval` result;
 3. frozen paired assistant/host evidence;
 4. Phase 14 `scope=release_candidate` decision.

@@ -129,15 +129,28 @@ const (
 	ReviewFrozen ReviewState = "frozen"
 )
 
+type RelevanceAuthority string
+type ReviewValidation string
+
+const (
+	ReviewProtocolOwnerAdoptedDualAI                              = "owner-adopted-dual-ai-v1"
+	RelevanceAuthorityOwnerAdoptedDualAIReview RelevanceAuthority = "OWNER_ADOPTED_DUAL_AI_REVIEW"
+	ReviewValidationNoIndependentHumanReview   ReviewValidation   = "NO_INDEPENDENT_HUMAN_REVIEW"
+)
+
 type ReviewRecord struct {
-	State                ReviewState  `json:"state"`
-	Passes               []ReviewPass `json:"passes"`
-	Rationale            string       `json:"rationale"`
-	SoloReviewLimitation string       `json:"solo_review_limitation,omitempty"`
+	State               ReviewState        `json:"state"`
+	Passes              []ReviewPass       `json:"passes"`
+	Rationale           string             `json:"rationale"`
+	ProtocolVersion     string             `json:"protocol_version,omitempty"`
+	RelevanceAuthority  RelevanceAuthority `json:"relevance_authority,omitempty"`
+	ReviewValidation    ReviewValidation   `json:"review_validation,omitempty"`
+	OwnerAdoptionSHA256 string             `json:"owner_adoption_sha256,omitempty"`
 }
 type ReviewPass struct {
-	ID       string `json:"id"`
-	Reviewer string `json:"reviewer"`
+	ID             string `json:"id"`
+	Reviewer       string `json:"reviewer"`
+	ArtifactSHA256 string `json:"artifact_sha256,omitempty"`
 }
 type RelevanceJudgment struct {
 	Span      SourceSpan `json:"span"`
@@ -196,15 +209,18 @@ type StageTrace struct {
 }
 
 type EvaluationRunManifest struct {
-	SchemaVersion        int               `json:"schema_version"`
-	CorpusManifestSHA256 string            `json:"corpus_manifest_sha256"`
-	QueryManifestSHA256  string            `json:"query_manifest_sha256"`
-	CodeCommit           string            `json:"code_commit"`
-	ProfileFingerprint   string            `json:"profile_fingerprint"`
-	Generation           int64             `json:"generation"`
-	CandidatePolicy      string            `json:"candidate_policy"`
-	Platform             string            `json:"platform"`
-	PairedControls       PairedRunControls `json:"paired_controls"`
+	SchemaVersion         int                `json:"schema_version"`
+	CorpusManifestSHA256  string             `json:"corpus_manifest_sha256"`
+	QueryManifestSHA256   string             `json:"query_manifest_sha256"`
+	CodeCommit            string             `json:"code_commit"`
+	ProfileFingerprint    string             `json:"profile_fingerprint"`
+	Generation            int64              `json:"generation"`
+	CandidatePolicy       string             `json:"candidate_policy"`
+	Platform              string             `json:"platform"`
+	PairedControls        PairedRunControls  `json:"paired_controls"`
+	ReviewProtocolVersion string             `json:"review_protocol_version,omitempty"`
+	RelevanceAuthority    RelevanceAuthority `json:"relevance_authority,omitempty"`
+	ReviewValidation      ReviewValidation   `json:"review_validation,omitempty"`
 }
 type PairedRunControls struct {
 	CorpusStateSHA256 string `json:"corpus_state_sha256"`
@@ -232,20 +248,26 @@ type ArtifactManifest struct {
 	Complete      bool            `json:"complete"`
 }
 type PromotionContract struct {
-	SchemaVersion             int               `json:"schema_version"`
-	Scope                     PromotionScope    `json:"scope"`
-	CalibrationEvidenceSHA256 []string          `json:"calibration_evidence_sha256"`
-	FrozenGates               []string          `json:"frozen_gates"`
-	ConfirmationDatasetSHA256 string            `json:"confirmation_dataset_sha256"`
-	PairedControls            PairedRunControls `json:"paired_controls"`
+	SchemaVersion             int                `json:"schema_version"`
+	Scope                     PromotionScope     `json:"scope"`
+	CalibrationEvidenceSHA256 []string           `json:"calibration_evidence_sha256"`
+	FrozenGates               []string           `json:"frozen_gates"`
+	ConfirmationDatasetSHA256 string             `json:"confirmation_dataset_sha256"`
+	PairedControls            PairedRunControls  `json:"paired_controls"`
+	ReviewProtocolVersion     string             `json:"review_protocol_version"`
+	RelevanceAuthority        RelevanceAuthority `json:"relevance_authority"`
+	ReviewValidation          ReviewValidation   `json:"review_validation"`
 }
 type PromotionResult struct {
-	SchemaVersion      int             `json:"schema_version"`
-	Scope              PromotionScope  `json:"scope"`
-	Status             PromotionStatus `json:"status"`
-	PrerequisiteSHA256 []string        `json:"prerequisite_sha256"`
-	PassedGates        []string        `json:"passed_gates"`
-	FailedGates        []string        `json:"failed_gates"`
-	IncompleteReason   string          `json:"incomplete_reason,omitempty"`
-	ApplicableGates    []string        `json:"applicable_gates"`
+	SchemaVersion         int                `json:"schema_version"`
+	Scope                 PromotionScope     `json:"scope"`
+	Status                PromotionStatus    `json:"status"`
+	PrerequisiteSHA256    []string           `json:"prerequisite_sha256"`
+	PassedGates           []string           `json:"passed_gates"`
+	FailedGates           []string           `json:"failed_gates"`
+	IncompleteReason      string             `json:"incomplete_reason,omitempty"`
+	ApplicableGates       []string           `json:"applicable_gates"`
+	ReviewProtocolVersion string             `json:"review_protocol_version"`
+	RelevanceAuthority    RelevanceAuthority `json:"relevance_authority"`
+	ReviewValidation      ReviewValidation   `json:"review_validation"`
 }
