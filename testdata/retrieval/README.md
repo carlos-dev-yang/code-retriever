@@ -37,8 +37,16 @@ Every behavior case records a deterministic digest, exact file-content hash,
 qualified symbol, byte range, provisional direct/support grade, one `task:*`
 cohort, and one `signal:*` cohort.
 
-All seven datasets are deliberately `review.state=draft`. The behavior set is
-source-checked and side-panel-advised, but that does not count as either formal
-human label pass. These files are not frozen, official, promotion-capable, or
-suitable for confirmation tuning. They also do not authorize a paid document
-or query embedding operation.
+The two current frozen calibration datasets are
+`behavior-go-chi-v5.3.1-calibration-frozen-v1.json` and
+`behavior-react-hook-form-v7.85.0-calibration-frozen-v1.json`. They contain 12
+Go, 12 TypeScript, and 8 TSX cases, respectively, and are bound to
+`owner-adopted-dual-ai-v1`, `OWNER_ADOPTED_DUAL_AI_REVIEW`, and
+`NO_INDEPENDENT_HUMAN_REVIEW`. Their whole-digest adoption record is
+`reviews/owner-adoption-chi-rhf-calibration-v1.json`. These 32 cases are frozen
+calibration evidence only: they are not human-reviewed, confirmation, or
+promotion-capable and must not be edited after the exposed replay.
+
+The seven earlier datasets remain deliberately `review.state=draft` as
+historical smoke and authoring inputs. Neither the draft nor frozen files
+authorize a document or query embedding operation.

@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "kind": "cidx.owner_adopted_dual_ai_label_adoption.v1",
+  "adopted_at": "2026-08-17T10:43:46Z",
+  "protocol_version": "owner-adopted-dual-ai-v1",
+  "relevance_authority": "OWNER_ADOPTED_DUAL_AI_REVIEW",
+  "review_validation": "NO_INDEPENDENT_HUMAN_REVIEW",
+  "decision": "ADOPTED_AS_A_WHOLE",
+  "relation_level_owner_overrides": [],
+  "datasets": [
+    {
+      "corpus_id": "go-chi-chi-v5.3.1",
+      "dataset_version": "go-chi-v5.3.1-behavior-calibration-frozen-v1",
+      "relation_count": 513,
+      "reconciliation_sha256": "d0389a9df56f0cec0643124e6e4444cbbb2943b6f4697dea1f93a15aaae703d3",
+      "reconciled_label_payload_sha256": "a302d3b8800e6d30072d620f06ccf597a907c18f9987221d147df32f120e559e"
+    },
+    {
+      "corpus_id": "react-hook-form-v7.85.0",
+      "dataset_version": "react-hook-form-v7.85.0-behavior-calibration-frozen-v1",
+      "relation_count": 735,
+      "reconciliation_sha256": "de30be4dfefc742e7d9904dd5710f66f1dbc8816660a152a7922e96c4217ac0e",
+      "reconciled_label_payload_sha256": "682d5aef014d60be62e45030129d26fb3515a4e78f7ae8728be80c14f16c43d9"
+    }
+  ],
+  "owner_statement": "The two reconciled source-backed label payloads are adopted as a whole under the standing instruction to complete the evaluation without further approval requests. The owner does not add or override any relation-level relevance judgment.",
+  "limitation": "This solo-project authority substitutes two independent AI reviews for unavailable independent human passes and must never be reported as HUMAN_REVIEWED."
+}

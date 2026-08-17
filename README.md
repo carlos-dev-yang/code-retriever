@@ -4,12 +4,12 @@ cidx is a lightweight local code-search MCP server under active v1 implementatio
 
 The Revision 4 corpus-independent implementation is accepted through the current Phase 14 local package boundary. Default 1024/int8, provider-free compact 512/int8, retired Binary/256 rejection, and source-bank-free serving were verified in a darwin/arm64 archive from clean provenance `5f4955e1499ee8896be5c825ef0fb9b3a52abb70`. Phase 14 remains blocked only for official evaluation, assistant-use, and release-candidate scope. Consult the status ledger for the exact boundary.
 
-The current Phase 07 chi/RHF checkpoint includes the clean 32-query Voyage
-embedding-search run and dual-AI advisory replays. It rejects OR fusion as a
-serving candidate and leaves production AND unchanged. The advisory labels are
-not human label authority; formal calibration still waits on the required
-separated human source review, after which the immutable ranks can be replayed
-without another Voyage call.
+The current Phase 07 chi/RHF checkpoint freezes 32 calibration questions under
+the owner-adopted, independent ChatGPT/Grok source-review protocol. A
+provider-free replay retains `1024/int8` dense as the calibration baseline,
+keeps FTS separate, and rejects the tested `1:1` and `FTS1:dense2` RRF arms.
+The labels are explicitly `NO_INDEPENDENT_HUMAN_REVIEW`; a separate unexposed
+confirmation set is still required for promotion.
 
 ## Product boundary
 

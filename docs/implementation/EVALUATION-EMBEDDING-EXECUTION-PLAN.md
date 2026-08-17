@@ -31,29 +31,33 @@ inputs:
 - [go-chi draft](../../testdata/retrieval/lexical-go-chi-v5.3.1-draft.json)
 - [react-hook-form draft](../../testdata/retrieval/lexical-react-hook-form-v7.85.0-draft.json)
 
-The current behavior-oriented calibration drafts are:
+The historical behavior-oriented calibration drafts are:
 
 - [12-case chi behavior draft v3](../../testdata/retrieval/behavior-go-chi-v5.3.1-draft-v3.json)
 - [20-case react-hook-form behavior draft v2](../../testdata/retrieval/behavior-react-hook-form-v7.85.0-draft-v2.json)
 
-The behavior set comprises 12 Go, 12 TypeScript, and 8 TSX cases. It is bound
-to exact generation-3 content hashes, qualified symbols, and byte ranges, but
-remains draft and contains no reviewed hard-negative or confirmation case. The
-original 12 smoke cases prove only that the provider-free corpus, indexing,
-evaluator, artifact, and replay path works. Neither set proves semantic
-retrieval quality or supports promotion. The current blockers remain:
+The current frozen calibration datasets are:
 
-- fresh current-profile blind pools and the two independent AI source-review passes required by `owner-adopted-dual-ai-v1` are incomplete;
-- the deterministic simple-search baseline is frozen and measured for v2, but
-  chi G12's source-corrected v3 wording requires its simple/opened-arm pool
-  refresh before those passes begin;
+- [12-case chi frozen calibration v1](../../testdata/retrieval/behavior-go-chi-v5.3.1-calibration-frozen-v1.json)
+- [20-case react-hook-form frozen calibration v1](../../testdata/retrieval/behavior-react-hook-form-v7.85.0-calibration-frozen-v1.json)
+
+They comprise 12 Go, 12 TypeScript, and 8 TSX cases. They are bound to exact
+generation-3 content hashes, qualified symbols, byte ranges, two complete
+independent AI source reviews, deterministic reconciliation, and one
+whole-digest owner-adoption record. Their frozen provider-free replay is
+accepted in
+[`dual-ai-calibration-freeze-r4.md`](evidence/phase-07/dual-ai-calibration-freeze-r4.md).
+They prove the current chi/RHF calibration direction but do not support
+promotion. The remaining blockers are:
+
+- the exposed 32-case calibration set cannot serve as confirmation;
 - the canonical `voyage-code-4` model/price, complete product document source bank, and
   historical five-profile materializations are confirmed; the exact 12 chi + 20 RHF
   exploratory series completed once under its $0.01 ceiling and its approval
-  is consumed; those immutable rankings were regrouped by cohort without a
-  repeat, while the new chi v3 wording is not yet a measured query;
+  is consumed; the later current-query codec rankings and their query-vector
+  identities were reused provider-free for the frozen replay;
 - the two repositories do not contain a genuine cross-language Go/TypeScript/TSX behavior path;
-- the confirmation-size and review floor has not been satisfied.
+- the unexposed confirmation-size and review floor has not been satisfied.
 
 ### 2.1 Immediate chi/RHF execution slice
 
@@ -305,6 +309,11 @@ Actions:
 
 Exit: a reviewable working calibration dataset exists. Its questions, cohort assignments, and labels remain provisional until the exploratory loop and pooled review are complete.
 
+Completed checkpoint: the 32-case chi/RHF working set passed the exploratory
+loop, blind pooled review, reconciliation, owner adoption, and provider-free
+replay. It is now immutable calibration evidence. Do not revise this version
+to improve exposed scores.
+
 ### Stage 4 — Freeze and run the provider-free lexical preparation baseline
 
 Entry: provisional truth passes schema, digest, and corpus-binding validation.
@@ -317,7 +326,10 @@ Actions:
 - use results to expand the blind judgment pool, not to delete difficult queries;
 - use the existing smoke results as diagnostics while the working behavior cohort is authored.
 
-Exit: provider-free lexical preparation evidence is reproducible. It does not block the compatible document-capture plan. Official Phase 07 evidence remains blocked until the simple baseline and final pooled labels, including later dense candidates, are frozen.
+Exit: provider-free lexical preparation evidence is reproducible. The chi/RHF
+simple baseline and final pooled calibration labels, including dense
+candidates, are now frozen. Official Phase 07 completion remains gated only by
+the separate unexposed confirmation dataset and its review floor.
 
 ### Stage 5 — Freeze the document input universe and request document approval
 
@@ -730,22 +742,23 @@ The honest terminal outcome is then an invalid/incomplete run or `NOT_PROMOTION_
 
 ## 15. Exact next actions
 
-Corpus audit, cohort authoring, document capture, exploratory comparison, and
-the isolated 1,024/512/256 codec checkpoints are complete. The immediate
+Corpus audit, cohort authoring, document capture, exploratory comparison,
+isolated codec checkpoints, both independent reviews, reconciliation,
+whole-digest adoption, and frozen-label replay are complete. The immediate
 sequence is:
 
-1. Preserve the five immutable profile rankings and the provider-free
-   [combined comparison](evidence/phase-07/five-profile-cohort-comparison-r4.md).
-2. Complete independently randomized ChatGPT and Grok source-review passes
-   over the digest-bound pools, reconcile every grade-2/group conflict, apply
-   the conservative dual-agreement support rule, and record whole-digest owner
-   adoption with no independent-human claim.
-3. Replay the immutable rankings provider-free after label changes; do not
-   call Voyage merely to rescore labels.
-4. Freeze the calibration dataset digest and rerun the deterministic simple
-   and FTS controls against that final digest.
-5. Seal the selected candidate, margins, denominators, confirmation questions,
-   and approval packet before any formal confirmation operation.
+1. Preserve the closed 32-case calibration datasets and their provider-free
+   [frozen replay](evidence/phase-07/dual-ai-calibration-freeze-r4.md).
+2. Carry `1024/int8` dense as the retrieval-quality calibration baseline and
+   FTS as an independent lexical control; do not reopen the rejected 1:1 or
+   FTS1:dense2 RRF weight branch absent a structural change.
+3. Independently author a new, unexposed promotion-capable confirmation set at
+   the evaluation-contract floors. Do not reword exposed calibration failures
+   into confirmation questions.
+4. Apply the same blind ChatGPT/Grok review, reconciliation, and whole-digest
+   owner-adoption protocol to the confirmation pool.
+5. Seal the selected policy, margins, denominators, confirmation digest, and
+   approval packet before any formal confirmation query operation.
 
 Mixed-language corpus selection and promotion confirmation remain deliberately
 deferred until chi/RHF calibration closure.

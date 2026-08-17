@@ -1,13 +1,16 @@
 # Phase 07 Lexical Evaluation Evidence
 
 - Phase: `07-lexical-evaluation`
-- State: `in_progress` — the five independent historical arms remain
-  preserved, the default `1024/int8` and compact `512/int8` product boundary
-  is reconciled, and Phase 07 is now preparing fresh blind pools under the
-  owner-adopted dual-AI authority below.
+- State: `in_progress` — the default `1024/int8` and compact `512/int8`
+  product boundary is reconciled; the 32-case chi/RHF calibration set is
+  frozen, adopted, and replayed; a separate unexposed promotion-capable
+  confirmation set remains outstanding.
 - Date: 2026-08-17
 
 Current product authority: [Retired Vector Profiles and Evidence Boundary](../../RETIRED-VECTOR-PROFILES.md).
+
+Current frozen calibration checkpoint: [dual-AI calibration freeze and
+provider-free replay — Revision 4](dual-ai-calibration-freeze-r4.md).
 
 ### 2026-08-17 solo-project relevance-authority revision
 
@@ -41,8 +44,9 @@ All older sections below remain accurate historical provenance. Their
 statements that AI work was advisory or that human passes were pending describe
 the authority in force at that checkpoint; they do not override this current
 contract. The old 191-chi/281-RHF packets also predate the current profile/pool
-boundary and cannot be adopted directly. The next proof must regenerate fresh
-current pools before the two independent reviews.
+boundary and cannot be adopted directly. Fresh current pools and both passes
+were subsequently completed in the frozen calibration checkpoint linked
+above.
 
 The live evaluation wire now enforces this boundary. A frozen case requires
 the exact protocol, authority, and validation constants; two distinct reviewer
@@ -67,8 +71,9 @@ jq -e . schemas/evaluation/*.json
 git diff --check
 ```
 
-All commands passed. This proves authority framing and propagation only; it
-does not claim that the fresh chi/RHF review packets or frozen labels exist.
+All commands passed. That earlier checkpoint proved authority framing and
+propagation only. The later frozen checkpoint supplies the missing current
+packets, completed passes, reconciliation, owner adoption, and replay proof.
 
 The dated sections below describe the measurements and decisions as they were
 made. References to an active Binary profile or a 256 candidate are historical
@@ -467,14 +472,13 @@ The focused tests cover portable/duplicate-field manifest rejection, local Git b
 
 ## Next action
 
-Regenerate the current digest-bound chi/RHF blind pools from simple, FTS,
-serving-f32, active 1024/int8, applicable RRF, existing truth, and declared
-hard-negative sources. Give independently shuffled copies to ChatGPT and Grok,
-reconcile every relation, record the owner-adoption artifact, freeze the label
-digests, and replay the immutable rankings provider-free. Do not call Voyage
-again while corpus, questions, retrieval policies, and embeddings are
-unchanged. Any future hard-negative or no-answer label still needs corpus-wide
-evidence and explicit agreement from both passes.
+Keep the exposed 32-case calibration set immutable. Use its accepted
+`1024/int8` dense baseline and separate FTS control as Phase 12 calibration
+inputs without reopening the rejected RRF weight branch. Independently author
+a new unexposed promotion-capable confirmation set, then apply the same
+dual-AI/owner-adoption protocol before any confirmation run. Do not call
+Voyage again for the closed calibration set while its corpus, questions,
+retrieval policies, and embeddings are unchanged.
 
 The ignored source-link review views are
 `.cidx/test/states/chi/evaluations/review/pass1-v2-chi-review.md` and

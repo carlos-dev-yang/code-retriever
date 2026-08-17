@@ -1,8 +1,8 @@
 # 07. Lexical Chunking and Search Evaluation
 
-- Status: `in_progress` — five-profile evidence and the int8-only 1024/512
-  runtime boundary are preserved; current work is fresh 1024/int8-centered
-  blind-pool review under `owner-adopted-dual-ai-v1`
+- Status: `in_progress` — the chi/RHF 32-case calibration set is frozen under
+  `owner-adopted-dual-ai-v1`, its provider-free replay is accepted, and a
+  separate unexposed promotion-capable confirmation set remains outstanding
 - Prerequisite phase: `06-fts-search`
 - Follow-up phase: `12-retrieval-evaluation`
 - Design basis: `local-code-search-mcp-v1-design-r4.md` §13, §14
@@ -479,13 +479,17 @@ the unchanged draft required-group topology. The exact run, packet, pass,
 reconciliation, and replay hashes are recorded in
 [`measured-retrieval-loop-r4.md`](evidence/phase-07/measured-retrieval-loop-r4.md).
 
-Formal Phase 07 completion now requires fresh current-profile packets, two
-independent AI source passes, deterministic reconciliation, and an owner-adopted
-digest with zero unreviewed relation or unresolved grade-2/group conflict. If
-only calibration labels change, rescore immutable rankings provider-free; do
-not call Voyage again. If confirmation labels change after results were
-exposed, that rescore is diagnostic/regression only and a new unexposed
-confirmation unit is required for promotion.
+The fresh current-profile chi/RHF calibration packets, two independent AI
+source passes, deterministic reconciliation, whole-digest owner adoption, and
+provider-free replay are complete. The accepted checkpoint is recorded in
+[`dual-ai-calibration-freeze-r4.md`](evidence/phase-07/dual-ai-calibration-freeze-r4.md).
+It closes these 32 exposed calibration questions but does not satisfy the
+promotion-capable confirmation floor. Formal Phase 07 completion still needs a
+separate unexposed confirmation set reviewed under the same authority. If only
+calibration labels change, rescore immutable rankings provider-free; do not
+call Voyage again. If confirmation labels change after results were exposed,
+that rescore is diagnostic/regression only and a new unexposed confirmation
+unit is required for promotion.
 
 Completion reports must not use the metric value itself as a success declaration. They should demonstrate that the evaluation is reproducible and that failures are traceable.
 
@@ -533,6 +537,8 @@ Phase 12 extends the shared Phase 07 `internal/eval` dataset, ground-truth, metr
 | Use measured cohort failures before revising questions; keep G07/T01/X01/X08 and narrow only G12. | Repeated advisory grading was slower and less decisive than the existing real rankings. The four misses each retain a distinct source-backed diagnostic boundary, while G12 alone contained wording broader than the Go source contract. | A new measured run or source change invalidates one of those distinct boundaries. |
 | Accept the T10 and G09 source-backed label revisions. | `PathImpl` and `PathInternal` directly implement T10 while public `Path` is useful support; `walkXFF` is a reviewed misleading implementation for the deprecated G09 contract. | Pinned source identity or the question intent changes. |
 | Use authority-compliant source-reviewed path/kind/symbol targets as ground truth. | These map directly to the code-search unit while keeping the absence of independent human review explicit. | Multi-hop task evaluation or a new review authority is added separately. |
+| Freeze the 32 chi/RHF cases as calibration, retain 1024/int8 dense as the retrieval-quality baseline, keep FTS separate, and reject the tested 1:1 and FTS1:dense2 RRF arms. | Complete dual-AI source review and provider-free replay showed dense Complete@5 `30/32`; both fixed RRF formulations regressed required RHF results, and the weighted probe also worsened the reviewed top-5 label mix. The measurement guide, ChatGPT, and Grok agreed to stop weight tuning at this boundary. | A structural candidate-generation/chunking change or a newly frozen unexposed dataset justifies a new arm; this decision does not claim lexical evidence can never help. |
+| Do not edit the exposed 32-case calibration set to improve its scores. | The questions, labels, and immutable ranks have now influenced a retrieval-policy decision. Further tuning on them would invalidate their role as an unbiased confirmation unit. | Never for this dataset version; create a new versioned calibration or an unexposed confirmation unit. |
 | Preserve failure taxonomy alongside metrics. | It identifies which implementation layer should change next. | Never. |
 | Call production services directly. | This prevents divergence between evaluation and actual behavior. | Never. |
 | Expose evaluation only through development surfaces. | Keep the public user and MCP surfaces small and stable. | Productization is explicitly requested. |
