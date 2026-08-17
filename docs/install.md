@@ -25,8 +25,13 @@ SQLite and never depends on that command. The verifier exits as unverified if
 checksum and a corruption rejection, checks executable permission and Mach-O
 linkage evidence, then uses a synthetic Git repository whose path contains
 spaces and non-ASCII characters. It does not use an API key, provider, corpus,
-lab database, model, or assistant invocation. Set `CIDX_EVIDENCE_DIR` to retain
-the local MCP and failure stdout/stderr transcripts instead of only printing the
+lab database, model, or assistant invocation. It initializes the default
+1024/int8 profile, injects deterministic synthetic document source vectors
+only as local verifier fixtures, proves provider-free publication, switches to
+512/int8, and proves the same source rows are reused with zero provider
+requests. It also runs MCP from a relocated copy without the source-bank file
+and proves serving does not create one. Set `CIDX_EVIDENCE_DIR` to retain the
+local MCP and failure stdout/stderr transcripts instead of only printing the
 result. If verification fails, it copies every transcript produced before the
 failure and still exits nonzero; a copied transcript is not a successful
 verification claim.
@@ -35,10 +40,26 @@ To use a verified binary manually, place it on `PATH` or keep its absolute
 path, then run inside a Git worktree:
 
 ```sh
-cidx init --serving-dim 256
+cidx init
 cidx index --reason manual
 cidx status --json
 ```
+
+This creates the default 1024/int8 profile. To use the compact profile in an
+existing repository, explicitly change `embedding.serving_dimensions` in
+`.cidx/config.json` from `1024` to `512`, then run:
+
+```sh
+cidx index --reason manual
+cidx embed --dry-run
+cidx embed --apply
+```
+
+When `.cidx/db/embeddings.db` already contains all compatible document
+source-1024 rows, the plan reports only local source inputs and `--apply`
+performs zero Voyage requests. If source rows are missing, the plan reports
+those Voyage inputs separately and `--apply` requires the explicitly supplied
+`VOYAGE_API_KEY`.
 
 `init`, `index`, `status`, FTS search, and `serve` are free local operations.
 They never require `VOYAGE_API_KEY`. `cidx version --json` reports the binary

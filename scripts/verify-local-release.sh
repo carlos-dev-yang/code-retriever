@@ -93,9 +93,12 @@ copy_evidence() {
   local destination=$1 artifact
   mkdir -p "$destination"
   for artifact in \
-    version.json status.json index.json index-a.json index-b.json mcp.jsonl mcp.stderr mcp-assertion.stderr \
+    version.json config-1024.json embed-plan-1024.json embed-1024.json status-1024.json \
+    config-512.json index-512.json embed-plan-512.json embed-512.json status.json index.json index-a.json index-b.json \
+    retired-256.stdout retired-256.stderr retired-binary.stdout retired-binary.stderr \
+    mcp.jsonl mcp.stderr mcp-assertion.stderr \
     codex-app-server.jsonl codex-app-server.stderr codex-version.txt codex-version.stderr \
-    root-mismatch.stdout root-mismatch.stderr newer-schema.stdout newer-schema.stderr \
+    relocated-status.json root-mismatch.stdout root-mismatch.stderr newer-schema.stdout newer-schema.stderr \
     invalid-config.stdout invalid-config.stderr; do
     if [ -f "$work/$artifact" ]; then
       cp "$work/$artifact" "$destination/" || return 1
@@ -178,8 +181,95 @@ offline git -C "$repo" init >/dev/null
 printf 'package sample\nfunc Hello() string { return "hello" }\n' >"$repo/main.go"
 printf 'export function hello(): string { return "hello" }\n' >"$repo/sample.ts"
 printf 'export const View = () => <div>hello</div>\n' >"$repo/sample.tsx"
-(cd "$repo" && offline "$binary" init --serving-dim 256)
+(cd "$repo" && offline "$binary" init)
+cp "$repo/.cidx/config.json" "$work/config-1024.json"
+python3 - "$work/config-1024.json" <<'PY'
+import json,sys
+c=json.load(open(sys.argv[1]))
+assert c["embedding"]["serving_dimensions"] == 1024
+assert c["embedding"]["storage_codec"] == "int8"
+PY
 (cd "$repo" && offline "$binary" index --reason manual >"$work/index.json")
+[ ! -e "$repo/.cidx/db/embeddings.db" ] || fail 'free init/index unexpectedly created product source bank'
+
+# Build a provider-free synthetic source bank for the indexed canonical inputs.
+# These deterministic nonzero vectors are verifier fixtures, not provider or
+# retrieval-quality evidence.
+offline python3 - "$repo/.cidx/db/index.db" "$repo/.cidx/db/embeddings.db" <<'PY'
+import binascii,hashlib,os,sqlite3,struct,sys
+production_path,bank_path=sys.argv[1:]
+production=sqlite3.connect(f"file:{production_path}?mode=ro", uri=True)
+source_profile=production.execute("SELECT source_profile FROM meta WHERE id=1").fetchone()[0]
+input_hashes=[row[0] for row in production.execute("SELECT DISTINCT canonical_input_sha256 FROM embedding_segments ORDER BY canonical_input_sha256")]
+production.close()
+assert len(source_profile) == 64 and input_hashes
+bank=sqlite3.connect(bank_path)
+bank.executescript("""
+CREATE TABLE source_meta (id INTEGER PRIMARY KEY CHECK(id=1), schema_version INTEGER NOT NULL CHECK(schema_version=1), created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')));
+CREATE TABLE document_source_embeddings (source_profile_fingerprint TEXT NOT NULL, canonical_input_sha256 TEXT NOT NULL, dimensions INTEGER NOT NULL CHECK(dimensions=1024), checksum INTEGER NOT NULL, vector_f32_le BLOB NOT NULL CHECK(length(vector_f32_le)=4096), vector_sha256 TEXT NOT NULL, requested_model TEXT NOT NULL, response_model TEXT NOT NULL, request_id TEXT NOT NULL DEFAULT '', encoding TEXT NOT NULL CHECK(encoding='cidx-source-f32-le-v1'), created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), PRIMARY KEY(source_profile_fingerprint,canonical_input_sha256));
+INSERT INTO source_meta(id,schema_version) VALUES(1,1);
+PRAGMA user_version=1;
+""")
+for ordinal,input_hash in enumerate(input_hashes):
+    values=[0.0]*1024
+    values[0]=1.0
+    values[1+(ordinal%511)]=0.5
+    blob=struct.pack("<1024f", *values)
+    bank.execute("INSERT INTO document_source_embeddings(source_profile_fingerprint,canonical_input_sha256,dimensions,checksum,vector_f32_le,vector_sha256,requested_model,response_model,request_id,encoding) VALUES(?,?,?,?,?,?,?,?,?,?)", (source_profile,input_hash,1024,binascii.crc32(blob)&0xffffffff,blob,hashlib.sha256(blob).hexdigest(),"voyage-code-4","voyage-code-4","phase14-offline-fixture","cidx-source-f32-le-v1"))
+bank.commit()
+bank.close()
+os.chmod(bank_path,0o600)
+PY
+(cd "$repo" && offline "$binary" embed --dry-run >"$work/embed-plan-1024.json")
+(cd "$repo" && offline "$binary" embed --apply >"$work/embed-1024.json")
+(cd "$repo" && offline "$binary" status --json >"$work/status-1024.json")
+python3 - "$work/embed-plan-1024.json" "$work/embed-1024.json" "$work/status-1024.json" <<'PY'
+import json,sys
+plan,result,status=map(lambda p:json.load(open(p)),sys.argv[1:])
+assert plan["source_input_count"] > 0 and plan["voyage_input_count"] == 0
+assert result["requested_count"] == result["actual_tokens"] == result["failed_count"] == result["discarded_count"] == 0
+assert result["succeeded_count"] == plan["source_input_count"]
+assert status["vector_coverage_numerator"] == status["vector_coverage_denominator"] > 0
+PY
+
+# Switch only the selected serving dimension, reconcile, and reuse the same
+# source-1024 rows locally. No provider key or network is available here.
+python3 - "$repo/.cidx/config.json" "$work/config-512.json" <<'PY'
+import json,sys
+path,out=sys.argv[1:]
+c=json.load(open(path)); c["embedding"]["serving_dimensions"]=512
+with open(path,"w") as f: json.dump(c,f,indent=2); f.write("\n")
+with open(out,"w") as f: json.dump(c,f,indent=2); f.write("\n")
+assert c["embedding"]["storage_codec"] == "int8"
+PY
+(cd "$repo" && offline "$binary" index --reason manual >"$work/index-512.json")
+(cd "$repo" && offline "$binary" embed --dry-run >"$work/embed-plan-512.json")
+(cd "$repo" && offline "$binary" embed --apply >"$work/embed-512.json")
+(cd "$repo" && offline "$binary" status --json >"$work/status.json")
+offline python3 - "$repo/.cidx/db/index.db" "$work/embed-plan-512.json" "$work/embed-512.json" "$work/status.json" <<'PY'
+import json,sqlite3,sys
+db_path,plan_path,result_path,status_path=sys.argv[1:]
+plan,result,status=[json.load(open(p)) for p in (plan_path,result_path,status_path)]
+assert plan["source_input_count"] > 0 and plan["voyage_input_count"] == 0
+assert result["requested_count"] == result["actual_tokens"] == result["failed_count"] == result["discarded_count"] == 0
+assert result["succeeded_count"] == plan["source_input_count"]
+assert status["vector_coverage_numerator"] == status["vector_coverage_denominator"] > 0
+db=sqlite3.connect(f"file:{db_path}?mode=ro",uri=True)
+active=db.execute("SELECT active_serving_profile FROM meta WHERE id=1").fetchone()[0]
+rows=db.execute("SELECT DISTINCT dimensions,codec_id FROM vector_cache WHERE serving_profile=?",(active,)).fetchall()
+db.close()
+assert rows == [(512,"cidx-int8-symmetric-v1")]
+PY
+
+# Retired dimensions and codecs are negative checks only; failed init must not
+# create repository state.
+retired="$work/retired-profile"
+mkdir "$retired"
+offline git -C "$retired" init >/dev/null
+if (cd "$retired" && offline "$binary" init --serving-dim 256 >"$work/retired-256.stdout" 2>"$work/retired-256.stderr"); then fail 'retired 256 dimension unexpectedly initialized'; fi
+[ ! -e "$retired/.cidx" ] || fail 'retired 256 dimension mutated repository state'
+if (cd "$retired" && offline "$binary" init --codec binary >"$work/retired-binary.stdout" 2>"$work/retired-binary.stderr"); then fail 'retired binary codec unexpectedly initialized'; fi
+[ ! -e "$retired/.cidx" ] || fail 'retired binary codec mutated repository state'
 (
   cd "$repo"
   offline "$binary" index --reason manual >"$work/index-a.json" &
@@ -190,17 +280,26 @@ printf 'export const View = () => <div>hello</div>\n' >"$repo/sample.tsx"
   wait "$second"
 )
 (cd "$repo" && offline "$binary" status --json >"$work/status.json")
-[ ! -e "$repo/.cidx/raw/embeddings.db" ] || fail 'free runtime opened raw embedding database'
-[ ! -d "$repo/.cidx/raw" ] || fail 'free runtime created raw embedding directory'
+[ -f "$repo/.cidx/db/embeddings.db" ] || fail 'provider-free rematerialization lost product source bank'
 [ ! -d "$repo/.cidx/test" ] || fail 'normal runtime created development workspace state'
 if find "$repo" -type f \( -name '*.wasm' -o -name '*.onnx' -o -name '*.gguf' \) -print -quit | grep -q .; then
   fail 'runtime created grammar or model download artifact'
 fi
 
-sha=$(shasum -a 256 "$repo/main.go" | awk '{print $1}')
+serve_repo="$work/cidx serve without source bank"
+mkdir "$serve_repo"
+offline git -C "$serve_repo" init >/dev/null
+cp "$repo/main.go" "$repo/sample.ts" "$repo/sample.tsx" "$serve_repo/"
+mkdir -p "$serve_repo/.cidx/db"
+cp "$repo/.cidx/config.json" "$serve_repo/.cidx/config.json"
+cp "$repo/.cidx/db/index.db" "$serve_repo/.cidx/db/index.db"
+offline "$binary" status --root "$serve_repo" --json >"$work/relocated-status.json"
+[ ! -e "$serve_repo/.cidx/db/embeddings.db" ] || fail 'source-bank-free serve fixture unexpectedly has product source state'
+
+sha=$(shasum -a 256 "$serve_repo/main.go" | awk '{print $1}')
 fifo="$work/mcp.stdin"
 mkfifo "$fifo"
-offline "$binary" serve --root "$repo" <"$fifo" >"$work/mcp.jsonl" 2>"$work/mcp.stderr" &
+offline "$binary" serve --root "$serve_repo" <"$fifo" >"$work/mcp.jsonl" 2>"$work/mcp.stderr" &
 cidx_server_pid=$!
 exec 3>"$fifo"
 mcp_fd_open=1
@@ -268,20 +367,13 @@ then
   cat "$work/mcp-assertion.stderr" >&2
   fail 'MCP transcript structural validation failed'
 fi
+[ ! -e "$serve_repo/.cidx/db/embeddings.db" ] || fail 'serve created product source bank'
+[ ! -d "$serve_repo/.cidx/test" ] || fail 'serve created development state'
 
-other="$work/other-root"
-mkdir "$other"
-offline git -C "$other" init >/dev/null
-cp "$repo/main.go" "$repo/sample.ts" "$repo/sample.tsx" "$other/"
-mkdir "$other/.cidx"
-mkdir "$other/.cidx/db"
-cp "$repo/.cidx/config.json" "$other/.cidx/config.json"
-cp "$repo/.cidx/db/index.db" "$other/.cidx/db/index.db"
-offline "$binary" status --root "$other" --json >"$work/relocated-status.json"
 schema_repo="$work/newer-schema-root"
 mkdir "$schema_repo"
 offline git -C "$schema_repo" init >/dev/null
-(cd "$schema_repo" && offline "$binary" init --serving-dim 256)
+(cd "$schema_repo" && offline "$binary" init)
 offline sqlite3 "$schema_repo/.cidx/db/index.db" 'PRAGMA user_version=999;'
 if offline "$binary" status --root "$schema_repo" >"$work/newer-schema.stdout" 2>"$work/newer-schema.stderr"; then fail 'newer schema unexpectedly opened'; fi
 [ ! -s "$work/newer-schema.stdout" ] || fail 'newer-schema failure wrote protocol/data to stdout'
@@ -298,7 +390,7 @@ grep -Eiq 'unknown|config' "$work/invalid-config.stderr" || fail 'invalid-config
 
 project="$work/codex-project"
 mkdir -p "$project/.codex" "$work/codex-home"
-printf '[mcp_servers.cidx]\ncommand = "%s"\nargs = ["serve", "--root", "%s"]\ncwd = "%s"\nenv_vars = ["VOYAGE_API_KEY"]\n' "$binary" "$repo" "$repo" >"$project/.codex/config.toml"
+printf '[mcp_servers.cidx]\ncommand = "%s"\nargs = ["serve", "--root", "%s"]\ncwd = "%s"\nenv_vars = ["VOYAGE_API_KEY"]\n' "$binary" "$serve_repo" "$serve_repo" >"$project/.codex/config.toml"
 mkdir -p "$work/home"
 printf '[projects."%s"]\ntrust_level = "trusted"\n' "$project" >"$work/codex-home/config.toml"
 codex_fifo="$work/codex-app-server.stdin"
@@ -323,7 +415,7 @@ codex_fd_open=0
 await_owned_shutdown "$codex_server_pid" 'Codex app-server'
 codex_server_pid=
 [ ! -s "$work/codex-app-server.stderr" ] || fail 'Codex app-server wrote diagnostics during project-config verification'
-python3 - "$work/codex-app-server.jsonl" "$project" "$work/codex-home/config.toml" "$binary" "$repo" <<'PY'
+python3 - "$work/codex-app-server.jsonl" "$project" "$work/codex-home/config.toml" "$binary" "$serve_repo" <<'PY'
 import json,os,sys
 frames=[json.loads(line) for line in open(sys.argv[1]) if line.strip()]
 project,home_config,binary,root=sys.argv[2:]
