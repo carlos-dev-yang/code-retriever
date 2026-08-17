@@ -31,6 +31,17 @@ func Test(ctx context.Context, requestedSource, requestedState string) (Layout, 
 	if err != nil {
 		return Layout{}, err
 	}
+	return TestAt(ctx, controller, requestedSource, requestedState)
+}
+
+// TestAt resolves an isolated development workspace relative to one explicit
+// controlling Git worktree. This keeps commands with a --root option from
+// accidentally resolving state against the caller's current directory.
+func TestAt(ctx context.Context, requestedController, requestedSource, requestedState string) (Layout, error) {
+	controller, err := root.GitRoot(ctx, requestedController)
+	if err != nil {
+		return Layout{}, err
+	}
 	source, err := controlledPath(controller, requestedSource, ".cidx/test/corpora")
 	if err != nil {
 		return Layout{}, fmt.Errorf("source directory: %w", err)

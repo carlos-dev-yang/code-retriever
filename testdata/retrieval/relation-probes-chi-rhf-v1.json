@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "probes": [
+    {
+      "id": "chi-g09-realip-calls-realip",
+      "corpus_id": "go-chi-chi-v5.3.1",
+      "source_parent": {"path": "middleware/realip.go", "indexed_sha256": "2f837f2213de7074c5c6915dad70f85c4588077291a8563d1cbad6698a757220", "qualified_symbol": "middleware.RealIP", "start_byte": 342, "end_byte": 1214},
+      "target_parent": {"path": "middleware/realip.go", "indexed_sha256": "2f837f2213de7074c5c6915dad70f85c4588077291a8563d1cbad6698a757220", "qualified_symbol": "middleware.realIP", "start_byte": 1216, "end_byte": 1567},
+      "relation_kind": "CALLS",
+      "direction": "FORWARD",
+      "expected_cardinality": 1,
+      "expected_occurrences": [{"path": "middleware/realip.go", "start_byte": 1111, "end_byte": 1120}]
+    },
+    {
+      "id": "chi-g09-realip-reverse-called-by-realip",
+      "corpus_id": "go-chi-chi-v5.3.1",
+      "source_parent": {"path": "middleware/realip.go", "indexed_sha256": "2f837f2213de7074c5c6915dad70f85c4588077291a8563d1cbad6698a757220", "qualified_symbol": "middleware.realIP", "start_byte": 1216, "end_byte": 1567},
+      "target_parent": {"path": "middleware/realip.go", "indexed_sha256": "2f837f2213de7074c5c6915dad70f85c4588077291a8563d1cbad6698a757220", "qualified_symbol": "middleware.RealIP", "start_byte": 342, "end_byte": 1214},
+      "relation_kind": "CALLS",
+      "direction": "REVERSE",
+      "expected_cardinality": 1,
+      "expected_occurrences": [{"path": "middleware/realip.go", "start_byte": 1111, "end_byte": 1120}]
+    },
+    {
+      "id": "rhf-x08-formstate-type-ref-props",
+      "corpus_id": "react-hook-form-v7.85.0",
+      "source_parent": {"path": "src/formStateSubscribe.tsx", "indexed_sha256": "e216b25d3e918397274e5c5f0635282eec2db5d941a2eee27bcc7ccca13a1e1d", "qualified_symbol": "module.FormState", "start_byte": 531, "end_byte": 799},
+      "target_parent": {"path": "src/formStateSubscribe.tsx", "indexed_sha256": "e216b25d3e918397274e5c5f0635282eec2db5d941a2eee27bcc7ccca13a1e1d", "qualified_symbol": "module.FormStateProps", "start_byte": 209, "end_byte": 439},
+      "relation_kind": "TYPE_REF",
+      "direction": "FORWARD",
+      "expected_cardinality": 1,
+      "expected_occurrences": [{"path": "src/formStateSubscribe.tsx", "start_byte": 688, "end_byte": 702}]
+    },
+    {
+      "id": "rhf-t09-create-control-contract",
+      "corpus_id": "react-hook-form-v7.85.0",
+      "source_parent": {"path": "src/logic/createFormControl.ts", "indexed_sha256": "c66e0a99b2d7c2c12e1db1f0d5509dee31ea4e1a113c1d399d4eedb1dfa45975", "qualified_symbol": "module.createFormControl", "start_byte": 4073, "end_byte": 60356},
+      "target_parent": {"path": "src/types/form.ts", "indexed_sha256": "dd86f62d9836a7adc8ba78224a87d87d55d1eb0d0cbd0dbdd0b8a1d1c37dea60", "qualified_symbol": "module.Control", "start_byte": 26455, "end_byte": 28105},
+      "relation_kind": "TYPE_REF",
+      "direction": "FORWARD",
+      "expected_cardinality": 1,
+      "expected_occurrences": [{"path": "src/logic/createFormControl.ts", "start_byte": 44054, "end_byte": 44061}]
+    },
+    {
+      "id": "rhf-t10-path-internal-impl",
+      "corpus_id": "react-hook-form-v7.85.0",
+      "source_parent": {"path": "src/types/path/eager.ts", "indexed_sha256": "40a91e78813f16332c5523d59df44e94e16fd50abdfd902ad24b5a3eb81fb55f", "qualified_symbol": "module.PathInternal", "start_byte": 1044, "end_byte": 1649},
+      "target_parent": {"path": "src/types/path/eager.ts", "indexed_sha256": "40a91e78813f16332c5523d59df44e94e16fd50abdfd902ad24b5a3eb81fb55f", "qualified_symbol": "module.PathImpl", "start_byte": 408, "end_byte": 1042},
+      "relation_kind": "TYPE_REF",
+      "direction": "FORWARD",
+      "expected_cardinality": 3,
+      "expected_occurrences": [
+        {"path": "src/types/path/eager.ts", "start_byte": 1431, "end_byte": 1439},
+        {"path": "src/types/path/eager.ts", "start_byte": 1510, "end_byte": 1518},
+        {"path": "src/types/path/eager.ts", "start_byte": 1585, "end_byte": 1593}
+      ]
+    }
+  ]
+}

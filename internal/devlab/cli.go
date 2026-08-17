@@ -28,7 +28,7 @@ type CLI struct{}
 
 func (CLI) Run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	if len(args) < 2 {
-		return fmt.Errorf("usage: cidx dev embeddings <capture|materialize> ... or cidx dev retrieval evaluate ...")
+		return fmt.Errorf("usage: cidx dev embeddings <capture|materialize> ... or cidx dev retrieval evaluate ... or cidx dev relations <build|evaluate> ...")
 	}
 	switch args[0] {
 	case "workspace":
@@ -37,6 +37,8 @@ func (CLI) Run(ctx context.Context, args []string, stdout, stderr io.Writer) err
 		return embeddings(ctx, args[1:], stdout, stderr)
 	case "retrieval":
 		return retrieval(ctx, args[1:], stdout, stderr)
+	case "relations":
+		return relations(ctx, args[1:], stdout, stderr)
 	default:
 		return fmt.Errorf("unknown development command")
 	}

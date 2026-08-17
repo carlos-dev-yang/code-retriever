@@ -1,0 +1,8 @@
+{
+  "name": "cidx-relationdiag-typescript-toolchain",
+  "private": true,
+  "version": "1.0.0",
+  "devDependencies": {
+    "typescript": "6.0.3"
+  }
+}
