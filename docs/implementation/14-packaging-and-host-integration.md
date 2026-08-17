@@ -1,9 +1,8 @@
 # 14. Packaging and MCP Host Integration
 
-- Status: `blocked` — the earlier local package checkpoint is preserved, but
-  package smoke must be rebuilt for default 1024/int8, compact 512
-  rematerialization, and source-bank isolation before any later release
-  evidence; official Phase 07/12 and assistant gates remain
+- Status: `in_progress` — rebuild the preserved local package checkpoint for
+  default 1024/int8 and provider-free compact-512 rematerialization; official
+  Phase 07/12 and assistant gates remain blocked
 - Prerequisite: `13-cli-and-mcp`
 - Followed by: v1 release-candidate validation
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 1–3 and 7–10

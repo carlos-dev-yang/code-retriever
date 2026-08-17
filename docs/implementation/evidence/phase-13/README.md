@@ -1,12 +1,17 @@
 # Phase 13 CLI and MCP Evidence
 
+The current 2026-08-17 int8-only acceptance is recorded in
+[`int8-only-cli-mcp-reconciliation.md`](int8-only-cli-mcp-reconciliation.md).
+The records below remain historical evidence and do not restore their retired
+profile options.
+
 - State: historical mixed pre-R4 checkpoint in `b3a6cb1`; implementation is not accepted as Revision 4 complete. The separately owned local-only retrieval-evaluation adapter is implemented.
 - Date: 2026-08-15.
 
 The narrow Revision 4 implementation checkpoint from `6797544` is recorded
-separately in [revision-4.md](revision-4.md). It remains `in_progress` pending
-independent review and one main commit-boundary validation; this historical
-record is preserved unchanged as evidence of the earlier mixed checkpoint.
+separately in [revision-4.md](revision-4.md). It was later accepted after
+independent review and main commit-boundary validation; this historical record
+is preserved unchanged as evidence of the earlier mixed checkpoint.
 
 ## Implemented and validated, except `init` defaults
 

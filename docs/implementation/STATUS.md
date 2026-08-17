@@ -4,7 +4,7 @@ This ledger is the authoritative resumable state for implementation work. Update
 
 ## Current state
 
-- Active phase: 13 — int8-only CLI and MCP reconciliation
+- Active phase: 14 — current int8-only package and host smoke
 - Active owner: `/root`
 - Phase 07 simple-control implementation owner: `/root/phase07_simple_control` (store/eval/devlab only; no corpus, provider, or production-ranking mutation)
 - Last updated: 2026-08-17
@@ -27,8 +27,8 @@ This ledger is the authoritative resumable state for implementation work. Update
   in the same chunker-version/reindex boundary. The accepted implementation
   found 57 such production functions: 51 in previously parentless files and six
   in files with an existing type parent.
-- Next eligible phase: complete Phase 13, then rebuild the Phase 14 local package smoke before resuming Phase 07.
-- Exact next action: revalidate 1024-default/512-optional init and help, provider-free source-bank rematerialization, and the unchanged four-tool MCP surface with no codec selector.
+- Next eligible phase: rebuild and verify the Phase 14 local package checkpoint, then resume Phase 07 human label work.
+- Exact next action: update the package verifier fixture to assert default 1024/int8 and provider-free 512 rematerialization, then run the local offline archive boundary from clean provenance.
 
 Existing phase completion rows and implementation are historical work produced against earlier design revisions. They must not be read as proof that the current code satisfies Revision 4; the implementation remains a prototype until it is explicitly reconciled and revalidated against the final target contract.
 
@@ -49,8 +49,8 @@ Existing phase completion rows and implementation are historical work produced a
 | 10 | done | `/root` | Yes — accepted Phase 09 boundary, prior Phase 10 R4 evidence, active embedding path, source-bank decision, and retired-profile contract inspected | Source-bank-first provider success handling, compatible local reuse, public source/Voyage plan split, provider-only request accounting, and final offline boundary accepted | [Current evidence](evidence/phase-10/source-bank-first-document-publication.md), historical [R4 evidence](evidence/phase-10/revision-4.md), and [source-bank decision](SOURCE-VECTOR-BANK-DECISION.md) | Hand current int8 coverage/profile state to Phase 11 |
 | 11 | done | `/root` | Yes — accepted Phase 09/10 boundaries, prior Phase 11 R4 evidence, live vector scan/evaluation code, five-profile evidence, and retired-profile contract inspected | Current request-local int8 scan, nonpersistent serving-f32 reference, fallback/RRF/body behavior, retired comparison removal, and focused boundary accepted | [Current evidence](evidence/phase-11/int8-only-query-search-reconciliation.md), historical [R4 evidence](evidence/phase-11/revision-4.md), and [retired-profile contract](RETIRED-VECTOR-PROFILES.md) | Hand the current evaluation arms to Phase 12 |
 | 12 | blocked | `/root` | Yes — accepted current Phase 11 boundary, prior Phase 12 R4 evidence, evaluation contract, current schemas/adapters, five-profile evidence, and retired-profile contract inspected | Corpus-independent 1024/512 int8 matrix, actual-dimension artifact, serving-f32 reference, and offline boundary accepted; official evaluation remains externally gated | [Current evidence](evidence/phase-12/int8-only-evaluation-reconciliation.md) and [R4 accounting evidence](evidence/phase-12/revision-4.md); official evidence still needs frozen labels/current raw coverage/approved query execution | Proceed to Phase 13; resume official evaluation only after external inputs are ready |
-| 13 | in_progress | `/root` | Yes — current Phase 02/08/11/12 boundaries, prior Phase 13 R4 evidence, live init/CLI/MCP code, source-bank decision, and retired-profile contract inspected | Earlier init atomicity and four-tool proof remain accepted; current CLI/MCP profile surface is being reconciled | [Phase 13 R4 evidence](evidence/phase-13/revision-4.md), [source-bank decision](SOURCE-VECTOR-BANK-DECISION.md), and [retired-profile contract](RETIRED-VECTOR-PROFILES.md) | Revalidate default 1024, optional 512, local rematerialization, and no codec selector |
-| 14 | blocked | `/root` | Yes — prior Phase 14 checkpoint, current scripts/docs, source-bank decision, five-profile evidence, and retired-profile contract inspected | The earlier local archive remains historical evidence; package smoke must be rebuilt against default 1024/int8 and provider-free 1024→512 rematerialization before it is current product proof | [Phase 14 R4 local checkpoint evidence](evidence/phase-14/revision-4.md), [source-bank decision](SOURCE-VECTOR-BANK-DECISION.md), and [retired-profile contract](RETIRED-VECTOR-PROFILES.md); release-candidate gates remain unchanged | Reconcile verifier/package defaults after Phase 13, then resume Phase 07/12 gates |
+| 13 | done | `/root` | Yes — current Phase 02/08/11/12 boundaries, prior Phase 13 R4 evidence, live init/CLI/MCP code, source-bank decision, and retired-profile contract inspected | Default 1024/optional 512 fixed-int8 CLI, provider-free source reuse, four-tool MCP, and focused offline boundary accepted | [Current evidence](evidence/phase-13/int8-only-cli-mcp-reconciliation.md), historical [R4 evidence](evidence/phase-13/revision-4.md), and [retired-profile contract](RETIRED-VECTOR-PROFILES.md) | Hand the current CLI/MCP surface to Phase 14 |
+| 14 | in_progress | `/root` | Yes — accepted current Phase 13 boundary, prior Phase 14 checkpoint, current scripts/docs, source-bank decision, five-profile evidence, and retired-profile contract inspected | The earlier local archive remains historical evidence; current package/verifier smoke is being reconciled | [Phase 14 R4 local checkpoint evidence](evidence/phase-14/revision-4.md), [source-bank decision](SOURCE-VECTOR-BANK-DECISION.md), and [retired-profile contract](RETIRED-VECTOR-PROFILES.md); release-candidate gates remain unchanged | Verify default 1024/int8 and provider-free compact-512 rematerialization in the packaged binary |
 
 ## Resume note template
 

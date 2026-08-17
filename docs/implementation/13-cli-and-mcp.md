@@ -1,7 +1,7 @@
 # 13. CLI and MCP Surface Integration
 
-- Status: `in_progress` — reconcile the accepted CLI/MCP adapter to default
-  1024, `--serving-dim <1024|512>`, fixed int8, and source-bank reuse
+- Status: `done` — default 1024, explicit compact 512, fixed int8,
+  source-bank reuse, and the four-tool MCP surface are accepted
 - Prerequisites: reconciled `05-worktree-index-pipeline`, `10-embedding-orchestration-and-reconciliation`, and `11-vector-and-hybrid-search`; completed `06-fts-search`; Phase 12 corpus-independent core/API
 - Followed by: `14-packaging-and-host-integration`
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 3, 4, 8, and 10
@@ -15,7 +15,10 @@ Read the [implementation index](README.md), [execution guide](EXECUTION-GUIDE.md
 - Re-check the exact MCP registry: `status`, `search`, `read_span`, and `reindex`, with no fifth tool and no lab/config/document-embedding tool.
 - Re-check that caller-required `max_inline_bytes` limits bodies only; it cannot change result rank, IDs, order, or count. This phase validates/clamps the request and passes the effective maximum to the Phase 11 shared packager.
 - Re-check stdio purity, bounded concurrent dispatch, request cancellation, one explicit root per process, and the rule that FTS works without `VOYAGE_API_KEY`.
-- Re-check that public/lab dependency graphs remain separate, query f32 is nonpersistent, and production vectors use the fixed cidx-owned int8 codec.
+- Re-check that MCP/search never opens product source-bank or lab state, query
+  f32 is nonpersistent, and production vectors use the fixed cidx-owned int8
+  codec. The single CLI binary also owns public `embed`, so package linkage
+  alone is not the runtime-access boundary.
 - Stop if a tool schema, max-byte semantics, error code, root/freshness boundary, or paid-query disclosure is unresolved. Do not expand the public contract implicitly.
 - Before pausing, update schemas/examples, this phase's evidence and decision log, then update [STATUS.md](STATUS.md) with validated transport behavior, open risks, and the exact next action.
 
@@ -111,7 +114,8 @@ Completion requires:
 4. `search(mode=fts)` works without network or credentials.
 5. Only `search(mode=hybrid)` may pay for query embedding, and cannot bypass the configured paid guard.
 6. `status` returns neither source bodies nor a full file list.
-7. The source bank, lab DB, `internal/sourcebank`, and `internal/lab` are absent from the `serve` dependency graph.
+7. MCP and search handlers never open or use the product source bank or lab
+   DB. Source-bank mutation remains exclusive to explicit CLI embedding paths.
 
 ### Body maximum
 
@@ -343,6 +347,22 @@ This file defines an implementation plan and does not add test code.
 
 ## 11. Completion Evidence
 
+Current int8-only CLI/MCP acceptance (2026-08-17):
+
+- `cidx init` defaults to 1024/int8, accepts only explicit 1024 or 512, and
+  exposes no codec selector. Help presents the default first.
+- `cidx embed --apply` publishes compatible source-bank hits locally and
+  constructs a Voyage client only when the plan contains missing source
+  inputs. This is the provider-free 1024-to-512 rematerialization entry point
+  after config edit and index reconciliation.
+- MCP still exposes exactly `status`, `search`, `read_span`, and `reindex`.
+  MCP/search do not open product source-bank or lab state; the single binary's
+  separate public `embed` command owns source reuse.
+- Current evidence, including focused normal/race/vet/build and static checks,
+  is recorded in
+  [int8-only CLI/MCP evidence](evidence/phase-13/int8-only-cli-mcp-reconciliation.md).
+  No provider, key, network, corpus, or metric action was performed.
+
 Official Phase 12 corpus/usefulness or `core_retrieval` promotion evidence is not a Phase 13 completion condition. Phase 13 must prove adapter/core parity with the corpus-independent core; Phase 14 later references official core and assistant/host evidence for `release_candidate` scope.
 
 - Public and development CLI help snapshots.
@@ -354,7 +374,8 @@ Official Phase 12 corpus/usefulness or `core_retrieval` promotion evidence is no
 - Cancellation and graceful-shutdown trace.
 - stdout protocol-purity capture and stderr-log sample.
 - FTS-only operation without an API key.
-- Dependency inspection proving production serve excludes `internal/sourcebank` and `internal/lab`.
+- Dependency/source inspection proving MCP/search handlers have no source-bank
+  or lab access, while the explicit public `embed` path owns source reuse.
 
 Completion reports distinguish the transport, OS, and host actually checked from unverified items.
 

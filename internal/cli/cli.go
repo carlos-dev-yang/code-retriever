@@ -107,7 +107,7 @@ func versionCommand(ctx context.Context, args []string, deps Dependencies) error
 func initCommand(ctx context.Context, args []string, deps Dependencies) error {
 	flags := flag.NewFlagSet("init", flag.ContinueOnError)
 	flags.SetOutput(deps.Stderr)
-	serving := flags.Int("serving-dim", config.DefaultServingDimensions, "serving dimension (512 or 1024)")
+	serving := flags.Int("serving-dim", config.DefaultServingDimensions, "serving dimension (1024 default; 512 compact)")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
@@ -194,8 +194,8 @@ func indexCommand(ctx context.Context, args []string, deps Dependencies) error {
 func embedCommand(ctx context.Context, args []string, deps Dependencies) error {
 	flags := flag.NewFlagSet("embed", flag.ContinueOnError)
 	flags.SetOutput(deps.Stderr)
-	dry := flags.Bool("dry-run", false, "plan source-bank reuse and Voyage document inputs")
-	apply := flags.Bool("apply", false, "materialize source hits and run approved Voyage document inputs")
+	dry := flags.Bool("dry-run", false, "plan local source-bank rematerialization and missing Voyage document inputs")
+	apply := flags.Bool("apply", false, "publish local source hits and call Voyage only for missing source inputs")
 	retry := flags.Bool("retry-failed", false, "retry terminal failures")
 	root := flags.String("root", ".", "repository root")
 	if err := flags.Parse(args); err != nil {
@@ -235,5 +235,5 @@ func embedCommand(ctx context.Context, args []string, deps Dependencies) error {
 	return json.NewEncoder(deps.Stdout).Encode(result)
 }
 func usage(writer io.Writer) {
-	_, _ = fmt.Fprint(writer, "cidx init [--serving-dim <512|1024>]\ncidx version [--json]\ncidx status [--json]\ncidx index [--dry-run] [--reason manual|commit]\ncidx embed [--dry-run|--apply] [--retry-failed]\ncidx serve --root <repository-root>\ncidx dev <unstable development command>\n\ninit creates local config and SQLite state only; it never calls Voyage AI. Document embedding and hybrid search may send code or query text to Voyage AI only through their configured explicit guards.\n")
+	_, _ = fmt.Fprint(writer, "cidx init [--serving-dim <1024|512>]\ncidx version [--json]\ncidx status [--json]\ncidx index [--dry-run] [--reason manual|commit]\ncidx embed [--dry-run|--apply] [--retry-failed]\ncidx serve --root <repository-root>\ncidx dev <unstable development command>\n\ninit creates local config and SQLite state only, using 1024/int8 by default; it never calls Voyage AI. After a 1024/512 config change and index reconciliation, embed reuses compatible document source rows locally and needs Voyage only for missing sources. Hybrid search may send query text to Voyage AI only through its configured explicit guard.\n")
 }
