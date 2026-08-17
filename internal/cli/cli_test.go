@@ -38,49 +38,47 @@ func TestStableCommandsRejectPositionalArguments(t *testing.T) {
 	}
 }
 
-func TestInitUsesServingDimensionAndDefaultCodecThroughInitializer(t *testing.T) {
+func TestInitUsesServingDimensionThroughInitializer(t *testing.T) {
 	var calls []struct {
-		root  string
-		dim   int
-		codec string
+		root string
+		dim  int
 	}
 	deps := Dependencies{
 		Stdout: io.Discard,
 		Stderr: io.Discard,
-		Initialize: func(_ context.Context, root string, dimension int, codec string) error {
+		Initialize: func(_ context.Context, root string, dimension int) error {
 			calls = append(calls, struct {
-				root  string
-				dim   int
-				codec string
-			}{root, dimension, codec})
+				root string
+				dim  int
+			}{root, dimension})
 			return nil
 		},
 	}
-	if err := Run(context.Background(), []string{"init", "--serving-dim", "256"}, deps); err != nil {
+	if err := Run(context.Background(), []string{"init", "--serving-dim", "512"}, deps); err != nil {
 		t.Fatal(err)
 	}
-	if len(calls) != 1 || calls[0].root != "." || calls[0].dim != 256 || calls[0].codec != config.StorageCodecBinary {
+	if len(calls) != 1 || calls[0].root != "." || calls[0].dim != 512 {
 		t.Fatalf("initializer calls=%#v", calls)
 	}
-	if err := Run(context.Background(), []string{"init", "--serving-dim", "1024", "--codec", config.StorageCodecInt8}, deps); err != nil {
+	if err := Run(context.Background(), []string{"init", "--serving-dim", "1024"}, deps); err != nil {
 		t.Fatal(err)
 	}
-	if len(calls) != 2 || calls[1].dim != 1024 || calls[1].codec != config.StorageCodecInt8 {
+	if len(calls) != 2 || calls[1].dim != 1024 {
 		t.Fatalf("initializer calls=%#v", calls)
 	}
 }
 
 func TestInitRejectsInvalidAndLegacyDimensionFlags(t *testing.T) {
 	called := false
-	deps := Dependencies{Stdout: io.Discard, Stderr: io.Discard, Initialize: func(context.Context, string, int, string) error {
+	deps := Dependencies{Stdout: io.Discard, Stderr: io.Discard, Initialize: func(context.Context, string, int) error {
 		called = true
 		return nil
 	}}
 	for _, args := range [][]string{
-		{"init"},
 		{"init", "--serving-dim", "255"},
-		{"init", "--serving-dim", "256", "--codec", "f32"},
-		{"init", "--target-dim", "256"},
+		{"init", "--serving-dim", "768"},
+		{"init", "--codec", "int8"},
+		{"init", "--target-dim", "512"},
 	} {
 		if err := Run(context.Background(), args, deps); err == nil {
 			t.Fatalf("args=%v unexpectedly succeeded", args)
@@ -99,7 +97,7 @@ func TestInitCreatesStateAtGitRootFromNestedDirectory(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Chdir(nested)
-	if err := Run(context.Background(), []string{"init", "--serving-dim", "256"}, Dependencies{Stdout: io.Discard, Stderr: io.Discard}); err != nil {
+	if err := Run(context.Background(), []string{"init", "--serving-dim", "512"}, Dependencies{Stdout: io.Discard, Stderr: io.Discard}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(filepath.Join(repository, ".cidx", "config.json")); err != nil {
@@ -168,7 +166,7 @@ func TestStableCLIJSONUsesSnakeCaseFields(t *testing.T) {
 func TestServeHandshakeEOFDoesNotCreateLabState(t *testing.T) {
 	root := t.TempDir()
 	git(t, root, "init")
-	dim := 256
+	dim := 512
 	raw := config.RawConfig{Version: 1, Index: config.RawIndex{Languages: []string{"go"}, MaxSourceFileBytes: 4096, TargetSegmentBytes: 2048}, Embedding: config.RawEmbedding{ServingDimensions: &dim, Request: config.RawRequest{MaxInputs: 1, MaxTotalInputBytes: 8192, TimeoutSeconds: 1}}, MCP: config.RawMCP{HardMaxInlineBytes: 1024}}
 	data, err := json.Marshal(raw)
 	if err != nil {

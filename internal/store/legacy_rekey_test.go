@@ -55,7 +55,7 @@ func TestLegacyServingVectorRekeyRejectsUnprovenRows(t *testing.T) {
 	}{
 		{"dimension", func(t *testing.T, p *ProductionStore, desired config.ResolvedConfig, inputHash string) {
 			t.Helper()
-			mutateLegacySpace(t, p, desired, func(space *legacySpaceWire) { space.TargetDimensions = 256 })
+			mutateLegacySpace(t, p, desired, func(space *legacySpaceWire) { space.TargetDimensions = 768 })
 		}},
 		{"reducer", func(t *testing.T, p *ProductionStore, desired config.ResolvedConfig, inputHash string) {
 			t.Helper()
@@ -64,22 +64,6 @@ func TestLegacyServingVectorRekeyRejectsUnprovenRows(t *testing.T) {
 		{"source", func(t *testing.T, p *ProductionStore, desired config.ResolvedConfig, inputHash string) {
 			t.Helper()
 			if _, err := p.Write.db.Exec(`UPDATE meta SET source_profile='forged'`); err != nil {
-				t.Fatal(err)
-			}
-		}},
-		{"codec", func(t *testing.T, p *ProductionStore, desired config.ResolvedConfig, inputHash string) {
-			t.Helper()
-			legacy := legacyMetadata(t, desired)
-			storage := profile.VectorStorageProfile{VectorSpaceProfileFingerprint: legacy.spaceFingerprint, StorageCodecID: vector.BinaryCodecID}
-			encoded, err := config.CanonicalJSON(storage)
-			if err != nil {
-				t.Fatal(err)
-			}
-			fingerprint, err := config.Fingerprint(storage, config.VectorStorageDomain)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if _, err := p.Write.db.Exec(`UPDATE meta SET vector_storage_profile=?,vector_storage_profile_json=?,active_serving_profile=?`, fingerprint, encoded, fingerprint); err != nil {
 				t.Fatal(err)
 			}
 		}},

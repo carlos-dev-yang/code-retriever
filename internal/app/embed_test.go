@@ -75,7 +75,7 @@ func documentResponse(request embedclient.EmbeddingRequest, tokens int, zeroVect
 		if zeroVectors {
 			// This is source-valid but becomes a zero vector after the active
 			// serving-prefix reduction.
-			values[300] = 1
+			values[700] = 1
 		} else {
 			values[0] = 1
 		}
@@ -601,11 +601,7 @@ func TestPublicEmbeddingPlansWithoutProviderAndAppliesDirectlyToProduction(t *te
 	if err != nil {
 		t.Fatal(err)
 	}
-	codec, err := vector.CodecForID(vector.BinaryCodecID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	expected, err := codec.Encode(space)
+	expected, err := vector.EncodeInt8(space)
 	if err != nil {
 		t.Fatal(err)
 	}

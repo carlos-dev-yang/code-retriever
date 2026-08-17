@@ -11,7 +11,7 @@ import (
 func TestSyntheticCodecRankObservation(t *testing.T) {
 	query := syntheticVector(1)
 	documents := [][]float32{syntheticVector(1), syntheticVector(2), syntheticVector(3), syntheticVector(4)}
-	for _, dimensions := range []int{256, 512} {
+	for _, dimensions := range []int{512, 1024} {
 		spec := TransformSpec{SourceDimensions: 1024, TargetDimensions: dimensions, ReducerID: ReducerID, NormalizerID: NormalizerID, MetricID: MetricID}
 		q, err := ReduceAndNormalize(spec, query)
 		if err != nil {
@@ -30,23 +30,15 @@ func TestSyntheticCodecRankObservation(t *testing.T) {
 			f32 = append(f32, rankObservation{ID: id, Score: score, Space: space})
 		}
 		sortRanks(f32)
-		for _, codecID := range []string{BinaryCodecID, Int8CodecID} {
-			codec, err := CodecForID(codecID)
-			if err != nil {
-				t.Fatal(err)
-			}
+		for _, codecID := range []string{Int8CodecID} {
 			quantized := make([]rankObservation, 0, len(f32))
 			for _, item := range f32 {
-				stored, err := codec.Encode(item.Space)
+				stored, err := EncodeInt8(item.Space)
 				if err != nil {
 					t.Fatal(err)
 				}
 				var score float64
-				if codecID == BinaryCodecID {
-					score, err = ScoreBinary(q, stored)
-				} else {
-					score, err = ScoreInt8(q, stored)
-				}
+				score, err = ScoreInt8(q, stored)
 				if err != nil {
 					t.Fatal(err)
 				}

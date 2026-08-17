@@ -70,11 +70,7 @@ func (m Materialize) Plan(ctx context.Context) (MaterializationPlan, error) {
 			plan.MissingRaw++
 		}
 	}
-	if m.Resolved.Embedding.StorageCodec == config.StorageCodecBinary {
-		plan.ExpectedBytes = plan.RawHits * ((m.Resolved.Embedding.ServingDimensions + 7) / 8)
-	} else {
-		plan.ExpectedBytes = plan.RawHits * m.Resolved.Embedding.ServingDimensions
-	}
+	plan.ExpectedBytes = plan.RawHits * m.Resolved.Embedding.ServingDimensions
 	return plan, nil
 }
 func (m Materialize) Activate(ctx context.Context, plan MaterializationPlan) (result MaterializationResult, err error) {
@@ -99,9 +95,8 @@ func (m Materialize) Activate(ctx context.Context, plan MaterializationPlan) (re
 	if snapshot.Applied.ActiveGeneration != plan.Generation || snapshot.Applied.ManifestSHA256 != plan.ManifestSHA256 || string(snapshot.Applied.ActiveServingProfile) != plan.ServingProfile || !same(snapshot.CanonicalInputs, plan.required) {
 		return result, fmt.Errorf("VECTOR_BUILD_STATE_CHANGED")
 	}
-	codec, err := vector.CodecForID(m.Resolved.Profiles.VectorStorage.StorageCodecID)
-	if err != nil {
-		return result, err
+	if m.Resolved.Profiles.VectorStorage.StorageCodecID != vector.Int8CodecID {
+		return result, fmt.Errorf("unsupported serving codec")
 	}
 	result.BuildID = fmt.Sprintf("materialize-%d", time.Now().UTC().UnixNano())
 	runID, err := m.Lab.StartMaterialization(ctx, lab.MaterializationRun{BuildID: result.BuildID, Generation: plan.Generation, ManifestSHA256: plan.ManifestSHA256, SourceProfile: string(m.Resolved.Profiles.Fingerprints.Source), VectorSpaceProfile: string(m.Resolved.Profiles.Fingerprints.VectorSpace), StorageProfile: plan.ServingProfile, Planned: plan.RequiredRaw})
@@ -136,7 +131,7 @@ func (m Materialize) Activate(ctx context.Context, plan MaterializationPlan) (re
 		if transformErr != nil {
 			return result, transformErr
 		}
-		stored, encodeErr := codec.Encode(space)
+		stored, encodeErr := vector.EncodeInt8(space)
 		if encodeErr != nil {
 			return result, encodeErr
 		}

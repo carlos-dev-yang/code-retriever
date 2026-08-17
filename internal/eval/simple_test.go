@@ -176,7 +176,7 @@ func TestSimpleArtifactIsSeparateAndImmutable(t *testing.T) {
 
 func simpleResolved(t *testing.T, candidateK int) config.ResolvedConfig {
 	t.Helper()
-	dimensions, max, returnK, rrf := 256, 4096, 2, 60
+	dimensions, max, returnK, rrf := 512, 4096, 2, 60
 	allow := false
 	raw := config.RawConfig{Version: 1, Index: config.RawIndex{Languages: []string{"go"}, MaxSourceFileBytes: max, TargetSegmentBytes: max}, Embedding: config.RawEmbedding{ServingDimensions: &dimensions, Request: config.RawRequest{MaxInputs: 1, MaxTotalInputBytes: max, TimeoutSeconds: 1}}, Search: config.RawSearch{AllowPaidQueryEmbedding: &allow, ReturnK: &returnK, CandidateK: &candidateK, RRFK: &rrf}, MCP: config.RawMCP{HardMaxInlineBytes: max}}
 	resolved, err := config.Resolve(raw)

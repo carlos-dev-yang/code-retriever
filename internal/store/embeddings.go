@@ -166,22 +166,8 @@ func ValidateServingVector(resolved config.ResolvedConfig, stored vector.StoredV
 	if stored.Dimensions != resolved.Embedding.ServingDimensions {
 		return fmt.Errorf("stored vector dimensions do not match active profile")
 	}
-	expected, err := expectedCodecID(resolved.Embedding.StorageCodec)
-	if err != nil {
-		return err
-	}
-	if stored.CodecID != expected {
+	if resolved.Embedding.StorageCodec != config.StorageCodecInt8 || stored.CodecID != vector.Int8CodecID {
 		return fmt.Errorf("stored vector codec does not match active profile")
 	}
 	return stored.Validate()
-}
-func expectedCodecID(codec string) (string, error) {
-	switch codec {
-	case config.StorageCodecBinary:
-		return vector.BinaryCodecID, nil
-	case config.StorageCodecInt8:
-		return vector.Int8CodecID, nil
-	default:
-		return "", fmt.Errorf("unsupported active storage codec")
-	}
 }

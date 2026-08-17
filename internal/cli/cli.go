@@ -26,7 +26,7 @@ type DevRunner interface {
 }
 type Dependencies struct {
 	Open           func(context.Context, string) (*app.Application, error)
-	Initialize     func(context.Context, string, int, string) error
+	Initialize     func(context.Context, string, int) error
 	Dev            DevRunner
 	Stdin          io.Reader
 	Stdout, Stderr io.Writer
@@ -108,17 +108,16 @@ func initCommand(ctx context.Context, args []string, deps Dependencies) error {
 	flags := flag.NewFlagSet("init", flag.ContinueOnError)
 	flags.SetOutput(deps.Stderr)
 	serving := flags.Int("serving-dim", config.DefaultServingDimensions, "serving dimension (512 or 1024)")
-	codec := flags.String("codec", config.StorageCodecInt8, "storage codec (int8 only; flag removed in the CLI reconciliation phase)")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
 	if flags.NArg() != 0 {
 		return fmt.Errorf("init accepts no positional arguments")
 	}
-	if _, err := config.DefaultRaw(*serving, *codec); err != nil {
+	if _, err := config.DefaultRaw(*serving); err != nil {
 		return err
 	}
-	return deps.Initialize(ctx, ".", *serving, *codec)
+	return deps.Initialize(ctx, ".", *serving)
 }
 func serve(ctx context.Context, args []string, deps Dependencies) error {
 	flags := flag.NewFlagSet("serve", flag.ContinueOnError)
@@ -232,5 +231,5 @@ func embedCommand(ctx context.Context, args []string, deps Dependencies) error {
 	return json.NewEncoder(deps.Stdout).Encode(result)
 }
 func usage(writer io.Writer) {
-	_, _ = fmt.Fprint(writer, "cidx init --serving-dim <256|512|1024> [--codec <binary|int8>]\ncidx version [--json]\ncidx status [--json]\ncidx index [--dry-run] [--reason manual|commit]\ncidx embed [--dry-run|--apply] [--retry-failed]\ncidx serve --root <repository-root>\ncidx dev <unstable development command>\n\ninit creates local config and SQLite state only; it never calls Voyage AI. Document embedding and hybrid search may send code or query text to Voyage AI only through their configured explicit paid guards.\n")
+	_, _ = fmt.Fprint(writer, "cidx init [--serving-dim <512|1024>]\ncidx version [--json]\ncidx status [--json]\ncidx index [--dry-run] [--reason manual|commit]\ncidx embed [--dry-run|--apply] [--retry-failed]\ncidx serve --root <repository-root>\ncidx dev <unstable development command>\n\ninit creates local config and SQLite state only; it never calls Voyage AI. Document embedding and hybrid search may send code or query text to Voyage AI only through their configured explicit guards.\n")
 }

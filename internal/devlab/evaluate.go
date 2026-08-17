@@ -225,7 +225,7 @@ func PrepareRetrievalEvaluationExperimentAt(ctx context.Context, application *ap
 	// before --apply can request even the first query vector.
 	var preflightSession search.EvaluationSession
 	if experiment.VectorOnly {
-		preflightSession, err = application.Search.StartCodecEvaluationSession(ctx)
+		preflightSession, err = application.Search.StartVectorEvaluationSession(ctx)
 	} else {
 		preflightSession, err = startRetrievalEvaluationSession(ctx, application, dataset.Cases[0].Text, experiment.FTSPolicy)
 	}

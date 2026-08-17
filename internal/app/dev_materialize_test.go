@@ -71,8 +71,8 @@ func TestDevMaterializePlansStagesPublishesAndRechecksActiveKeys(t *testing.T) {
 	}
 	defer db.Close()
 	var blob []byte
-	if err := db.QueryRowContext(ctx, `SELECT blob FROM vector_cache LIMIT 1`).Scan(&blob); err != nil || len(blob) != 32 {
-		t.Fatalf("binary serving blob=%d err=%v", len(blob), err)
+	if err := db.QueryRowContext(ctx, `SELECT blob FROM vector_cache LIMIT 1`).Scan(&blob); err != nil || len(blob) != 512 {
+		t.Fatalf("int8 serving blob=%d err=%v", len(blob), err)
 	}
 	var definition string
 	if err := db.QueryRowContext(ctx, `SELECT sql FROM sqlite_master WHERE type='table' AND name='vector_cache'`).Scan(&definition); err != nil || strings.Contains(strings.ToLower(definition), "f32") {
@@ -96,7 +96,7 @@ func materializeResolved(t *testing.T) config.ResolvedConfig {
 
 func materializeResolvedWithBatch(t *testing.T, maxInputs int) config.ResolvedConfig {
 	t.Helper()
-	dimensions := 256
+	dimensions := 512
 	value, err := config.Resolve(config.RawConfig{Version: 1, Index: config.RawIndex{Languages: []string{"go"}, MaxSourceFileBytes: 4096, TargetSegmentBytes: 2048}, Embedding: config.RawEmbedding{ServingDimensions: &dimensions, Request: config.RawRequest{MaxInputs: maxInputs, MaxTotalInputBytes: 8192, TimeoutSeconds: 1}}, MCP: config.RawMCP{HardMaxInlineBytes: 1024}})
 	if err != nil {
 		t.Fatal(err)

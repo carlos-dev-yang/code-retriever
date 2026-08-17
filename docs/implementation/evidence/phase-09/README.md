@@ -1,5 +1,8 @@
 # Phase 09 Vector Materialization Evidence
 
+> Historical pre-int8-only evidence. The current product authority is
+> [`int8-only-materialization-reconciliation.md`](int8-only-materialization-reconciliation.md).
+
 - State: done; main-agent commit-boundary validation passed.
 - Scope: synthetic/offline f32 only. No provider client, API key, network, corpus, or paid request was used.
 

@@ -164,17 +164,6 @@ type EvaluationVectorArms struct {
 	ActiveCodecBodies     []Hit
 }
 
-// EvaluationCodecArms is a development-only dense comparison. It deliberately
-// contains no FTS, provider-union, RRF, or body-packaging result.
-type EvaluationCodecArms struct {
-	TargetF32Segments     []EvaluationSegmentHit
-	ServingActiveSegments []EvaluationSegmentHit
-	CandidateInt8Segments []EvaluationSegmentHit
-	TargetF32             []EvaluationRankedHit
-	ServingActiveCodec    []EvaluationRankedHit
-	CandidateInt8         []EvaluationRankedHit
-}
-
 // ValidateEvaluationQuery applies the same local query policy used by the
 // production search service without loading a snapshot or contacting a
 // provider. Development planning uses it for every frozen dataset case.
@@ -208,9 +197,9 @@ func (service *Service) StartEvaluationSessionWithFTSPolicy(ctx context.Context,
 	return service.startEvaluationSession(ctx, query, &policy)
 }
 
-// StartCodecEvaluationSession freezes only the active vector/segment/parent
+// StartVectorEvaluationSession freezes only the active vector/segment/parent
 // snapshot. It neither tokenizes nor runs FTS and cannot produce an RRF input.
-func (service *Service) StartCodecEvaluationSession(ctx context.Context) (EvaluationSession, error) {
+func (service *Service) StartVectorEvaluationSession(ctx context.Context) (EvaluationSession, error) {
 	if service == nil {
 		return EvaluationSession{}, fmt.Errorf("search service is required")
 	}
@@ -333,54 +322,6 @@ func (session EvaluationSession) EvaluateVectorArms(ctx context.Context, query [
 	}, nil
 }
 
-// EvaluateCodecArms scans target f32, the singular active production codec,
-// and a locally materialized candidate int8 bank from one query vector. It
-// shares the production segment-to-parent collapse and deterministic ordering
-// while intentionally bypassing FTS and RRF.
-func (session EvaluationSession) EvaluateCodecArms(ctx context.Context, query []float32, targetDocuments map[string][]float32, candidateInt8Documents map[string]vector.StoredVector, maxResults int) (EvaluationCodecArms, error) {
-	if err := session.validate(maxResults); err != nil {
-		return EvaluationCodecArms{}, err
-	}
-	if session.resolved.Embedding.StorageCodec != config.StorageCodecBinary {
-		return EvaluationCodecArms{}, fmt.Errorf("codec comparison requires active binary production profile")
-	}
-	if err := vector.ValidateF32(query, session.resolved.Embedding.ServingDimensions); err != nil {
-		return EvaluationCodecArms{}, err
-	}
-	targetScores, err := targetVectorScores(ctx, query, session.snapshot, targetDocuments)
-	if err != nil {
-		return EvaluationCodecArms{}, err
-	}
-	activeScores, err := binaryEvaluationScores(ctx, query, session.snapshot)
-	if err != nil {
-		return EvaluationCodecArms{}, err
-	}
-	int8Scores, err := candidateInt8VectorScores(ctx, query, session.snapshot, candidateInt8Documents)
-	if err != nil {
-		return EvaluationCodecArms{}, err
-	}
-	target, err := collapseVectorScores(ctx, session.snapshot, targetScores, len(session.snapshot.Chunks))
-	if err != nil {
-		return EvaluationCodecArms{}, err
-	}
-	active, err := collapseVectorScores(ctx, session.snapshot, activeScores, len(session.snapshot.Chunks))
-	if err != nil {
-		return EvaluationCodecArms{}, err
-	}
-	int8Values, err := collapseVectorScores(ctx, session.snapshot, int8Scores, len(session.snapshot.Chunks))
-	if err != nil {
-		return EvaluationCodecArms{}, err
-	}
-	return EvaluationCodecArms{
-		TargetF32Segments:     evaluationSegments(session.snapshot, targetScores),
-		ServingActiveSegments: evaluationSegments(session.snapshot, activeScores),
-		CandidateInt8Segments: evaluationSegments(session.snapshot, int8Scores),
-		TargetF32:             evaluationVectorOnlyHits(session.snapshot, target, maxResults),
-		ServingActiveCodec:    evaluationVectorOnlyHits(session.snapshot, active, maxResults),
-		CandidateInt8:         evaluationVectorOnlyHits(session.snapshot, int8Values, maxResults),
-	}, nil
-}
-
 func (session EvaluationSession) validate(maxResults int) error {
 	if session.candidateK <= 0 || maxResults <= 0 || maxResults > session.candidateK || session.resolved.ValidateIntegrity() != nil {
 		return fmt.Errorf("invalid evaluation session")
@@ -409,62 +350,6 @@ func targetVectorScores(ctx context.Context, query []float32, snapshot store.Hyb
 			return nil, fmt.Errorf("RAW_COVERAGE_INCOMPLETE")
 		}
 		score, err := vector.Cosine(query, document)
-		if err != nil {
-			return nil, err
-		}
-		scores[key] = score
-	}
-	return scores, nil
-}
-
-func candidateInt8VectorScores(ctx context.Context, query []float32, snapshot store.HybridSearchSnapshot, documents map[string]vector.StoredVector) (map[string]float64, error) {
-	prepared, err := vector.PrepareInt8Query(query)
-	if err != nil {
-		return nil, err
-	}
-	keys := make([]string, 0, len(snapshot.Vectors))
-	for key := range snapshot.Vectors {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-	scores := make(map[string]float64, len(keys))
-	for _, key := range keys {
-		if err := ctx.Err(); err != nil {
-			return nil, err
-		}
-		document, ok := documents[key]
-		if !ok {
-			return nil, fmt.Errorf("RAW_COVERAGE_INCOMPLETE")
-		}
-		score, err := vector.ScorePreparedInt8(prepared, document)
-		if err != nil {
-			return nil, err
-		}
-		scores[key] = score
-	}
-	return scores, nil
-}
-
-func binaryEvaluationScores(ctx context.Context, query []float32, snapshot store.HybridSearchSnapshot) (map[string]float64, error) {
-	prepared, err := vector.PrepareBinaryQuery(query)
-	if err != nil {
-		return nil, err
-	}
-	keys := make([]string, 0, len(snapshot.Vectors))
-	for key := range snapshot.Vectors {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-	scores := make(map[string]float64, len(keys))
-	for _, key := range keys {
-		if err := ctx.Err(); err != nil {
-			return nil, err
-		}
-		stored := snapshot.Vectors[key]
-		if stored.CodecID != vector.BinaryCodecID {
-			return nil, fmt.Errorf("codec comparison binary lane received non-binary vector")
-		}
-		score, err := vector.ScorePreparedBinary(prepared, stored)
 		if err != nil {
 			return nil, err
 		}

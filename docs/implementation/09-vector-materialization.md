@@ -1,7 +1,7 @@
 # 09. Runtime Vector Materialization
 
-- Status: `blocked` — Phase 02 int8-only profile reconciliation must land;
-  then remove Binary from the production materializer and revalidate 512/1024
+- Status: `done` — int8-only 1024-default/512-optional materialization,
+  production schema v5, and current-code retirement boundary accepted
 - Prerequisite phases: `01-runtime-storage-spike`, `02-config-profiles-and-schemas`, `05-worktree-index-pipeline`, `08-raw-embedding-lab`
 - Follow-up phases: `10-embedding-orchestration-and-reconciliation`, `11-vector-and-hybrid-search`, `12-retrieval-evaluation`
 - Design basis: `local-code-search-mcp-v1-design-r4.md` §6, §7.4, §9
@@ -256,6 +256,14 @@ Development materialization uses the one resolved profile from `.cidx/config.jso
 - Start `cidx serve` without reading the product source bank or lab state.
 
 ## 11. Completion Evidence
+
+Current product boundary (2026-08-17):
+
+- [`evidence/phase-09/int8-only-materialization-reconciliation.md`](evidence/phase-09/int8-only-materialization-reconciliation.md)
+  records the accepted int8-only implementation, production v5 migration,
+  direct int8 scan, removed runtime selections, and one final offline
+  test/race/vet/build/static boundary.
+- No corpus, credential, provider, or network action occurred.
 
 Historical pre-supersession implementation handoff record (2026-08-15):
 

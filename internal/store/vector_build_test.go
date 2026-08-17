@@ -26,7 +26,7 @@ func TestPublishMaterializedVectorsIsCompleteAtomicAndSnapshotSafe(t *testing.T)
 	if _, err := production.Write.db.ExecContext(ctx, `INSERT INTO embedding_segments(id,chunk_id,segment_number,canonical_input_sha256,canonical_text_profile,serving_profile,display_start_byte,display_end_byte) VALUES(1,1,0,?,'canon',?,0,1)`, testRawSHA, active); err != nil {
 		t.Fatal(err)
 	}
-	old := validBinary(t, resolved.Embedding.ServingDimensions)
+	old := validInt8(t, resolved.Embedding.ServingDimensions)
 	if err := production.UpsertServingVector(ctx, resolved, testRawSHA, active, testRawSHA, old); err != nil {
 		t.Fatal(err)
 	}
@@ -43,7 +43,7 @@ func TestPublishMaterializedVectorsIsCompleteAtomicAndSnapshotSafe(t *testing.T)
 
 	newValues := makeUnitValues(resolved.Embedding.ServingDimensions)
 	newValues[1] = -1
-	newStored, err := vector.EncodeBinary(newValues)
+	newStored, err := vector.EncodeInt8(newValues)
 	if err != nil {
 		t.Fatal(err)
 	}

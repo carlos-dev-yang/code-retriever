@@ -4,7 +4,7 @@ import "fmt"
 
 // DefaultRaw returns the complete final v1 file shape. Writing it is owned by
 // the later CLI/init phase; this helper has no filesystem side effect.
-func DefaultRaw(servingDimensions int, codec string) (RawConfig, error) {
+func DefaultRaw(servingDimensions int) (RawConfig, error) {
 	if servingDimensions == 0 {
 		servingDimensions = DefaultServingDimensions
 	}
@@ -12,12 +12,7 @@ func DefaultRaw(servingDimensions int, codec string) (RawConfig, error) {
 	if !spec.SupportsServingDimensions(servingDimensions) {
 		return RawConfig{}, fmt.Errorf("unsupported serving dimension")
 	}
-	if codec == "" {
-		codec = DefaultStorageCodec
-	}
-	if codec != StorageCodecInt8 {
-		return RawConfig{}, fmt.Errorf("unsupported storage codec")
-	}
+	codec := StorageCodecInt8
 	waits := defaultRetryWaitSchedule()
 	return RawConfig{
 		Version: SchemaVersion,

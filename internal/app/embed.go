@@ -190,13 +190,8 @@ func (p PublicEmbedding) Apply(ctx context.Context, plan PublicEmbeddingPlan, ap
 	expected := store.EmbeddingWriteExpectation{Generation: fresh.Generation, ManifestSHA256: fresh.ManifestSHA256}
 	source := p.Resolved.Embedding.EmbeddingSourceSpec()
 	transformer := vector.Transformer{Spec: p.Resolved.Embedding.TransformSpec()}
-	codecID := vector.BinaryCodecID
-	if p.Resolved.Embedding.StorageCodec == config.StorageCodecInt8 {
-		codecID = vector.Int8CodecID
-	}
-	codec, err := vector.CodecForID(codecID)
-	if err != nil {
-		return result, err
+	if p.Resolved.Embedding.StorageCodec != config.StorageCodecInt8 || p.Resolved.Profiles.VectorStorage.StorageCodecID != vector.Int8CodecID {
+		return result, fmt.Errorf("unsupported serving codec")
 	}
 	requestInputs, byKey := embeddingRequestInputs(freshPlan.PaidInputs)
 	outcomes, executeErr := embed.Execute(ctx, apply.Client, source, embedclient.DocumentRole, requestInputs, embed.ExecuteOptions{
@@ -221,7 +216,7 @@ func (p PublicEmbedding) Apply(ctx context.Context, plan PublicEmbeddingPlan, ap
 				}
 				continue
 			}
-			stored, encodeErr := codec.Encode(space)
+			stored, encodeErr := vector.EncodeInt8(space)
 			if encodeErr != nil {
 				return encodeErr
 			}

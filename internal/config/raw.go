@@ -29,7 +29,7 @@ type RawEmbedding struct {
 	Reducer           string     `json:"reducer"`
 	Normalizer        string     `json:"normalizer"`
 	Metric            string     `json:"metric"`
-	StorageCodec      *string    `json:"storage_codec"`
+	StorageCodec      *string    `json:"storage_codec,omitempty"`
 	Request           RawRequest `json:"request"`
 	Retry             RawRetry   `json:"retry"`
 }

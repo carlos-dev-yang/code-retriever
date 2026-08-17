@@ -1,21 +1,17 @@
 package config
 
 const (
-	SchemaVersion             = 1
-	CanonicalTextFormatterID  = "cidx-canonical-text"
-	CanonicalTextFormatterVer = 1
-	IndexChunkerVersion       = 2
-	IndexProjectionVersion    = 1
-	IndexSegmentVersion       = 1
-	SymbolNormalizerID        = "identifier-split-lower-v1"
-	FTSSchemaVersion          = 1
-	FTSTokenizerID            = "unicode61-v1"
-	DefaultServingDimensions  = 1024
-	StorageCodecInt8          = "int8"
-	// StorageCodecBinary is a transitional identifier for downstream phases
-	// that are removed later in this reconciliation. Config resolution never
-	// accepts it.
-	StorageCodecBinary                = "binary"
+	SchemaVersion                     = 1
+	CanonicalTextFormatterID          = "cidx-canonical-text"
+	CanonicalTextFormatterVer         = 1
+	IndexChunkerVersion               = 2
+	IndexProjectionVersion            = 1
+	IndexSegmentVersion               = 1
+	SymbolNormalizerID                = "identifier-split-lower-v1"
+	FTSSchemaVersion                  = 1
+	FTSTokenizerID                    = "unicode61-v1"
+	DefaultServingDimensions          = 1024
+	StorageCodecInt8                  = "int8"
 	DefaultStorageCodec               = StorageCodecInt8
 	DefaultSearchMode                 = "fts"
 	DefaultReturnK                    = 5

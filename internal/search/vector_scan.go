@@ -25,6 +25,10 @@ func vectorRanks(ctx context.Context, query []float32, snapshot store.HybridSear
 }
 
 func vectorScores(ctx context.Context, query []float32, snapshot store.HybridSearchSnapshot) (map[string]float64, error) {
+	prepared, err := vector.PrepareInt8Query(query)
+	if err != nil {
+		return nil, err
+	}
 	keys := make([]string, 0, len(snapshot.Vectors))
 	for key := range snapshot.Vectors {
 		keys = append(keys, key)
@@ -36,16 +40,10 @@ func vectorScores(ctx context.Context, query []float32, snapshot store.HybridSea
 			return nil, err
 		}
 		stored := snapshot.Vectors[key]
-		var score float64
-		var err error
-		switch stored.CodecID {
-		case vector.BinaryCodecID:
-			score, err = vector.ScoreBinary(query, stored)
-		case vector.Int8CodecID:
-			score, err = vector.ScoreInt8(query, stored)
-		default:
-			err = fmt.Errorf("unsupported active codec")
+		if stored.CodecID != vector.Int8CodecID {
+			return nil, fmt.Errorf("unsupported active codec")
 		}
+		score, err := vector.ScorePreparedInt8(prepared, stored)
 		if err != nil {
 			return nil, err
 		}

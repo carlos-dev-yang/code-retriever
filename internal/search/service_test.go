@@ -62,7 +62,7 @@ func (fn queryClientFunc) Embed(ctx context.Context, request embedclient.Embeddi
 }
 
 func TestQueryEmbeddingUsesResolvedExecutorPolicyAndSharedTransform(t *testing.T) {
-	resolved := searchConfig(t, true, config.StorageCodecInt8)
+	resolved := searchConfig(t, true)
 	attempts := 0
 	var waits []time.Duration
 	var received embedclient.EmbeddingRequest
@@ -91,7 +91,7 @@ func TestQueryEmbeddingUsesResolvedExecutorPolicyAndSharedTransform(t *testing.T
 }
 
 func TestQueryEmbeddingKeepsValidationAndTransformFailuresInvariant(t *testing.T) {
-	resolved := searchConfig(t, true, config.StorageCodecBinary)
+	resolved := searchConfig(t, true)
 	for name, response := range map[string]embedclient.EmbeddingResponse{
 		"invalid response": {Model: resolved.Embedding.Model.Model, Data: []embedclient.EmbeddingDatum{{Index: 0, IndexPresent: true, Values: []float32{1}}}},
 		"zero prefix":      fakeQueryResponse(resolved, make([]float32, 1024)),
@@ -109,7 +109,7 @@ func TestQueryEmbeddingKeepsValidationAndTransformFailuresInvariant(t *testing.T
 }
 
 func TestQueryEmbeddingClassifiesProviderFailure(t *testing.T) {
-	resolved := searchConfig(t, true, config.StorageCodecBinary)
+	resolved := searchConfig(t, true)
 	_, err := queryEmbedding(context.Background(), queryClientFunc(func(context.Context, embedclient.EmbeddingRequest) (embedclient.EmbeddingResponse, error) {
 		return embedclient.EmbeddingResponse{}, fmt.Errorf("provider unavailable")
 	}), resolved, "semantic")
@@ -120,7 +120,7 @@ func TestQueryEmbeddingClassifiesProviderFailure(t *testing.T) {
 }
 
 func TestQueryEmbeddingPropagatesCallerCancellationDuringRequestAndWait(t *testing.T) {
-	resolved := searchConfig(t, true, config.StorageCodecBinary)
+	resolved := searchConfig(t, true)
 	t.Run("request", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
@@ -160,7 +160,7 @@ func TestQueryEmbeddingPropagatesCallerCancellationDuringRequestAndWait(t *testi
 
 func TestFTSAndPreflightFallbacksNeverCallQueryClient(t *testing.T) {
 	ctx := context.Background()
-	resolved := searchConfig(t, false, config.StorageCodecBinary)
+	resolved := searchConfig(t, false)
 	production, _ := indexedSearchFixture(t, resolved)
 	defer production.Close()
 	client := &fakeQueryClient{}
@@ -177,7 +177,7 @@ func TestFTSAndPreflightFallbacksNeverCallQueryClient(t *testing.T) {
 		t.Fatalf("disabled=%#v calls=%d err=%v", hybrid, client.count(), err)
 	}
 
-	allowed := searchConfig(t, true, config.StorageCodecBinary)
+	allowed := searchConfig(t, true)
 	production2, _ := indexedSearchFixture(t, allowed)
 	defer production2.Close()
 	service, err = New(production2, allowed, client)
@@ -220,7 +220,7 @@ func TestFTSAndPreflightFallbacksNeverCallQueryClient(t *testing.T) {
 
 func TestLexicalOnlySnapshotIgnoresCorruptVectorState(t *testing.T) {
 	ctx := context.Background()
-	resolved := searchConfig(t, false, config.StorageCodecBinary)
+	resolved := searchConfig(t, false)
 	production, _ := indexedSearchFixture(t, resolved)
 	defer production.Close()
 	putVector(t, production, resolved)
@@ -246,7 +246,7 @@ func TestLexicalOnlySnapshotIgnoresCorruptVectorState(t *testing.T) {
 
 func TestQueryProviderFailureAndTimeoutFallBackWithoutVectorSnapshot(t *testing.T) {
 	ctx := context.Background()
-	resolved := searchConfig(t, true, config.StorageCodecBinary)
+	resolved := searchConfig(t, true)
 	production, _ := indexedSearchFixture(t, resolved)
 	defer production.Close()
 	putVector(t, production, resolved)
@@ -258,7 +258,7 @@ func TestQueryProviderFailureAndTimeoutFallBackWithoutVectorSnapshot(t *testing.
 	if err != nil || result.FallbackReason != FallbackQueryEmbeddingFailed || result.QueryEmbeddingUsed || result.VectorCoverageObserved {
 		t.Fatalf("provider fallback=%#v err=%v", result, err)
 	}
-	timed := searchConfigTimeoutAndRetries(t, true, config.StorageCodecBinary, 1, 0)
+	timed := searchConfigTimeoutAndRetries(t, true, 1, 0)
 	production2, _ := indexedSearchFixture(t, timed)
 	defer production2.Close()
 	putVector(t, production2, timed)
@@ -312,7 +312,7 @@ func TestInlineLimitedTracksParentFallbackAndOmission(t *testing.T) {
 
 func TestHybridUsesExactQueryContractAndSharedTransform(t *testing.T) {
 	ctx := context.Background()
-	resolved := searchConfig(t, true, config.StorageCodecInt8)
+	resolved := searchConfig(t, true)
 	production, _ := indexedSearchFixture(t, resolved)
 	defer production.Close()
 	putVector(t, production, resolved)
@@ -368,7 +368,7 @@ func TestHybridUsesExactQueryContractAndSharedTransform(t *testing.T) {
 
 func TestBodyBudgetDoesNotChangeRankingOrInventFTSExcerpt(t *testing.T) {
 	ctx := context.Background()
-	resolved := searchConfig(t, false, config.StorageCodecBinary)
+	resolved := searchConfig(t, false)
 	production, _ := indexedSearchFixture(t, resolved)
 	defer production.Close()
 	service, err := New(production, resolved, nil)
@@ -402,7 +402,7 @@ func TestBodyBudgetDoesNotChangeRankingOrInventFTSExcerpt(t *testing.T) {
 
 func TestEvaluationOnlySafeTokenORLeavesProductionANDUnchanged(t *testing.T) {
 	ctx := context.Background()
-	resolved := searchConfig(t, false, config.StorageCodecBinary)
+	resolved := searchConfig(t, false)
 	production, _ := indexedSearchFixture(t, resolved)
 	defer production.Close()
 	putAllVectors(t, production, resolved)
@@ -445,36 +445,30 @@ func TestEvaluationOnlySafeTokenORLeavesProductionANDUnchanged(t *testing.T) {
 	}
 }
 
-func TestDeterministicCodecScanRRFAndSharedKeyCollapse(t *testing.T) {
+func TestDeterministicInt8ScanRRFAndSharedKeyCollapse(t *testing.T) {
 	query := []float32{1, 0, 0, 0}
-	for _, codec := range []string{vector.BinaryCodecID, vector.Int8CodecID} {
-		stored, err := vector.CodecForID(codec)
-		if err != nil {
-			t.Fatal(err)
-		}
-		encoded, err := stored.Encode(query)
-		if err != nil {
-			t.Fatal(err)
-		}
-		snapshot := store.HybridSearchSnapshot{Vectors: map[string]vector.StoredVector{"shared": encoded}, Chunks: map[int64]store.HybridChunk{1: {ID: 1, Path: "a.go", StartByte: 1}, 2: {ID: 2, Path: "b.go", StartByte: 2}}, Segments: []store.HybridSegment{
-			{ID: 2, ChunkID: 2, CanonicalInputSHA256: "shared", DisplayEnd: 1},
-			{ID: 1, ChunkID: 1, CanonicalInputSHA256: "shared", DisplayEnd: 1},
-		}}
-		vectors, err := vectorRanks(context.Background(), query, snapshot, 2)
-		if err != nil || len(vectors) != 2 {
-			t.Fatalf("codec=%s vectors=%#v err=%v", codec, vectors, err)
-		}
-		first := fuse(snapshot, vectors, 60, 2)
-		second := fuse(snapshot, vectors, 60, 2)
-		if len(first) != 2 || first[0].chunkID != 1 || !reflect.DeepEqual(first, second) {
-			t.Fatalf("codec=%s first=%#v second=%#v", codec, first, second)
-		}
+	encoded, err := vector.EncodeInt8(query)
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapshot := store.HybridSearchSnapshot{Vectors: map[string]vector.StoredVector{"shared": encoded}, Chunks: map[int64]store.HybridChunk{1: {ID: 1, Path: "a.go", StartByte: 1}, 2: {ID: 2, Path: "b.go", StartByte: 2}}, Segments: []store.HybridSegment{
+		{ID: 2, ChunkID: 2, CanonicalInputSHA256: "shared", DisplayEnd: 1},
+		{ID: 1, ChunkID: 1, CanonicalInputSHA256: "shared", DisplayEnd: 1},
+	}}
+	vectors, err := vectorRanks(context.Background(), query, snapshot, 2)
+	if err != nil || len(vectors) != 2 {
+		t.Fatalf("vectors=%#v err=%v", vectors, err)
+	}
+	first := fuse(snapshot, vectors, 60, 2)
+	second := fuse(snapshot, vectors, 60, 2)
+	if len(first) != 2 || first[0].chunkID != 1 || !reflect.DeepEqual(first, second) {
+		t.Fatalf("first=%#v second=%#v", first, second)
 	}
 }
 
 func TestBlockedQueryDoesNotBlockFTS(t *testing.T) {
 	ctx := context.Background()
-	resolved := searchConfig(t, true, config.StorageCodecBinary)
+	resolved := searchConfig(t, true)
 	production, _ := indexedSearchFixture(t, resolved)
 	defer production.Close()
 	putVector(t, production, resolved)
@@ -502,7 +496,7 @@ func TestBlockedQueryDoesNotBlockFTS(t *testing.T) {
 
 func TestCorruptVectorAndChangedGenerationDiscardQuery(t *testing.T) {
 	ctx := context.Background()
-	resolved := searchConfig(t, true, config.StorageCodecBinary)
+	resolved := searchConfig(t, true)
 	production, _ := indexedSearchFixture(t, resolved)
 	defer production.Close()
 	putVector(t, production, resolved)
@@ -605,11 +599,7 @@ func putVector(t *testing.T, production *store.ProductionStore, resolved config.
 	if err != nil {
 		t.Fatal(err)
 	}
-	codec, err := vector.CodecForID(resolved.Profiles.VectorStorage.StorageCodecID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	stored, err := codec.Encode(transformed)
+	stored, err := vector.EncodeInt8(transformed)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -650,11 +640,7 @@ func putAllVectors(t *testing.T, production *store.ProductionStore, resolved con
 	if err != nil {
 		t.Fatal(err)
 	}
-	codec, err := vector.CodecForID(resolved.Profiles.VectorStorage.StorageCodecID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	stored, err := codec.Encode(transformed)
+	stored, err := vector.EncodeInt8(transformed)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -679,21 +665,21 @@ func indexedSearchFixtureHash(t *testing.T, production *store.ProductionStore) (
 	return production.Root, hash
 }
 
-func searchConfig(t *testing.T, allow bool, codec string) config.ResolvedConfig {
-	return searchConfigTimeout(t, allow, codec, 1)
+func searchConfig(t *testing.T, allow bool) config.ResolvedConfig {
+	return searchConfigTimeout(t, allow, 1)
 }
 
-func searchConfigTimeout(t *testing.T, allow bool, codec string, timeoutSeconds int) config.ResolvedConfig {
-	return searchConfigTimeoutAndRetries(t, allow, codec, timeoutSeconds, 3)
+func searchConfigTimeout(t *testing.T, allow bool, timeoutSeconds int) config.ResolvedConfig {
+	return searchConfigTimeoutAndRetries(t, allow, timeoutSeconds, 3)
 }
 
-func searchConfigTimeoutAndRetries(t *testing.T, allow bool, codec string, timeoutSeconds, maxRetries int) config.ResolvedConfig {
+func searchConfigTimeoutAndRetries(t *testing.T, allow bool, timeoutSeconds, maxRetries int) config.ResolvedConfig {
 	t.Helper()
-	dimensions := 256
+	dimensions := 512
 	returnK, candidateK, rrfK := 2, 4, 60
 	max := 1024
 	batch := 1
-	resolved, err := config.Resolve(config.RawConfig{Version: 1, Index: config.RawIndex{Languages: []string{"go"}, MaxSourceFileBytes: max, TargetSegmentBytes: max}, Embedding: config.RawEmbedding{ServingDimensions: &dimensions, StorageCodec: &codec, Request: config.RawRequest{MaxInputs: batch, MaxTotalInputBytes: max, TimeoutSeconds: timeoutSeconds}, Retry: config.RawRetry{MaxRetries: &maxRetries}}, Search: config.RawSearch{AllowPaidQueryEmbedding: &allow, ReturnK: &returnK, CandidateK: &candidateK, RRFK: &rrfK}, MCP: config.RawMCP{HardMaxInlineBytes: max}})
+	resolved, err := config.Resolve(config.RawConfig{Version: 1, Index: config.RawIndex{Languages: []string{"go"}, MaxSourceFileBytes: max, TargetSegmentBytes: max}, Embedding: config.RawEmbedding{ServingDimensions: &dimensions, Request: config.RawRequest{MaxInputs: batch, MaxTotalInputBytes: max, TimeoutSeconds: timeoutSeconds}, Retry: config.RawRetry{MaxRetries: &maxRetries}}, Search: config.RawSearch{AllowPaidQueryEmbedding: &allow, ReturnK: &returnK, CandidateK: &candidateK, RRFK: &rrfK}, MCP: config.RawMCP{HardMaxInlineBytes: max}})
 	if err != nil {
 		t.Fatal(err)
 	}

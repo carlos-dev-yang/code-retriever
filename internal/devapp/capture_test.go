@@ -8,7 +8,7 @@ import (
 )
 
 func TestEmbeddingCaptureRejectsMutatedResolvedRequestPolicy(t *testing.T) {
-	raw, err := config.DefaultRaw(1024, config.StorageCodecInt8)
+	raw, err := config.DefaultRaw(1024)
 	if err != nil {
 		t.Fatal(err)
 	}

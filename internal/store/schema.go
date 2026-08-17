@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-const ProductionSchemaVersion = 4
+const ProductionSchemaVersion = 5
 
 func migrateProduction(ctx context.Context, database *sql.DB) error {
 	version, err := productionSchemaVersion(ctx, database)
@@ -17,16 +17,25 @@ func migrateProduction(ctx context.Context, database *sql.DB) error {
 		return fmt.Errorf("production schema version %d is newer than supported", version)
 	}
 	if version == ProductionSchemaVersion {
-		return requireProductionV4Schema(ctx, database)
+		return requireProductionV5Schema(ctx, database)
+	}
+	if version == 4 {
+		return migrateProductionV4ToV5(ctx, database)
 	}
 	if version == 3 {
-		return migrateProductionV3ToV4(ctx, database)
+		if err := migrateProductionV3ToV4(ctx, database); err != nil {
+			return err
+		}
+		return migrateProductionV4ToV5(ctx, database)
 	}
 	if version == 2 {
 		if err := migrateProductionV2ToV3(ctx, database); err != nil {
 			return err
 		}
-		return migrateProductionV3ToV4(ctx, database)
+		if err := migrateProductionV3ToV4(ctx, database); err != nil {
+			return err
+		}
+		return migrateProductionV4ToV5(ctx, database)
 	}
 	if version == 1 {
 		if err := migrateProductionV1ToV2(ctx, database); err != nil {
@@ -35,7 +44,10 @@ func migrateProduction(ctx context.Context, database *sql.DB) error {
 		if err := migrateProductionV2ToV3(ctx, database); err != nil {
 			return err
 		}
-		return migrateProductionV3ToV4(ctx, database)
+		if err := migrateProductionV3ToV4(ctx, database); err != nil {
+			return err
+		}
+		return migrateProductionV4ToV5(ctx, database)
 	}
 	var existing int
 	if err := database.QueryRowContext(ctx, `SELECT count(*) FROM sqlite_master WHERE type='table'`).Scan(&existing); err != nil {
@@ -50,7 +62,7 @@ func migrateProduction(ctx context.Context, database *sql.DB) error {
 	}
 	defer tx.Rollback()
 	statements := []string{
-		`CREATE TABLE meta (id INTEGER PRIMARY KEY CHECK(id=1), schema_version INTEGER NOT NULL CHECK(schema_version=4), active_generation INTEGER NOT NULL CHECK(active_generation>=0), manifest_sha256 TEXT NOT NULL, index_profile TEXT NOT NULL, index_profile_json BLOB NOT NULL, canonical_text_profile TEXT NOT NULL, canonical_text_profile_json BLOB NOT NULL, source_profile TEXT NOT NULL, source_profile_json BLOB NOT NULL, vector_space_profile TEXT NOT NULL, vector_space_profile_json BLOB NOT NULL, vector_storage_profile TEXT NOT NULL, vector_storage_profile_json BLOB NOT NULL, active_serving_profile TEXT NOT NULL, index_attempted_at TEXT NOT NULL, index_succeeded_at TEXT NOT NULL, embed_attempted_at TEXT NOT NULL, embed_succeeded_at TEXT NOT NULL, observed_git_commit TEXT NOT NULL, observed_git_dirty INTEGER NOT NULL CHECK(observed_git_dirty IN (0,1)))`,
+		`CREATE TABLE meta (id INTEGER PRIMARY KEY CHECK(id=1), schema_version INTEGER NOT NULL CHECK(schema_version=5), active_generation INTEGER NOT NULL CHECK(active_generation>=0), manifest_sha256 TEXT NOT NULL, index_profile TEXT NOT NULL, index_profile_json BLOB NOT NULL, canonical_text_profile TEXT NOT NULL, canonical_text_profile_json BLOB NOT NULL, source_profile TEXT NOT NULL, source_profile_json BLOB NOT NULL, vector_space_profile TEXT NOT NULL, vector_space_profile_json BLOB NOT NULL, vector_storage_profile TEXT NOT NULL, vector_storage_profile_json BLOB NOT NULL, active_serving_profile TEXT NOT NULL, index_attempted_at TEXT NOT NULL, index_succeeded_at TEXT NOT NULL, embed_attempted_at TEXT NOT NULL, embed_succeeded_at TEXT NOT NULL, observed_git_commit TEXT NOT NULL, observed_git_dirty INTEGER NOT NULL CHECK(observed_git_dirty IN (0,1)))`,
 		`CREATE TABLE IF NOT EXISTS files (id INTEGER PRIMARY KEY, path TEXT NOT NULL UNIQUE, language TEXT NOT NULL, indexed_sha256 TEXT NOT NULL, observed_mtime_ns INTEGER NOT NULL, observed_size INTEGER NOT NULL)`,
 		`CREATE TABLE chunks (id INTEGER PRIMARY KEY, file_id INTEGER NOT NULL REFERENCES files(id), kind TEXT NOT NULL, symbol TEXT NOT NULL, qualified_symbol TEXT NOT NULL, signature TEXT NOT NULL, start_byte INTEGER NOT NULL CHECK(start_byte>=0), end_byte INTEGER NOT NULL CHECK(end_byte>=start_byte), start_line INTEGER NOT NULL CHECK(start_line>0), end_line INTEGER NOT NULL CHECK(end_line>=start_line), source_body BLOB NOT NULL)`,
 		`CREATE TABLE chunk_projections (chunk_id INTEGER NOT NULL REFERENCES chunks(id), projection_kind TEXT NOT NULL CHECK(projection_kind IN ('signature','body')), ordinal INTEGER NOT NULL CHECK(ordinal>=0), start_byte INTEGER NOT NULL CHECK(start_byte>=0), end_byte INTEGER NOT NULL CHECK(end_byte>=start_byte), PRIMARY KEY(chunk_id, projection_kind, ordinal))`,
@@ -59,8 +71,8 @@ func migrateProduction(ctx context.Context, database *sql.DB) error {
 		`CREATE TABLE embedding_segments (id INTEGER PRIMARY KEY, chunk_id INTEGER NOT NULL REFERENCES chunks(id), segment_number INTEGER NOT NULL CHECK(segment_number>=0), canonical_input_sha256 TEXT NOT NULL, canonical_text_profile TEXT NOT NULL, serving_profile TEXT NOT NULL, display_start_byte INTEGER NOT NULL CHECK(display_start_byte>=0), display_end_byte INTEGER NOT NULL CHECK(display_end_byte>=display_start_byte), UNIQUE(chunk_id, segment_number))`,
 		`CREATE TABLE segment_projections (segment_id INTEGER NOT NULL REFERENCES embedding_segments(id), ordinal INTEGER NOT NULL CHECK(ordinal>=0), start_byte INTEGER NOT NULL CHECK(start_byte>=0), end_byte INTEGER NOT NULL CHECK(end_byte>=start_byte), PRIMARY KEY(segment_id, ordinal))`,
 		// Production intentionally has no f32/f16 column. Blob metadata validates
-		// only the selected binary or int8 representation.
-		`CREATE TABLE vector_cache (serving_profile TEXT NOT NULL, canonical_input_sha256 TEXT NOT NULL, dimensions INTEGER NOT NULL CHECK(dimensions>0), codec_id TEXT NOT NULL CHECK(codec_id IN ('cidx-binary-sign-lsb-v1','cidx-int8-symmetric-v1')), codec_version INTEGER NOT NULL CHECK(codec_version=1), blob BLOB NOT NULL CHECK(length(blob)>0), scale REAL, norm REAL, materialization_fingerprint TEXT NOT NULL, source_profile TEXT NOT NULL DEFAULT '', vector_space_profile TEXT NOT NULL DEFAULT '', raw_vector_sha256 TEXT NOT NULL DEFAULT '', materialized_at TEXT NOT NULL DEFAULT '', PRIMARY KEY(serving_profile, canonical_input_sha256))`,
+		// only the selected int8 representation.
+		`CREATE TABLE vector_cache (serving_profile TEXT NOT NULL, canonical_input_sha256 TEXT NOT NULL, dimensions INTEGER NOT NULL CHECK(dimensions>0), codec_id TEXT NOT NULL CHECK(codec_id='cidx-int8-symmetric-v1'), codec_version INTEGER NOT NULL CHECK(codec_version=1), blob BLOB NOT NULL CHECK(length(blob)>0), scale REAL NOT NULL CHECK(scale>0), norm REAL NOT NULL CHECK(norm>0), materialization_fingerprint TEXT NOT NULL, source_profile TEXT NOT NULL DEFAULT '', vector_space_profile TEXT NOT NULL DEFAULT '', raw_vector_sha256 TEXT NOT NULL DEFAULT '', materialized_at TEXT NOT NULL DEFAULT '', PRIMARY KEY(serving_profile, canonical_input_sha256))`,
 		`CREATE TABLE embedding_failures (id INTEGER PRIMARY KEY, source_profile TEXT NOT NULL, canonical_input_sha256 TEXT NOT NULL, classification TEXT NOT NULL CHECK(classification IN ('terminal','retryable')), attempts INTEGER NOT NULL CHECK(attempts>0), error_class TEXT NOT NULL, last_error TEXT NOT NULL, last_attempted_at TEXT NOT NULL)`,
 		`CREATE INDEX embedding_failures_latest_by_key ON embedding_failures(source_profile,canonical_input_sha256,id DESC)`,
 		`CREATE TABLE embedding_runs (id INTEGER PRIMARY KEY, generation INTEGER NOT NULL, manifest_sha256 TEXT NOT NULL, source_profile TEXT NOT NULL, vector_space_profile TEXT NOT NULL, storage_profile TEXT NOT NULL, planned_count INTEGER NOT NULL, ready_count INTEGER NOT NULL, skipped_count INTEGER NOT NULL, requested_count INTEGER NOT NULL, succeeded_count INTEGER NOT NULL, failed_count INTEGER NOT NULL, discarded_count INTEGER NOT NULL, estimated_tokens INTEGER NOT NULL, actual_tokens INTEGER NOT NULL, actual_cost_usd REAL, status TEXT NOT NULL CHECK(status IN ('planned','running','partially_succeeded','succeeded','failed','cancelled')), started_at TEXT NOT NULL, finished_at TEXT)`,
@@ -72,13 +84,13 @@ func migrateProduction(ctx context.Context, database *sql.DB) error {
 			return err
 		}
 	}
-	if _, err := tx.ExecContext(ctx, `PRAGMA user_version = 4`); err != nil {
+	if _, err := tx.ExecContext(ctx, `PRAGMA user_version = 5`); err != nil {
 		return err
 	}
 	if err := tx.Commit(); err != nil {
 		return err
 	}
-	return requireProductionV4Schema(ctx, database)
+	return requireProductionV5Schema(ctx, database)
 }
 
 // v2 adds only provenance required to prove that a serving row came from the
@@ -177,6 +189,39 @@ func migrateProductionV3ToV4(ctx context.Context, database *sql.DB) error {
 		return err
 	}
 	return requireProductionV4Schema(ctx, database)
+}
+
+// v5 makes the product serving cache int8-only. Source f32 vectors remain in
+// the separate product source bank; rows from retired serving representations
+// are intentionally not copied into the active production schema.
+func migrateProductionV4ToV5(ctx context.Context, database *sql.DB) error {
+	if err := requireProductionV4Schema(ctx, database); err != nil {
+		return err
+	}
+	tx, err := database.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	for _, statement := range []string{
+		`ALTER TABLE meta RENAME TO meta_v4`,
+		`CREATE TABLE meta (id INTEGER PRIMARY KEY CHECK(id=1), schema_version INTEGER NOT NULL CHECK(schema_version=5), active_generation INTEGER NOT NULL CHECK(active_generation>=0), manifest_sha256 TEXT NOT NULL, index_profile TEXT NOT NULL, index_profile_json BLOB NOT NULL, canonical_text_profile TEXT NOT NULL, canonical_text_profile_json BLOB NOT NULL, source_profile TEXT NOT NULL, source_profile_json BLOB NOT NULL, vector_space_profile TEXT NOT NULL, vector_space_profile_json BLOB NOT NULL, vector_storage_profile TEXT NOT NULL, vector_storage_profile_json BLOB NOT NULL, active_serving_profile TEXT NOT NULL, index_attempted_at TEXT NOT NULL, index_succeeded_at TEXT NOT NULL, embed_attempted_at TEXT NOT NULL, embed_succeeded_at TEXT NOT NULL, observed_git_commit TEXT NOT NULL, observed_git_dirty INTEGER NOT NULL CHECK(observed_git_dirty IN (0,1)))`,
+		`INSERT INTO meta(id,schema_version,active_generation,manifest_sha256,index_profile,index_profile_json,canonical_text_profile,canonical_text_profile_json,source_profile,source_profile_json,vector_space_profile,vector_space_profile_json,vector_storage_profile,vector_storage_profile_json,active_serving_profile,index_attempted_at,index_succeeded_at,embed_attempted_at,embed_succeeded_at,observed_git_commit,observed_git_dirty) SELECT id,5,active_generation,manifest_sha256,index_profile,index_profile_json,canonical_text_profile,canonical_text_profile_json,source_profile,source_profile_json,vector_space_profile,vector_space_profile_json,vector_storage_profile,vector_storage_profile_json,active_serving_profile,index_attempted_at,index_succeeded_at,embed_attempted_at,embed_succeeded_at,observed_git_commit,observed_git_dirty FROM meta_v4`,
+		`DROP TABLE meta_v4`,
+		`ALTER TABLE vector_cache RENAME TO vector_cache_v4`,
+		`CREATE TABLE vector_cache (serving_profile TEXT NOT NULL, canonical_input_sha256 TEXT NOT NULL, dimensions INTEGER NOT NULL CHECK(dimensions>0), codec_id TEXT NOT NULL CHECK(codec_id='cidx-int8-symmetric-v1'), codec_version INTEGER NOT NULL CHECK(codec_version=1), blob BLOB NOT NULL CHECK(length(blob)>0), scale REAL NOT NULL CHECK(scale>0), norm REAL NOT NULL CHECK(norm>0), materialization_fingerprint TEXT NOT NULL, source_profile TEXT NOT NULL DEFAULT '', vector_space_profile TEXT NOT NULL DEFAULT '', raw_vector_sha256 TEXT NOT NULL DEFAULT '', materialized_at TEXT NOT NULL DEFAULT '', PRIMARY KEY(serving_profile, canonical_input_sha256))`,
+		`INSERT INTO vector_cache(serving_profile,canonical_input_sha256,dimensions,codec_id,codec_version,blob,scale,norm,materialization_fingerprint,source_profile,vector_space_profile,raw_vector_sha256,materialized_at) SELECT serving_profile,canonical_input_sha256,dimensions,codec_id,codec_version,blob,scale,norm,materialization_fingerprint,source_profile,vector_space_profile,raw_vector_sha256,materialized_at FROM vector_cache_v4 WHERE codec_id='cidx-int8-symmetric-v1' AND scale>0 AND norm>0`,
+		`DROP TABLE vector_cache_v4`,
+		`PRAGMA user_version = 5`,
+	} {
+		if _, err := tx.ExecContext(ctx, statement); err != nil {
+			return err
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	return requireProductionV5Schema(ctx, database)
 }
 
 func requireProductionV1Schema(ctx context.Context, database *sql.DB) error {
@@ -286,7 +331,7 @@ func requireProductionVersion(ctx context.Context, database *sql.DB) error {
 	if version != ProductionSchemaVersion {
 		return fmt.Errorf("production schema version %d requires migration", version)
 	}
-	return requireProductionV4Schema(ctx, database)
+	return requireProductionV5Schema(ctx, database)
 }
 
 func requireProductionSchema(ctx context.Context, database *sql.DB) error {
@@ -417,6 +462,38 @@ func requireProductionV4Schema(ctx context.Context, database *sql.DB) error {
 	}
 	if !containsSchemaVersionCheck(metaSQL, 4) {
 		return fmt.Errorf("production v4 meta schema is not recognized")
+	}
+	return nil
+}
+
+func requireProductionV5Schema(ctx context.Context, database *sql.DB) error {
+	if err := requireProductionSchema(ctx, database); err != nil {
+		return err
+	}
+	if err := requireProductionExactColumns(ctx, database, "meta", []string{"id", "schema_version", "active_generation", "manifest_sha256", "index_profile", "index_profile_json", "canonical_text_profile", "canonical_text_profile_json", "source_profile", "source_profile_json", "vector_space_profile", "vector_space_profile_json", "vector_storage_profile", "vector_storage_profile_json", "active_serving_profile", "index_attempted_at", "index_succeeded_at", "embed_attempted_at", "embed_succeeded_at", "observed_git_commit", "observed_git_dirty"}); err != nil {
+		return err
+	}
+	if err := requireProductionExactColumns(ctx, database, "vector_cache", []string{"serving_profile", "canonical_input_sha256", "dimensions", "codec_id", "codec_version", "blob", "scale", "norm", "materialization_fingerprint", "source_profile", "vector_space_profile", "raw_vector_sha256", "materialized_at"}); err != nil {
+		return err
+	}
+	if err := requireProductionExactColumns(ctx, database, "embedding_failures", []string{"id", "source_profile", "canonical_input_sha256", "classification", "attempts", "error_class", "last_error", "last_attempted_at"}); err != nil {
+		return err
+	}
+	if err := requireProductionExactColumns(ctx, database, "embedding_runs", []string{"id", "generation", "manifest_sha256", "source_profile", "vector_space_profile", "storage_profile", "planned_count", "ready_count", "skipped_count", "requested_count", "succeeded_count", "failed_count", "discarded_count", "estimated_tokens", "actual_tokens", "actual_cost_usd", "status", "started_at", "finished_at"}); err != nil {
+		return err
+	}
+	var metaSQL, vectorSQL string
+	if err := database.QueryRowContext(ctx, `SELECT sql FROM sqlite_master WHERE type='table' AND name='meta'`).Scan(&metaSQL); err != nil {
+		return err
+	}
+	if !containsSchemaVersionCheck(metaSQL, 5) {
+		return fmt.Errorf("production v5 meta schema is not recognized")
+	}
+	if err := database.QueryRowContext(ctx, `SELECT sql FROM sqlite_master WHERE type='table' AND name='vector_cache'`).Scan(&vectorSQL); err != nil {
+		return err
+	}
+	if !containsNormalizedSQL(vectorSQL, "codec_id='cidx-int8-symmetric-v1'") {
+		return fmt.Errorf("production v5 vector cache is not int8-only")
 	}
 	return nil
 }

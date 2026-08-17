@@ -20,7 +20,7 @@ func TestInitializeFromNestedDirectoryWritesDefaultConfigAndProductionMeta(t *te
 	if err := os.MkdirAll(nested, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := Initialize(ctx, nested, 512, config.StorageCodecInt8); err != nil {
+	if err := Initialize(ctx, nested, 512); err != nil {
 		t.Fatal(err)
 	}
 	data, err := os.ReadFile(filepath.Join(repository, ".cidx", "config.json"))
@@ -38,7 +38,7 @@ func TestInitializeFromNestedDirectoryWritesDefaultConfigAndProductionMeta(t *te
 	if err := json.Unmarshal(data, &got); err != nil {
 		t.Fatal(err)
 	}
-	want, err := config.DefaultRaw(512, config.StorageCodecInt8)
+	want, err := config.DefaultRaw(512)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +75,7 @@ func TestInitializeRejectsExistingConfigBeforeDatabaseMutation(t *testing.T) {
 	path := filepath.Join(repository, ".cidx", "config.json")
 	original := []byte(`{"version":"preserve-me"}`)
 	mustWriteFile(t, path, string(original))
-	if err := Initialize(ctx, repository, 256, config.StorageCodecBinary); err == nil {
+	if err := Initialize(ctx, repository, 1024); err == nil {
 		t.Fatal("existing config accepted")
 	}
 	got, err := os.ReadFile(path)
@@ -100,7 +100,7 @@ func TestInitializeRejectsRuntimeFailureBeforeCidxMutation(t *testing.T) {
 	dependencies.runtimeCheck = func(context.Context) (runtimecheck.Capabilities, error) {
 		return runtimecheck.Capabilities{}, errors.New("injected runtime capability failure")
 	}
-	if err := initialize(ctx, repository, 256, config.StorageCodecBinary, dependencies); err == nil {
+	if err := initialize(ctx, repository, 1024, dependencies); err == nil {
 		t.Fatal("runtime capability failure succeeded")
 	}
 	if _, err := os.Stat(filepath.Join(repository, ".cidx")); !os.IsNotExist(err) {
@@ -114,7 +114,7 @@ func TestInitializeRejectsConfiglessProductionStateWithoutMutation(t *testing.T)
 	path := filepath.Join(repository, ".cidx", "db", "index.db")
 	original := []byte("orphaned production state")
 	mustWriteFile(t, path, string(original))
-	if err := Initialize(ctx, repository, 256, config.StorageCodecBinary); err == nil {
+	if err := Initialize(ctx, repository, 1024); err == nil {
 		t.Fatal("configless production state accepted")
 	}
 	got, err := os.ReadFile(path)
@@ -143,13 +143,13 @@ func TestInitializeCleansFailedProductionAttemptAndCanRetry(t *testing.T) {
 		}
 		return nil, errors.New("injected production open failure")
 	}
-	if err := initialize(ctx, repository, 256, config.StorageCodecBinary, dependencies); err == nil {
+	if err := initialize(ctx, repository, 1024, dependencies); err == nil {
 		t.Fatal("injected production open failure succeeded")
 	}
 	if _, err := os.Stat(filepath.Join(repository, ".cidx")); !os.IsNotExist(err) {
 		t.Fatalf("failed init left state directory: %v", err)
 	}
-	if err := Initialize(ctx, repository, 256, config.StorageCodecBinary); err != nil {
+	if err := Initialize(ctx, repository, 1024); err != nil {
 		t.Fatalf("retry after cleanup failed: %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(repository, ".cidx", "config.json")); err != nil {
@@ -167,7 +167,7 @@ func TestInitializeDoesNotReplaceConfigCreatedBeforePublication(t *testing.T) {
 			t.Fatalf("create concurrent config: %v", err)
 		}
 	}
-	if err := initialize(ctx, repository, 256, config.StorageCodecBinary, dependencies); err == nil {
+	if err := initialize(ctx, repository, 1024, dependencies); err == nil {
 		t.Fatal("concurrently created config was replaced")
 	}
 	got, err := os.ReadFile(filepath.Join(repository, ".cidx", "config.json"))
@@ -204,7 +204,7 @@ func TestInitializePreservesDatabaseReplacedAfterClaim(t *testing.T) {
 		}
 		return nil, errors.New("injected failure after replacement")
 	}
-	if err := initialize(ctx, repository, 256, config.StorageCodecBinary, dependencies); err == nil {
+	if err := initialize(ctx, repository, 1024, dependencies); err == nil {
 		t.Fatal("replacement failure succeeded")
 	}
 	for path, want := range map[string][]byte{
@@ -231,7 +231,7 @@ func TestInitializeSucceedsWhenPostLinkStagingCleanupFails(t *testing.T) {
 	runGit(t, repository, "init")
 	dependencies := defaultInitializationDependencies()
 	dependencies.removeTemporary = func(string) error { return errors.New("injected staging removal failure") }
-	if err := initialize(ctx, repository, 256, config.StorageCodecBinary, dependencies); err != nil {
+	if err := initialize(ctx, repository, 1024, dependencies); err != nil {
 		t.Fatalf("committed init reported failure: %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(repository, ".cidx", "config.json")); err != nil {
@@ -252,7 +252,7 @@ func TestInitializeSucceedsWhenPostLinkStagingCleanupFails(t *testing.T) {
 func TestOpenProductionAssemblyDoesNotCreateLabState(t *testing.T) {
 	ctx, root := context.Background(), t.TempDir()
 	runGit(t, root, "init")
-	dim := 256
+	dim := 512
 	raw := config.RawConfig{Version: 1, Index: config.RawIndex{Languages: []string{"go"}, MaxSourceFileBytes: 4096, TargetSegmentBytes: 2048}, Embedding: config.RawEmbedding{ServingDimensions: &dim, Request: config.RawRequest{MaxInputs: 1, MaxTotalInputBytes: 8192, TimeoutSeconds: 1}}, MCP: config.RawMCP{HardMaxInlineBytes: 1024}}
 	data, err := json.Marshal(raw)
 	if err != nil {
@@ -272,7 +272,7 @@ func TestOpenProductionAssemblyDoesNotCreateLabState(t *testing.T) {
 func TestOpenChecksRuntimeBeforeProductionOpen(t *testing.T) {
 	ctx, root := context.Background(), t.TempDir()
 	runGit(t, root, "init")
-	dim := 256
+	dim := 512
 	raw := config.RawConfig{Version: 1, Index: config.RawIndex{Languages: []string{"go"}, MaxSourceFileBytes: 4096, TargetSegmentBytes: 2048}, Embedding: config.RawEmbedding{ServingDimensions: &dim, Request: config.RawRequest{MaxInputs: 1, MaxTotalInputBytes: 8192, TimeoutSeconds: 1}}, MCP: config.RawMCP{HardMaxInlineBytes: 1024}}
 	data, err := json.Marshal(raw)
 	if err != nil {

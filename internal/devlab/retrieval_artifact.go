@@ -472,8 +472,8 @@ func buildRetrievalExperimentManifest(prepared retrievalPrepared, run eval.Retri
 	if err := resolved.ValidateIntegrity(); err != nil {
 		return nil, err
 	}
-	if resolved.Embedding.Model.SourceDimensions != 1024 || resolved.Embedding.ServingDimensions != 1024 || resolved.Embedding.StorageCodec != "binary" {
-		return nil, fmt.Errorf("retrieval experiment requires the fixed 1024/binary profile")
+	if resolved.Embedding.Model.SourceDimensions != 1024 || resolved.Embedding.ServingDimensions != 1024 || resolved.Embedding.StorageCodec != config.StorageCodecInt8 {
+		return nil, fmt.Errorf("retrieval experiment requires the fixed 1024/int8 profile")
 	}
 	if usage.Aggregate.LogicalQueryOperations != len(prepared.dataset.Cases) || usage.Aggregate.ValidatedResponses != len(prepared.dataset.Cases) || usage.Aggregate.FailedAttempts != 0 || usage.Aggregate.Retries != 0 || !usage.Aggregate.TokenAccountingComplete || usage.Aggregate.ObservedTotalTokens == nil {
 		return nil, fmt.Errorf("retrieval experiment provider accounting is incomplete")
@@ -558,11 +558,11 @@ func retrievalExperimentStageStatuses(run eval.RetrievalEvaluationRun) []retriev
 	return []retrievalExperimentStage{
 		{Stage: "fts", Planned: true, Status: status(eval.VariantFTS)},
 		{Stage: "target_f32", Planned: true, Status: status(eval.VariantTargetF32)},
-		{Stage: "serving_active_binary", Planned: true, Status: status(eval.VariantServingActiveCodec)},
+		{Stage: "serving_active_int8", Planned: true, Status: status(eval.VariantServingActiveCodec)},
 		{Stage: "provider_union", Planned: true, Status: status(eval.VariantProviderUnion)},
 		{Stage: "segment_parent_collapse", Planned: true, Status: status(eval.VariantTargetF32, eval.VariantServingActiveCodec)},
 		{Stage: "rrf_target_f32", Planned: true, Status: status(eval.VariantHybridFTSTargetF32)},
-		{Stage: "rrf_active_binary", Planned: true, Status: status(eval.VariantHybridFTSActiveCodec)},
+		{Stage: "rrf_active_int8", Planned: true, Status: status(eval.VariantHybridFTSActiveCodec)},
 		{Stage: "body_packaging", Planned: true, Status: status(eval.VariantHybridFTSActiveCodec)},
 		{Stage: "hybrid_without_fts", Planned: true, Status: status(eval.VariantHybridWithoutFTS)},
 		{Stage: "hybrid_without_dense", Planned: true, Status: status(eval.VariantHybridWithoutDense)},

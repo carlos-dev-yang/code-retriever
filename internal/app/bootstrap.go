@@ -54,14 +54,14 @@ func defaultInitializationDependencies() initializationDependencies {
 // Git worktree root. It validates the default configuration before any write,
 // stages it privately until production SQLite is ready, and never constructs
 // an embedding provider.
-func Initialize(ctx context.Context, requestedRoot string, servingDimensions int, codec string) error {
-	return initialize(ctx, requestedRoot, servingDimensions, codec, defaultInitializationDependencies())
+func Initialize(ctx context.Context, requestedRoot string, servingDimensions int) error {
+	return initialize(ctx, requestedRoot, servingDimensions, defaultInitializationDependencies())
 }
 
 // InitializeWorkspace creates an isolated development state namespace while
 // indexing the separately supplied source checkout through the same runtime
 // services used by ordinary projects.
-func InitializeWorkspace(ctx context.Context, layout workspace.Layout, servingDimensions int, codec string) error {
+func InitializeWorkspace(ctx context.Context, layout workspace.Layout, servingDimensions int) error {
 	source, err := root.SourceRepository(ctx, layout.SourceRoot)
 	if err != nil {
 		return err
@@ -69,7 +69,7 @@ func InitializeWorkspace(ctx context.Context, layout workspace.Layout, servingDi
 	if layout.StateRoot == "" {
 		return fmt.Errorf("state root is required")
 	}
-	raw, err := config.DefaultRaw(servingDimensions, codec)
+	raw, err := config.DefaultRaw(servingDimensions)
 	if err != nil {
 		return err
 	}
@@ -115,12 +115,12 @@ func InitializeWorkspace(ctx context.Context, layout workspace.Layout, servingDi
 	return nil
 }
 
-func initialize(ctx context.Context, requestedRoot string, servingDimensions int, codec string, dependencies initializationDependencies) error {
+func initialize(ctx context.Context, requestedRoot string, servingDimensions int, dependencies initializationDependencies) error {
 	canonical, err := root.GitRoot(ctx, requestedRoot)
 	if err != nil {
 		return err
 	}
-	raw, err := config.DefaultRaw(servingDimensions, codec)
+	raw, err := config.DefaultRaw(servingDimensions)
 	if err != nil {
 		return err
 	}

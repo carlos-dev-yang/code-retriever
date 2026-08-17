@@ -467,7 +467,7 @@ func adapterConfig(t *testing.T) config.ResolvedConfig {
 }
 func resolvedRaw(t *testing.T) config.RawConfig {
 	t.Helper()
-	dimensions, max, batch, returnK, candidateK, rrf := 256, 4096, 4, 2, 4, 60
+	dimensions, max, batch, returnK, candidateK, rrf := 512, 4096, 4, 2, 4, 60
 	allow := true
 	return config.RawConfig{Version: 1, Index: config.RawIndex{Languages: []string{"go"}, MaxSourceFileBytes: max, TargetSegmentBytes: max}, Embedding: config.RawEmbedding{ServingDimensions: &dimensions, Request: config.RawRequest{MaxInputs: batch, MaxTotalInputBytes: max, TimeoutSeconds: 1}}, Search: config.RawSearch{AllowPaidQueryEmbedding: &allow, ReturnK: &returnK, CandidateK: &candidateK, RRFK: &rrf}, MCP: config.RawMCP{HardMaxInlineBytes: max}}
 }

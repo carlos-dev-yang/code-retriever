@@ -50,8 +50,7 @@ func workspaceCommand(ctx context.Context, args []string, stdout, stderr io.Writ
 	flags.SetOutput(stderr)
 	sourceDir := flags.String("source-dir", "", "source checkout relative to the controlling project")
 	stateDir := flags.String("state-dir", "", "state namespace below .cidx/test/states")
-	serving := flags.Int("serving-dim", 0, "required for init: 256, 512, or 1024")
-	codec := flags.String("codec", "binary", "binary or int8")
+	serving := flags.Int("serving-dim", 0, "required for init: 512 or 1024")
 	dry := flags.Bool("dry-run", false, "plan index without publication")
 	if err := flags.Parse(args[1:]); err != nil {
 		return err
@@ -65,7 +64,7 @@ func workspaceCommand(ctx context.Context, args []string, stdout, stderr io.Writ
 	}
 	switch args[0] {
 	case "init":
-		return app.InitializeWorkspace(ctx, layout, *serving, *codec)
+		return app.InitializeWorkspace(ctx, layout, *serving)
 	case "index", "status":
 		application, err := app.OpenWorkspaceLocal(ctx, layout)
 		if err != nil {
@@ -214,7 +213,7 @@ func retrieval(ctx context.Context, args []string, stdout, stderr io.Writer) err
 	repositoryRoot := flags.String("root", ".", "repository root")
 	sourceDir := flags.String("source-dir", "", "source checkout relative to the controlling project")
 	stateDir := flags.String("state-dir", "", "state namespace below .cidx/test/states")
-	mode := flags.String("mode", "retrieval", "retrieval, codec, lexical, or simple")
+	mode := flags.String("mode", "retrieval", "retrieval, lexical, or simple")
 	inventoryOnly := flags.Bool("inventory-only", false, "write a source-body-free lexical truth-inventory packet without executing a dataset")
 	runID := flags.String("run-id", "", "fresh lexical artifact identifier")
 	apply := flags.Bool("apply", false, "perform authorized Voyage query embedding search")
@@ -231,13 +230,13 @@ func retrieval(ctx context.Context, args []string, stdout, stderr io.Writer) err
 	if flags.NArg() != 0 {
 		return fmt.Errorf("dev retrieval evaluate accepts no positional arguments")
 	}
-	if *mode != "retrieval" && *mode != "codec" && *mode != "lexical" && *mode != "simple" {
-		return fmt.Errorf("--mode must be retrieval, codec, lexical, or simple")
+	if *mode != "retrieval" && *mode != "lexical" && *mode != "simple" {
+		return fmt.Errorf("--mode must be retrieval, lexical, or simple")
 	}
 	if *manifest == "" || (*dataset == "" && !(*mode == "lexical" && *inventoryOnly)) {
 		return fmt.Errorf("--corpus-manifest and --dataset are required unless --mode lexical --inventory-only is used")
 	}
-	if (*mode == "retrieval" || *mode == "codec" || *mode == "simple") && *inventoryOnly {
+	if (*mode == "retrieval" || *mode == "simple") && *inventoryOnly {
 		return fmt.Errorf("--inventory-only requires --mode lexical")
 	}
 	if (*mode == "lexical" || *mode == "simple") && *apply {
@@ -245,16 +244,13 @@ func retrieval(ctx context.Context, args []string, stdout, stderr io.Writer) err
 	}
 	experimentalFlagsSet := *ftsPolicyID != "production" || *experimentSeriesID != "" || *seriesQueryOperations != 0 || *authorizationReference != "" || *usdCap != 0 || *pricingTableIdentity != "" || *usdPerMillionTokens != 0
 	if (*mode == "lexical" || *mode == "simple") && experimentalFlagsSet {
-		return fmt.Errorf("experiment flags require --mode retrieval or codec")
+		return fmt.Errorf("experiment flags require --mode retrieval")
 	}
 	if *ftsPolicyID != "production" && *ftsPolicyID != "safe-token-or-v1" {
 		return fmt.Errorf("--fts-policy must be production or safe-token-or-v1")
 	}
 	if *mode == "retrieval" && *ftsPolicyID == "production" && experimentalFlagsSet {
 		return fmt.Errorf("experiment metadata requires --fts-policy safe-token-or-v1")
-	}
-	if *mode == "codec" && *ftsPolicyID != "production" {
-		return fmt.Errorf("codec comparison does not accept an FTS policy")
 	}
 	var sourceRoot, stateRoot, controllerRoot string
 	customWorkspace := *sourceDir != "" || *stateDir != ""
@@ -308,32 +304,6 @@ func retrieval(ctx context.Context, args []string, stdout, stderr io.Writer) err
 		return err
 	}
 	defer raw.Close()
-	if *mode == "codec" {
-		prepared, err := PrepareCodecComparisonExperimentAt(ctx, application, raw, controllerRoot, *manifest, *dataset, *corpusPath, CodecComparisonOptions{
-			ExperimentSeriesID: *experimentSeriesID, SeriesQueryOperationsPlanned: *seriesQueryOperations,
-			AuthorizationReference: *authorizationReference, USDCap: *usdCap,
-			PricingTableIdentity: *pricingTableIdentity, USDPerMillionTokens: *usdPerMillionTokens,
-		})
-		if err != nil {
-			return err
-		}
-		if !*apply {
-			return json.NewEncoder(stdout).Encode(prepared.Plan())
-		}
-		key := os.Getenv("VOYAGE_API_KEY")
-		if key == "" {
-			return fmt.Errorf("VOYAGE_API_KEY_REQUIRED")
-		}
-		applied, err := prepared.Apply(ctx, embedclient.VoyageClient{APIKey: key, HTTPClient: &http.Client{Timeout: time.Duration(application.Resolved.Embedding.Request.TimeoutSeconds) * time.Second}})
-		if err != nil {
-			return err
-		}
-		return json.NewEncoder(stdout).Encode(struct {
-			Plan     CodecComparisonPlan        `json:"plan"`
-			Run      CodecComparisonRun         `json:"run"`
-			Artifact RetrievalArtifactReference `json:"artifact"`
-		}{Plan: prepared.Plan(), Run: applied.Run, Artifact: applied.Artifact})
-	}
 	experiment := RetrievalExperimentOptions{}
 	if *ftsPolicyID == "safe-token-or-v1" {
 		policy, err := search.SafeTokenOREvaluationPolicy(application.Resolved)

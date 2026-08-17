@@ -221,7 +221,7 @@ func TestFinalV1DefaultsAndLegacyShapeError(t *testing.T) {
 	if resolved.MCP.HardMaxInlineBytes != 1 || resolved.Index.MaxSourceFileBytes != 10000 || resolved.Index.TargetSegmentBytes != 2000 {
 		t.Fatalf("unexpected resolved safety values: %#v %#v", resolved.Index, resolved.MCP)
 	}
-	_, err = DecodeRaw([]byte(`{"version":1,"index":{"languages":["go"],"max_chunk_bytes":1,"max_segment_input_bytes":1},"embedding":{"target_dimensions":256,"batch":{}},"mcp":{"max_read_span_lines":1}}`))
+	_, err = DecodeRaw([]byte(`{"version":1,"index":{"languages":["go"],"max_chunk_bytes":1,"max_segment_input_bytes":1},"embedding":{"target_dimensions":768,"batch":{}},"mcp":{"max_read_span_lines":1}}`))
 	var legacy *LegacyConfigError
 	if !errors.As(err, &legacy) || len(legacy.Mappings) != 5 {
 		t.Fatalf("legacy error=%T %#v", err, err)
@@ -229,7 +229,7 @@ func TestFinalV1DefaultsAndLegacyShapeError(t *testing.T) {
 	if legacy.Mappings[0].RemovedField != "embedding.batch" || legacy.Mappings[2].RemovedField != "index.max_chunk_bytes" || legacy.Mappings[4].RemovedField != "mcp.max_read_span_lines" {
 		t.Fatalf("legacy mappings=%#v", legacy.Mappings)
 	}
-	raw, err := DefaultRaw(0, "")
+	raw, err := DefaultRaw(0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -241,15 +241,12 @@ func TestFinalV1DefaultsAndLegacyShapeError(t *testing.T) {
 		t.Fatal("source-file absolute ceiling accepted")
 	}
 	(*raw.Embedding.Retry.WaitSeconds)[0] = 99
-	second, err := DefaultRaw(512, StorageCodecInt8)
+	second, err := DefaultRaw(512)
 	if err != nil || (*second.Embedding.Retry.WaitSeconds)[0] != 10 {
 		t.Fatalf("default retry schedule shared mutable state: %#v %v", second.Embedding.Retry, err)
 	}
-	if _, err := DefaultRaw(256, StorageCodecInt8); err == nil {
-		t.Fatal("retired 256 dimension accepted")
-	}
-	if _, err := DefaultRaw(1024, StorageCodecBinary); err == nil {
-		t.Fatal("retired binary codec accepted")
+	if _, err := DefaultRaw(768); err == nil {
+		t.Fatal("unsupported dimension accepted")
 	}
 }
 

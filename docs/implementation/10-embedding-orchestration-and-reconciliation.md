@@ -1,7 +1,7 @@
 # 10. Embedding Orchestration and Profile Reconciliation
 
-- Status: `blocked` — Phase 02/09 int8-only reconciliation must land before
-  production embedding publication is revalidated
+- Status: `in_progress` — Phase 09 is accepted; reconcile source-bank-first
+  document publication and compatible provider-free reuse
 - Prerequisites: `05-worktree-index-pipeline`, `08-raw-embedding-lab`, `09-vector-materialization`
 - Followed by: `11-vector-and-hybrid-search`, `13-cli-and-mcp`
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 4.4, 6, and 7

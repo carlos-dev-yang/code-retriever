@@ -26,7 +26,7 @@ func TestProductionMigrationFailsClosedAndUsesOwnerPermissions(t *testing.T) {
 	if err := migrateProduction(ctx, db); err != nil {
 		t.Fatalf("current production schema failed validation: %v", err)
 	}
-	if _, err := db.ExecContext(ctx, `PRAGMA user_version=5`); err != nil {
+	if _, err := db.ExecContext(ctx, `PRAGMA user_version=6`); err != nil {
 		t.Fatal(err)
 	}
 	if err := migrateProduction(ctx, db); err == nil {
@@ -72,7 +72,7 @@ func TestProductionMigrationFailsClosedAndUsesOwnerPermissions(t *testing.T) {
 	}
 }
 
-func TestProductionV1ToV3PreservesLegacyVectorButRequiresNewLineage(t *testing.T) {
+func TestProductionV1ToV5PreservesValidInt8VectorButRequiresNewLineage(t *testing.T) {
 	ctx := context.Background()
 	db, err := sql.Open("sqlite", filepath.Join(t.TempDir(), "v1.db"))
 	if err != nil {
@@ -88,14 +88,18 @@ func TestProductionV1ToV3PreservesLegacyVectorButRequiresNewLineage(t *testing.T
 		`DROP TABLE meta_v2`,
 		`DROP TABLE embedding_runs`,
 		`ALTER TABLE vector_cache RENAME TO vector_cache_v2`,
-		`CREATE TABLE vector_cache (serving_profile TEXT NOT NULL, canonical_input_sha256 TEXT NOT NULL, dimensions INTEGER NOT NULL CHECK(dimensions>0), codec_id TEXT NOT NULL CHECK(codec_id IN ('cidx-binary-sign-lsb-v1','cidx-int8-symmetric-v1')), codec_version INTEGER NOT NULL CHECK(codec_version=1), blob BLOB NOT NULL CHECK(length(blob)>0), scale REAL, norm REAL, materialization_fingerprint TEXT NOT NULL, PRIMARY KEY(serving_profile, canonical_input_sha256))`,
+		`CREATE TABLE vector_cache (serving_profile TEXT NOT NULL, canonical_input_sha256 TEXT NOT NULL, dimensions INTEGER NOT NULL CHECK(dimensions>0), codec_id TEXT NOT NULL CHECK(codec_id='cidx-int8-symmetric-v1'), codec_version INTEGER NOT NULL CHECK(codec_version=1), blob BLOB NOT NULL CHECK(length(blob)>0), scale REAL, norm REAL, materialization_fingerprint TEXT NOT NULL, PRIMARY KEY(serving_profile, canonical_input_sha256))`,
 		`DROP TABLE vector_cache_v2`,
 	} {
 		if _, err := db.ExecContext(ctx, statement); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if _, err := db.ExecContext(ctx, `INSERT INTO meta VALUES(1,1,'root',1,'0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef','index',x'7b7d','canonical',x'7b7d','source',x'7b7d','space',x'7b7d','storage',x'7b7d','serving','','','','','',0); INSERT INTO vector_cache VALUES('serving','input',256,'cidx-binary-sign-lsb-v1',1,x'01',NULL,NULL,'legacy'); PRAGMA user_version=1`); err != nil {
+	if _, err := db.ExecContext(ctx, `INSERT INTO meta VALUES(1,1,'root',1,'0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef','index',x'7b7d','canonical',x'7b7d','source',x'7b7d','space',x'7b7d','storage',x'7b7d','serving','','','','','',0); PRAGMA user_version=1`); err != nil {
+		t.Fatal(err)
+	}
+	legacy := validInt8(t, 512)
+	if _, err := db.ExecContext(ctx, `INSERT INTO vector_cache VALUES('serving','input',?,?,?,?,?,?,'legacy')`, legacy.Dimensions, legacy.CodecID, legacy.CodecVersion, legacy.Blob, legacy.Scale, legacy.Norm); err != nil {
 		t.Fatal(err)
 	}
 	if err := migrateProduction(ctx, db); err != nil {
@@ -104,7 +108,7 @@ func TestProductionV1ToV3PreservesLegacyVectorButRequiresNewLineage(t *testing.T
 	var schemaVersion int
 	var manifest, source, space, storage, serving string
 	var generation int64
-	if err := db.QueryRowContext(ctx, `SELECT schema_version,active_generation,manifest_sha256,source_profile,vector_space_profile,vector_storage_profile,active_serving_profile FROM meta WHERE id=1`).Scan(&schemaVersion, &generation, &manifest, &source, &space, &storage, &serving); err != nil || schemaVersion != 4 || generation != 1 || manifest != "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" || source != "source" || space != "space" || storage != "storage" || serving != "serving" {
+	if err := db.QueryRowContext(ctx, `SELECT schema_version,active_generation,manifest_sha256,source_profile,vector_space_profile,vector_storage_profile,active_serving_profile FROM meta WHERE id=1`).Scan(&schemaVersion, &generation, &manifest, &source, &space, &storage, &serving); err != nil || schemaVersion != 5 || generation != 1 || manifest != "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" || source != "source" || space != "space" || storage != "storage" || serving != "serving" {
 		t.Fatalf("meta preservation=%d %d %q %q %q %q %q err=%v", schemaVersion, generation, manifest, source, space, storage, serving, err)
 	}
 	var blob []byte
@@ -112,7 +116,7 @@ func TestProductionV1ToV3PreservesLegacyVectorButRequiresNewLineage(t *testing.T
 	if err := db.QueryRowContext(ctx, `SELECT blob,source_profile,vector_space_profile,raw_vector_sha256,materialized_at FROM vector_cache WHERE canonical_input_sha256='input'`).Scan(&blob, &rowSource, &rowSpace, &rawSHA, &at); err != nil {
 		t.Fatal(err)
 	}
-	if len(blob) != 1 || rowSource != "" || rowSpace != "" || rawSHA != "" || at != "" {
+	if len(blob) != 512 || rowSource != "" || rowSpace != "" || rawSHA != "" || at != "" {
 		t.Fatalf("legacy row was rewritten or trusted: blob=%x source=%q space=%q raw=%q at=%q", blob, rowSource, rowSpace, rawSHA, at)
 	}
 }
@@ -126,7 +130,7 @@ func TestProductionV2ToV3PreservesHistoricalFailureAndPointers(t *testing.T) {
 		t.Fatal(err)
 	}
 	active := string(resolved.Profiles.Fingerprints.VectorStorage)
-	valid := validBinary(t, resolved.Embedding.ServingDimensions)
+	valid := validInt8(t, resolved.Embedding.ServingDimensions)
 	for _, statement := range []string{`UPDATE meta SET active_generation=7,manifest_sha256='0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'`, `INSERT INTO files(id,path,language,indexed_sha256,observed_mtime_ns,observed_size) VALUES(1,'historical.go','go','file',0,1)`, `INSERT INTO chunks(id,file_id,kind,symbol,qualified_symbol,signature,start_byte,end_byte,start_line,end_line,source_body) VALUES(1,1,'function','Historical','Historical','',0,1,1,1,x'78')`, `INSERT INTO embedding_failures(source_profile,canonical_input_sha256,classification,attempts,error_class,last_error,last_attempted_at) VALUES('source','input','terminal',4,'provider','safe','2026-01-02T03:04:05Z')`} {
 		if _, err := production.Write.db.ExecContext(ctx, statement); err != nil {
 			t.Fatal(err)
@@ -135,7 +139,7 @@ func TestProductionV2ToV3PreservesHistoricalFailureAndPointers(t *testing.T) {
 	if _, err := production.Write.db.ExecContext(ctx, `INSERT INTO embedding_segments(id,chunk_id,segment_number,canonical_input_sha256,canonical_text_profile,serving_profile,display_start_byte,display_end_byte) VALUES(1,1,0,?,'canonical',?,0,1)`, testRawSHA, active); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := production.Write.db.ExecContext(ctx, `INSERT INTO vector_cache(serving_profile,canonical_input_sha256,dimensions,codec_id,codec_version,blob,scale,norm,materialization_fingerprint,source_profile,vector_space_profile,raw_vector_sha256,materialized_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`, active, testRawSHA, valid.Dimensions, valid.CodecID, valid.CodecVersion, valid.Blob, nil, nil, active, string(resolved.Profiles.Fingerprints.Source), string(resolved.Profiles.Fingerprints.VectorSpace), testRawSHA, "2026-01-02T03:04:05Z"); err != nil {
+	if _, err := production.Write.db.ExecContext(ctx, `INSERT INTO vector_cache(serving_profile,canonical_input_sha256,dimensions,codec_id,codec_version,blob,scale,norm,materialization_fingerprint,source_profile,vector_space_profile,raw_vector_sha256,materialized_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`, active, testRawSHA, valid.Dimensions, valid.CodecID, valid.CodecVersion, valid.Blob, valid.Scale, valid.Norm, active, string(resolved.Profiles.Fingerprints.Source), string(resolved.Profiles.Fingerprints.VectorSpace), testRawSHA, "2026-01-02T03:04:05Z"); err != nil {
 		t.Fatal(err)
 	}
 	if err := production.Close(); err != nil {
@@ -160,11 +164,11 @@ func TestProductionV2ToV3PreservesHistoricalFailureAndPointers(t *testing.T) {
 	}
 	var version, generation, attempts int
 	var manifest, classification, class, at string
-	if err := db.QueryRowContext(ctx, `SELECT m.schema_version,m.active_generation,m.manifest_sha256,f.classification,f.attempts,f.error_class,f.last_attempted_at FROM meta m JOIN embedding_failures f ON 1=1`).Scan(&version, &generation, &manifest, &classification, &attempts, &class, &at); err != nil || version != 4 || generation != 7 || manifest != "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" || classification != "terminal" || attempts != 4 || class != "provider" || at != "2026-01-02T03:04:05Z" {
+	if err := db.QueryRowContext(ctx, `SELECT m.schema_version,m.active_generation,m.manifest_sha256,f.classification,f.attempts,f.error_class,f.last_attempted_at FROM meta m JOIN embedding_failures f ON 1=1`).Scan(&version, &generation, &manifest, &classification, &attempts, &class, &at); err != nil || version != 5 || generation != 7 || manifest != "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" || classification != "terminal" || attempts != 4 || class != "provider" || at != "2026-01-02T03:04:05Z" {
 		t.Fatalf("migration=%d/%d/%q/%q/%d/%q/%q err=%v", version, generation, manifest, classification, attempts, class, at, err)
 	}
 	if err := migrateProduction(ctx, db); err != nil {
-		t.Fatalf("v4 reopen=%v", err)
+		t.Fatalf("v5 reopen=%v", err)
 	}
 }
 
@@ -218,7 +222,7 @@ func TestProductionRejectsSymlinkedStateComponents(t *testing.T) {
 
 func TestProductionAndLabSchemasStaySeparateAndValidateActiveCodec(t *testing.T) {
 	ctx := context.Background()
-	resolved, err := config.Resolve(config.RawConfig{Version: 1, Index: config.RawIndex{Languages: []string{"go"}, MaxSourceFileBytes: 10, TargetSegmentBytes: 10}, Embedding: config.RawEmbedding{ServingDimensions: intPointer(256), Request: config.RawRequest{MaxInputs: 1, MaxTotalInputBytes: 1, TimeoutSeconds: 1}}, Search: config.RawSearch{}, MCP: config.RawMCP{HardMaxInlineBytes: 1}})
+	resolved, err := config.Resolve(config.RawConfig{Version: 1, Index: config.RawIndex{Languages: []string{"go"}, MaxSourceFileBytes: 10, TargetSegmentBytes: 10}, Embedding: config.RawEmbedding{ServingDimensions: intPointer(512), Request: config.RawRequest{MaxInputs: 1, MaxTotalInputBytes: 1, TimeoutSeconds: 1}}, Search: config.RawSearch{}, MCP: config.RawMCP{HardMaxInlineBytes: 1}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -236,14 +240,14 @@ func TestProductionAndLabSchemasStaySeparateAndValidateActiveCodec(t *testing.T)
 	}
 	values := make([]float32, resolved.Embedding.ServingDimensions)
 	values[0] = 1
-	stored, err := vector.EncodeBinary(values)
+	stored, err := vector.EncodeInt8(values)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := ValidateServingVector(resolved, stored); err != nil {
 		t.Fatal(err)
 	}
-	stored.Dimensions = 512
+	stored.Dimensions = 1024
 	if err := ValidateServingVector(resolved, stored); err == nil {
 		t.Fatal("wrong active dimensions accepted")
 	}
@@ -279,23 +283,21 @@ func TestActiveEmbeddingStatesRejectStaleOrInvalidRowsAndSuccessClearsFailure(t 
 	if err := production.RecordEmbeddingFailure(ctx, resolved, testRawSHA, "network", "old failure"); err != nil {
 		t.Fatal(err)
 	}
-	valid := validBinary(t, resolved.Embedding.ServingDimensions)
+	valid := validInt8(t, resolved.Embedding.ServingDimensions)
 	if err := production.UpsertServingVector(ctx, resolved, testRawSHA, string(resolved.Profiles.Fingerprints.VectorStorage), testRawSHA, valid); err != nil {
 		t.Fatal(err)
 	}
 	invalid := valid.Clone()
 	invalid.Dimensions = 512
-	if _, err := production.Write.db.ExecContext(ctx, `INSERT INTO vector_cache(serving_profile,canonical_input_sha256,dimensions,codec_id,codec_version,blob,scale,norm,materialization_fingerprint) VALUES(?,?,?,?,?,?,?,?,?)`, active, "invalid", invalid.Dimensions, invalid.CodecID, invalid.CodecVersion, invalid.Blob, nil, nil, "bad"); err != nil {
+	if _, err := production.Write.db.ExecContext(ctx, `INSERT INTO vector_cache(serving_profile,canonical_input_sha256,dimensions,codec_id,codec_version,blob,scale,norm,materialization_fingerprint) VALUES(?,?,?,?,?,?,?,?,?)`, active, "invalid", invalid.Dimensions, invalid.CodecID, invalid.CodecVersion, invalid.Blob, invalid.Scale, invalid.Norm, "bad"); err != nil {
 		t.Fatal(err)
 	}
-	wrongCodec, err := vector.EncodeInt8(makeUnitValues(resolved.Embedding.ServingDimensions))
-	if err != nil {
+	wrongMetadata := valid.Clone()
+	wrongMetadata.Scale *= 2
+	if _, err := production.Write.db.ExecContext(ctx, `INSERT INTO vector_cache(serving_profile,canonical_input_sha256,dimensions,codec_id,codec_version,blob,scale,norm,materialization_fingerprint) VALUES(?,?,?,?,?,?,?,?,?)`, active, "wrong-codec", wrongMetadata.Dimensions, wrongMetadata.CodecID, wrongMetadata.CodecVersion, wrongMetadata.Blob, wrongMetadata.Scale, wrongMetadata.Norm, "bad"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := production.Write.db.ExecContext(ctx, `INSERT INTO vector_cache(serving_profile,canonical_input_sha256,dimensions,codec_id,codec_version,blob,scale,norm,materialization_fingerprint) VALUES(?,?,?,?,?,?,?,?,?)`, active, "wrong-codec", wrongCodec.Dimensions, wrongCodec.CodecID, wrongCodec.CodecVersion, wrongCodec.Blob, wrongCodec.Scale, wrongCodec.Norm, "bad"); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := production.Write.db.ExecContext(ctx, `INSERT INTO vector_cache(serving_profile,canonical_input_sha256,dimensions,codec_id,codec_version,blob,scale,norm,materialization_fingerprint) VALUES(?,?,?,?,?,?,?,?,?)`, active, "bad-blob", valid.Dimensions, valid.CodecID, valid.CodecVersion, valid.Blob[:1], nil, nil, "bad"); err != nil {
+	if _, err := production.Write.db.ExecContext(ctx, `INSERT INTO vector_cache(serving_profile,canonical_input_sha256,dimensions,codec_id,codec_version,blob,scale,norm,materialization_fingerprint) VALUES(?,?,?,?,?,?,?,?,?)`, active, "bad-blob", valid.Dimensions, valid.CodecID, valid.CodecVersion, valid.Blob[:1], valid.Scale, valid.Norm, "bad"); err != nil {
 		t.Fatal(err)
 	}
 	states, err := production.ActiveSegmentStates(ctx, resolved)
@@ -344,9 +346,9 @@ func TestDesiredEmbeddingStatesUsesInactiveDesiredProfileCache(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	stored := validBinary(t, dim)
+	stored := validInt8(t, dim)
 	profile := string(desired.Profiles.Fingerprints.VectorStorage)
-	if _, err := production.Write.db.ExecContext(ctx, `INSERT INTO vector_cache(serving_profile,canonical_input_sha256,dimensions,codec_id,codec_version,blob,scale,norm,materialization_fingerprint,source_profile,vector_space_profile,raw_vector_sha256,materialized_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`, profile, testRawSHA, stored.Dimensions, stored.CodecID, stored.CodecVersion, stored.Blob, nil, nil, profile, string(desired.Profiles.Fingerprints.Source), string(desired.Profiles.Fingerprints.VectorSpace), testRawSHA, time.Now().UTC().Format(time.RFC3339Nano)); err != nil {
+	if _, err := production.Write.db.ExecContext(ctx, `INSERT INTO vector_cache(serving_profile,canonical_input_sha256,dimensions,codec_id,codec_version,blob,scale,norm,materialization_fingerprint,source_profile,vector_space_profile,raw_vector_sha256,materialized_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`, profile, testRawSHA, stored.Dimensions, stored.CodecID, stored.CodecVersion, stored.Blob, stored.Scale, stored.Norm, profile, string(desired.Profiles.Fingerprints.Source), string(desired.Profiles.Fingerprints.VectorSpace), testRawSHA, time.Now().UTC().Format(time.RFC3339Nano)); err != nil {
 		t.Fatal(err)
 	}
 	states, err := production.DesiredEmbeddingStates(ctx, desired, []string{testRawSHA, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"})
@@ -367,11 +369,11 @@ func testResolvedConfig(t *testing.T) config.ResolvedConfig {
 	return resolved
 }
 
-func validBinary(t *testing.T, dimensions int) vector.StoredVector {
+func validInt8(t *testing.T, dimensions int) vector.StoredVector {
 	t.Helper()
 	values := make([]float32, dimensions)
 	values[0] = 1
-	stored, err := vector.EncodeBinary(values)
+	stored, err := vector.EncodeInt8(values)
 	if err != nil {
 		t.Fatal(err)
 	}
