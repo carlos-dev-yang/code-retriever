@@ -1,0 +1,1352 @@
+{
+  "schema_version": 1,
+  "version": "memos-v0.30.0-relation-calibration-draft-v1",
+  "corpus_id": "usememos-memos-v0.30.0",
+  "cases": [
+    {
+      "schema_version": 1,
+      "id": "me-g01-filter-render",
+      "text": "Where is a parsed memo filter rendered into SQL and argument values?",
+      "language": "go",
+      "cohorts": [
+        "slice:naturalistic_prevalence",
+        "pattern:query_rendering"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "Render"
+        ],
+        "paths": [
+          "internal/filter/render.go"
+        ],
+        "languages": [
+          "go"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "internal/filter/render.go",
+                  "content_sha256": "c6a1cd9837bae6f7f782abd61042b2a1e09aed881004ce5a74d2111bfd586d63",
+                  "qualified_symbol": "filter.renderer.Render",
+                  "start_byte": 521,
+                  "end_byte": 983
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "internal/filter/render.go",
+            "content_sha256": "c6a1cd9837bae6f7f782abd61042b2a1e09aed881004ce5a74d2111bfd586d63",
+            "qualified_symbol": "filter.renderer.Render",
+            "start_byte": 521,
+            "end_byte": 983
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "95d47af02b5b0a09528390072b7cffc3cde45f5ce7928e12bd86b1f476987455"
+    },
+    {
+      "schema_version": 1,
+      "id": "me-g02-connect-routes",
+      "text": "Where are the Connect RPC service handlers registered onto the HTTP server?",
+      "language": "go",
+      "cohorts": [
+        "slice:naturalistic_prevalence",
+        "pattern:service_registration"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "RegisterConnectHandlers"
+        ],
+        "paths": [
+          "server/router/api/v1/connect_handler.go"
+        ],
+        "languages": [
+          "go"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "server/router/api/v1/connect_handler.go",
+                  "content_sha256": "f36a1d0d4a93a7c0e9ca2b30cf95056ff1fefa6791c7bd9752a5a37ac0d672c9",
+                  "qualified_symbol": "v1.ConnectServiceHandler.RegisterConnectHandlers",
+                  "start_byte": 860,
+                  "end_byte": 1697
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "server/router/api/v1/connect_handler.go",
+            "content_sha256": "f36a1d0d4a93a7c0e9ca2b30cf95056ff1fefa6791c7bd9752a5a37ac0d672c9",
+            "qualified_symbol": "v1.ConnectServiceHandler.RegisterConnectHandlers",
+            "start_byte": 860,
+            "end_byte": 1697
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "27f96d4424af1e0142d33c558c002fc3844a860c67d12c30694df33530752f38"
+    },
+    {
+      "schema_version": 1,
+      "id": "me-g03-instance-color",
+      "text": "Where is an instance theme color validated, normalized, and rejected when its components are invalid?",
+      "language": "go",
+      "cohorts": [
+        "slice:naturalistic_prevalence",
+        "pattern:validation"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "validateInstanceColor"
+        ],
+        "paths": [
+          "server/router/api/v1/instance_service_validation.go"
+        ],
+        "languages": [
+          "go"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "server/router/api/v1/instance_service_validation.go",
+                  "content_sha256": "21386fa408b1035438291509fe7622c758e94a6ce097406485bbf26d1313d04a",
+                  "qualified_symbol": "v1.validateInstanceColor",
+                  "start_byte": 5273,
+                  "end_byte": 5785
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "server/router/api/v1/instance_service_validation.go",
+            "content_sha256": "21386fa408b1035438291509fe7622c758e94a6ce097406485bbf26d1313d04a",
+            "qualified_symbol": "v1.validateInstanceColor",
+            "start_byte": 5273,
+            "end_byte": 5785
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "f71980638b928ed33308a9821da00b19f1d048c614e40b65139f4d181ccde30b"
+    },
+    {
+      "schema_version": 1,
+      "id": "me-g04-filter-schema",
+      "text": "Where is the filter expression schema assembled with its fields, operators, and value coercions?",
+      "language": "go",
+      "cohorts": [
+        "slice:naturalistic_prevalence",
+        "pattern:schema_construction"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "NewSchema"
+        ],
+        "paths": [
+          "internal/filter/schema.go"
+        ],
+        "languages": [
+          "go"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "internal/filter/schema.go",
+                  "content_sha256": "095b7f438ab44b5e00a51c6997b5a7a3d9297a27efb86da9e01e257ff478d23b",
+                  "qualified_symbol": "filter.NewSchema",
+                  "start_byte": 2030,
+                  "end_byte": 7145
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "internal/filter/schema.go",
+            "content_sha256": "095b7f438ab44b5e00a51c6997b5a7a3d9297a27efb86da9e01e257ff478d23b",
+            "qualified_symbol": "filter.NewSchema",
+            "start_byte": 2030,
+            "end_byte": 7145
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "b407ea530e1943ea6d93e36d7bae2f7e530fe767436005e8e45ae4a0d78451e0"
+    },
+    {
+      "schema_version": 1,
+      "id": "me-x01-memo-view",
+      "text": "Which React component renders a memo together with its content, metadata, reactions, and action controls?",
+      "language": "tsx",
+      "cohorts": [
+        "slice:naturalistic_prevalence",
+        "pattern:component_behavior"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "MemoView"
+        ],
+        "paths": [
+          "web/src/components/MemoView/MemoView.tsx"
+        ],
+        "languages": [
+          "tsx"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "web/src/components/MemoView/MemoView.tsx",
+                  "content_sha256": "6a2069cc1581a27fdf979429fcdf923da121f863fe41428001e6a4081b167efc",
+                  "qualified_symbol": "module.MemoView",
+                  "start_byte": 1191,
+                  "end_byte": 6121
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "web/src/components/MemoView/MemoView.tsx",
+            "content_sha256": "6a2069cc1581a27fdf979429fcdf923da121f863fe41428001e6a4081b167efc",
+            "qualified_symbol": "module.MemoView",
+            "start_byte": 1191,
+            "end_byte": 6121
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "7c8080706c6393ffc4f391bb8f93f91dcd1ee125b37c9973948ade461394242c"
+    },
+    {
+      "schema_version": 1,
+      "id": "me-x02-memo-editor",
+      "text": "Which component provides the lazy-loaded memo editor boundary used by callers?",
+      "language": "tsx",
+      "cohorts": [
+        "slice:naturalistic_prevalence",
+        "pattern:component_entry"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "MemoEditor"
+        ],
+        "paths": [
+          "web/src/components/MemoEditor/index.tsx"
+        ],
+        "languages": [
+          "tsx"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "web/src/components/MemoEditor/index.tsx",
+                  "content_sha256": "e3af0f74e41e765c9976b9466135f419ff9e55eb572f715fb286cb90d4e95396",
+                  "qualified_symbol": "module.MemoEditor",
+                  "start_byte": 1209,
+                  "end_byte": 1332
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "web/src/components/MemoEditor/index.tsx",
+            "content_sha256": "e3af0f74e41e765c9976b9466135f419ff9e55eb572f715fb286cb90d4e95396",
+            "qualified_symbol": "module.MemoEditor",
+            "start_byte": 1209,
+            "end_byte": 1332
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "9d82b6f33610877391845a0f90d164f399a3a0484dbc02baeb90cd02bfac8fc0"
+    },
+    {
+      "schema_version": 1,
+      "id": "me-x03-link-card",
+      "text": "Where is external link metadata rendered as a preview card with title, description, image, and host?",
+      "language": "tsx",
+      "cohorts": [
+        "slice:naturalistic_prevalence",
+        "pattern:component_behavior"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "LinkMetadataCard"
+        ],
+        "paths": [
+          "web/src/components/MemoContent/LinkMetadataCard.tsx"
+        ],
+        "languages": [
+          "tsx"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "web/src/components/MemoContent/LinkMetadataCard.tsx",
+                  "content_sha256": "6558a8d6499c19322e3c52fd5b16862153a961098a820ccdce2e03c38dd78e6d",
+                  "qualified_symbol": "module.LinkMetadataCard",
+                  "start_byte": 414,
+                  "end_byte": 2425
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "web/src/components/MemoContent/LinkMetadataCard.tsx",
+            "content_sha256": "6558a8d6499c19322e3c52fd5b16862153a961098a820ccdce2e03c38dd78e6d",
+            "qualified_symbol": "module.LinkMetadataCard",
+            "start_byte": 414,
+            "end_byte": 2425
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "dfbc5832a42e03cd96bb4c303c5b166d695bc0f22757386c52a910558b0babae"
+    },
+    {
+      "schema_version": 1,
+      "id": "me-x04-navigation",
+      "text": "Which component builds the main navigation links and account or workspace controls?",
+      "language": "tsx",
+      "cohorts": [
+        "slice:naturalistic_prevalence",
+        "pattern:component_behavior"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "Navigation"
+        ],
+        "paths": [
+          "web/src/components/Navigation.tsx"
+        ],
+        "languages": [
+          "tsx"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "web/src/components/Navigation.tsx",
+                  "content_sha256": "bfbad10ef6a20fb9f263e095df6dfcfabc63b87121cc1a121c2a8073ba4e2d4f",
+                  "qualified_symbol": "module.Navigation",
+                  "start_byte": 794,
+                  "end_byte": 5008
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "web/src/components/Navigation.tsx",
+            "content_sha256": "bfbad10ef6a20fb9f263e095df6dfcfabc63b87121cc1a121c2a8073ba4e2d4f",
+            "qualified_symbol": "module.Navigation",
+            "start_byte": 794,
+            "end_byte": 5008
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "8b87a4cdd3abfe725a830cde35bfd4be0fce6237e59f45329df76566c548c037"
+    },
+    {
+      "schema_version": 1,
+      "id": "me-g05-cron-field-parser",
+      "text": "How is a cron expression split and parsed, including the field parser that expands ranges, lists, and steps?",
+      "language": "go",
+      "cohorts": [
+        "slice:relation_challenge",
+        "pattern:parser_callee"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 2,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "ParseCronExpression",
+          "parseField"
+        ],
+        "paths": [
+          "internal/scheduler/parser.go"
+        ],
+        "languages": [
+          "go"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "internal/scheduler/parser.go",
+                  "content_sha256": "52de30c4c36328bcc6301526306dddbe7c02bd78bc558a8ca811b2dc86ae3977",
+                  "qualified_symbol": "scheduler.ParseCronExpression",
+                  "start_byte": 535,
+                  "end_byte": 2168
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "required-02",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "internal/scheduler/parser.go",
+                  "content_sha256": "52de30c4c36328bcc6301526306dddbe7c02bd78bc558a8ca811b2dc86ae3977",
+                  "qualified_symbol": "scheduler.parseField",
+                  "start_byte": 3183,
+                  "end_byte": 4777
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "internal/scheduler/parser.go",
+            "content_sha256": "52de30c4c36328bcc6301526306dddbe7c02bd78bc558a8ca811b2dc86ae3977",
+            "qualified_symbol": "scheduler.ParseCronExpression",
+            "start_byte": 535,
+            "end_byte": 2168
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        },
+        {
+          "span": {
+            "path": "internal/scheduler/parser.go",
+            "content_sha256": "52de30c4c36328bcc6301526306dddbe7c02bd78bc558a8ca811b2dc86ae3977",
+            "qualified_symbol": "scheduler.parseField",
+            "start_byte": 3183,
+            "end_byte": 4777
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "c6119012099a7fe77f2ae08aad479854af3425e8ee516b69b824e916bd008d82"
+    },
+    {
+      "schema_version": 1,
+      "id": "me-g06-schedule-matchers",
+      "text": "How does a parsed schedule decide whether a time matches, and which field matcher contract performs each component check?",
+      "language": "go",
+      "cohorts": [
+        "slice:relation_challenge",
+        "pattern:algorithm_contract"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 2,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "matches",
+          "fieldMatcher"
+        ],
+        "paths": [
+          "internal/scheduler/parser.go"
+        ],
+        "languages": [
+          "go"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "internal/scheduler/parser.go",
+                  "content_sha256": "52de30c4c36328bcc6301526306dddbe7c02bd78bc558a8ca811b2dc86ae3977",
+                  "qualified_symbol": "scheduler.Schedule.matches",
+                  "start_byte": 2862,
+                  "end_byte": 3181
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "required-02",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "internal/scheduler/parser.go",
+                  "content_sha256": "52de30c4c36328bcc6301526306dddbe7c02bd78bc558a8ca811b2dc86ae3977",
+                  "qualified_symbol": "scheduler.fieldMatcher",
+                  "start_byte": 424,
+                  "end_byte": 533
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "internal/scheduler/parser.go",
+            "content_sha256": "52de30c4c36328bcc6301526306dddbe7c02bd78bc558a8ca811b2dc86ae3977",
+            "qualified_symbol": "scheduler.Schedule.matches",
+            "start_byte": 2862,
+            "end_byte": 3181
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        },
+        {
+          "span": {
+            "path": "internal/scheduler/parser.go",
+            "content_sha256": "52de30c4c36328bcc6301526306dddbe7c02bd78bc558a8ca811b2dc86ae3977",
+            "qualified_symbol": "scheduler.fieldMatcher",
+            "start_byte": 424,
+            "end_byte": 533
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "8940ffbebdd54dfd160316b975b2c82da8c17fe9dc3facee711df17f87c25b1d"
+    },
+    {
+      "schema_version": 1,
+      "id": "me-g07-markdown-recursion",
+      "text": "How does Markdown rendering dispatch a node and recursively render its children?",
+      "language": "go",
+      "cohorts": [
+        "slice:relation_challenge",
+        "pattern:recursive_callee"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 2,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "renderNode",
+          "renderChildren"
+        ],
+        "paths": [
+          "internal/markdown/renderer/markdown_renderer.go"
+        ],
+        "languages": [
+          "go"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "internal/markdown/renderer/markdown_renderer.go",
+                  "content_sha256": "4868a2237858f57e59567ee10400135647cfb92c81722997b4e908de0f5b0a76",
+                  "qualified_symbol": "renderer.MarkdownRenderer.renderNode",
+                  "start_byte": 689,
+                  "end_byte": 3670
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "required-02",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "internal/markdown/renderer/markdown_renderer.go",
+                  "content_sha256": "4868a2237858f57e59567ee10400135647cfb92c81722997b4e908de0f5b0a76",
+                  "qualified_symbol": "renderer.MarkdownRenderer.renderChildren",
+                  "start_byte": 3672,
+                  "end_byte": 3929
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "internal/markdown/renderer/markdown_renderer.go",
+            "content_sha256": "4868a2237858f57e59567ee10400135647cfb92c81722997b4e908de0f5b0a76",
+            "qualified_symbol": "renderer.MarkdownRenderer.renderNode",
+            "start_byte": 689,
+            "end_byte": 3670
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        },
+        {
+          "span": {
+            "path": "internal/markdown/renderer/markdown_renderer.go",
+            "content_sha256": "4868a2237858f57e59567ee10400135647cfb92c81722997b4e908de0f5b0a76",
+            "qualified_symbol": "renderer.MarkdownRenderer.renderChildren",
+            "start_byte": 3672,
+            "end_byte": 3929
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "dfcb5b6dbd283bdbb193c9ede691c231e138e35718edef22c6ce9e91954cda35"
+    },
+    {
+      "schema_version": 1,
+      "id": "me-g08-auth-safety",
+      "text": "How is an authentication configuration mutation validated, including the helper that detects a transition into an unsafe state?",
+      "language": "go",
+      "cohorts": [
+        "slice:relation_challenge",
+        "pattern:validation_callee"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 2,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "validateAuthenticationMutationState",
+          "isUnsafeAuthenticationState"
+        ],
+        "paths": [
+          "store/auth_config.go"
+        ],
+        "languages": [
+          "go"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "store/auth_config.go",
+                  "content_sha256": "0b919369ed534b3c4a37a497d7fcc2acfcc62bcdb4206b4df00bab1f824f1de8",
+                  "qualified_symbol": "store.Store.validateAuthenticationMutationState",
+                  "start_byte": 3286,
+                  "end_byte": 5459
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "required-02",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "store/auth_config.go",
+                  "content_sha256": "0b919369ed534b3c4a37a497d7fcc2acfcc62bcdb4206b4df00bab1f824f1de8",
+                  "qualified_symbol": "store.isUnsafeAuthenticationState",
+                  "start_byte": 5461,
+                  "end_byte": 5658
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "store/auth_config.go",
+            "content_sha256": "0b919369ed534b3c4a37a497d7fcc2acfcc62bcdb4206b4df00bab1f824f1de8",
+            "qualified_symbol": "store.Store.validateAuthenticationMutationState",
+            "start_byte": 3286,
+            "end_byte": 5459
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        },
+        {
+          "span": {
+            "path": "store/auth_config.go",
+            "content_sha256": "0b919369ed534b3c4a37a497d7fcc2acfcc62bcdb4206b4df00bab1f824f1de8",
+            "qualified_symbol": "store.isUnsafeAuthenticationState",
+            "start_byte": 5461,
+            "end_byte": 5658
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "20abf14c78719884eb882e7f88a97a43c3aceb5ece9d43a6d8142a0793fd1b61"
+    },
+    {
+      "schema_version": 1,
+      "id": "me-x05-ai-provider-contract",
+      "text": "How does the AI settings component manage local provider forms, including the contract used for local provider state?",
+      "language": "tsx",
+      "cohorts": [
+        "slice:relation_challenge",
+        "pattern:component_contract"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 2,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "AISection",
+          "LocalAIProvider"
+        ],
+        "paths": [
+          "web/src/components/Settings/AISection.tsx"
+        ],
+        "languages": [
+          "tsx"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "web/src/components/Settings/AISection.tsx",
+                  "content_sha256": "bf69adeb5f8a37cd249722132931ce91c9a2661de68484c17c1217a871779839",
+                  "qualified_symbol": "module.AISection",
+                  "start_byte": 3856,
+                  "end_byte": 13768
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "required-02",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "web/src/components/Settings/AISection.tsx",
+                  "content_sha256": "bf69adeb5f8a37cd249722132931ce91c9a2661de68484c17c1217a871779839",
+                  "qualified_symbol": "module.LocalAIProvider",
+                  "start_byte": 1567,
+                  "end_byte": 1747
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "web/src/components/Settings/AISection.tsx",
+            "content_sha256": "bf69adeb5f8a37cd249722132931ce91c9a2661de68484c17c1217a871779839",
+            "qualified_symbol": "module.AISection",
+            "start_byte": 3856,
+            "end_byte": 13768
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        },
+        {
+          "span": {
+            "path": "web/src/components/Settings/AISection.tsx",
+            "content_sha256": "bf69adeb5f8a37cd249722132931ce91c9a2661de68484c17c1217a871779839",
+            "qualified_symbol": "module.LocalAIProvider",
+            "start_byte": 1567,
+            "end_byte": 1747
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "b58cbc4e950ee313c861b7e4610e2dfd589931879096bd25ea40142f5eb4b665"
+    },
+    {
+      "schema_version": 1,
+      "id": "me-x06-navigation-item",
+      "text": "How does the navigation component construct its links, including the item shape used for each destination?",
+      "language": "tsx",
+      "cohorts": [
+        "slice:relation_challenge",
+        "pattern:component_contract"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 2,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "Navigation",
+          "NavLinkItem"
+        ],
+        "paths": [
+          "web/src/components/Navigation.tsx"
+        ],
+        "languages": [
+          "tsx"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "web/src/components/Navigation.tsx",
+                  "content_sha256": "bfbad10ef6a20fb9f263e095df6dfcfabc63b87121cc1a121c2a8073ba4e2d4f",
+                  "qualified_symbol": "module.Navigation",
+                  "start_byte": 794,
+                  "end_byte": 5008
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "required-02",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "web/src/components/Navigation.tsx",
+                  "content_sha256": "bfbad10ef6a20fb9f263e095df6dfcfabc63b87121cc1a121c2a8073ba4e2d4f",
+                  "qualified_symbol": "module.NavLinkItem",
+                  "start_byte": 629,
+                  "end_byte": 726
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "web/src/components/Navigation.tsx",
+            "content_sha256": "bfbad10ef6a20fb9f263e095df6dfcfabc63b87121cc1a121c2a8073ba4e2d4f",
+            "qualified_symbol": "module.Navigation",
+            "start_byte": 794,
+            "end_byte": 5008
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        },
+        {
+          "span": {
+            "path": "web/src/components/Navigation.tsx",
+            "content_sha256": "bfbad10ef6a20fb9f263e095df6dfcfabc63b87121cc1a121c2a8073ba4e2d4f",
+            "qualified_symbol": "module.NavLinkItem",
+            "start_byte": 629,
+            "end_byte": 726
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "cdbd06379bd62e1427069cf4341a735d8fb74890c5c984464dee23b1b810bcce"
+    },
+    {
+      "schema_version": 1,
+      "id": "me-x07-toolbar-selector",
+      "text": "How does the editor toolbar read focused editor state through the selector hook it calls?",
+      "language": "tsx",
+      "cohorts": [
+        "slice:relation_challenge",
+        "pattern:hook_callee"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 2,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "EditorToolbar",
+          "useEditorSelector"
+        ],
+        "paths": [
+          "web/src/components/MemoEditor/Toolbar/EditorToolbar.tsx",
+          "web/src/components/MemoEditor/state/context.tsx"
+        ],
+        "languages": [
+          "tsx"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "web/src/components/MemoEditor/Toolbar/EditorToolbar.tsx",
+                  "content_sha256": "cd92871da59a524ca9de50b181318ef5c52da31b6d4df4b895867e2194806861",
+                  "qualified_symbol": "module.EditorToolbar",
+                  "start_byte": 469,
+                  "end_byte": 2718
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "required-02",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "web/src/components/MemoEditor/state/context.tsx",
+                  "content_sha256": "5365129da65017964c052708e33b931d54ba4589343d9f4952e1bb372f24ff2e",
+                  "qualified_symbol": "module.useEditorSelector",
+                  "start_byte": 2125,
+                  "end_byte": 2595
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "web/src/components/MemoEditor/Toolbar/EditorToolbar.tsx",
+            "content_sha256": "cd92871da59a524ca9de50b181318ef5c52da31b6d4df4b895867e2194806861",
+            "qualified_symbol": "module.EditorToolbar",
+            "start_byte": 469,
+            "end_byte": 2718
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        },
+        {
+          "span": {
+            "path": "web/src/components/MemoEditor/state/context.tsx",
+            "content_sha256": "5365129da65017964c052708e33b931d54ba4589343d9f4952e1bb372f24ff2e",
+            "qualified_symbol": "module.useEditorSelector",
+            "start_byte": 2125,
+            "end_byte": 2595
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "e9a151125b87905d0eb52cd1478d0408d11134b30f26825795b60187975de8e1"
+    },
+    {
+      "schema_version": 1,
+      "id": "me-t08-live-refresh-status",
+      "text": "How does live memo refresh update the shared SSE connection status while managing the event stream lifecycle?",
+      "language": "typescript",
+      "cohorts": [
+        "slice:relation_challenge",
+        "pattern:hook_callee"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 2,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "useLiveMemoRefresh",
+          "setSSEStatus"
+        ],
+        "paths": [
+          "web/src/hooks/useLiveMemoRefresh.ts"
+        ],
+        "languages": [
+          "typescript"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "web/src/hooks/useLiveMemoRefresh.ts",
+                  "content_sha256": "fd8a0dec80521949612dfe2d9b28978cc7499e5fc5822dba43b059da98f257cb",
+                  "qualified_symbol": "module.useLiveMemoRefresh",
+                  "start_byte": 1960,
+                  "end_byte": 6543
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "required-02",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "web/src/hooks/useLiveMemoRefresh.ts",
+                  "content_sha256": "fd8a0dec80521949612dfe2d9b28978cc7499e5fc5822dba43b059da98f257cb",
+                  "qualified_symbol": "module.setSSEStatus",
+                  "start_byte": 1247,
+                  "end_byte": 1376
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "web/src/hooks/useLiveMemoRefresh.ts",
+            "content_sha256": "fd8a0dec80521949612dfe2d9b28978cc7499e5fc5822dba43b059da98f257cb",
+            "qualified_symbol": "module.useLiveMemoRefresh",
+            "start_byte": 1960,
+            "end_byte": 6543
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        },
+        {
+          "span": {
+            "path": "web/src/hooks/useLiveMemoRefresh.ts",
+            "content_sha256": "fd8a0dec80521949612dfe2d9b28978cc7499e5fc5822dba43b059da98f257cb",
+            "qualified_symbol": "module.setSSEStatus",
+            "start_byte": 1247,
+            "end_byte": 1376
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "d69bc7fdc944883fbd10a92d2e46164469b74f512e7ddaa09c4f3566bff6fde5"
+    }
+  ]
+}

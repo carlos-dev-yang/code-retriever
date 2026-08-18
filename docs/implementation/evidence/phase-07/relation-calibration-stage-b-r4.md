@@ -1,7 +1,7 @@
 # Relation Calibration Stage B — Revision 4
 
 - Date: 2026-08-19
-- State: in progress; corpus selection and portable provenance frozen
+- State: in progress; provider-free corpus, graph, and draft calibration unit frozen
 - Owner: `/root`
 - Authority: [`RELATION-EVIDENCE-COMPLETION-PLAN.md`](../../RELATION-EVIDENCE-COMPLETION-PLAN.md)
 - Promotion status: preparation only; no calibration, confirmation, or promotion result yet
@@ -88,9 +88,64 @@ compiler's wider read scope while constraining persisted file states and
 target membership to the committed index snapshot. Excluded or dependency
 targets are `OUT_OF_CORPUS`; they cannot enter the graph universe.
 
+## Provider-free index and relation boundary
+
+The three isolated workspaces now pass indexed-file parity with no stale,
+unindexed, or parse-error row:
+
+| Corpus | Generation | Files | Parents/chunks | Segments | Distinct pending inputs | Index manifest |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| go-git | 2 | 474 | 5,057 | 5,659 | 5,655 | `40b2d4e15932c0ad194ecc28185eb541af6f05a1b63daf06e33623207cc0ba3c` |
+| Zustand | 1 | 34 | 124 | 127 | 127 | `37f179e4f8f9f9f8604e5dce70178379d486dd37f95d101a7705d8eee37671eb` |
+| Memos | 3 | 749 | 3,489 | 4,877 | 4,877 | `fc9b373a6fbb8d1de9486994907d56dc29d4b90f6a3b986471f9adad36141523` |
+
+Clean v4 relation sidecars were repeated as v5 with identical logical graph
+hashes:
+
+| Corpus | Parents | Occurrences | Logical graph SHA-256 |
+| --- | ---: | ---: | --- |
+| go-git | 5,057 | 54,020 | `9b30a0495b4d13eefb241179358b9465fb1d60758bffb21692a116415a5db4da` |
+| Zustand | 124 | 5,586 | `f4a354214a955694daf30c0b39f96e80ceeb8c226dd27a24b0b5641906293657` |
+| Memos | 3,489 | 48,896 | `8b4209236fa0309355d15207517780257251a09b411dc82091b39546fcc3eacb` |
+
+The Go resolver may read excluded generated files for compiler type checking,
+but v4/v5 persist only indexed files and classify an excluded target as
+`OUT_OF_CORPUS`. Artifact checksum manifests are complete. No provider call
+was made while producing these indexes and graphs.
+
+## Frozen draft calibration unit
+
+The new calibration unit contains 40 source-bound questions. It intentionally
+uses a 20/20 Go versus TypeScript/TSX split and a 20/20 naturalistic versus
+relation-challenge split instead of padding the set with narrow edge cases.
+The relation-challenge half samples caller/callee, declaration contract,
+component contract, parser helper, recursive helper, iterator contract, and
+algorithm/data-contract patterns. Two go-git questions carry reviewed,
+confusable grade-0 hard negatives; the remaining cases do not invent weak
+negatives merely to fill a quota.
+
+| Dataset | Cases | Naturalistic | Relation challenge | Language split | File SHA-256 | Canonical dataset fingerprint |
+| --- | ---: | ---: | ---: | --- | --- | --- |
+| `relation-calibration-go-git-v5.19.1-draft-v1.json` | 12 | 6 | 6 | 12 Go | `b1054ee51ec7007ecd2397e8da8e17676938cd1d640dcd7864d4fd346c6b6fed` | `b5ddc298a3a7c8b5a816ce439208667fa566c69e175777d9205a6bf983ef80ba` |
+| `relation-calibration-zustand-v5.0.14-draft-v1.json` | 12 | 6 | 6 | 12 TypeScript | `9c5922122b4d85027316392aed773ab2c84de21235c7822001e9c5e5b54eb614` | `9ddff18f0a0b5d7665e60b322e25f7b11ad41f0201ac4d3c650886974aba4db7` |
+| `relation-calibration-memos-v0.30.0-draft-v1.json` | 16 | 8 | 8 | 8 Go + 8 TypeScript/TSX | `e5d254ca6008f92bc720f74db08e4358b47125fc1dc778a2a3db4efe0b148d24` | `4d3a546c9c7fd891c80f10f5be3c2e9a105f3458275d345a93b38529fa47fbd7` |
+
+Every source span resolves uniquely in the v4 graph, every case passes the
+strict portable dataset validator, and every draft digest reproduces from its
+RFC 8785 framing. Question authoring used source structure only; no dense score
+or result from these cases was inspected. Labels remain machine-prepared draft
+authority until the later blind pooled review.
+
+One optional lexical smoke reached final artifact construction and exposed a
+pre-existing lexical-manifest incompatibility (`SourceDimensions=1` versus the
+current 1024-only evaluation wire). Dataset, truth mapping, and digest checks
+had already passed. The relation calibration does not consume that lexical
+artifact; production FTS will be captured in the Phase 12 retrieval artifact.
+
 ## Next boundary
 
-Initialize and index three isolated 1024/int8 evaluation workspaces. Verify
-indexed-file parity and parser/semantic-parent inventories, then build the
-generation-bound relation sidecars. Any mixed-repository resolver gap must be
-fixed only in the evaluation path and revalidated before cohort authoring.
+Commit this score-unexposed draft unit and build a clean executable. Run exact
+document-capture dry plans for the three immutable indexes, bind the dated
+Voyage input price and the owner's USD 5 billing ceiling, then capture the
+1024-dimensional document source bank. Materialize only the active 1024/int8
+serving profile. Query embedding remains a separate 40-operation apply series.

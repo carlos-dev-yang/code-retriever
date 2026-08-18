@@ -1,0 +1,1046 @@
+{
+  "schema_version": 1,
+  "version": "zustand-v5.0.14-relation-calibration-draft-v1",
+  "corpus_id": "pmndrs-zustand-v5.0.14",
+  "cases": [
+    {
+      "schema_version": 1,
+      "id": "zu-t01-create-store",
+      "text": "Where is a vanilla Zustand store initialized, including listener notification and state replacement behavior?",
+      "language": "typescript",
+      "cohorts": [
+        "slice:naturalistic_prevalence",
+        "pattern:state_container"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "createStoreImpl"
+        ],
+        "paths": [
+          "src/vanilla.ts"
+        ],
+        "languages": [
+          "typescript"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/vanilla.ts",
+                  "content_sha256": "396aea7a580862e283f533afc74b26e0f2a9899a1e666c8b1d494aeebe20e7bc",
+                  "qualified_symbol": "module.createStoreImpl",
+                  "start_byte": 1791,
+                  "end_byte": 3212
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/vanilla.ts",
+            "content_sha256": "396aea7a580862e283f533afc74b26e0f2a9899a1e666c8b1d494aeebe20e7bc",
+            "qualified_symbol": "module.createStoreImpl",
+            "start_byte": 1791,
+            "end_byte": 3212
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "754d051a75f9f6524a55389b52834dbbfb1b15b4aa4713607f1b1701394899b9"
+    },
+    {
+      "schema_version": 1,
+      "id": "zu-t02-use-store",
+      "text": "Which React hook subscribes to a Zustand store and selects the slice returned to the component?",
+      "language": "typescript",
+      "cohorts": [
+        "slice:naturalistic_prevalence",
+        "pattern:react_hook"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "useStore"
+        ],
+        "paths": [
+          "src/react.ts"
+        ],
+        "languages": [
+          "typescript"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/react.ts",
+                  "content_sha256": "113041183bb72777628f72ef6883207d933cd46f1a45abe070675382326193bf",
+                  "qualified_symbol": "module.useStore",
+                  "start_byte": 323,
+                  "end_byte": 948
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/react.ts",
+            "content_sha256": "113041183bb72777628f72ef6883207d933cd46f1a45abe070675382326193bf",
+            "qualified_symbol": "module.useStore",
+            "start_byte": 323,
+            "end_byte": 948
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "444c5c1ee2d7d8caa236a9481e3fcc4731e3f007b69a6de049ae527ec4a6ee3c"
+    },
+    {
+      "schema_version": 1,
+      "id": "zu-t03-persist",
+      "text": "Where does the persistence middleware hydrate state, write storage updates, and expose rehydration controls?",
+      "language": "typescript",
+      "cohorts": [
+        "slice:naturalistic_prevalence",
+        "pattern:middleware_behavior"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "persistImpl"
+        ],
+        "paths": [
+          "src/middleware/persist.ts"
+        ],
+        "languages": [
+          "typescript"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/middleware/persist.ts",
+                  "content_sha256": "71b6983b05bd76897ce39d7ec6e6828b95e9eea3bbe4c2a26a367510b5e61dc6",
+                  "qualified_symbol": "module.persistImpl",
+                  "start_byte": 5281,
+                  "end_byte": 11222
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/middleware/persist.ts",
+            "content_sha256": "71b6983b05bd76897ce39d7ec6e6828b95e9eea3bbe4c2a26a367510b5e61dc6",
+            "qualified_symbol": "module.persistImpl",
+            "start_byte": 5281,
+            "end_byte": 11222
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "f6c9ef5d5b3814ed8447742be0d95c1e03bc5124388df66f912bbcdf75919a80"
+    },
+    {
+      "schema_version": 1,
+      "id": "zu-t04-devtools",
+      "text": "Where does the Redux devtools middleware connect a store, send actions, and handle messages from the extension?",
+      "language": "typescript",
+      "cohorts": [
+        "slice:naturalistic_prevalence",
+        "pattern:middleware_behavior"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "devtoolsImpl"
+        ],
+        "paths": [
+          "src/middleware/devtools.ts"
+        ],
+        "languages": [
+          "typescript"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/middleware/devtools.ts",
+                  "content_sha256": "7c2a7dad6f3759415ed980b54aee1cd154f16ce279a61ec0a0c20f7a95f0191f",
+                  "qualified_symbol": "module.devtoolsImpl",
+                  "start_byte": 5340,
+                  "end_byte": 13074
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/middleware/devtools.ts",
+            "content_sha256": "7c2a7dad6f3759415ed980b54aee1cd154f16ce279a61ec0a0c20f7a95f0191f",
+            "qualified_symbol": "module.devtoolsImpl",
+            "start_byte": 5340,
+            "end_byte": 13074
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "68dea90604657e6b0e5d75a692d782a8bf7bc56387189640e4c6cee485c29592"
+    },
+    {
+      "schema_version": 1,
+      "id": "zu-t05-shallow",
+      "text": "Which comparator performs shallow equality across iterables, maps, and ordinary object entries?",
+      "language": "typescript",
+      "cohorts": [
+        "slice:naturalistic_prevalence",
+        "pattern:comparison"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "shallow"
+        ],
+        "paths": [
+          "src/vanilla/shallow.ts"
+        ],
+        "languages": [
+          "typescript"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/vanilla/shallow.ts",
+                  "content_sha256": "a9cc8e28e466566124388014b6289e06909fb671bfb38659a3fb6d3dfe5e7202",
+                  "qualified_symbol": "module.shallow",
+                  "start_byte": 1258,
+                  "end_byte": 1978
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/vanilla/shallow.ts",
+            "content_sha256": "a9cc8e28e466566124388014b6289e06909fb671bfb38659a3fb6d3dfe5e7202",
+            "qualified_symbol": "module.shallow",
+            "start_byte": 1258,
+            "end_byte": 1978
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "9f5d1908a1693f4038fcaab0c85b53ae24fd6fede8967d6db3ab6e62c5892a30"
+    },
+    {
+      "schema_version": 1,
+      "id": "zu-t06-subscribe-selector",
+      "text": "Where is subscribe enhanced with selector, equality, and fire-immediately behavior?",
+      "language": "typescript",
+      "cohorts": [
+        "slice:naturalistic_prevalence",
+        "pattern:subscription"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "subscribeWithSelectorImpl"
+        ],
+        "paths": [
+          "src/middleware/subscribeWithSelector.ts"
+        ],
+        "languages": [
+          "typescript"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/middleware/subscribeWithSelector.ts",
+                  "content_sha256": "237ec172e45a1563b4fb53435a65d37a127bafcd1379994c22728b1ba2375325",
+                  "qualified_symbol": "module.subscribeWithSelectorImpl",
+                  "start_byte": 1281,
+                  "end_byte": 2307
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/middleware/subscribeWithSelector.ts",
+            "content_sha256": "237ec172e45a1563b4fb53435a65d37a127bafcd1379994c22728b1ba2375325",
+            "qualified_symbol": "module.subscribeWithSelectorImpl",
+            "start_byte": 1281,
+            "end_byte": 2307
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "171ac454ef0aacdd987a510b6d451a36ac129f2750be744be7aa47f66ccde4a4"
+    },
+    {
+      "schema_version": 1,
+      "id": "zu-t07-hook-store-contract",
+      "text": "How does the React useStore hook consume the vanilla store API used for getState and subscribe?",
+      "language": "typescript",
+      "cohorts": [
+        "slice:relation_challenge",
+        "pattern:hook_contract"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 2,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "useStore",
+          "StoreApi"
+        ],
+        "paths": [
+          "src/react.ts",
+          "src/vanilla.ts"
+        ],
+        "languages": [
+          "typescript"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/react.ts",
+                  "content_sha256": "113041183bb72777628f72ef6883207d933cd46f1a45abe070675382326193bf",
+                  "qualified_symbol": "module.useStore",
+                  "start_byte": 323,
+                  "end_byte": 948
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "required-02",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/vanilla.ts",
+                  "content_sha256": "396aea7a580862e283f533afc74b26e0f2a9899a1e666c8b1d494aeebe20e7bc",
+                  "qualified_symbol": "module.StoreApi",
+                  "start_byte": 202,
+                  "end_byte": 385
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/react.ts",
+            "content_sha256": "113041183bb72777628f72ef6883207d933cd46f1a45abe070675382326193bf",
+            "qualified_symbol": "module.useStore",
+            "start_byte": 323,
+            "end_byte": 948
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        },
+        {
+          "span": {
+            "path": "src/vanilla.ts",
+            "content_sha256": "396aea7a580862e283f533afc74b26e0f2a9899a1e666c8b1d494aeebe20e7bc",
+            "qualified_symbol": "module.StoreApi",
+            "start_byte": 202,
+            "end_byte": 385
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "246d41934151f6bc5f49d0f585db0ffaa6aa4299f460800e5938b786ae97efc6"
+    },
+    {
+      "schema_version": 1,
+      "id": "zu-t08-create-bound-contract",
+      "text": "Which type-level create API accepts a state creator and returns a React-bound store hook?",
+      "language": "typescript",
+      "cohorts": [
+        "slice:relation_challenge",
+        "pattern:declaration_contract"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 3,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "Create",
+          "StateCreator",
+          "UseBoundStore"
+        ],
+        "paths": [
+          "src/react.ts",
+          "src/vanilla.ts"
+        ],
+        "languages": [
+          "typescript"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/react.ts",
+                  "content_sha256": "113041183bb72777628f72ef6883207d933cd46f1a45abe070675382326193bf",
+                  "qualified_symbol": "module.Create",
+                  "start_byte": 1096,
+                  "end_byte": 1417
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "required-02",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/vanilla.ts",
+                  "content_sha256": "396aea7a580862e283f533afc74b26e0f2a9899a1e666c8b1d494aeebe20e7bc",
+                  "qualified_symbol": "module.StateCreator",
+                  "start_byte": 757,
+                  "end_byte": 1110
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "required-03",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/react.ts",
+                  "content_sha256": "113041183bb72777628f72ef6883207d933cd46f1a45abe070675382326193bf",
+                  "qualified_symbol": "module.UseBoundStore",
+                  "start_byte": 950,
+                  "end_byte": 1094
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/react.ts",
+            "content_sha256": "113041183bb72777628f72ef6883207d933cd46f1a45abe070675382326193bf",
+            "qualified_symbol": "module.Create",
+            "start_byte": 1096,
+            "end_byte": 1417
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        },
+        {
+          "span": {
+            "path": "src/vanilla.ts",
+            "content_sha256": "396aea7a580862e283f533afc74b26e0f2a9899a1e666c8b1d494aeebe20e7bc",
+            "qualified_symbol": "module.StateCreator",
+            "start_byte": 757,
+            "end_byte": 1110
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        },
+        {
+          "span": {
+            "path": "src/react.ts",
+            "content_sha256": "113041183bb72777628f72ef6883207d933cd46f1a45abe070675382326193bf",
+            "qualified_symbol": "module.UseBoundStore",
+            "start_byte": 950,
+            "end_byte": 1094
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "0fa7c170e48d6bea270c26dda6d3e2148bf2eef5467aa79c043c33060bfbe02c"
+    },
+    {
+      "schema_version": 1,
+      "id": "zu-t09-persist-options",
+      "text": "How is the persistence implementation configured, including the options contract that defines storage, merge, and hydration hooks?",
+      "language": "typescript",
+      "cohorts": [
+        "slice:relation_challenge",
+        "pattern:implementation_contract"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 2,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "persistImpl",
+          "PersistOptions"
+        ],
+        "paths": [
+          "src/middleware/persist.ts"
+        ],
+        "languages": [
+          "typescript"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/middleware/persist.ts",
+                  "content_sha256": "71b6983b05bd76897ce39d7ec6e6828b95e9eea3bbe4c2a26a367510b5e61dc6",
+                  "qualified_symbol": "module.persistImpl",
+                  "start_byte": 5281,
+                  "end_byte": 11222
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "required-02",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/middleware/persist.ts",
+                  "content_sha256": "71b6983b05bd76897ce39d7ec6e6828b95e9eea3bbe4c2a26a367510b5e61dc6",
+                  "qualified_symbol": "module.PersistOptions",
+                  "start_byte": 1689,
+                  "end_byte": 3612
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/middleware/persist.ts",
+            "content_sha256": "71b6983b05bd76897ce39d7ec6e6828b95e9eea3bbe4c2a26a367510b5e61dc6",
+            "qualified_symbol": "module.persistImpl",
+            "start_byte": 5281,
+            "end_byte": 11222
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        },
+        {
+          "span": {
+            "path": "src/middleware/persist.ts",
+            "content_sha256": "71b6983b05bd76897ce39d7ec6e6828b95e9eea3bbe4c2a26a367510b5e61dc6",
+            "qualified_symbol": "module.PersistOptions",
+            "start_byte": 1689,
+            "end_byte": 3612
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "9225069142e335a3f66b11ed1c9ec728249802c1633409418f12d92ba5e9df92"
+    },
+    {
+      "schema_version": 1,
+      "id": "zu-t10-devtools-tracked-state",
+      "text": "How does devtools middleware obtain and use the tracked connection state shared by stores on one extension connection?",
+      "language": "typescript",
+      "cohorts": [
+        "slice:relation_challenge",
+        "pattern:caller_callee"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 2,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "devtoolsImpl",
+          "getTrackedConnectionState"
+        ],
+        "paths": [
+          "src/middleware/devtools.ts"
+        ],
+        "languages": [
+          "typescript"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/middleware/devtools.ts",
+                  "content_sha256": "7c2a7dad6f3759415ed980b54aee1cd154f16ce279a61ec0a0c20f7a95f0191f",
+                  "qualified_symbol": "module.devtoolsImpl",
+                  "start_byte": 5340,
+                  "end_byte": 13074
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "required-02",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/middleware/devtools.ts",
+                  "content_sha256": "7c2a7dad6f3759415ed980b54aee1cd154f16ce279a61ec0a0c20f7a95f0191f",
+                  "qualified_symbol": "module.getTrackedConnectionState",
+                  "start_byte": 3259,
+                  "end_byte": 3525
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/middleware/devtools.ts",
+            "content_sha256": "7c2a7dad6f3759415ed980b54aee1cd154f16ce279a61ec0a0c20f7a95f0191f",
+            "qualified_symbol": "module.devtoolsImpl",
+            "start_byte": 5340,
+            "end_byte": 13074
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        },
+        {
+          "span": {
+            "path": "src/middleware/devtools.ts",
+            "content_sha256": "7c2a7dad6f3759415ed980b54aee1cd154f16ce279a61ec0a0c20f7a95f0191f",
+            "qualified_symbol": "module.getTrackedConnectionState",
+            "start_byte": 3259,
+            "end_byte": 3525
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "20cf387caaa88569d2ba7e4abbfd844c800cebf25dff34160c9f606bf9c3ea8f"
+    },
+    {
+      "schema_version": 1,
+      "id": "zu-t11-shallow-entry-comparison",
+      "text": "How does shallow equality compare iterable entries, including the helper that normalizes and checks map-like values?",
+      "language": "typescript",
+      "cohorts": [
+        "slice:relation_challenge",
+        "pattern:caller_callee"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 2,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "shallow",
+          "compareEntries"
+        ],
+        "paths": [
+          "src/vanilla/shallow.ts"
+        ],
+        "languages": [
+          "typescript"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/vanilla/shallow.ts",
+                  "content_sha256": "a9cc8e28e466566124388014b6289e06909fb671bfb38659a3fb6d3dfe5e7202",
+                  "qualified_symbol": "module.shallow",
+                  "start_byte": 1258,
+                  "end_byte": 1978
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "required-02",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/vanilla/shallow.ts",
+                  "content_sha256": "a9cc8e28e466566124388014b6289e06909fb671bfb38659a3fb6d3dfe5e7202",
+                  "qualified_symbol": "module.compareEntries",
+                  "start_byte": 287,
+                  "end_byte": 774
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/vanilla/shallow.ts",
+            "content_sha256": "a9cc8e28e466566124388014b6289e06909fb671bfb38659a3fb6d3dfe5e7202",
+            "qualified_symbol": "module.shallow",
+            "start_byte": 1258,
+            "end_byte": 1978
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        },
+        {
+          "span": {
+            "path": "src/vanilla/shallow.ts",
+            "content_sha256": "a9cc8e28e466566124388014b6289e06909fb671bfb38659a3fb6d3dfe5e7202",
+            "qualified_symbol": "module.compareEntries",
+            "start_byte": 287,
+            "end_byte": 774
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "ddc20292317cc19c39b4efe019959f4447d546c5464bcbd5d92c5f66ad470bf8"
+    },
+    {
+      "schema_version": 1,
+      "id": "zu-t12-ssr-state-creator",
+      "text": "How does the SSR safety middleware wrap a state creator while preserving its state-creator contract?",
+      "language": "typescript",
+      "cohorts": [
+        "slice:relation_challenge",
+        "pattern:middleware_contract"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 2,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "ssrSafe",
+          "StateCreator"
+        ],
+        "paths": [
+          "src/middleware/ssrSafe.ts",
+          "src/vanilla.ts"
+        ],
+        "languages": [
+          "typescript"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/middleware/ssrSafe.ts",
+                  "content_sha256": "ad70fdb3c02fae8907b732d5b50c2f115a657dca27c9c0d3bec081146f477833",
+                  "qualified_symbol": "module.ssrSafe",
+                  "start_byte": 75,
+                  "end_byte": 846
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "required-02",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/vanilla.ts",
+                  "content_sha256": "396aea7a580862e283f533afc74b26e0f2a9899a1e666c8b1d494aeebe20e7bc",
+                  "qualified_symbol": "module.StateCreator",
+                  "start_byte": 757,
+                  "end_byte": 1110
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/middleware/ssrSafe.ts",
+            "content_sha256": "ad70fdb3c02fae8907b732d5b50c2f115a657dca27c9c0d3bec081146f477833",
+            "qualified_symbol": "module.ssrSafe",
+            "start_byte": 75,
+            "end_byte": 846
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        },
+        {
+          "span": {
+            "path": "src/vanilla.ts",
+            "content_sha256": "396aea7a580862e283f533afc74b26e0f2a9899a1e666c8b1d494aeebe20e7bc",
+            "qualified_symbol": "module.StateCreator",
+            "start_byte": 757,
+            "end_byte": 1110
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "749320211595d034f26a8a5d11980ea33726da49e423efb60b0c8ec4afc81a85"
+    }
+  ]
+}

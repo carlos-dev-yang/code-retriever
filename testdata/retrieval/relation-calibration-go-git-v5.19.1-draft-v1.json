@@ -1,0 +1,1065 @@
+{
+  "schema_version": 1,
+  "version": "go-git-v5.19.1-relation-calibration-draft-v1",
+  "corpus_id": "go-git-go-git-v5.19.1",
+  "cases": [
+    {
+      "schema_version": 1,
+      "id": "gg-g01-clone-context",
+      "text": "Where does a context-aware plain clone prepare repository storage and the worktree before performing the clone?",
+      "language": "go",
+      "cohorts": [
+        "slice:naturalistic_prevalence",
+        "pattern:repository_lifecycle"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "PlainCloneContext"
+        ],
+        "paths": [
+          "repository.go"
+        ],
+        "languages": [
+          "go"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "repository.go",
+                  "content_sha256": "6c789c4cd3181186b494e5786a8d60f78cf15bd6f33de56de56b67515d32a85b",
+                  "qualified_symbol": "git.PlainCloneContext",
+                  "start_byte": 12682,
+                  "end_byte": 13677
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [
+        {
+          "span": {
+            "path": "repository.go",
+            "content_sha256": "6c789c4cd3181186b494e5786a8d60f78cf15bd6f33de56de56b67515d32a85b",
+            "qualified_symbol": "git.PlainOpen",
+            "start_byte": 8768,
+            "end_byte": 9075
+          },
+          "reason": "A similarly named implementation from a different operation is not evidence for this question."
+        }
+      ],
+      "judgments": [
+        {
+          "span": {
+            "path": "repository.go",
+            "content_sha256": "6c789c4cd3181186b494e5786a8d60f78cf15bd6f33de56de56b67515d32a85b",
+            "qualified_symbol": "git.PlainCloneContext",
+            "start_byte": 12682,
+            "end_byte": 13677
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        },
+        {
+          "span": {
+            "path": "repository.go",
+            "content_sha256": "6c789c4cd3181186b494e5786a8d60f78cf15bd6f33de56de56b67515d32a85b",
+            "qualified_symbol": "git.PlainOpen",
+            "start_byte": 8768,
+            "end_byte": 9075
+          },
+          "grade": 0,
+          "rationale": "Reviewed as a confusable but incorrect answer for this question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "3834e9aa2cf27dadc41cefb033b337c9d49064027045c56c425cba1b564ef2e8"
+    },
+    {
+      "schema_version": 1,
+      "id": "gg-g02-checkout",
+      "text": "Where are checkout options validated and applied to update a worktree and its branch state?",
+      "language": "go",
+      "cohorts": [
+        "slice:naturalistic_prevalence",
+        "pattern:state_transition"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "Checkout"
+        ],
+        "paths": [
+          "worktree.go"
+        ],
+        "languages": [
+          "go"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "worktree.go",
+                  "content_sha256": "8f2a1cadd0c3baa71b17b9a5871b794b49c1214b7b69d457be1c335f21fac8a2",
+                  "qualified_symbol": "git.Worktree.Checkout",
+                  "start_byte": 4292,
+                  "end_byte": 5076
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "worktree.go",
+            "content_sha256": "8f2a1cadd0c3baa71b17b9a5871b794b49c1214b7b69d457be1c335f21fac8a2",
+            "qualified_symbol": "git.Worktree.Checkout",
+            "start_byte": 4292,
+            "end_byte": 5076
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "479bc6b6fa7b76318cdc8e97e168efb910f1a220d88b854d6e53f73d82f315fb"
+    },
+    {
+      "schema_version": 1,
+      "id": "gg-g03-fetch-context",
+      "text": "Which implementation performs a remote fetch while honoring cancellation and selecting the refs to transfer?",
+      "language": "go",
+      "cohorts": [
+        "slice:naturalistic_prevalence",
+        "pattern:remote_operation"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "FetchContext"
+        ],
+        "paths": [
+          "remote.go"
+        ],
+        "languages": [
+          "go"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "remote.go",
+                  "content_sha256": "91f1e6c11e5a7b8dd88c62562887e392dc87c8fc179ac2a18220c00126cb8644",
+                  "qualified_symbol": "git.Remote.FetchContext",
+                  "start_byte": 9729,
+                  "end_byte": 10251
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "remote.go",
+            "content_sha256": "91f1e6c11e5a7b8dd88c62562887e392dc87c8fc179ac2a18220c00126cb8644",
+            "qualified_symbol": "git.Remote.FetchContext",
+            "start_byte": 9729,
+            "end_byte": 10251
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "4dd8df55a883b31921fad930cd975162db3e2b5f59a6f1d81f1ac55b33e8793c"
+    },
+    {
+      "schema_version": 1,
+      "id": "gg-g04-revision-parse",
+      "text": "Which parser turns a Git revision expression into the operations used to resolve that revision?",
+      "language": "go",
+      "cohorts": [
+        "slice:naturalistic_prevalence",
+        "pattern:parser_behavior"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "Parse"
+        ],
+        "paths": [
+          "internal/revision/parser.go",
+          "plumbing/format/packfile/parser.go"
+        ],
+        "languages": [
+          "go"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "internal/revision/parser.go",
+                  "content_sha256": "e266675964df366e9b47d8bd0b034ad536c44afa434a9934ec54ea92b256b4bb",
+                  "qualified_symbol": "revision.Parser.Parse",
+                  "start_byte": 2806,
+                  "end_byte": 3512
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [
+        {
+          "span": {
+            "path": "plumbing/format/packfile/parser.go",
+            "content_sha256": "abc200f0ce37745f97e3fa60da2e092860ea69eb27ced82a31710482807a6c03",
+            "qualified_symbol": "packfile.Parser.Parse",
+            "start_byte": 4911,
+            "end_byte": 5494
+          },
+          "reason": "A similarly named implementation from a different operation is not evidence for this question."
+        }
+      ],
+      "judgments": [
+        {
+          "span": {
+            "path": "internal/revision/parser.go",
+            "content_sha256": "e266675964df366e9b47d8bd0b034ad536c44afa434a9934ec54ea92b256b4bb",
+            "qualified_symbol": "revision.Parser.Parse",
+            "start_byte": 2806,
+            "end_byte": 3512
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        },
+        {
+          "span": {
+            "path": "plumbing/format/packfile/parser.go",
+            "content_sha256": "abc200f0ce37745f97e3fa60da2e092860ea69eb27ced82a31710482807a6c03",
+            "qualified_symbol": "packfile.Parser.Parse",
+            "start_byte": 4911,
+            "end_byte": 5494
+          },
+          "grade": 0,
+          "rationale": "Reviewed as a confusable but incorrect answer for this question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "93fad77ce0e70192447fff6f63a8fc2d67a44fc80bb4be22ea9154aff4c2c4b5"
+    },
+    {
+      "schema_version": 1,
+      "id": "gg-g05-memory-storage",
+      "text": "Where is the composite in-memory Git storage assembled from its object, reference, index, and configuration stores?",
+      "language": "go",
+      "cohorts": [
+        "slice:naturalistic_prevalence",
+        "pattern:construction"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "NewStorage"
+        ],
+        "paths": [
+          "storage/memory/storage.go"
+        ],
+        "languages": [
+          "go"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "storage/memory/storage.go",
+                  "content_sha256": "1d33f5a422387a85ac8ddd6d6de9679a4da8473676985409557529fb9b3bb272",
+                  "qualified_symbol": "memory.NewStorage",
+                  "start_byte": 810,
+                  "end_byte": 1406
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "storage/memory/storage.go",
+            "content_sha256": "1d33f5a422387a85ac8ddd6d6de9679a4da8473676985409557529fb9b3bb272",
+            "qualified_symbol": "memory.NewStorage",
+            "start_byte": 810,
+            "end_byte": 1406
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "67f332350334cfcf55d555be9af79c6c7de119882df6146789a184424b348135"
+    },
+    {
+      "schema_version": 1,
+      "id": "gg-g06-commit-object",
+      "text": "Where does a repository resolve a hash into a commit object?",
+      "language": "go",
+      "cohorts": [
+        "slice:naturalistic_prevalence",
+        "pattern:object_lookup"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "CommitObject"
+        ],
+        "paths": [
+          "repository.go"
+        ],
+        "languages": [
+          "go"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "repository.go",
+                  "content_sha256": "6c789c4cd3181186b494e5786a8d60f78cf15bd6f33de56de56b67515d32a85b",
+                  "qualified_symbol": "git.Repository.CommitObject",
+                  "start_byte": 36271,
+                  "end_byte": 36496
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "repository.go",
+            "content_sha256": "6c789c4cd3181186b494e5786a8d60f78cf15bd6f33de56de56b67515d32a85b",
+            "qualified_symbol": "git.Repository.CommitObject",
+            "start_byte": 36271,
+            "end_byte": 36496
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "810da422939ca0d4111e68611ca1eb7e60ea65290ba5c2cc9f8440a695c18b1d"
+    },
+    {
+      "schema_version": 1,
+      "id": "gg-g07-diff-header-contract",
+      "text": "How is a unified patch file header written, and which file abstraction supplies its old and new paths?",
+      "language": "go",
+      "cohorts": [
+        "slice:relation_challenge",
+        "pattern:caller_contract"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 2,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "writeFilePatchHeader",
+          "File"
+        ],
+        "paths": [
+          "plumbing/format/diff/patch.go",
+          "plumbing/format/diff/unified_encoder.go"
+        ],
+        "languages": [
+          "go"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "plumbing/format/diff/unified_encoder.go",
+                  "content_sha256": "73dd42b669ae035d214bf611c558d38ce0f49a4e7d590d793acb10514ca0d922",
+                  "qualified_symbol": "diff.UnifiedEncoder.writeFilePatchHeader",
+                  "start_byte": 2240,
+                  "end_byte": 4210
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "required-02",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "plumbing/format/diff/patch.go",
+                  "content_sha256": "ca624cc58c616f5d90996a3f647f46795629f54be527e55e6ac6223c5eef87de",
+                  "qualified_symbol": "diff.File",
+                  "start_byte": 1224,
+                  "end_byte": 1523
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "plumbing/format/diff/unified_encoder.go",
+            "content_sha256": "73dd42b669ae035d214bf611c558d38ce0f49a4e7d590d793acb10514ca0d922",
+            "qualified_symbol": "diff.UnifiedEncoder.writeFilePatchHeader",
+            "start_byte": 2240,
+            "end_byte": 4210
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        },
+        {
+          "span": {
+            "path": "plumbing/format/diff/patch.go",
+            "content_sha256": "ca624cc58c616f5d90996a3f647f46795629f54be527e55e6ac6223c5eef87de",
+            "qualified_symbol": "diff.File",
+            "start_byte": 1224,
+            "end_byte": 1523
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "36449dc48c54a17bca399bf6f12f5013f64ac5c2ead1953ba78f9860268f2f01"
+    },
+    {
+      "schema_version": 1,
+      "id": "gg-g08-topological-node",
+      "text": "How does the topological commit iterator advance, and which commit-node contract supplies the parent and timestamp information it consumes?",
+      "language": "go",
+      "cohorts": [
+        "slice:relation_challenge",
+        "pattern:iterator_contract"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 2,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "Next",
+          "CommitNode"
+        ],
+        "paths": [
+          "plumbing/object/commitgraph/commitnode.go",
+          "plumbing/object/commitgraph/commitnode_walker_topo_order.go"
+        ],
+        "languages": [
+          "go"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "plumbing/object/commitgraph/commitnode_walker_topo_order.go",
+                  "content_sha256": "86de1ed22cb30656976594c81dcb6ac24261636eb1f71658449735002f46a4bf",
+                  "qualified_symbol": "commitgraph.commitNodeIteratorTopological.Next",
+                  "start_byte": 1169,
+                  "end_byte": 2849
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "required-02",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "plumbing/object/commitgraph/commitnode.go",
+                  "content_sha256": "1a7cbb3f68be7cd6541c6507d040247c4a79a300fc271faef30309e052064137",
+                  "qualified_symbol": "commitgraph.CommitNode",
+                  "start_byte": 182,
+                  "end_byte": 1502
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "plumbing/object/commitgraph/commitnode_walker_topo_order.go",
+            "content_sha256": "86de1ed22cb30656976594c81dcb6ac24261636eb1f71658449735002f46a4bf",
+            "qualified_symbol": "commitgraph.commitNodeIteratorTopological.Next",
+            "start_byte": 1169,
+            "end_byte": 2849
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        },
+        {
+          "span": {
+            "path": "plumbing/object/commitgraph/commitnode.go",
+            "content_sha256": "1a7cbb3f68be7cd6541c6507d040247c4a79a300fc271faef30309e052064137",
+            "qualified_symbol": "commitgraph.CommitNode",
+            "start_byte": 182,
+            "end_byte": 1502
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "6a349d442fedc584774397e2eda57deb2dfa9c06aa783e1328fb268a5caac7c9"
+    },
+    {
+      "schema_version": 1,
+      "id": "gg-g09-rename-change",
+      "text": "How are exact renames paired during change detection, and which change record represents the matched delete and insert?",
+      "language": "go",
+      "cohorts": [
+        "slice:relation_challenge",
+        "pattern:algorithm_data_contract"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 2,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "detectExactRenames",
+          "Change"
+        ],
+        "paths": [
+          "plumbing/object/change.go",
+          "plumbing/object/rename.go"
+        ],
+        "languages": [
+          "go"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "plumbing/object/rename.go",
+                  "content_sha256": "3959f3185d747e4ad1ecf56220f9562e2c57193a378d20e1a21792398a02204e",
+                  "qualified_symbol": "object.renameDetector.detectExactRenames",
+                  "start_byte": 1493,
+                  "end_byte": 5126
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "required-02",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "plumbing/object/change.go",
+                  "content_sha256": "3e07becb34f71a799e31a2b391837f6f27c2d8074dd32ef526dfe6bdb5c369b0",
+                  "qualified_symbol": "object.Change",
+                  "start_byte": 115,
+                  "end_byte": 418
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "plumbing/object/rename.go",
+            "content_sha256": "3959f3185d747e4ad1ecf56220f9562e2c57193a378d20e1a21792398a02204e",
+            "qualified_symbol": "object.renameDetector.detectExactRenames",
+            "start_byte": 1493,
+            "end_byte": 5126
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        },
+        {
+          "span": {
+            "path": "plumbing/object/change.go",
+            "content_sha256": "3e07becb34f71a799e31a2b391837f6f27c2d8074dd32ef526dfe6bdb5c369b0",
+            "qualified_symbol": "object.Change",
+            "start_byte": 115,
+            "end_byte": 418
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "ea42b82eda9cbd570eb41611e36b5fb351232c39baa89f7df95bd2df6e5063bb"
+    },
+    {
+      "schema_version": 1,
+      "id": "gg-g10-packfile-eof",
+      "text": "How does packfile parsing normalize end-of-file failures, including the helper that converts a plain EOF into the expected parse error?",
+      "language": "go",
+      "cohorts": [
+        "slice:relation_challenge",
+        "pattern:callee_evidence"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 2,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "Parse",
+          "wrapEOF"
+        ],
+        "paths": [
+          "plumbing/format/packfile/parser.go"
+        ],
+        "languages": [
+          "go"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "plumbing/format/packfile/parser.go",
+                  "content_sha256": "abc200f0ce37745f97e3fa60da2e092860ea69eb27ced82a31710482807a6c03",
+                  "qualified_symbol": "packfile.Parser.Parse",
+                  "start_byte": 4911,
+                  "end_byte": 5494
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "required-02",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "plumbing/format/packfile/parser.go",
+                  "content_sha256": "abc200f0ce37745f97e3fa60da2e092860ea69eb27ced82a31710482807a6c03",
+                  "qualified_symbol": "packfile.wrapEOF",
+                  "start_byte": 15012,
+                  "end_byte": 15167
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "plumbing/format/packfile/parser.go",
+            "content_sha256": "abc200f0ce37745f97e3fa60da2e092860ea69eb27ced82a31710482807a6c03",
+            "qualified_symbol": "packfile.Parser.Parse",
+            "start_byte": 4911,
+            "end_byte": 5494
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        },
+        {
+          "span": {
+            "path": "plumbing/format/packfile/parser.go",
+            "content_sha256": "abc200f0ce37745f97e3fa60da2e092860ea69eb27ced82a31710482807a6c03",
+            "qualified_symbol": "packfile.wrapEOF",
+            "start_byte": 15012,
+            "end_byte": 15167
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "56d4627030e9e2bb8ffa58e15ff2c59c1da00ca6046f895e2119b3381b072b2a"
+    },
+    {
+      "schema_version": 1,
+      "id": "gg-g11-clone-refspec",
+      "text": "How does clone ref selection derive its fetch mapping, and which refspec contract is used to validate and transform it?",
+      "language": "go",
+      "cohorts": [
+        "slice:relation_challenge",
+        "pattern:caller_contract"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 2,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "cloneRefSpec",
+          "RefSpec"
+        ],
+        "paths": [
+          "config/refspec.go",
+          "repository.go"
+        ],
+        "languages": [
+          "go"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "repository.go",
+                  "content_sha256": "6c789c4cd3181186b494e5786a8d60f78cf15bd6f33de56de56b67515d32a85b",
+                  "qualified_symbol": "git.Repository.cloneRefSpec",
+                  "start_byte": 25295,
+                  "end_byte": 25990
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "required-02",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "config/refspec.go",
+                  "content_sha256": "da1a8a24e2c74648fcc394d2bcc70435624519b2d7a1762c85217ecf83752676",
+                  "qualified_symbol": "config.RefSpec",
+                  "start_byte": 364,
+                  "end_byte": 836
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "repository.go",
+            "content_sha256": "6c789c4cd3181186b494e5786a8d60f78cf15bd6f33de56de56b67515d32a85b",
+            "qualified_symbol": "git.Repository.cloneRefSpec",
+            "start_byte": 25295,
+            "end_byte": 25990
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        },
+        {
+          "span": {
+            "path": "config/refspec.go",
+            "content_sha256": "da1a8a24e2c74648fcc394d2bcc70435624519b2d7a1762c85217ecf83752676",
+            "qualified_symbol": "config.RefSpec",
+            "start_byte": 364,
+            "end_byte": 836
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "70ef25e9e1656beb35bb9f60eefc3177ae1e8c6dfd82ce6034628f8fb2925eac"
+    },
+    {
+      "schema_version": 1,
+      "id": "gg-g12-pull-reference-hash",
+      "text": "During a worktree pull, where is the updated reference consumed and which method provides the commit hash used for the merge decision?",
+      "language": "go",
+      "cohorts": [
+        "slice:relation_challenge",
+        "pattern:caller_callee"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 2,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "PullContext",
+          "Hash"
+        ],
+        "paths": [
+          "plumbing/reference.go",
+          "worktree.go"
+        ],
+        "languages": [
+          "go"
+        ],
+        "scopes": [
+          "repository"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "required-01",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "worktree.go",
+                  "content_sha256": "8f2a1cadd0c3baa71b17b9a5871b794b49c1214b7b69d457be1c335f21fac8a2",
+                  "qualified_symbol": "git.Worktree.PullContext",
+                  "start_byte": 1731,
+                  "end_byte": 4089
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "required-02",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "plumbing/reference.go",
+                  "content_sha256": "b8203a8cbad60caed6e74a93b818e5ab5bb375287a2054f12c5c285fedfe54a9",
+                  "qualified_symbol": "plumbing.Reference.Hash",
+                  "start_byte": 7425,
+                  "end_byte": 7517
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "worktree.go",
+            "content_sha256": "8f2a1cadd0c3baa71b17b9a5871b794b49c1214b7b69d457be1c335f21fac8a2",
+            "qualified_symbol": "git.Worktree.PullContext",
+            "start_byte": 1731,
+            "end_byte": 4089
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        },
+        {
+          "span": {
+            "path": "plumbing/reference.go",
+            "content_sha256": "b8203a8cbad60caed6e74a93b818e5ab5bb375287a2054f12c5c285fedfe54a9",
+            "qualified_symbol": "plumbing.Reference.Hash",
+            "start_byte": 7425,
+            "end_byte": 7517
+          },
+          "grade": 2,
+          "rationale": "Directly satisfies the source-checked behavior or relationship requested by the calibration question."
+        }
+      ],
+      "review": {
+        "state": "draft",
+        "passes": [
+          {
+            "id": "source-binding-20260819",
+            "reviewer": "codex-source-audit"
+          }
+        ],
+        "rationale": "Machine-prepared source binding for an unexposed calibration pool; blind relevance review and owner adoption remain pending."
+      },
+      "digest": "84516a958c8db36e7b42ac0b6371cf2c3ed26097b18d4477b8bd11bc92eeece9"
+    }
+  ]
+}
