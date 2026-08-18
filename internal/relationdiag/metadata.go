@@ -73,6 +73,9 @@ func occurrenceRole(node *treesitter.Node, ancestors []*treesitter.Node, kind Re
 		}
 		return MemberReceiverRole
 	case TypeRef:
+		if syntacticValueParameterType(node, ancestors) {
+			return TypeValueParameterRole
+		}
 		for _, ancestor := range ancestors {
 			switch ancestor.Kind() {
 			case "type_parameters", "type_parameter":
@@ -98,6 +101,31 @@ func occurrenceRole(node *treesitter.Node, ancestors []*treesitter.Node, kind Re
 		return TypeLocalRole
 	}
 	return TypeOtherRole
+}
+
+func syntacticValueParameterType(node *treesitter.Node, ancestors []*treesitter.Node) bool {
+	for index, ancestor := range ancestors {
+		switch ancestor.Kind() {
+		case "required_parameter", "optional_parameter", "rest_parameter":
+			if typ := ancestor.ChildByFieldName("type"); typ != nil && nodeWithin(typ, node) {
+				return true
+			}
+		case "parameter_declaration", "variadic_parameter_declaration":
+			for _, owner := range ancestors[index+1:] {
+				switch owner.Kind() {
+				case "function_declaration", "method_declaration", "function_type", "func_literal", "method_elem":
+					if parameters := owner.ChildByFieldName("parameters"); parameters != nil && nodeWithin(parameters, ancestor) {
+						return true
+					}
+				}
+			}
+		}
+	}
+	return false
+}
+
+func nodeWithin(outer, inner *treesitter.Node) bool {
+	return outer != nil && inner != nil && outer.StartByte() <= inner.StartByte() && outer.EndByte() >= inner.EndByte()
 }
 
 func occurrenceFlow(ancestors []*treesitter.Node) FlowRole {

@@ -15,13 +15,14 @@ import (
 )
 
 const (
-	SchemaVersion      = 2
-	ProbeSchemaVersion = 1
-	ProtocolVersion    = "cidx.relation-diagnostic.v2"
-	IdentityPolicyID   = "path-indexed-sha-language-kind-qualified-symbol-byte-range-v1"
-	MetadataPolicyID   = "occurrence-context-ast-compiler-v1"
-	DenseFirstPolicyID = "query-edge-metadata-dense-first-v1"
-	GraphFirstPolicyID = "query-edge-metadata-graph-first-dense-crossover-v1"
+	SchemaVersion                    = 3
+	ProbeSchemaVersion               = 1
+	ProtocolVersion                  = "cidx.relation-diagnostic.v3"
+	IdentityPolicyID                 = "path-indexed-sha-language-kind-qualified-symbol-byte-range-v1"
+	MetadataPolicyID                 = "occurrence-context-ast-compiler-v2"
+	DenseFirstPolicyID               = "query-edge-metadata-dense-first-v1"
+	ValueParameterDenseFirstPolicyID = "query-edge-value-parameter-dense-first-v1"
+	GraphFirstPolicyID               = "query-edge-metadata-graph-first-dense-crossover-v1"
 	// SelectionPolicyID remains the default only for legacy focused fixtures.
 	SelectionPolicyID  = DenseFirstPolicyID
 	BodyPolicyID       = "related-complete-parent-2x1024-v1"
@@ -47,24 +48,25 @@ func (v OccurrenceZone) Valid() bool {
 type OccurrenceRole string
 
 const (
-	CallFreeFunctionRole  OccurrenceRole = "CALL_FREE_FUNCTION"
-	CallMethodRole        OccurrenceRole = "CALL_METHOD"
-	CallableValueRole     OccurrenceRole = "CALLABLE_VALUE"
-	TypeParameterRole     OccurrenceRole = "TYPE_PARAMETER"
-	TypeReturnRole        OccurrenceRole = "TYPE_RETURN"
-	TypeFieldRole         OccurrenceRole = "TYPE_FIELD"
-	TypeAliasRole         OccurrenceRole = "TYPE_ALIAS"
-	TypeHeritageRole      OccurrenceRole = "TYPE_HERITAGE"
-	TypeArgumentRole      OccurrenceRole = "TYPE_ARGUMENT"
-	TypeLocalRole         OccurrenceRole = "TYPE_LOCAL"
-	TypeOtherRole         OccurrenceRole = "TYPE_OTHER"
-	MemberReceiverRole    OccurrenceRole = "MEMBER_RECEIVER"
-	MemberDeclarationRole OccurrenceRole = "MEMBER_DECLARATION"
+	CallFreeFunctionRole   OccurrenceRole = "CALL_FREE_FUNCTION"
+	CallMethodRole         OccurrenceRole = "CALL_METHOD"
+	CallableValueRole      OccurrenceRole = "CALLABLE_VALUE"
+	TypeParameterRole      OccurrenceRole = "TYPE_PARAMETER"
+	TypeValueParameterRole OccurrenceRole = "TYPE_VALUE_PARAMETER"
+	TypeReturnRole         OccurrenceRole = "TYPE_RETURN"
+	TypeFieldRole          OccurrenceRole = "TYPE_FIELD"
+	TypeAliasRole          OccurrenceRole = "TYPE_ALIAS"
+	TypeHeritageRole       OccurrenceRole = "TYPE_HERITAGE"
+	TypeArgumentRole       OccurrenceRole = "TYPE_ARGUMENT"
+	TypeLocalRole          OccurrenceRole = "TYPE_LOCAL"
+	TypeOtherRole          OccurrenceRole = "TYPE_OTHER"
+	MemberReceiverRole     OccurrenceRole = "MEMBER_RECEIVER"
+	MemberDeclarationRole  OccurrenceRole = "MEMBER_DECLARATION"
 )
 
 func (v OccurrenceRole) Valid() bool {
 	switch v {
-	case CallFreeFunctionRole, CallMethodRole, CallableValueRole, TypeParameterRole, TypeReturnRole, TypeFieldRole, TypeAliasRole, TypeHeritageRole, TypeArgumentRole, TypeLocalRole, TypeOtherRole, MemberReceiverRole, MemberDeclarationRole:
+	case CallFreeFunctionRole, CallMethodRole, CallableValueRole, TypeParameterRole, TypeValueParameterRole, TypeReturnRole, TypeFieldRole, TypeAliasRole, TypeHeritageRole, TypeArgumentRole, TypeLocalRole, TypeOtherRole, MemberReceiverRole, MemberDeclarationRole:
 		return true
 	}
 	return false

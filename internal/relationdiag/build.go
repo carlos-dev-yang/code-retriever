@@ -110,11 +110,11 @@ func Build(ctx context.Context, request BuildRequest) (BuildResult, error) {
 		return BuildResult{}, err
 	}
 	manifest := GraphManifest{
-		SchemaVersion: SchemaVersion, Kind: "cidx.relation_graph.v2", RunID: request.RunID, CreatedAt: time.Now().UTC().Format(time.RFC3339Nano), Corpus: request.Corpus, CorpusManifestFingerprint: request.CorpusManifestFingerprint,
+		SchemaVersion: SchemaVersion, Kind: "cidx.relation_graph.v3", RunID: request.RunID, CreatedAt: time.Now().UTC().Format(time.RFC3339Nano), Corpus: request.Corpus, CorpusManifestFingerprint: request.CorpusManifestFingerprint,
 		IndexGeneration: request.Parents.Generation, IndexManifestSHA256: request.Parents.ManifestSHA256,
 		Profiles:                      map[string]string{"index": string(request.Index.Applied.Fingerprints.Index), "canonical_text": string(request.Index.Applied.Fingerprints.CanonicalText), "source": string(request.Index.Applied.Fingerprints.Source), "vector_space": string(request.Index.Applied.Fingerprints.VectorSpace), "vector_storage": string(request.Index.Applied.Fingerprints.VectorStorage)},
 		SemanticParentInventorySHA256: parentHash, IndexedFileInventorySHA256: fileHash,
-		ResolverPolicy: map[string]string{"protocol": ProtocolVersion, "identity": IdentityPolicyID, "metadata": MetadataPolicyID, "go": "go/packages-go/types-v1", "typescript": "typescript-6.0.3-program-typechecker-v1", "typescript_version": TypeScriptVersion, "schema": "relation-sidecar-v2"},
+		ResolverPolicy: map[string]string{"protocol": ProtocolVersion, "identity": IdentityPolicyID, "metadata": MetadataPolicyID, "go": "go/packages-go/types-v1", "typescript": "typescript-6.0.3-program-typechecker-v1", "typescript_version": TypeScriptVersion, "schema": "relation-sidecar-v3"},
 		Implementation: buildinfo.Current(), Counts: map[string]int{"semantic_parents": len(parents), "parent_traits": len(parents), "relation_occurrences": len(occurrences), "file_resolution": len(files)},
 	}
 	if err := bindToolchains(&manifest, request); err != nil {
@@ -571,7 +571,7 @@ func reproveLive(ctx context.Context, request BuildRequest, expectedParents, exp
 	if err := verifyParentBodies(request.SourceRoot, parentValues); err != nil {
 		return fmt.Errorf("BASE_INPUT_CHANGED: %w", err)
 	}
-	current := GraphManifest{Implementation: buildinfo.Current(), ResolverPolicy: map[string]string{"protocol": ProtocolVersion, "identity": IdentityPolicyID, "metadata": MetadataPolicyID, "go": "go/packages-go/types-v1", "typescript": "typescript-6.0.3-program-typechecker-v1", "typescript_version": TypeScriptVersion, "schema": "relation-sidecar-v2"}}
+	current := GraphManifest{Implementation: buildinfo.Current(), ResolverPolicy: map[string]string{"protocol": ProtocolVersion, "identity": IdentityPolicyID, "metadata": MetadataPolicyID, "go": "go/packages-go/types-v1", "typescript": "typescript-6.0.3-program-typechecker-v1", "typescript_version": TypeScriptVersion, "schema": "relation-sidecar-v3"}}
 	if err := bindToolchains(&current, request); err != nil {
 		return fmt.Errorf("resolver input reproof: %w", err)
 	}

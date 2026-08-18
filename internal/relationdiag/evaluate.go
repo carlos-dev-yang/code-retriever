@@ -75,15 +75,16 @@ type AdmissionCandidate struct {
 	Admitted     bool  `json:"admitted"`
 }
 type queryFeatures struct {
-	QueryID           string     `json:"query_id"`
-	Tokens            []string   `json:"tokens"`
-	Direction         Direction  `json:"direction"`
-	SignatureIntent   bool       `json:"signature_intent"`
-	MutationIntent    bool       `json:"mutation_intent"`
-	ReturnIntent      bool       `json:"return_intent"`
-	ConditionIntent   bool       `json:"condition_intent"`
-	DeprecatedIntent  bool       `json:"deprecated_intent"`
-	ExplicitFileRoles []FileRole `json:"explicit_file_roles"`
+	QueryID                      string     `json:"query_id"`
+	Tokens                       []string   `json:"tokens"`
+	Direction                    Direction  `json:"direction"`
+	SignatureIntent              bool       `json:"signature_intent"`
+	ValueParameterContractIntent bool       `json:"value_parameter_contract_intent"`
+	MutationIntent               bool       `json:"mutation_intent"`
+	ReturnIntent                 bool       `json:"return_intent"`
+	ConditionIntent              bool       `json:"condition_intent"`
+	DeprecatedIntent             bool       `json:"deprecated_intent"`
+	ExplicitFileRoles            []FileRole `json:"explicit_file_roles"`
 }
 type RelatedBody struct {
 	QueryID        string `json:"query_id"`
@@ -387,25 +388,26 @@ func relationPolicyFingerprint() (string, error) {
 
 func relationPolicySpec() map[string]any {
 	return map[string]any{
-		"metadata_policy":    MetadataPolicyID,
-		"selection_policies": []string{DenseFirstPolicyID, GraphFirstPolicyID},
-		"dense_first_tuple":  []string{"qualifier", "negative_context_overlap", "negative_endpoint_overlap", "negative_anchor_overlap", "intent_mismatch", "same_file", "occurrence_file_role", "anchor_dense_rank", "endpoint_dense_rank", "source_ordinal", "occurrence_byte", "stable_id"},
-		"graph_first":        map[string]any{"seed_lanes": []string{"fts", "simple_control"}, "seed_k": ProtectedPrimaryK, "admission_prefix": []string{"qualifier", "negative_context_overlap", "negative_endpoint_overlap", "negative_anchor_overlap", "intent_mismatch", "same_file", "occurrence_file_role"}, "admitted_tier": "all facts tied at best prefix", "rerank_tuple": []string{"best_dense_endpoint_ordinal", "worst_dense_endpoint_ordinal", "source_ordinal", "occurrence_byte", "stable_id"}},
-		"keyword_maps":       map[string][]string{"signature": {"contract", "props", "type", "interface", "signature", "options", "schema"}, "mutation": {"mutate", "set", "write", "assign"}, "return": {"return"}, "condition": {"condition", "when"}, "reverse": {"caller", "used-by"}, "deprecated": {"deprecated"}, "file_roles": {"test", "example", "benchmark"}},
-		"caps":               map[string]int{"dense_depth": MaxDenseDepth, "protected_primary": ProtectedPrimaryK, "related_parent_limit": RelatedParentLimit, "related_body_limit": RelatedBodyLimit, "context_identifier_limit": 8},
-		"qualifier_rules":    []string{"deprecated_query_requires_either_endpoint_deprecated", "no_deprecated_query_penalty", "explicit_file_role_uses_occurrence_file_role", "default_production_uses_occurrence_file_role"},
-		"role_rules":         []string{"resolved_distinct_endpoints_only", "selection_never_reads_source_body", "package_related_applies_complete_body_cap"},
-		"occurrence_zone":    []OccurrenceZone{SignatureZone, BodyZone, TypeBodyZone, InitializerZone},
-		"occurrence_role":    []OccurrenceRole{CallFreeFunctionRole, CallMethodRole, CallableValueRole, TypeParameterRole, TypeReturnRole, TypeFieldRole, TypeAliasRole, TypeHeritageRole, TypeArgumentRole, TypeLocalRole, TypeOtherRole, MemberReceiverRole, MemberDeclarationRole},
-		"flow_role":          []FlowRole{FlowNone, FlowReturn, FlowAssignment, FlowCondition, FlowArgument, FlowDeclaration},
-		"file_role":          []FileRole{ProductionFileRole, TestFileRole, ExampleFileRole, BenchmarkFileRole},
-		"execution_mode":     []ExecutionMode{DirectExecution, DeferredExecution, ConcurrentExecution, AwaitedExecution},
-		"control_role":       []ControlRole{ControlNone, ControlBranch, ControlLoop, ControlSwitch, ControlTryCatch},
+		"metadata_policy":                   MetadataPolicyID,
+		"selection_policies":                []string{DenseFirstPolicyID, ValueParameterDenseFirstPolicyID, GraphFirstPolicyID},
+		"dense_first_tuple":                 []string{"qualifier", "negative_context_overlap", "negative_endpoint_overlap", "negative_anchor_overlap", "intent_mismatch", "same_file", "occurrence_file_role", "anchor_dense_rank", "endpoint_dense_rank", "source_ordinal", "occurrence_byte", "stable_id"},
+		"value_parameter_dense_first_tuple": []string{"qualifier", "value_parameter_mismatch", "negative_context_overlap", "negative_endpoint_overlap", "negative_anchor_overlap", "intent_mismatch", "same_file", "occurrence_file_role", "anchor_dense_rank", "endpoint_dense_rank", "source_ordinal", "occurrence_byte", "stable_id"},
+		"graph_first":                       map[string]any{"seed_lanes": []string{"fts", "simple_control"}, "seed_k": ProtectedPrimaryK, "admission_prefix": []string{"qualifier", "negative_context_overlap", "negative_endpoint_overlap", "negative_anchor_overlap", "intent_mismatch", "same_file", "occurrence_file_role"}, "admitted_tier": "all facts tied at best prefix", "rerank_tuple": []string{"best_dense_endpoint_ordinal", "worst_dense_endpoint_ordinal", "source_ordinal", "occurrence_byte", "stable_id"}},
+		"keyword_maps":                      map[string][]string{"signature": {"contract", "props", "type", "interface", "signature", "options", "schema"}, "value_parameter": {"props", "contract"}, "mutation": {"mutate", "set", "write", "assign"}, "return": {"return"}, "condition": {"condition", "when"}, "reverse": {"caller", "used-by"}, "deprecated": {"deprecated"}, "file_roles": {"test", "example", "benchmark"}},
+		"caps":                              map[string]int{"dense_depth": MaxDenseDepth, "protected_primary": ProtectedPrimaryK, "related_parent_limit": RelatedParentLimit, "related_body_limit": RelatedBodyLimit, "context_identifier_limit": 8},
+		"qualifier_rules":                   []string{"deprecated_query_requires_either_endpoint_deprecated", "no_deprecated_query_penalty", "explicit_file_role_uses_occurrence_file_role", "default_production_uses_occurrence_file_role"},
+		"role_rules":                        []string{"resolved_distinct_endpoints_only", "selection_never_reads_source_body", "package_related_applies_complete_body_cap"},
+		"occurrence_zone":                   []OccurrenceZone{SignatureZone, BodyZone, TypeBodyZone, InitializerZone},
+		"occurrence_role":                   []OccurrenceRole{CallFreeFunctionRole, CallMethodRole, CallableValueRole, TypeParameterRole, TypeValueParameterRole, TypeReturnRole, TypeFieldRole, TypeAliasRole, TypeHeritageRole, TypeArgumentRole, TypeLocalRole, TypeOtherRole, MemberReceiverRole, MemberDeclarationRole},
+		"flow_role":                         []FlowRole{FlowNone, FlowReturn, FlowAssignment, FlowCondition, FlowArgument, FlowDeclaration},
+		"file_role":                         []FileRole{ProductionFileRole, TestFileRole, ExampleFileRole, BenchmarkFileRole},
+		"execution_mode":                    []ExecutionMode{DirectExecution, DeferredExecution, ConcurrentExecution, AwaitedExecution},
+		"control_role":                      []ControlRole{ControlNone, ControlBranch, ControlLoop, ControlSwitch, ControlTryCatch},
 	}
 }
 
 func validateEvaluationRequest(v EvaluationRequest) error {
-	if !strings.HasPrefix(v.RunID, "relation-diagnostic-") || !validRelative(v.RunID) || v.EvaluationRoot == "" || v.GraphDirectory == "" || v.ReplayPath == "" || v.DatasetPath == "" || v.ProbesPath == "" || (v.SelectionPolicy != "" && v.SelectionPolicy != DenseFirstPolicyID && v.SelectionPolicy != GraphFirstPolicyID) {
+	if !strings.HasPrefix(v.RunID, "relation-diagnostic-") || !validRelative(v.RunID) || v.EvaluationRoot == "" || v.GraphDirectory == "" || v.ReplayPath == "" || v.DatasetPath == "" || v.ProbesPath == "" || (v.SelectionPolicy != "" && v.SelectionPolicy != DenseFirstPolicyID && v.SelectionPolicy != ValueParameterDenseFirstPolicyID && v.SelectionPolicy != GraphFirstPolicyID) {
 		return fmt.Errorf("invalid relation diagnostic evaluation request")
 	}
 	for _, dir := range []string{v.EvaluationRoot, v.GraphDirectory} {
@@ -538,7 +540,7 @@ func loadGraphManifest(file string) (GraphManifest, error) {
 	if err := json.Unmarshal(data, &value); err != nil {
 		return GraphManifest{}, err
 	}
-	if value.SchemaVersion != SchemaVersion || value.Kind != "cidx.relation_graph.v2" || value.Corpus.CorpusID == "" || !validDigest(value.LogicalGraphSHA256) || !validDigest(value.DatabaseSHA256) || !validDigest(value.SemanticParentInventorySHA256) || !validDigest(value.IndexedFileInventorySHA256) || value.ResolverPolicy["protocol"] != ProtocolVersion || value.ResolverPolicy["metadata"] != MetadataPolicyID {
+	if value.SchemaVersion != SchemaVersion || value.Kind != "cidx.relation_graph.v3" || value.Corpus.CorpusID == "" || !validDigest(value.LogicalGraphSHA256) || !validDigest(value.DatabaseSHA256) || !validDigest(value.SemanticParentInventorySHA256) || !validDigest(value.IndexedFileInventorySHA256) || value.ResolverPolicy["protocol"] != ProtocolVersion || value.ResolverPolicy["metadata"] != MetadataPolicyID {
 		return GraphManifest{}, fmt.Errorf("invalid graph manifest")
 	}
 	return value, nil
@@ -703,6 +705,9 @@ func loadQueryFeatures(file string) (map[string]queryFeatures, error) {
 			switch token {
 			case "contract", "props", "type", "interface", "signature", "options", "schema":
 				feature.SignatureIntent = true
+				if token == "contract" || token == "props" {
+					feature.ValueParameterContractIntent = true
+				}
 			case "mutate", "set", "write", "assign":
 				feature.MutationIntent = true
 			case "return":
@@ -768,7 +773,7 @@ func selectBundleWithPolicy(queryID string, feature queryFeatures, facts []Fact,
 	candidates := make([]AdmissionCandidate, 0, len(facts))
 	for _, fact := range facts {
 		if eligibleFact(fact, parents, primarySet) {
-			prefix := metadataAdmissionPrefix(fact, feature, parents)
+			prefix := metadataAdmissionPrefix(fact, feature, parents, policy)
 			candidate := AdmissionCandidate{Fact: fact, Prefix: prefix, SelectionKey: metadataSelectionKey(fact, feature, ranks, parents, policy)}
 			if policy == GraphFirstPolicyID {
 				candidate.RerankKey = graphRerankKey(fact, ranks)
@@ -861,7 +866,7 @@ func graphRerankKey(a Fact, ranks map[string]int) []any {
 }
 
 func metadataSelectionKey(fact Fact, feature queryFeatures, ranks map[string]int, parents map[string]Parent, policy string) []any {
-	prefix := metadataAdmissionPrefix(fact, feature, parents)
+	prefix := metadataAdmissionPrefix(fact, feature, parents, policy)
 	rank := func(id string) int {
 		if value, ok := ranks[id]; ok {
 			return value
@@ -874,7 +879,7 @@ func metadataSelectionKey(fact Fact, feature queryFeatures, ranks map[string]int
 	return append(prefix, rank(fact.AnchorID), rank(fact.EndpointID), fact.Metadata.SourceOrdinal, fact.OccurrenceByte, factKey(fact))
 }
 
-func metadataAdmissionPrefix(fact Fact, feature queryFeatures, parents map[string]Parent) []any {
+func metadataAdmissionPrefix(fact Fact, feature queryFeatures, parents map[string]Parent, policy string) []any {
 	anchor, endpoint := parents[fact.AnchorID], parents[fact.EndpointID]
 	qualifierMismatch := qualifierMismatch(feature, anchor, endpoint, fact.Metadata.FileRole)
 	contextOverlap := tokenOverlap(feature.Tokens, fact.Metadata.ContextIdentifiers)
@@ -889,7 +894,20 @@ func metadataAdmissionPrefix(fact Fact, feature queryFeatures, parents map[strin
 	if anchor.Path == endpoint.Path {
 		sameFilePenalty = 0
 	}
-	return []any{qualifierMismatch, -contextOverlap, -endpointOverlap, -anchorOverlap, intentMismatch, sameFilePenalty, productionPenalty}
+	prefix := []any{qualifierMismatch}
+	if policy == ValueParameterDenseFirstPolicyID {
+		prefix = append(prefix, valueParameterMismatch(feature, fact))
+	}
+	return append(prefix, -contextOverlap, -endpointOverlap, -anchorOverlap, intentMismatch, sameFilePenalty, productionPenalty)
+}
+func valueParameterMismatch(feature queryFeatures, fact Fact) int {
+	if !feature.ValueParameterContractIntent {
+		return 0
+	}
+	if fact.Direction == Forward && fact.Kind == TypeRef && fact.Metadata.Zone == SignatureZone && fact.Metadata.Role == TypeValueParameterRole {
+		return 0
+	}
+	return 1
 }
 func qualifierMismatch(feature queryFeatures, anchor, endpoint Parent, occurrenceRole FileRole) int {
 	if feature.DeprecatedIntent && !anchor.Deprecated && !endpoint.Deprecated {
@@ -1485,7 +1503,7 @@ func writeEvaluationArtifacts(root string, traces []queryTrace, features map[str
 	if binding.GraphLogicalSHA256 != graph.LogicalGraphSHA256 || binding.GraphCorpusID != graph.Corpus.CorpusID || binding.ReplayCorpusID != replay.CorpusID || binding.ExpectedDatasetSHA256 != replay.SourceSHA256["dataset"] || binding.ExpectedDatasetFingerprint != replay.DatasetFingerprint || binding.SelectionPolicy == "" || binding.MetadataPolicy != MetadataPolicyID || !validDigest(binding.PolicyFingerprint) || !validDigest(binding.QueryFeaturesSHA256) {
 		return fmt.Errorf("evaluation binding changed after selection")
 	}
-	manifest := map[string]any{"schema_version": SchemaVersion, "kind": "cidx.relation_diagnostic.v2", "created_at": time.Now().UTC().Format(time.RFC3339Nano), "queries": len(traces), "selection_policy": binding.SelectionPolicy, "metadata_policy": MetadataPolicyID, "policy_spec": relationPolicySpec(), "policy_fingerprint": binding.PolicyFingerprint, "label_loading": "after_query_features_facts_order_selection_and_package_freeze", "zero_provider_operations": true, "binding_verified_before_selection": true, "frozen_binding": binding, "resolution_outcomes": resolution, "diagnostic_eligible": gate.Eligible, "diagnostic_gate_reasons": gate.Reasons}
+	manifest := map[string]any{"schema_version": SchemaVersion, "kind": "cidx.relation_diagnostic.v3", "created_at": time.Now().UTC().Format(time.RFC3339Nano), "queries": len(traces), "selection_policy": binding.SelectionPolicy, "metadata_policy": MetadataPolicyID, "policy_spec": relationPolicySpec(), "policy_fingerprint": binding.PolicyFingerprint, "label_loading": "after_query_features_facts_order_selection_and_package_freeze", "zero_provider_operations": true, "binding_verified_before_selection": true, "frozen_binding": binding, "resolution_outcomes": resolution, "diagnostic_eligible": gate.Eligible, "diagnostic_gate_reasons": gate.Reasons}
 	if err := writePortableJSON(filepath.Join(root, "run-manifest.json"), manifest, ""); err != nil {
 		return err
 	}

@@ -4,7 +4,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { createRequire } from "node:module";
 
-const protocol = "cidx.relation-diagnostic.v2";
+const protocol = "cidx.relation-diagnostic.v3";
 const version = "6.0.3";
 
 function fail(message) { process.stderr.write(`${message}\n`); process.exitCode = 1; }
@@ -58,7 +58,7 @@ function metadata(candidate) {
   const value = candidate.metadata;
   const allowed = {
     zone: ["SIGNATURE", "BODY", "TYPE_BODY", "INITIALIZER"],
-    role: ["CALL_FREE_FUNCTION", "CALL_METHOD", "CALLABLE_VALUE", "TYPE_PARAMETER", "TYPE_RETURN", "TYPE_FIELD", "TYPE_ALIAS", "TYPE_HERITAGE", "TYPE_ARGUMENT", "TYPE_LOCAL", "TYPE_OTHER", "MEMBER_RECEIVER", "MEMBER_DECLARATION"],
+    role: ["CALL_FREE_FUNCTION", "CALL_METHOD", "CALLABLE_VALUE", "TYPE_PARAMETER", "TYPE_VALUE_PARAMETER", "TYPE_RETURN", "TYPE_FIELD", "TYPE_ALIAS", "TYPE_HERITAGE", "TYPE_ARGUMENT", "TYPE_LOCAL", "TYPE_OTHER", "MEMBER_RECEIVER", "MEMBER_DECLARATION"],
     flow_role: ["NONE", "RETURN", "ASSIGNMENT", "CONDITION", "ARGUMENT", "DECLARATION"],
     file_role: ["PRODUCTION", "TEST", "EXAMPLE", "BENCHMARK"],
     execution_mode: ["DIRECT", "DEFERRED", "CONCURRENT", "AWAITED"],
