@@ -144,7 +144,7 @@ func DefaultOccurrenceMetadata(file string, ordinal int) OccurrenceMetadata {
 }
 
 func (v OccurrenceMetadata) Validate() error {
-	if !v.Zone.Valid() || !v.Role.Valid() || !v.Flow.Valid() || !v.FileRole.Valid() || !v.Execution.Valid() || !v.Control.Valid() || v.SourceOrdinal < 1 || len(v.ContextIdentifiers) > 8 {
+	if !v.Zone.Valid() || !v.Role.Valid() || !v.Flow.Valid() || !v.FileRole.Valid() || !v.Execution.Valid() || !v.Control.Valid() || v.ContextIdentifiers == nil || v.SourceOrdinal < 1 || len(v.ContextIdentifiers) > 8 {
 		return fmt.Errorf("invalid occurrence metadata")
 	}
 	seen := map[string]bool{}

@@ -162,7 +162,7 @@ func occurrenceContext(node *treesitter.Node, ancestors []*treesitter.Node, sour
 	}
 	normalizer := symbol.IdentifierNormalizer{}
 	seen := map[string]bool{}
-	var result []string
+	result := make([]string, 0)
 	for _, value := range raw {
 		for _, token := range strings.Fields(normalizer.Normalize(value)) {
 			if !seen[token] {
