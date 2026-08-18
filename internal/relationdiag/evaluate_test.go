@@ -170,6 +170,99 @@ func TestFrontierCanonicalDuplicateUnionDoesNotBackfill(t *testing.T) {
 	}
 }
 
+func TestFrontierGraphOnlyParetoUsesOnlyFinalFrontier(t *testing.T) {
+	t.Run("direct bridge takes precedence in final frontier order", func(t *testing.T) {
+		final := []frontierEdge{
+			graphOnlyTestEdge("ordinary", ExecutableDependencyTier, Forward, "outside", false, 1, 1, 1, 1),
+			graphOnlyTestEdge("bridge-first", ExecutableDependencyTier, Reverse, "anchor-a", true, 1, 1, 1, 1),
+			graphOnlyTestEdge("bridge-second", ExecutableDependencyTier, Forward, "anchor-b", true, 1, 1, 1, 1),
+			graphOnlyTestEdge("incoming", BodyReferenceTier, Reverse, "outside-incoming", false, 1, 1, 1, 1),
+			graphOnlyTestEdge("dense", BodyReferenceTier, Forward, "dense-parent", false, 1, 1, 1, 1),
+		}
+		decision, selected, err := frontierGraphOnlyDecision(final, map[string]int{"dense-parent": 1})
+		if err != nil || selected == nil || selected.CanonicalEdgeID != "bridge-first" || decision.Outcome != "DIRECT_BRIDGE" || decision.DirectBridgeCandidates != 2 || decision.IncomingExcluded != 1 || decision.DenseEndpointExcluded != 1 || decision.GraphOnlyCandidates != 1 || decision.UnionCount != 1 || len(decision.Tiers[ExecutableDependencyTier].Candidates) != 1 {
+			t.Fatalf("decision=%+v selected=%+v err=%v", decision, selected, err)
+		}
+		if err := validateFrontierGraphOnlyDecision(decision, final, map[string]int{"dense-parent": 1}); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("incoming and dense endpoints are excluded before pareto", func(t *testing.T) {
+		final := []frontierEdge{
+			graphOnlyTestEdge("incoming", ExecutableDependencyTier, Reverse, "outside-incoming", false, 1, 1, 1, 1),
+			graphOnlyTestEdge("dense", ExecutableDependencyTier, Forward, "dense-parent", false, 1, 1, 1, 1),
+			graphOnlyTestEdge("winner", ExecutableDependencyTier, Forward, "outside", false, 2, 3, 1, 1),
+		}
+		decision, selected, err := frontierGraphOnlyDecision(final, map[string]int{"dense-parent": 7})
+		if err != nil || selected == nil || selected.CanonicalEdgeID != "winner" || decision.Outcome != "ONE_WINNER" || decision.IncomingExcluded != 1 || decision.DenseEndpointExcluded != 1 || decision.GraphOnlyCandidates != 1 || decision.UnionCount != 1 {
+			t.Fatalf("decision=%+v selected=%+v err=%v", decision, selected, err)
+		}
+	})
+
+	t.Run("exact rational equality does not dominate", func(t *testing.T) {
+		final := []frontierEdge{
+			graphOnlyTestEdge("one-half", ExecutableDependencyTier, Forward, "outside-a", false, 1, 2, 2, 2),
+			graphOnlyTestEdge("two-fourths", ExecutableDependencyTier, Forward, "outside-b", false, 2, 4, 2, 2),
+		}
+		decision, selected, err := frontierGraphOnlyDecision(final, nil)
+		if err != nil || selected != nil || decision.Outcome != "MULTIPLE_WINNERS" || decision.UnionCount != 2 {
+			t.Fatalf("decision=%+v selected=%+v err=%v", decision, selected, err)
+		}
+		for _, candidate := range decision.Tiers[ExecutableDependencyTier].Candidates {
+			if !candidate.Nondominated || len(candidate.DominatedBy) != 0 {
+				t.Fatalf("equal candidate=%+v", candidate)
+			}
+		}
+	})
+
+	t.Run("dominance is exact and never crosses tiers", func(t *testing.T) {
+		final := []frontierEdge{
+			graphOnlyTestEdge("dominant", ExecutableDependencyTier, Forward, "outside-a", false, 2, 3, 1, 1),
+			graphOnlyTestEdge("dominated", ExecutableDependencyTier, Forward, "outside-b", false, 1, 2, 2, 2),
+			graphOnlyTestEdge("other-tier", BodyReferenceTier, Forward, "outside-c", false, 1, 9, 9, 9),
+		}
+		decision, selected, err := frontierGraphOnlyDecision(final, nil)
+		if err != nil || selected != nil || decision.Outcome != "MULTIPLE_WINNERS" || decision.UnionCount != 2 {
+			t.Fatalf("decision=%+v selected=%+v err=%v", decision, selected, err)
+		}
+		candidates := decision.Tiers[ExecutableDependencyTier].Candidates
+		if len(candidates) != 2 || !candidates[0].Nondominated || candidates[1].Nondominated || len(candidates[1].DominatedBy) != 1 || candidates[1].DominatedBy[0] != "dominant" {
+			t.Fatalf("tier candidates=%+v", candidates)
+		}
+	})
+
+	t.Run("empty admission reports no candidate", func(t *testing.T) {
+		final := []frontierEdge{
+			graphOnlyTestEdge("incoming", ExecutableDependencyTier, Reverse, "outside", false, 1, 1, 1, 1),
+			graphOnlyTestEdge("dense", ExecutableDependencyTier, Forward, "dense-parent", false, 1, 1, 1, 1),
+		}
+		decision, selected, err := frontierGraphOnlyDecision(final, map[string]int{"dense-parent": 1})
+		if err != nil || selected != nil || decision.Outcome != "NO_CANDIDATE" || decision.UnionCount != 0 {
+			t.Fatalf("decision=%+v selected=%+v err=%v", decision, selected, err)
+		}
+	})
+
+	t.Run("selection preserves the shared frontier digest and caps", func(t *testing.T) {
+		group, facts, stats := frontierFixture(false)
+		feature, ranks := queryFeatures{Direction: Forward}, map[string]int{}
+		base, err := buildFrontierTrace(group, feature, facts, stats, ranks)
+		if err != nil {
+			t.Fatal(err)
+		}
+		bundle, trace, err := selectFrontierBundle("q", feature, group, facts, stats, ranks, nil, nil, AnchorFrontierGraphOnlyParetoPolicyID)
+		if err != nil || trace.FinalDigest != base.FinalDigest || len(trace.FinalFrontier) != len(base.FinalFrontier) || trace.Counts != base.Counts || len(trace.FinalFrontier) > FrontierGlobalLimit || bundle.Selected != nil || trace.GraphOnly == nil || trace.GraphOnly.Outcome != "MULTIPLE_WINNERS" {
+			t.Fatalf("bundle=%+v trace=%+v base=%+v err=%v", bundle, trace, base, err)
+		}
+	})
+}
+
+func graphOnlyTestEdge(id string, tier StructuralTier, direction Direction, endpoint string, bridge bool, edgeOccurrences, sourceOccurrences, sourceTargets, targetSources int) frontierEdge {
+	fact := Fact{RelationID: id, Direction: direction, AnchorID: "anchor", EndpointID: endpoint}
+	stats := edgeStats{SourceID: "source-" + id, TargetID: endpoint, Kind: Calls, Tier: tier, EdgeOccurrences: edgeOccurrences, SourceStratumOccurrences: sourceOccurrences, SourceStratumDistinctTargets: sourceTargets, TargetIncomingStratumDistinctSources: targetSources}
+	return frontierEdge{CanonicalEdgeID: id, Bucket: frontierBucket{AnchorOrdinal: 1, Direction: direction, Tier: tier}, Candidate: anchorEdgeCandidate{Fact: fact, AnchorOrdinal: 1, Stats: stats}, DirectBridge: bridge}
+}
+
 func frontierFixture(includeBridge bool) (anchorGroup, []Fact, map[string]edgeStats) {
 	group := anchorGroup{Anchors: []anchorSelection{{Ordinal: 1, ParentID: "a"}, {Ordinal: 2, ParentID: "b"}}}
 	tiers := []struct {

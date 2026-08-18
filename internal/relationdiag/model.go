@@ -15,20 +15,21 @@ import (
 )
 
 const (
-	SchemaVersion                        = 3
-	ProbeSchemaVersion                   = 1
-	ProtocolVersion                      = "cidx.relation-diagnostic.v3"
-	IdentityPolicyID                     = "path-indexed-sha-language-kind-qualified-symbol-byte-range-v1"
-	MetadataPolicyID                     = "occurrence-context-ast-compiler-v2"
-	DenseFirstPolicyID                   = "query-edge-metadata-dense-first-v1"
-	ValueParameterDenseFirstPolicyID     = "query-edge-value-parameter-dense-first-v1"
-	GraphFirstPolicyID                   = "query-edge-metadata-graph-first-dense-crossover-v1"
-	AnchorEdgeRawFrequencyPolicyID       = "anchor-edge-raw-frequency-control-v1"
-	AnchorEdgeSourceNormalizedPolicyID   = "anchor-edge-source-normalized-focus-v1"
-	AnchorEdgeBidirectionalPolicyID      = "anchor-edge-bidirectional-specificity-v1"
-	AnchorEdgeIncomingPopularityPolicyID = "anchor-edge-incoming-popularity-control-v1"
-	AnchorFrontierCapOnlyPolicyID        = "anchor-frontier-cap-only-v1"
-	AnchorFrontierBridgePolicyID         = "anchor-frontier-bridge-abstention-v1"
+	SchemaVersion                         = 3
+	ProbeSchemaVersion                    = 1
+	ProtocolVersion                       = "cidx.relation-diagnostic.v3"
+	IdentityPolicyID                      = "path-indexed-sha-language-kind-qualified-symbol-byte-range-v1"
+	MetadataPolicyID                      = "occurrence-context-ast-compiler-v2"
+	DenseFirstPolicyID                    = "query-edge-metadata-dense-first-v1"
+	ValueParameterDenseFirstPolicyID      = "query-edge-value-parameter-dense-first-v1"
+	GraphFirstPolicyID                    = "query-edge-metadata-graph-first-dense-crossover-v1"
+	AnchorEdgeRawFrequencyPolicyID        = "anchor-edge-raw-frequency-control-v1"
+	AnchorEdgeSourceNormalizedPolicyID    = "anchor-edge-source-normalized-focus-v1"
+	AnchorEdgeBidirectionalPolicyID       = "anchor-edge-bidirectional-specificity-v1"
+	AnchorEdgeIncomingPopularityPolicyID  = "anchor-edge-incoming-popularity-control-v1"
+	AnchorFrontierCapOnlyPolicyID         = "anchor-frontier-cap-only-v1"
+	AnchorFrontierBridgePolicyID          = "anchor-frontier-bridge-abstention-v1"
+	AnchorFrontierGraphOnlyParetoPolicyID = "anchor-frontier-graph-only-pareto-v1"
 	// SelectionPolicyID remains the default only for legacy focused fixtures.
 	SelectionPolicyID   = DenseFirstPolicyID
 	BodyPolicyID        = "related-complete-parent-2x1024-v1"

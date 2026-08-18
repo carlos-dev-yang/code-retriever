@@ -254,6 +254,29 @@ type frontierTrace struct {
 	AbstentionReason    string                          `json:"abstention_reason,omitempty"`
 	FirstLossReason     string                          `json:"first_loss_reason,omitempty"`
 	Selected            *frontierEdge                   `json:"selected,omitempty"`
+	GraphOnly           *frontierGraphOnlyTrace         `json:"graph_only,omitempty"`
+}
+type frontierParetoCandidate struct {
+	CanonicalEdgeID                      string   `json:"canonical_edge_id"`
+	EdgeOccurrences                      int      `json:"edge_occurrences"`
+	SourceStratumOccurrences             int      `json:"source_stratum_occurrences"`
+	SourceStratumDistinctTargets         int      `json:"source_stratum_distinct_targets"`
+	TargetIncomingStratumDistinctSources int      `json:"target_incoming_stratum_distinct_sources"`
+	Nondominated                         bool     `json:"nondominated"`
+	DominatedBy                          []string `json:"dominated_by"`
+}
+type frontierParetoTier struct {
+	Candidates []frontierParetoCandidate `json:"candidates"`
+}
+type frontierGraphOnlyTrace struct {
+	DirectBridgeCandidates int                                   `json:"direct_bridge_candidates"`
+	IncomingExcluded       int                                   `json:"incoming_excluded"`
+	DenseEndpointExcluded  int                                   `json:"dense_endpoint_excluded"`
+	GraphOnlyCandidates    int                                   `json:"graph_only_candidates"`
+	Tiers                  map[StructuralTier]frontierParetoTier `json:"tiers"`
+	UnionCount             int                                   `json:"union_count"`
+	Outcome                string                                `json:"outcome"`
+	Selected               *frontierEdge                         `json:"selected,omitempty"`
 }
 type PrimaryBodyProof struct {
 	ParentID   string `json:"parent_id"`
@@ -344,11 +367,12 @@ func Evaluate(ctx context.Context, request EvaluationRequest) (EvaluationResult,
 	if err != nil {
 		return EvaluationResult{}, err
 	}
-	policyFingerprint, err := relationPolicyFingerprint()
+	selectionPolicy := selectedPolicy(request.SelectionPolicy)
+	policyFingerprint, err := relationPolicyFingerprint(selectionPolicy)
 	if err != nil {
 		return EvaluationResult{}, err
 	}
-	binding := evaluationBinding{GraphLogicalSHA256: manifest.LogicalGraphSHA256, GraphCorpusID: manifest.Corpus.CorpusID, ReplayCorpusID: replay.CorpusID, ReplaySHA256: replaySHA, DatasetSHA256: datasetSourceSHA, ExpectedDatasetSHA256: replay.SourceSHA256["dataset"], ExpectedDatasetFingerprint: replay.DatasetFingerprint, ProbesSHA256: probesSHA, DenseLane: "dense_1024_int8", DenseDepth: MaxDenseDepth, SelectionPolicy: selectedPolicy(request.SelectionPolicy), MetadataPolicy: MetadataPolicyID, PolicyFingerprint: policyFingerprint, Evaluator: buildinfo.Current()}
+	binding := evaluationBinding{GraphLogicalSHA256: manifest.LogicalGraphSHA256, GraphCorpusID: manifest.Corpus.CorpusID, ReplayCorpusID: replay.CorpusID, ReplaySHA256: replaySHA, DatasetSHA256: datasetSourceSHA, ExpectedDatasetSHA256: replay.SourceSHA256["dataset"], ExpectedDatasetFingerprint: replay.DatasetFingerprint, ProbesSHA256: probesSHA, DenseLane: "dense_1024_int8", DenseDepth: MaxDenseDepth, SelectionPolicy: selectionPolicy, MetadataPolicy: MetadataPolicyID, PolicyFingerprint: policyFingerprint, Evaluator: buildinfo.Current()}
 	lane, ok := replay.Lanes["dense_1024_int8"]
 	if !ok || len(lane.Ranks) == 0 {
 		return EvaluationResult{}, fmt.Errorf("missing frozen dense_1024_int8 ranks")
@@ -356,7 +380,7 @@ func Evaluate(ctx context.Context, request EvaluationRequest) (EvaluationResult,
 	if err := validateReplayRanks(lane); err != nil {
 		return EvaluationResult{}, err
 	}
-	if selectedPolicy(request.SelectionPolicy) == GraphFirstPolicyID {
+	if selectionPolicy == GraphFirstPolicyID {
 		if err := validateGraphFirstLanes(replay, lane); err != nil {
 			return EvaluationResult{}, err
 		}
@@ -575,12 +599,18 @@ func selectedPolicy(value string) string {
 	return value
 }
 
-func relationPolicyFingerprint() (string, error) {
-	return canonicalHash(relationPolicySpec())
+func relationPolicyFingerprint(policy string) (string, error) {
+	return canonicalHash(relationPolicySpec(policy))
 }
 
-func relationPolicySpec() map[string]any {
-	return map[string]any{
+// relationPolicySpec keeps every pre-existing policy serialization immutable.
+// The graph-only experiment carries its own additive spec only when selected.
+func relationPolicySpec(policies ...string) map[string]any {
+	policy := DenseFirstPolicyID
+	if len(policies) > 0 {
+		policy = policies[0]
+	}
+	spec := map[string]any{
 		"metadata_policy":                   MetadataPolicyID,
 		"selection_policies":                []string{DenseFirstPolicyID, ValueParameterDenseFirstPolicyID, GraphFirstPolicyID, AnchorEdgeRawFrequencyPolicyID, AnchorEdgeSourceNormalizedPolicyID, AnchorEdgeBidirectionalPolicyID, AnchorEdgeIncomingPopularityPolicyID, AnchorFrontierCapOnlyPolicyID, AnchorFrontierBridgePolicyID},
 		"dense_first_tuple":                 []string{"qualifier", "negative_context_overlap", "negative_endpoint_overlap", "negative_anchor_overlap", "intent_mismatch", "same_file", "occurrence_file_role", "anchor_dense_rank", "endpoint_dense_rank", "source_ordinal", "occurrence_byte", "stable_id"},
@@ -619,6 +649,19 @@ func relationPolicySpec() map[string]any {
 		"execution_mode":  []ExecutionMode{DirectExecution, DeferredExecution, ConcurrentExecution, AwaitedExecution},
 		"control_role":    []ControlRole{ControlNone, ControlBranch, ControlLoop, ControlSwitch, ControlTryCatch},
 	}
+	if policy == AnchorFrontierGraphOnlyParetoPolicyID {
+		spec["selection_policies"] = append(spec["selection_policies"].([]string), AnchorFrontierGraphOnlyParetoPolicyID)
+		spec["anchor_frontier_graph_only_pareto"] = map[string]any{
+			"policy":     AnchorFrontierGraphOnlyParetoPolicyID,
+			"source":     "existing_final_frontier_only",
+			"admission":  "first_direct_selected_anchor_bridge_in_frontier_order_else_forward_edges_with_endpoint_absent_from_frozen_dense_top20",
+			"pareto":     "within_structural_tier:max(edge_occurrences/source_stratum_occurrences)_exact_rational,min(source_stratum_distinct_targets),min(target_incoming_stratum_distinct_sources);nondominated=no_worse_all_and_one_strict;no_cross_tier_dominance",
+			"outcomes":   []string{"DIRECT_BRIDGE", "NO_CANDIDATE", "ONE_WINNER", "MULTIPLE_WINNERS"},
+			"artifacts":  "frontier-graph-only-pareto.jsonl;frontier-graph-only-pareto-denominators.json;per-query-relation-trace.jsonl",
+			"validation": "bridge_precedence;full_final_frontier_partition;per_tier_exact_pareto;union_outcome;per_query_and_aggregate_denominators",
+		}
+	}
+	return spec
 }
 
 func validateEvaluationRequest(v EvaluationRequest) error {
@@ -636,14 +679,14 @@ func validateEvaluationRequest(v EvaluationRequest) error {
 
 func validSelectionPolicy(policy string) bool {
 	switch policy {
-	case "", DenseFirstPolicyID, ValueParameterDenseFirstPolicyID, GraphFirstPolicyID, AnchorEdgeRawFrequencyPolicyID, AnchorEdgeSourceNormalizedPolicyID, AnchorEdgeBidirectionalPolicyID, AnchorEdgeIncomingPopularityPolicyID, AnchorFrontierCapOnlyPolicyID, AnchorFrontierBridgePolicyID:
+	case "", DenseFirstPolicyID, ValueParameterDenseFirstPolicyID, GraphFirstPolicyID, AnchorEdgeRawFrequencyPolicyID, AnchorEdgeSourceNormalizedPolicyID, AnchorEdgeBidirectionalPolicyID, AnchorEdgeIncomingPopularityPolicyID, AnchorFrontierCapOnlyPolicyID, AnchorFrontierBridgePolicyID, AnchorFrontierGraphOnlyParetoPolicyID:
 		return true
 	}
 	return false
 }
 
 func isFrontierPolicy(policy string) bool {
-	return policy == AnchorFrontierCapOnlyPolicyID || policy == AnchorFrontierBridgePolicyID
+	return policy == AnchorFrontierCapOnlyPolicyID || policy == AnchorFrontierBridgePolicyID || policy == AnchorFrontierGraphOnlyParetoPolicyID
 }
 
 func isAnchorEdgePolicy(policy string) bool {
@@ -1283,6 +1326,11 @@ func selectFrontierBundle(queryID string, feature queryFeatures, group anchorGro
 	}
 	trace.Policy = policy
 	result := Bundle{QueryID: queryID, SelectionPolicy: policy}
+	if policy == AnchorFrontierGraphOnlyParetoPolicyID {
+		if _, err := selectFrontierGraphOnlyPareto(trace, ranks); err != nil {
+			return Bundle{}, nil, err
+		}
+	}
 	if trace.AbstentionReason != "" {
 		trace.FirstLossReason = trace.AbstentionReason
 		return result, trace, nil
@@ -1306,6 +1354,11 @@ func selectFrontierBundle(queryID string, feature queryFeatures, group anchorGro
 		}
 		if selected == nil {
 			trace.AbstentionReason, trace.FirstLossReason = "NO_DIRECT_ANCHOR_BRIDGE", "NO_DIRECT_ANCHOR_BRIDGE"
+		}
+	case AnchorFrontierGraphOnlyParetoPolicyID:
+		selected = trace.GraphOnly.Selected
+		if selected == nil {
+			trace.AbstentionReason, trace.FirstLossReason = trace.GraphOnly.Outcome, trace.GraphOnly.Outcome
 		}
 	default:
 		return Bundle{}, nil, fmt.Errorf("invalid frontier policy")
@@ -1335,6 +1388,238 @@ func selectFrontierBundle(queryID string, feature queryFeatures, group anchorGro
 		}
 	}
 	return result, trace, nil
+}
+
+var frontierStructuralTiers = []StructuralTier{DeclarationContractTier, ExecutableDependencyTier, BodyReferenceTier, DeclarationStructureTier}
+
+// selectFrontierGraphOnlyPareto is deliberately downstream of FinalFrontier:
+// it neither expands the graph nor changes frontier construction or its digest.
+func selectFrontierGraphOnlyPareto(trace *frontierTrace, ranks map[string]int) (*frontierEdge, error) {
+	decision, selected, err := frontierGraphOnlyDecision(trace.FinalFrontier, ranks)
+	if err != nil {
+		return nil, err
+	}
+	trace.GraphOnly = decision
+	if err := validateFrontierGraphOnlyDecision(trace.GraphOnly, trace.FinalFrontier, ranks); err != nil {
+		return nil, err
+	}
+	return selected, nil
+}
+
+func frontierGraphOnlyDecision(final []frontierEdge, ranks map[string]int) (*frontierGraphOnlyTrace, *frontierEdge, error) {
+	decision := &frontierGraphOnlyTrace{Tiers: make(map[StructuralTier]frontierParetoTier, len(frontierStructuralTiers))}
+	for _, tier := range frontierStructuralTiers {
+		decision.Tiers[tier] = frontierParetoTier{Candidates: []frontierParetoCandidate{}}
+	}
+	var firstBridge *frontierEdge
+	byTier := make(map[StructuralTier][]frontierEdge, len(frontierStructuralTiers))
+	for index := range final {
+		edge := final[index]
+		if edge.DirectBridge {
+			decision.DirectBridgeCandidates++
+			if firstBridge == nil {
+				value := edge
+				firstBridge = &value
+			}
+			continue
+		}
+		if edge.Candidate.Fact.Direction != Forward {
+			decision.IncomingExcluded++
+			continue
+		}
+		if edge.Candidate.Stats.Tier != edge.Bucket.Tier || !edge.Candidate.Stats.Tier.Valid() {
+			return nil, nil, fmt.Errorf("graph-only frontier edge has invalid structural tier")
+		}
+		if edge.Candidate.Fact.EndpointID == "" {
+			return nil, nil, fmt.Errorf("graph-only frontier edge lacks endpoint")
+		}
+		// Frozen dense ranks are 1..20. FinalFrontier carries the same canonical
+		// endpoint identity used for anchor ranking, so no source text is consulted.
+		if _, present := ranks[edge.Candidate.Fact.EndpointID]; present {
+			decision.DenseEndpointExcluded++
+			continue
+		}
+		byTier[edge.Candidate.Stats.Tier] = append(byTier[edge.Candidate.Stats.Tier], edge)
+	}
+	decision, selected, err := frontierGraphOnlyParetoByTier(decision, byTier)
+	if err != nil || firstBridge == nil {
+		return decision, selected, err
+	}
+	decision.Outcome, decision.Selected = "DIRECT_BRIDGE", firstBridge
+	return decision, firstBridge, nil
+}
+
+func frontierGraphOnlyParetoByTier(decision *frontierGraphOnlyTrace, byTier map[StructuralTier][]frontierEdge) (*frontierGraphOnlyTrace, *frontierEdge, error) {
+	survivors := make([]frontierEdge, 0)
+	for _, tier := range frontierStructuralTiers {
+		values := byTier[tier]
+		candidates := make([]frontierParetoCandidate, len(values))
+		for index := range values {
+			if err := validateFrontierParetoStats(values[index]); err != nil {
+				return nil, nil, err
+			}
+			candidates[index] = frontierParetoCandidate{
+				CanonicalEdgeID:                      values[index].CanonicalEdgeID,
+				EdgeOccurrences:                      values[index].Candidate.Stats.EdgeOccurrences,
+				SourceStratumOccurrences:             values[index].Candidate.Stats.SourceStratumOccurrences,
+				SourceStratumDistinctTargets:         values[index].Candidate.Stats.SourceStratumDistinctTargets,
+				TargetIncomingStratumDistinctSources: values[index].Candidate.Stats.TargetIncomingStratumDistinctSources,
+				DominatedBy:                          []string{},
+			}
+		}
+		for index := range values {
+			for other := range values {
+				if index == other {
+					continue
+				}
+				dominates, err := frontierParetoDominates(values[other], values[index])
+				if err != nil {
+					return nil, nil, err
+				}
+				if dominates {
+					candidates[index].DominatedBy = append(candidates[index].DominatedBy, values[other].CanonicalEdgeID)
+				}
+			}
+			sort.Strings(candidates[index].DominatedBy)
+			candidates[index].Nondominated = len(candidates[index].DominatedBy) == 0
+			if candidates[index].Nondominated {
+				survivors = append(survivors, values[index])
+			}
+		}
+		decision.GraphOnlyCandidates += len(values)
+		decision.Tiers[tier] = frontierParetoTier{Candidates: candidates}
+	}
+	decision.UnionCount = len(survivors)
+	switch len(survivors) {
+	case 0:
+		decision.Outcome = "NO_CANDIDATE"
+	case 1:
+		value := survivors[0]
+		decision.Outcome, decision.Selected = "ONE_WINNER", &value
+		return decision, &value, nil
+	default:
+		decision.Outcome = "MULTIPLE_WINNERS"
+	}
+	return decision, nil, nil
+}
+
+func validateFrontierParetoStats(edge frontierEdge) error {
+	stats := edge.Candidate.Stats
+	if edge.CanonicalEdgeID == "" || stats.EdgeOccurrences < 1 || stats.SourceStratumOccurrences < 1 || stats.SourceStratumDistinctTargets < 1 || stats.TargetIncomingStratumDistinctSources < 1 {
+		return fmt.Errorf("invalid graph-only pareto statistics")
+	}
+	if stats.EdgeOccurrences > stats.SourceStratumOccurrences {
+		return fmt.Errorf("graph-only edge occurrences exceed source stratum occurrences")
+	}
+	return nil
+}
+
+func frontierParetoDominates(left, right frontierEdge) (bool, error) {
+	if err := validateFrontierParetoStats(left); err != nil {
+		return false, err
+	}
+	if err := validateFrontierParetoStats(right); err != nil {
+		return false, err
+	}
+	leftStats, rightStats := left.Candidate.Stats, right.Candidate.Stats
+	leftHigh, leftLow := bits.Mul64(uint64(leftStats.EdgeOccurrences), uint64(rightStats.SourceStratumOccurrences))
+	rightHigh, rightLow := bits.Mul64(uint64(rightStats.EdgeOccurrences), uint64(leftStats.SourceStratumOccurrences))
+	if leftHigh != 0 || rightHigh != 0 {
+		return false, fmt.Errorf("graph-only pareto ratio cross product overflows")
+	}
+	ratio := 0
+	if leftLow > rightLow {
+		ratio = -1
+	} else if leftLow < rightLow {
+		ratio = 1
+	}
+	noWorse := ratio <= 0 && leftStats.SourceStratumDistinctTargets <= rightStats.SourceStratumDistinctTargets && leftStats.TargetIncomingStratumDistinctSources <= rightStats.TargetIncomingStratumDistinctSources
+	strict := ratio < 0 || leftStats.SourceStratumDistinctTargets < rightStats.SourceStratumDistinctTargets || leftStats.TargetIncomingStratumDistinctSources < rightStats.TargetIncomingStratumDistinctSources
+	return noWorse && strict, nil
+}
+
+func validateFrontierGraphOnlyDecision(actual *frontierGraphOnlyTrace, final []frontierEdge, ranks map[string]int) error {
+	if actual == nil {
+		return fmt.Errorf("missing graph-only frontier decision")
+	}
+	if actual.DirectBridgeCandidates+actual.IncomingExcluded+actual.DenseEndpointExcluded+actual.GraphOnlyCandidates != len(final) {
+		return fmt.Errorf("graph-only frontier partition does not cover final frontier")
+	}
+	var candidates, survivors int
+	soleSurvivor := ""
+	for _, tier := range frontierStructuralTiers {
+		traceTier, ok := actual.Tiers[tier]
+		if !ok {
+			return fmt.Errorf("graph-only frontier trace lacks structural tier")
+		}
+		tierDominated, tierNondominated := 0, 0
+		for _, candidate := range traceTier.Candidates {
+			candidates++
+			if candidate.Nondominated != (len(candidate.DominatedBy) == 0) {
+				return fmt.Errorf("graph-only frontier pareto classification is inconsistent")
+			}
+			if candidate.Nondominated {
+				tierNondominated++
+				survivors++
+				soleSurvivor = candidate.CanonicalEdgeID
+			} else {
+				tierDominated++
+			}
+		}
+		if len(traceTier.Candidates) != tierDominated+tierNondominated {
+			return fmt.Errorf("graph-only frontier tier candidate denominator is inconsistent")
+		}
+	}
+	if actual.GraphOnlyCandidates != candidates {
+		return fmt.Errorf("graph-only frontier candidate denominator is inconsistent")
+	}
+	if actual.UnionCount != survivors {
+		return fmt.Errorf("graph-only frontier union denominator is inconsistent")
+	}
+	var firstBridge *frontierEdge
+	for index := range final {
+		if final[index].DirectBridge {
+			value := final[index]
+			firstBridge = &value
+			break
+		}
+	}
+	if firstBridge != nil {
+		if actual.Outcome != "DIRECT_BRIDGE" || actual.Selected == nil || actual.Selected.CanonicalEdgeID != firstBridge.CanonicalEdgeID {
+			return fmt.Errorf("graph-only frontier bridge outcome is inconsistent")
+		}
+	} else {
+		switch actual.UnionCount {
+		case 0:
+			if actual.Outcome != "NO_CANDIDATE" || actual.Selected != nil {
+				return fmt.Errorf("graph-only frontier empty outcome is inconsistent")
+			}
+		case 1:
+			if actual.Outcome != "ONE_WINNER" || actual.Selected == nil || actual.Selected.CanonicalEdgeID != soleSurvivor {
+				return fmt.Errorf("graph-only frontier singleton outcome is inconsistent")
+			}
+		default:
+			if actual.Outcome != "MULTIPLE_WINNERS" || actual.Selected != nil {
+				return fmt.Errorf("graph-only frontier multiple outcome is inconsistent")
+			}
+		}
+	}
+	expected, _, err := frontierGraphOnlyDecision(final, ranks)
+	if err != nil {
+		return err
+	}
+	expectedHash, err := canonicalHash(expected)
+	if err != nil {
+		return err
+	}
+	actualHash, err := canonicalHash(actual)
+	if err != nil {
+		return err
+	}
+	if expectedHash != actualHash {
+		return fmt.Errorf("graph-only frontier denominator validation failed")
+	}
+	return nil
 }
 
 func buildFrontierTrace(group anchorGroup, feature queryFeatures, facts []Fact, stats map[string]edgeStats, ranks map[string]int) (*frontierTrace, error) {
@@ -2759,6 +3044,34 @@ func writeEvaluationArtifacts(root string, traces []queryTrace, features map[str
 			return err
 		}
 	}
+	if binding.SelectionPolicy == AnchorFrontierGraphOnlyParetoPolicyID {
+		rows := make([]any, 0, len(traces))
+		denominatorRows := make([]any, 0, len(traces))
+		totals := map[string]int{"queries": len(traces)}
+		outcomes := map[string]int{}
+		for _, trace := range traces {
+			if trace.Frontier == nil || trace.Frontier.GraphOnly == nil {
+				return fmt.Errorf("graph-only frontier policy is missing per-query decision")
+			}
+			rows = append(rows, map[string]any{"query_id": trace.QueryID, "final_frontier_sha256": trace.Frontier.FinalDigest, "graph_only": trace.Frontier.GraphOnly})
+			decision := trace.Frontier.GraphOnly
+			finalCount := len(trace.Frontier.FinalFrontier)
+			denominatorRows = append(denominatorRows, map[string]any{"query_id": trace.QueryID, "final_frontier_edges": finalCount, "direct_bridge_candidates": decision.DirectBridgeCandidates, "incoming_excluded": decision.IncomingExcluded, "dense_endpoint_excluded": decision.DenseEndpointExcluded, "graph_only_candidates": decision.GraphOnlyCandidates, "union_count": decision.UnionCount, "outcome": decision.Outcome})
+			totals["final_frontier_edges"] += finalCount
+			totals["direct_bridge_candidates"] += decision.DirectBridgeCandidates
+			totals["incoming_excluded"] += decision.IncomingExcluded
+			totals["dense_endpoint_excluded"] += decision.DenseEndpointExcluded
+			totals["graph_only_candidates"] += decision.GraphOnlyCandidates
+			totals["union_count"] += decision.UnionCount
+			outcomes[decision.Outcome]++
+		}
+		if err := writeJSONL(filepath.Join(root, "frontier-graph-only-pareto.jsonl"), rows); err != nil {
+			return err
+		}
+		if err := writePortableJSON(filepath.Join(root, "frontier-graph-only-pareto-denominators.json"), map[string]any{"policy": binding.SelectionPolicy, "queries": denominatorRows, "totals": totals, "outcomes": outcomes}, ""); err != nil {
+			return err
+		}
+	}
 	aggregate := aggregateMetrics(traces)
 	aggregate["schema_version"], aggregate["selection_policy"], aggregate["metadata_policy"], aggregate["body_policy"], aggregate["primary_top5_protected"] = SchemaVersion, binding.SelectionPolicy, MetadataPolicyID, BodyPolicyID, true
 	aggregate["policy_fingerprint"] = binding.PolicyFingerprint
@@ -2774,7 +3087,7 @@ func writeEvaluationArtifacts(root string, traces []queryTrace, features map[str
 	if binding.GraphLogicalSHA256 != graph.LogicalGraphSHA256 || binding.GraphCorpusID != graph.Corpus.CorpusID || binding.ReplayCorpusID != replay.CorpusID || binding.ExpectedDatasetSHA256 != replay.SourceSHA256["dataset"] || binding.ExpectedDatasetFingerprint != replay.DatasetFingerprint || binding.SelectionPolicy == "" || binding.MetadataPolicy != MetadataPolicyID || !validDigest(binding.PolicyFingerprint) || !validDigest(binding.QueryFeaturesSHA256) {
 		return fmt.Errorf("evaluation binding changed after selection")
 	}
-	manifest := map[string]any{"schema_version": SchemaVersion, "kind": "cidx.relation_diagnostic.v3", "created_at": time.Now().UTC().Format(time.RFC3339Nano), "queries": len(traces), "selection_policy": binding.SelectionPolicy, "metadata_policy": MetadataPolicyID, "policy_spec": relationPolicySpec(), "policy_fingerprint": binding.PolicyFingerprint, "label_loading": "after_query_features_facts_order_selection_and_package_freeze", "zero_provider_operations": true, "calibration_only": true, "binding_verified_before_selection": true, "frozen_binding": binding, "resolution_outcomes": resolution, "diagnostic_eligible": gate.Eligible, "diagnostic_gate_reasons": gate.Reasons}
+	manifest := map[string]any{"schema_version": SchemaVersion, "kind": "cidx.relation_diagnostic.v3", "created_at": time.Now().UTC().Format(time.RFC3339Nano), "queries": len(traces), "selection_policy": binding.SelectionPolicy, "metadata_policy": MetadataPolicyID, "policy_spec": relationPolicySpec(binding.SelectionPolicy), "policy_fingerprint": binding.PolicyFingerprint, "label_loading": "after_query_features_facts_order_selection_and_package_freeze", "zero_provider_operations": true, "calibration_only": true, "binding_verified_before_selection": true, "frozen_binding": binding, "resolution_outcomes": resolution, "diagnostic_eligible": gate.Eligible, "diagnostic_gate_reasons": gate.Reasons}
 	if err := writePortableJSON(filepath.Join(root, "run-manifest.json"), manifest, ""); err != nil {
 		return err
 	}
