@@ -6,6 +6,11 @@ This ledger is the authoritative resumable state for implementation work. Update
 
 - Active phase: 07 — frozen chi/RHF calibration checkpoint and unexposed confirmation handoff
 - Active owner: `/root`
+- Active bounded work: one final provider-free graph-only Pareto admission
+  diagnostic is `in_progress`. It reuses the evaluation-only complete relation
+  sidecar, reads only the already bounded query frontier, and does not change
+  product storage, search, MCP, embeddings, questions, or labels. The rule was
+  frozen before execution; tuning on the exposed 32 cases ends after this run.
 - Completed bounded follow-up: the development-only, LLM-free relation-context
   metadata diagnostic and its conditional provider-free graph-first crossover
   are complete at clean commit `c197cdafa93852df2c1463d2636378caae288130`.
