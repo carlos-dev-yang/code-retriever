@@ -1018,3 +1018,24 @@ specified against a new calibration unit and validated on the separate
 unexposed confirmation set. Exact hashes, G09/X08 traces, the graph-first
 safety failure, and the zero-provider boundary are recorded in
 [`evidence/phase-07/relation-edge-metadata-diagnostic-r4.md`](evidence/phase-07/relation-edge-metadata-diagnostic-r4.md).
+
+## 16. Value-parameter contract follow-up
+
+X08's exact name collision is unique, but its code structure is representative:
+all six reviewed RHF public React components bind an explicit `*Props` type to
+their value parameter. A v3 sidecar therefore introduced the general
+`TYPE_VALUE_PARAMETER` role without React, symbol-suffix, query-ID, or corpus
+exceptions. The fresh RHF graph classified all six exact component-to-props
+relations as `SIGNATURE / TYPE_VALUE_PARAMETER / DECLARATION`.
+
+That structural correction did not resolve relation choice. RHF contains 513
+resolved value-parameter type facts, and the new query-conditioned selector
+still chose a higher context-overlap `createFormControl -> InternalFieldName`
+fact for X08. chi remained `12/12`, RHF remained `19/20`, no hard negative or
+`walkXFF` was attached, and no provider operation occurred. The role is useful
+graph identity; it is not sufficient relevance evidence by itself.
+
+The owner deferred the policy decision. No further ordering change or X08
+question replacement followed this result. Exact graphs, runs, hashes, and the
+deferred boundary are recorded in
+[`evidence/phase-07/relation-value-parameter-diagnostic-r4.md`](evidence/phase-07/relation-value-parameter-diagnostic-r4.md).

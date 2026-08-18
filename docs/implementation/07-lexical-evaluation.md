@@ -507,6 +507,15 @@ evidence is
 It authorizes neither selector for production and does not change the separate
 unexposed-confirmation requirement.
 
+The subsequent v3 value-parameter diagnostic confirmed that the underlying
+RHF component-to-props structure is common: all six reviewed public components
+were classified as `SIGNATURE / TYPE_VALUE_PARAMETER / DECLARATION`. The new
+calibration selector preserved the accepted `31/32` complete result and zero
+hard-negative attachments but did not close X08, which remains
+`RELATION_ADMISSION`. The owner deferred the policy decision, so no further
+ordering or question change was made. Exact evidence is
+[`relation-value-parameter-diagnostic-r4.md`](evidence/phase-07/relation-value-parameter-diagnostic-r4.md).
+
 Completion reports must not use the metric value itself as a success declaration. They should demonstrate that the evaluation is reproducible and that failures are traceable.
 
 ## 12. Follow-up Handoff
@@ -559,6 +568,7 @@ Phase 12 extends the shared Phase 07 `internal/eval` dataset, ground-truth, metr
 | Run one predeclared relation-context metadata diagnostic and only then a conditional graph-first crossover. | The owner rejected relation-text embedding and authorized AST/compiler-derived edge context only. The first arm preserves dense-first retrieval and freezes its metadata key before results. If admission remains unresolved, the second arm uses the already frozen FTS/simple-control parents as graph seeds and the already frozen dense-1024/int8 ordinal as the post-graph reranker. Both are new immutable calibration-diagnostic units over unchanged questions/labels, make zero Voyage calls, use no RRF, and cannot become confirmation or production evidence. | A new unexposed confirmation unit supports a production admission decision, or a graph-only parent outside the frozen dense depth requires a separately approved fresh query-embedding design. |
 | Retain relation metadata as development evidence, reject both measured selectors for production, and reject graph-first crossover under the fixed policy. | Metadata dense-first recovered G09 and reached `31/32`, proving that AST/compiler occurrence context can improve evidence assembly. X08 remained an admission loss. Graph-first added no completeness and attached protected `walkXFF` evidence to G05, failing its explicit gate. The result separates useful stored structure from an insufficient relevance decision. | A newly versioned calibration unit specifies a different query-conditioned admission design before exposure, and the separate unexposed confirmation set then validates it without a protected-slice or safety regression. |
 | Treat X08 as a representative value-parameter contract case, not a one-off exception. | The exact `FormState`/`FormStateProps` collision is unique, but every one of the six reviewed public RHF React components declares its `*Props` contract as a value-parameter type annotation. The v2 graph collapses all six into `TYPE_LOCAL`. The next bounded unit therefore adds one mechanically derived role distinct from generic type parameters and evaluates a new policy across all 32 cases; it does not edit X08, add a component-name exception, call Voyage, or retry graph-first traversal. | Retain the role only if all six common contracts are classified correctly and complete-answer plus protected-hard-negative evidence does not regress. Production still requires a separate unexposed confirmation unit. |
+| Defer the value-parameter selector policy decision after measurement. | The v3 graph classified the common six-component pattern correctly, while all-32 replay remained `31/32`, changed only T09/X08 selections, attached no declared hard negative, and left X08 at `RELATION_ADMISSION`. The owner does not need to decide this policy now. | Resume only on explicit owner direction; do not tune another key or replace X08 as an implicit consequence of this run. |
 | Do not edit the exposed 32-case calibration set to improve its scores. | The questions, labels, and immutable ranks have now influenced a retrieval-policy decision. Further tuning on them would invalidate their role as an unbiased confirmation unit. | Never for this dataset version; create a new versioned calibration or an unexposed confirmation unit. |
 | Preserve failure taxonomy alongside metrics. | It identifies which implementation layer should change next. | Never. |
 | Call production services directly. | This prevents divergence between evaluation and actual behavior. | Never. |

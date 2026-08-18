@@ -24,6 +24,13 @@ relation-admission loss. The predeclared graph-first crossover adds no complete
 answer and fails the chi `walkXFF` safety gate. Metadata remains
 development-sidecar evidence; neither selector is authorized for production.
 
+Current X08 follow-up: [value-parameter contract diagnostic — Revision 4](relation-value-parameter-diagnostic-r4.md).
+The v3 graph classifies the common RHF component-to-props pattern correctly in
+all six reviewed public components, but the new selector leaves complete
+coverage at `31/32` and X08 at `RELATION_ADMISSION`. The owner deferred the
+policy decision; no question, key, production path, or provider operation was
+changed after the result.
+
 ### 2026-08-17 solo-project relevance-authority revision
 
 The owner explicitly replaced the unavailable human-pass gate after separate
