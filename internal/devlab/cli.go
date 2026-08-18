@@ -28,7 +28,7 @@ type CLI struct{}
 
 func (CLI) Run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	if len(args) < 2 {
-		return fmt.Errorf("usage: cidx dev embeddings <capture|materialize> ... or cidx dev retrieval evaluate ... or cidx dev relations <build|evaluate> ...")
+		return fmt.Errorf("usage: cidx dev embeddings <capture|materialize> ... or cidx dev retrieval evaluate ... or cidx dev relations <build|evaluate|complete> ...")
 	}
 	switch args[0] {
 	case "workspace":
@@ -220,6 +220,7 @@ func retrieval(ctx context.Context, args []string, stdout, stderr io.Writer) err
 	runID := flags.String("run-id", "", "fresh lexical artifact identifier")
 	apply := flags.Bool("apply", false, "perform authorized Voyage query embedding search")
 	ftsPolicyID := flags.String("fts-policy", "production", "production or safe-token-or-v1 (development retrieval evaluation only)")
+	evidenceClass := flags.String("evidence-class", "", "CALIBRATION_POOL_BUILDING or RELATION_CALIBRATION_POOL_BUILDING")
 	experimentSeriesID := flags.String("experiment-series", "", "immutable experiment-series identity")
 	seriesQueryOperations := flags.Int("series-query-operations", 0, "total logical query operations across the experiment series")
 	authorizationReference := flags.String("authorization-reference", "", "non-secret authorization identity")
@@ -244,14 +245,17 @@ func retrieval(ctx context.Context, args []string, stdout, stderr io.Writer) err
 	if (*mode == "lexical" || *mode == "simple") && *apply {
 		return fmt.Errorf("--apply is unavailable in %s mode", *mode)
 	}
-	experimentalFlagsSet := *ftsPolicyID != "production" || *experimentSeriesID != "" || *seriesQueryOperations != 0 || *authorizationReference != "" || *usdCap != 0 || *pricingTableIdentity != "" || *usdPerMillionTokens != 0
+	experimentalFlagsSet := *ftsPolicyID != "production" || *evidenceClass != "" || *experimentSeriesID != "" || *seriesQueryOperations != 0 || *authorizationReference != "" || *usdCap != 0 || *pricingTableIdentity != "" || *usdPerMillionTokens != 0
 	if (*mode == "lexical" || *mode == "simple") && experimentalFlagsSet {
 		return fmt.Errorf("experiment flags require --mode retrieval")
 	}
 	if *ftsPolicyID != "production" && *ftsPolicyID != "safe-token-or-v1" {
 		return fmt.Errorf("--fts-policy must be production or safe-token-or-v1")
 	}
-	if *mode == "retrieval" && *ftsPolicyID == "production" && experimentalFlagsSet {
+	if *evidenceClass != "" && *evidenceClass != "CALIBRATION_POOL_BUILDING" && *evidenceClass != "RELATION_CALIBRATION_POOL_BUILDING" {
+		return fmt.Errorf("--evidence-class must be CALIBRATION_POOL_BUILDING or RELATION_CALIBRATION_POOL_BUILDING")
+	}
+	if *mode == "retrieval" && *ftsPolicyID == "production" && experimentalFlagsSet && *evidenceClass != "RELATION_CALIBRATION_POOL_BUILDING" {
 		return fmt.Errorf("experiment metadata requires --fts-policy safe-token-or-v1")
 	}
 	var sourceRoot, stateRoot, controllerRoot string
@@ -312,7 +316,9 @@ func retrieval(ctx context.Context, args []string, stdout, stderr io.Writer) err
 		if err != nil {
 			return err
 		}
-		experiment = RetrievalExperimentOptions{FTSPolicy: &policy, ExperimentSeriesID: *experimentSeriesID, SeriesQueryOperationsPlanned: *seriesQueryOperations, AuthorizationReference: *authorizationReference, USDCap: *usdCap, PricingTableIdentity: *pricingTableIdentity, USDPerMillionTokens: *usdPerMillionTokens}
+		experiment = RetrievalExperimentOptions{FTSPolicy: &policy, EvidenceClass: *evidenceClass, ExperimentSeriesID: *experimentSeriesID, SeriesQueryOperationsPlanned: *seriesQueryOperations, AuthorizationReference: *authorizationReference, USDCap: *usdCap, PricingTableIdentity: *pricingTableIdentity, USDPerMillionTokens: *usdPerMillionTokens}
+	} else if *evidenceClass != "" {
+		experiment = RetrievalExperimentOptions{EvidenceClass: *evidenceClass, ExperimentSeriesID: *experimentSeriesID, SeriesQueryOperationsPlanned: *seriesQueryOperations, AuthorizationReference: *authorizationReference, USDCap: *usdCap, PricingTableIdentity: *pricingTableIdentity, USDPerMillionTokens: *usdPerMillionTokens}
 	}
 	prepared, err := PrepareRetrievalEvaluationExperimentAt(ctx, application, raw, controllerRoot, *manifest, *dataset, *corpusPath, experiment)
 	if err != nil {

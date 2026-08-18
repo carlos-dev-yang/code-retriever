@@ -31,6 +31,7 @@ type RetrievalEvaluationPlan struct {
 	CorpusID                      string                      `json:"corpus_id"`
 	CorpusManifestSHA256          string                      `json:"corpus_manifest_sha256"`
 	DatasetSHA256                 string                      `json:"dataset_sha256"`
+	DatasetSourceSHA256           string                      `json:"dataset_source_sha256"`
 	PinnedCommit                  string                      `json:"pinned_commit"`
 	ContentSHA256                 string                      `json:"content_sha256"`
 	IndexGeneration               int64                       `json:"index_generation"`
@@ -65,6 +66,7 @@ type RetrievalEvaluationPlan struct {
 
 type RetrievalExperimentOptions struct {
 	FTSPolicy                    *search.EvaluationFTSPolicy
+	EvidenceClass                string
 	ExperimentSeriesID           string
 	SeriesQueryOperationsPlanned int
 	AuthorizationReference       string
@@ -84,9 +86,10 @@ type retrievalPrepared struct {
 }
 
 type retrievalInputs struct {
-	manifest eval.CorpusManifest
-	dataset  eval.EvaluationDataset
-	verified eval.VerifiedCorpus
+	manifest            eval.CorpusManifest
+	dataset             eval.EvaluationDataset
+	verified            eval.VerifiedCorpus
+	datasetSourceSHA256 string
 }
 
 // preflightRetrievalInputs is intentionally independent of either SQLite
@@ -130,7 +133,8 @@ func preflightRetrievalInputs(ctx context.Context, bindingRoot, sourceRoot, mani
 	if err != nil {
 		return retrievalInputs{}, err
 	}
-	return retrievalInputs{manifest: manifest, dataset: dataset, verified: verified}, nil
+	sum := sha256.Sum256(datasetBytes)
+	return retrievalInputs{manifest: manifest, dataset: dataset, verified: verified, datasetSourceSHA256: hex.EncodeToString(sum[:])}, nil
 }
 
 // PrepareRetrievalEvaluation performs every pre-provider check required by
@@ -229,8 +233,8 @@ func PrepareRetrievalEvaluationExperimentAt(ctx context.Context, application *ap
 	if err := preflightSession.ValidateSnapshot(inventory.Generation, inventory.ManifestSHA256); err != nil {
 		return retrievalPrepared{}, err
 	}
-	plan := RetrievalEvaluationPlan{CorpusID: manifest.CorpusID, CorpusManifestSHA256: manifestFingerprint, DatasetSHA256: datasetFingerprint, PinnedCommit: verified.PinnedCommit, ContentSHA256: verified.ContentSHA256, IndexGeneration: inventory.Generation, IndexManifestSHA256: inventory.ManifestSHA256, RawDocumentInputs: len(required), QueryCount: len(dataset.Cases), EstimatedQueryTokens: estimatedTokens, ServingProfile: string(application.Resolved.Profiles.Fingerprints.VectorStorage), LogicalQueryOperationsPlanned: len(dataset.Cases), CostEstimateAvailable: false, CostEstimateReason: "no dated provider price has been frozen for this run"}
-	if experiment.FTSPolicy != nil {
+	plan := RetrievalEvaluationPlan{CorpusID: manifest.CorpusID, CorpusManifestSHA256: manifestFingerprint, DatasetSHA256: datasetFingerprint, DatasetSourceSHA256: inputs.datasetSourceSHA256, PinnedCommit: verified.PinnedCommit, ContentSHA256: verified.ContentSHA256, IndexGeneration: inventory.Generation, IndexManifestSHA256: inventory.ManifestSHA256, RawDocumentInputs: len(required), QueryCount: len(dataset.Cases), EstimatedQueryTokens: estimatedTokens, ServingProfile: string(application.Resolved.Profiles.Fingerprints.VectorStorage), LogicalQueryOperationsPlanned: len(dataset.Cases), CostEstimateAvailable: false, CostEstimateReason: "no dated provider price has been frozen for this run"}
+	if experiment.EvidenceClass != "" || experiment.FTSPolicy != nil {
 		info := buildinfo.Current()
 		if err := validateLexicalCodeProvenance(info); err != nil {
 			return retrievalPrepared{}, err
@@ -243,7 +247,7 @@ func PrepareRetrievalEvaluationExperimentAt(ctx context.Context, application *ap
 		plannedMaximumCost := float64(estimatedTokens*attempts) * experiment.USDPerMillionTokens / 1_000_000
 		plan.FTSPolicy = experiment.FTSPolicy
 		plan.ExperimentSeriesID = experiment.ExperimentSeriesID
-		plan.EvidenceClass = "CALIBRATION_POOL_BUILDING"
+		plan.EvidenceClass = normalizedEvidenceClass(experiment)
 		plan.PromotionEligible = false
 		plan.LabelState = "DRAFT_TWO_PASS_PENDING"
 		plan.QueryExecutionMode = "LIVE_ALL_QUERIES"
@@ -267,16 +271,30 @@ func PrepareRetrievalEvaluationExperimentAt(ctx context.Context, application *ap
 }
 
 func validateRetrievalExperiment(application *app.Application, experiment RetrievalExperimentOptions, queryCount, estimatedTokens int) error {
-	if experiment.FTSPolicy == nil {
+	class := normalizedEvidenceClass(experiment)
+	if class == "" {
 		if experiment != (RetrievalExperimentOptions{}) {
-			return fmt.Errorf("experimental metadata requires an evaluation FTS policy")
+			return fmt.Errorf("experimental metadata requires an evidence class")
 		}
 		return nil
 	}
-	if err := experiment.FTSPolicy.Validate(application.Resolved); err != nil {
-		return err
+	if class != "CALIBRATION_POOL_BUILDING" && class != "RELATION_CALIBRATION_POOL_BUILDING" {
+		return fmt.Errorf("invalid retrieval experiment evidence class")
 	}
-	if experiment.ExperimentSeriesID == "" || experiment.SeriesQueryOperationsPlanned != 32 || queryCount <= 0 || experiment.AuthorizationReference == "" || experiment.USDCap <= 0 || experiment.PricingTableIdentity == "" || experiment.USDPerMillionTokens <= 0 {
+	if class == "CALIBRATION_POOL_BUILDING" {
+		if experiment.FTSPolicy == nil {
+			return fmt.Errorf("legacy calibration requires safe-token FTS")
+		}
+		if err := experiment.FTSPolicy.Validate(application.Resolved); err != nil {
+			return err
+		}
+		if experiment.SeriesQueryOperationsPlanned != 32 {
+			return fmt.Errorf("legacy calibration series total must remain 32")
+		}
+	} else if experiment.FTSPolicy != nil {
+		return fmt.Errorf("relation calibration requires production FTS")
+	}
+	if experiment.ExperimentSeriesID == "" || queryCount <= 0 || experiment.SeriesQueryOperationsPlanned < queryCount || experiment.AuthorizationReference == "" || experiment.USDCap <= 0 || experiment.PricingTableIdentity == "" || experiment.USDPerMillionTokens <= 0 {
 		return fmt.Errorf("incomplete retrieval experiment authority or pricing controls")
 	}
 	maxCost := float64(estimatedTokens*(application.Resolved.Embedding.Retry.MaxRetries+1)) * experiment.USDPerMillionTokens / 1_000_000
@@ -284,6 +302,16 @@ func validateRetrievalExperiment(application *app.Application, experiment Retrie
 		return fmt.Errorf("retrieval experiment exceeds USD cap")
 	}
 	return nil
+}
+
+func normalizedEvidenceClass(experiment RetrievalExperimentOptions) string {
+	if experiment.EvidenceClass != "" {
+		return experiment.EvidenceClass
+	}
+	if experiment.FTSPolicy != nil {
+		return "CALIBRATION_POOL_BUILDING"
+	}
+	return ""
 }
 
 func startRetrievalEvaluationSession(ctx context.Context, application *app.Application, query string, policy *search.EvaluationFTSPolicy) (search.EvaluationSession, error) {

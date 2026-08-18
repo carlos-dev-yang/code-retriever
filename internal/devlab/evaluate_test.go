@@ -104,6 +104,14 @@ func TestRetrievalExperimentControlsRequireCompleteFingerprintAndBudget(t *testi
 	if err := validateRetrievalExperiment(prepared.application, valid, 12, 10_000); err != nil {
 		t.Fatalf("valid experiment rejected: %v", err)
 	}
+	relation := RetrievalExperimentOptions{EvidenceClass: "RELATION_CALIBRATION_POOL_BUILDING", ExperimentSeriesID: "relation-series", SeriesQueryOperationsPlanned: 32, AuthorizationReference: "user-thread-authorization", USDCap: 5, PricingTableIdentity: "voyage-code-4-price-2026-08-16", USDPerMillionTokens: 0.12}
+	if err := validateRetrievalExperiment(prepared.application, relation, 12, 10_000); err != nil {
+		t.Fatalf("valid production-FTS relation experiment rejected: %v", err)
+	}
+	relation.FTSPolicy = &policy
+	if err := validateRetrievalExperiment(prepared.application, relation, 12, 10_000); err == nil {
+		t.Fatal("relation experiment with safe-token FTS accepted")
+	}
 	incomplete := valid
 	incomplete.AuthorizationReference = ""
 	if err := validateRetrievalExperiment(prepared.application, incomplete, 12, 10_000); err == nil {

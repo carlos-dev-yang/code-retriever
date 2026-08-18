@@ -346,6 +346,7 @@ type retrievalArtifactManifest struct {
 	IndexGeneration        int64                           `json:"index_generation"`
 	IndexManifestSHA256    string                          `json:"index_manifest_sha256"`
 	DatasetSHA256          string                          `json:"dataset_sha256"`
+	DatasetSourceSHA256    string                          `json:"dataset_source_sha256"`
 	QueryIDs               []string                        `json:"query_ids"`
 	ServingProfile         string                          `json:"serving_profile"`
 	SourceProfile          string                          `json:"source_profile"`
@@ -366,7 +367,8 @@ type retrievalExperimentManifest struct {
 	QueryExecutionMode           string                      `json:"query_execution_mode"`
 	SeriesQueryOperationsPlanned int                         `json:"series_query_operations_planned"`
 	CorpusCleanVerified          bool                        `json:"corpus_clean_verified"`
-	FTSPolicy                    search.EvaluationFTSPolicy  `json:"fts_policy"`
+	FTSMode                      string                      `json:"fts_mode"`
+	FTSPolicy                    *search.EvaluationFTSPolicy `json:"fts_policy,omitempty"`
 	Queries                      []retrievalExperimentQuery  `json:"queries"`
 	BuildInfo                    buildinfo.Info              `json:"build_info"`
 	EvaluationExecutableSHA256   string                      `json:"evaluation_executable_sha256"`
@@ -393,8 +395,16 @@ type retrievalExperimentManifest struct {
 }
 
 type retrievalExperimentQuery struct {
-	QueryID    string `json:"query_id"`
-	TextSHA256 string `json:"text_sha256"`
+	QueryID                          string `json:"query_id"`
+	TextSHA256                       string `json:"text_sha256"`
+	ServingActiveSegmentObservations int    `json:"serving_active_segment_observations"`
+}
+
+func retrievalExperimentFTSMode(options RetrievalExperimentOptions) string {
+	if options.FTSPolicy == nil {
+		return "PRODUCTION"
+	}
+	return "SAFE_TOKEN_OR"
 }
 
 type retrievalExperimentProfiles struct {
@@ -445,17 +455,18 @@ type incompletePromotionArtifact struct {
 }
 
 func buildRetrievalExperimentManifest(prepared retrievalPrepared, run eval.RetrievalEvaluationRun, usage retrievalProviderUsage) (*retrievalExperimentManifest, error) {
-	if prepared.experiment.FTSPolicy == nil {
+	if prepared.plan.EvidenceClass == "" {
 		return nil, nil
 	}
-	if prepared.plan.FTSPolicy == nil || prepared.plan.ExperimentSeriesID != prepared.experiment.ExperimentSeriesID || prepared.plan.EvidenceClass != "CALIBRATION_POOL_BUILDING" || prepared.plan.PromotionEligible || prepared.plan.LabelState != "DRAFT_TWO_PASS_PENDING" || prepared.plan.QueryExecutionMode != "LIVE_ALL_QUERIES" || prepared.plan.SeriesQueryOperationsPlanned != 32 || prepared.plan.LogicalQueryOperationsPlanned != len(prepared.dataset.Cases) || prepared.plan.DocumentProviderOperations != 0 || prepared.plan.ReusedQueryVectors != 0 || prepared.plan.ReusedDenseRankings != 0 || prepared.plan.QueryVectorPersisted {
+	if prepared.plan.ExperimentSeriesID != prepared.experiment.ExperimentSeriesID || (prepared.plan.EvidenceClass != "CALIBRATION_POOL_BUILDING" && prepared.plan.EvidenceClass != "RELATION_CALIBRATION_POOL_BUILDING") || prepared.plan.PromotionEligible || prepared.plan.LabelState != "DRAFT_TWO_PASS_PENDING" || prepared.plan.QueryExecutionMode != "LIVE_ALL_QUERIES" || prepared.plan.SeriesQueryOperationsPlanned < len(prepared.dataset.Cases) || prepared.plan.LogicalQueryOperationsPlanned != len(prepared.dataset.Cases) || prepared.plan.RawDocumentInputs < 1 || prepared.plan.DocumentProviderOperations != 0 || prepared.plan.ReusedQueryVectors != 0 || prepared.plan.ReusedDenseRankings != 0 || prepared.plan.QueryVectorPersisted {
 		return nil, fmt.Errorf("invalid retrieval experiment plan")
 	}
-	if err := prepared.experiment.FTSPolicy.Validate(prepared.application.Resolved); err != nil {
-		return nil, err
-	}
-	if err := prepared.plan.FTSPolicy.Validate(prepared.application.Resolved); err != nil || prepared.plan.FTSPolicy.PolicySHA256 != prepared.experiment.FTSPolicy.PolicySHA256 {
-		return nil, fmt.Errorf("retrieval experiment FTS policy drift")
+	if prepared.plan.EvidenceClass == "CALIBRATION_POOL_BUILDING" {
+		if prepared.plan.SeriesQueryOperationsPlanned != 32 || prepared.experiment.FTSPolicy == nil || prepared.plan.FTSPolicy == nil || prepared.experiment.FTSPolicy.Validate(prepared.application.Resolved) != nil || prepared.plan.FTSPolicy.Validate(prepared.application.Resolved) != nil || prepared.plan.FTSPolicy.PolicySHA256 != prepared.experiment.FTSPolicy.PolicySHA256 {
+			return nil, fmt.Errorf("legacy retrieval experiment FTS policy drift")
+		}
+	} else if prepared.experiment.FTSPolicy != nil || prepared.plan.FTSPolicy != nil {
+		return nil, fmt.Errorf("relation experiment must retain production FTS")
 	}
 	if !canonicalVCSRevision(prepared.documentBankFingerprint) || len(prepared.documentBankFingerprint) != 64 {
 		return nil, fmt.Errorf("document-bank fingerprint is required")
@@ -485,10 +496,30 @@ func buildRetrievalExperimentManifest(prepared retrievalPrepared, run eval.Retri
 	if !isFinitePositive(prepared.plan.USDCap) || !isFinitePositive(prepared.plan.USDPerMillionTokens) || prepared.plan.PlannedMaximumCostUSD < 0 || prepared.plan.PlannedMaximumCostUSD > prepared.plan.USDCap || actualCost < 0 || actualCost > prepared.plan.USDCap {
 		return nil, fmt.Errorf("retrieval experiment cost is outside its authorization")
 	}
+	observations := map[string]int{}
+	canonicalInputs := map[string]int{}
+	for _, item := range run.Cases {
+		for _, arm := range item.Arms {
+			if arm.Ranking.Variant == eval.VariantServingActiveCodec {
+				if _, exists := observations[item.Case.QueryID]; exists {
+					return nil, fmt.Errorf("duplicate serving-active segment observations")
+				}
+				count, err := servingActiveCanonicalInputCount(arm.Segments)
+				if err != nil {
+					return nil, err
+				}
+				observations[item.Case.QueryID] = len(arm.Segments)
+				canonicalInputs[item.Case.QueryID] = count
+			}
+		}
+	}
 	queries := make([]retrievalExperimentQuery, 0, len(prepared.dataset.Cases))
 	for _, item := range prepared.dataset.Cases {
 		sum := sha256.Sum256([]byte(item.Text))
-		queries = append(queries, retrievalExperimentQuery{QueryID: item.ID, TextSHA256: hex.EncodeToString(sum[:])})
+		if observations[item.ID] < 1 || canonicalInputs[item.ID] != prepared.plan.RawDocumentInputs {
+			return nil, fmt.Errorf("serving-active segments do not cover the planned raw document input universe")
+		}
+		queries = append(queries, retrievalExperimentQuery{QueryID: item.ID, TextSHA256: hex.EncodeToString(sum[:]), ServingActiveSegmentObservations: observations[item.ID]})
 	}
 	retryPayload := struct {
 		Identity       string `json:"identity"`
@@ -504,7 +535,7 @@ func buildRetrievalExperimentManifest(prepared retrievalPrepared, run eval.Retri
 	return &retrievalExperimentManifest{
 		ExperimentSeriesID: prepared.plan.ExperimentSeriesID, EvidenceClass: prepared.plan.EvidenceClass, PromotionEligible: false,
 		LabelState: prepared.plan.LabelState, QueryExecutionMode: prepared.plan.QueryExecutionMode, SeriesQueryOperationsPlanned: prepared.plan.SeriesQueryOperationsPlanned,
-		CorpusCleanVerified: true, FTSPolicy: *prepared.experiment.FTSPolicy, Queries: queries, BuildInfo: info, EvaluationExecutableSHA256: executableSHA256,
+		CorpusCleanVerified: true, FTSMode: retrievalExperimentFTSMode(prepared.experiment), FTSPolicy: prepared.experiment.FTSPolicy, Queries: queries, BuildInfo: info, EvaluationExecutableSHA256: executableSHA256,
 		Profiles:           retrievalExperimentProfiles{Index: string(fingerprints.Index), CanonicalText: string(fingerprints.CanonicalText), Source: string(fingerprints.Source), VectorSpace: string(fingerprints.VectorSpace), VectorStorage: string(fingerprints.VectorStorage), Policy: string(fingerprints.Policy), Materialized: prepared.plan.ServingProfile},
 		DocumentBankSHA256: prepared.documentBankFingerprint, SourceDimensions: resolved.Embedding.Model.SourceDimensions, ServingDimensions: resolved.Embedding.ServingDimensions, StorageCodec: resolved.Embedding.StorageCodec,
 		DocumentProviderOperations: 0, ReusedQueryVectors: 0, ReusedDenseRankings: 0, QueryVectorPersisted: false, QueryVectorSHA256Recorded: true,
@@ -624,6 +655,7 @@ func publishRetrievalArtifact(ctx context.Context, prepared retrievalPrepared, r
 		IndexGeneration:        prepared.plan.IndexGeneration,
 		IndexManifestSHA256:    prepared.plan.IndexManifestSHA256,
 		DatasetSHA256:          prepared.plan.DatasetSHA256,
+		DatasetSourceSHA256:    prepared.plan.DatasetSourceSHA256,
 		QueryIDs:               queryIDs,
 		ServingProfile:         prepared.plan.ServingProfile,
 		SourceProfile:          string(prepared.application.Resolved.Profiles.Fingerprints.Source),
@@ -640,6 +672,11 @@ func publishRetrievalArtifact(ctx context.Context, prepared retrievalPrepared, r
 	}
 	if err := writeRetrievalLines(temporary, prepared.dataset, run); err != nil {
 		return RetrievalArtifactReference{}, err
+	}
+	if experimentManifest != nil {
+		if err := validatePublishedExperimentSegments(filepath.Join(temporary, "dense-segment-candidates.jsonl"), experimentManifest, prepared.plan.RawDocumentInputs); err != nil {
+			return RetrievalArtifactReference{}, err
+		}
 	}
 	if err := writeJSON(filepath.Join(temporary, "provider-usage.json"), usage); err != nil {
 		return RetrievalArtifactReference{}, err
@@ -676,6 +713,62 @@ func publishRetrievalArtifact(ctx context.Context, prepared retrievalPrepared, r
 		return RetrievalArtifactReference{}, err
 	}
 	return RetrievalArtifactReference{RunID: runID, Reference: filepath.ToSlash(filepath.Join("evaluations", runID)), Checksum: checksum}, nil
+}
+
+func validatePublishedExperimentSegments(file string, manifest *retrievalExperimentManifest, rawDocumentInputs int) error {
+	if rawDocumentInputs < 1 {
+		return fmt.Errorf("serving-active segment raw document input count is invalid")
+	}
+	data, err := os.ReadFile(file)
+	if err != nil {
+		return err
+	}
+	counts := map[string]int{}
+	canonicalInputs := map[string]int{}
+	for _, line := range strings.Split(strings.TrimSpace(string(data)), "\n") {
+		if line == "" {
+			continue
+		}
+		var row struct {
+			QueryID  string                        `json:"query_id"`
+			Variant  eval.RetrievalVariant         `json:"variant"`
+			Segments []search.EvaluationSegmentHit `json:"segments"`
+		}
+		if err := json.Unmarshal([]byte(line), &row); err != nil {
+			return err
+		}
+		if row.Variant == eval.VariantServingActiveCodec {
+			if _, seen := counts[row.QueryID]; seen {
+				return fmt.Errorf("duplicate serving-active segment row")
+			}
+			count, err := servingActiveCanonicalInputCount(row.Segments)
+			if err != nil {
+				return err
+			}
+			counts[row.QueryID] = len(row.Segments)
+			canonicalInputs[row.QueryID] = count
+		}
+	}
+	if len(counts) != len(manifest.Queries) {
+		return fmt.Errorf("serving-active segment query cardinality mismatch")
+	}
+	for _, query := range manifest.Queries {
+		if counts[query.QueryID] != query.ServingActiveSegmentObservations || canonicalInputs[query.QueryID] != rawDocumentInputs {
+			return fmt.Errorf("serving-active segment observation manifest mismatch")
+		}
+	}
+	return nil
+}
+
+func servingActiveCanonicalInputCount(segments []search.EvaluationSegmentHit) (int, error) {
+	inputs := map[string]bool{}
+	for _, segment := range segments {
+		if len(segment.CanonicalInputSHA256) != 64 || !canonicalVCSRevision(segment.CanonicalInputSHA256) {
+			return 0, fmt.Errorf("invalid serving-active canonical input digest")
+		}
+		inputs[segment.CanonicalInputSHA256] = true
+	}
+	return len(inputs), nil
 }
 
 func removeRetrievalArtifact(ctx context.Context, prepared retrievalPrepared, artifact RetrievalArtifactReference) error {

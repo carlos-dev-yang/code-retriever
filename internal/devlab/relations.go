@@ -32,6 +32,7 @@ func relations(ctx context.Context, args []string, stdout, stderr io.Writer) err
 	corpusPath := flags.String("corpus-path", "", "approved local corpus checkout (not persisted)")
 	runID := flags.String("run-id", "", "fresh immutable relation artifact identifier")
 	graphDir := flags.String("graph-dir", "", "published relation graph directory for evaluate")
+	retrievalDir := flags.String("retrieval-dir", "", "published immutable retrieval artifact directory for complete")
 	replay := flags.String("replay", "", "frozen dense1024/int8 replay")
 	dataset := flags.String("dataset", "", "frozen dataset")
 	probes := flags.String("probes", "testdata/retrieval/relation-probes-chi-rhf-v1.json", "tracked relation probe file")
@@ -160,6 +161,29 @@ func relations(ctx context.Context, args []string, stdout, stderr io.Writer) err
 			return err
 		}
 		return json.NewEncoder(stdout).Encode(result)
+	case "complete":
+		if *graphDir == "" || *retrievalDir == "" || *dataset == "" {
+			return fmt.Errorf("dev relations complete requires --graph-dir --retrieval-dir --dataset")
+		}
+		graph, err := controlledRelationGraph(layout.StateRoot, *graphDir)
+		if err != nil {
+			return err
+		}
+		retrieval, err := controlledRelationRetrieval(layout.StateRoot, *retrievalDir)
+		if err != nil {
+			return err
+		}
+		datasetInput, err := controlledRelationInput(controller, *dataset)
+		if err != nil {
+			return err
+		}
+		result, err := relationdiag.Complete(ctx, relationdiag.CompletionRequest{RunID: *runID, EvaluationRoot: evaluationRoot, GraphDirectory: graph, RetrievalDirectory: retrieval, DatasetPath: datasetInput, Parents: parents, Reproof: func(ctx context.Context) (store.SemanticParentSnapshot, error) {
+			return application.Store.SemanticParentsSnapshot(ctx)
+		}})
+		if err != nil {
+			return err
+		}
+		return json.NewEncoder(stdout).Encode(result)
 	default:
 		return fmt.Errorf("unknown dev relations subcommand")
 	}
@@ -212,6 +236,27 @@ func controlledRelationGraph(stateRoot, value string) (string, error) {
 	relative, err := filepath.Rel(canonicalEvaluationRoot, canonical)
 	if err != nil || relative == ".." || strings.HasPrefix(filepath.ToSlash(relative), "../") {
 		return "", fmt.Errorf("graph directory escapes evaluation root")
+	}
+	return canonical, nil
+}
+
+func controlledRelationRetrieval(stateRoot, value string) (string, error) {
+	clean := filepath.Clean(value)
+	if filepath.IsAbs(value) || !strings.HasPrefix(filepath.ToSlash(clean), "evaluations/retrieval-") {
+		return "", fmt.Errorf("retrieval directory must be below state evaluations")
+	}
+	full := filepath.Join(stateRoot, clean)
+	canonicalEvaluationRoot, err := filepath.EvalSymlinks(filepath.Join(stateRoot, "evaluations"))
+	if err != nil {
+		return "", err
+	}
+	canonical, err := filepath.EvalSymlinks(full)
+	if err != nil {
+		return "", err
+	}
+	relative, err := filepath.Rel(canonicalEvaluationRoot, canonical)
+	if err != nil || relative == ".." || strings.HasPrefix(filepath.ToSlash(relative), "../") || !strings.HasPrefix(filepath.ToSlash(relative), "retrieval-") {
+		return "", fmt.Errorf("retrieval directory escapes evaluation root")
 	}
 	return canonical, nil
 }
