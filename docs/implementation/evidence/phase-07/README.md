@@ -5,7 +5,7 @@
   product boundary is reconciled; the 32-case chi/RHF calibration set is
   frozen, adopted, and replayed; a separate unexposed promotion-capable
   confirmation set remains outstanding.
-- Date: 2026-08-18
+- Date: 2026-08-19
 
 Current product authority: [Retired Vector Profiles and Evidence Boundary](../../RETIRED-VECTOR-PROFILES.md).
 
@@ -68,6 +68,15 @@ provenance, and final-reproof bindings passed Terra review and the main offline
 boundary. This checkpoint contains no new corpus, Voyage operation, label,
 score, or product policy. The owner must select every new calibration
 repository before preparation resumes.
+
+Current offline readiness: [Stage A full offline readiness and frozen
+regression replay — Revision 4](relation-evidence-completion-offline-readiness-r4.md).
+The full normal/race/vet/build/module/format/schema/script/dependency boundary,
+64 retained artifact manifests covering 727 files, and the exact historical
+chi/RHF Pareto replay passed with zero provider operations. The same pass found
+and repaired the packaging license allowlist for the newly linked `x/tools`
+modules; installed-release verification then passed. This evidence does not
+authorize a new repository or provider operation.
 
 ### 2026-08-17 solo-project relevance-authority revision
 

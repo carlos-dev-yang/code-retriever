@@ -96,3 +96,21 @@ remains blocked rather than done. The next product work is the Phase 07
 owner-adopted dual-AI label freeze and immutable replay, with permanent
 `NO_INDEPENDENT_HUMAN_REVIEW`, followed by official Phase 12 and assistant/host
 promotion evidence when their other inputs are available.
+
+## 2026-08-19 dependency-closure revalidation
+
+The Phase 07 relation resolver added linked `golang.org/x/tools` dependencies
+after the accepted package above. A clean package attempt failed closed because
+the exact linked module set no longer matched
+`packaging/third-party-licenses.tsv`. Commit `31d37fe` updates that allowlist
+to the current `x/mod`, `x/sync`, `x/sys`, and `x/tools` versions and copies
+their original `LICENSE` and `PATENTS` inputs without inferred license labels.
+
+A second clean, network-disabled package and installed-release verification at
+that commit passed the same archive, corruption, runtime, 1024/int8, local
+512/int8 rematerialization, retired Binary/256, three-language FTS, four-tool
+MCP, relocation, and isolated Codex configuration checks. It made no provider,
+model, assistant, or corpus operation. The validation archive SHA-256 was
+`dcc781cc2e2d970d63823fec0d4f723e03c89446278103eeed6ebb741273e204`;
+it is an ephemeral test artifact, not a published release. This follow-up does
+not change the remaining official evaluation or assistant gates.
