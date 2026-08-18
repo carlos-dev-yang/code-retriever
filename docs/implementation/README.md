@@ -11,6 +11,8 @@
 - Execution protocol: [Implementation Execution and Context-Recovery Guide](EXECUTION-GUIDE.md)
 - Evaluation and promotion contract: [cidx v1 Evaluation and Promotion Contract](EVALUATION-CONTRACT.md)
 - Evaluation execution: [Retrieval Evaluation and Embedding Execution Plan](EVALUATION-EMBEDDING-EXECUTION-PLAN.md)
+- Relation-graph experiment journal: [complete chi/RHF graph investigation and review dossier](RELATION-GRAPH-EXPERIMENT-JOURNAL.md)
+- Next relation experiment authority: [semantic admission, contract closure, and assistant-pull plan](RELATION-EVIDENCE-COMPLETION-PLAN.md)
 - Persistent state: [Phase Status Ledger](STATUS.md)
 - Final corpus-independent review: [int8/source-profile implementation-to-design review](evidence/revision-4/int8-source-profile-final-review.md)
 - Last updated: 2026-08-18

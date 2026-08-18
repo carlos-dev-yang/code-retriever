@@ -17,6 +17,12 @@ Read the [implementation index](README.md), [execution guide](EXECUTION-GUIDE.md
 - Re-check project-scoped host setup, stdout protocol purity, stderr diagnostics, the 64 KiB default / 1 MiB absolute `max_inline_bytes` ceiling, no read-span line cap, and environment-only `VOYAGE_API_KEY` forwarding.
 - Re-check that serving/package smoke does not open the source bank or lab DB, mutate host config or hooks, promise unverified platforms, or invent fixed-model/external-vector policy.
 - Re-check the frozen assistant-task controls and three product arms: existing tools only, existing tools plus lexical cidx, and existing tools plus hybrid cidx. Never force a cidx call.
+- If the relation completion series reaches assistant evaluation, add the
+  separately frozen closure, body-free hints plus existing `read_span`, and
+  closure-plus-hints development arms from
+  [`RELATION-EVIDENCE-COMPLETION-PLAN.md`](RELATION-EVIDENCE-COMPLETION-PLAN.md).
+  These arms are independent of server-push precision, remain non-product
+  until measured, and do not add an MCP tool.
 - Stop if dependency licensing, FTS/grammar reproducibility, schema compatibility, root semantics, or a host-specific config format is unverified. Do not claim inferred support.
 - Before pausing, update build/host evidence and this decision log, then update [STATUS.md](STATUS.md) with verified and unverified targets, risks, and next action.
 

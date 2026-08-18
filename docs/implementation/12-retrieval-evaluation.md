@@ -18,6 +18,11 @@ Read the [implementation index](README.md), [execution guide](EXECUTION-GUIDE.md
 - Re-check that all compared profiles use the same approved product document source bank, manifest, canonical input set, question/answer dataset, and production search implementation, and that aggregate metrics retain separate Go, TypeScript, TSX, and mixed counts and denominators.
 - Re-check the durable document source-1024 bank, default 1024/int8 and explicit compact 512/int8 targets, nonpersistent query f32, complete absence of Binary/256 executable arms, and one active serving profile per run.
 - Re-check the frozen calibration/confirmation split, exact denominators, required-group labels, first-loss enum, FTS/dense lane traces, serving-f32 codec reference, RRF ablations, and promotion contract before any applied run.
+- Re-check the evaluation-only relation completion boundary in
+  [`RELATION-EVIDENCE-COMPLETION-PLAN.md`](RELATION-EVIDENCE-COMPLETION-PLAN.md):
+  reuse the existing full active-int8 segment-score artifact, persist no query
+  vector, make no relation-pass provider call, and do not imply that sidecar
+  evidence is already a production `core_retrieval` path.
 - Stop if corpus approval, license evidence, pinned revision, clean-tree/content hash, ground truth, source coverage, or fingerprint compatibility is unresolved. Never choose, download, update, index, or embed a corpus on the user's behalf without explicit approval.
 - Before pausing, update run/evidence records and this decision log, then update [STATUS.md](STATUS.md) with approved corpus IDs, checked hashes, incomplete work, and the exact next action.
 

@@ -64,6 +64,14 @@ This ledger is the authoritative resumable state for implementation work. Update
   Pareto winners, 13 multiple-winner abstentions, and 2 no-candidate
   abstentions. Exact G09 and X08 evidence is recovered, but 10/17 emitted
   bundles are noise-only. The rule is not a serving candidate.
+- New active relation boundary: the next experiment is governed by
+  [the relation evidence completion plan](RELATION-EVIDENCE-COMPLETION-PLAN.md).
+  It reuses the existing full active-int8 segment-score artifact to derive
+  provider-free semantic endpoint features, inventories bounded one-hop
+  contract closure, and prepares body-free relation hints for an independent
+  later assistant A/B. The exposed 32 cases remain closed. No new corpus,
+  provider operation, production graph path, search wire, or fifth MCP tool is
+  authorized at this documentation checkpoint.
 - Completed final admission boundary: [graph-only Pareto evidence](evidence/phase-07/relation-graph-only-pareto-diagnostic-r4.md)
   records the frozen rule, clean implementation and executable, plan/run
   hashes, exact denominators, deterministic repeats, G09/X08 bodies, zero
@@ -104,11 +112,12 @@ This ledger is the authoritative resumable state for implementation work. Update
   found 57 such production functions: 51 in previously parentless files and six
   in files with an existing type parent.
 - Next eligible phase: use the closed Phase 07 calibration checkpoint for bounded Phase 12 calibration analysis while Phase 07 prepares a separate unexposed confirmation set.
-- Exact next action: do not tune another relation admission rule on the exposed
-  32 cases. If graph work resumes, first freeze a separate development unit,
-  then validate the chosen design on the already required unexposed
-  confirmation set. Product integration needs a new storage/search plan that
-  consumes a bounded aggregate rather than the complete evaluation sidecar.
+- Exact next action: implement and validate only the corpus-independent,
+  provider-free relation-completion evaluator and dev-only hint artifact
+  plumbing from `RELATION-EVIDENCE-COMPLETION-PLAN.md`. Then stop for explicit
+  user selection/approval of every new calibration repository before any
+  clone, corpus run, document capture, or query operation. Do not inspect new
+  semantic scores for the exposed 32 cases.
 
 Existing phase completion rows and implementation are historical work produced against earlier design revisions. They must not be read as proof that the current code satisfies Revision 4; the implementation remains a prototype until it is explicitly reconciled and revalidated against the final target contract.
 

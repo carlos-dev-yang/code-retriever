@@ -560,6 +560,17 @@ evaluation-only; product storage/search has no dependency on it. Tuning on
 these exposed 32 cases is now closed. Exact evidence is
 [`relation-graph-only-pareto-diagnostic-r4.md`](evidence/phase-07/relation-graph-only-pareto-diagnostic-r4.md).
 
+The owner subsequently accepted a new-unit-only sequence for semantic graph
+admission, bounded contract closure, and metadata-only assistant hints. The
+sequence is frozen in
+[`RELATION-EVIDENCE-COMPLETION-PLAN.md`](RELATION-EVIDENCE-COMPLETION-PLAN.md).
+It does not reopen the exposed 32. The corpus-independent implementation may
+reuse the complete active-int8 segment scores already written by the Phase 12
+retrieval artifact and must make zero provider calls of its own. New corpus
+selection, acquisition, document capture, calibration queries, confirmation
+queries, and assistant execution remain separate explicit user-approval
+gates.
+
 Completion reports must not use the metric value itself as a success declaration. They should demonstrate that the evaluation is reproducible and that failures are traceable.
 
 ## 12. Follow-up Handoff
@@ -618,6 +629,7 @@ Phase 12 extends the shared Phase 07 `internal/eval` dataset, ground-truth, metr
 | Retain the measured top-two bucket frontier only as a provisional development complexity control. | It reduced chi to at most 8 and RHF to at most 11 final edges per query, preserved primary evidence, and produced deterministic repeats. The global 32-edge ceiling, forced bridge reservation, and displacement paths were not exercised by the real corpora, and bounding alone reproduced the prior selector and noise. | A separately frozen evaluation unit measures another corpus/fan-out distribution without tuning this exposed set. |
 | Reject direct-anchor bridge-only abstention as the general relation admission rule. | It reduced emitted noise but lost reachable G09 evidence, because a selected anchor can point to a useful graph-only endpoint. Four of ten emitted bundles were still noise-only. Exact X08 survived, so bridge presence remains a useful feature rather than a complete decision. | Completed by the final Pareto diagnostic in the next row; no further exposed-set tuning is permitted. |
 | Reject direct-bridge, unique graph-only Pareto, and their combined admission rule for product use; close all policy tuning on the exposed 32 cases. | The final arm recovered G09 and X08 and reached `32/32` without primary or hard-negative regression, but only `7/17` emitted bundles were useful. The new Pareto branch supplied the missing G09 evidence yet was useful in only `1/7` emissions. The measured graph features remain useful diagnostics, not a sufficient relevance decision. | A separately frozen new development unit specifies another admission design before exposure, followed by the existing unexposed confirmation requirement. |
+| Freeze the next relation series around existing semantic scores, interpretive contract closure, and body-free assistant hints. | The previous selectors used lexical and ordinal query features but never the continuous dense score of graph endpoints. Existing retrieval artifacts already contain every active-int8 segment score from one request, so a provider-free relation pass can derive global parent rank/percentile and ambiguity without persisting vectors or repeating queries. Contract closure and assistant pull answer separate questions and keep dual count/byte budgets. | After corpus-independent evaluator review, the user approves new calibration repositories. A distinct confirmation unit validates the frozen policy, and assistant A/B independently decides push versus pull before any product wire change. |
 | Do not edit the exposed 32-case calibration set to improve its scores. | The questions, labels, and immutable ranks have now influenced a retrieval-policy decision. Further tuning on them would invalidate their role as an unbiased confirmation unit. | Never for this dataset version; create a new versioned calibration or an unexposed confirmation unit. |
 | Preserve failure taxonomy alongside metrics. | It identifies which implementation layer should change next. | Never. |
 | Call production services directly. | This prevents divergence between evaluation and actual behavior. | Never. |

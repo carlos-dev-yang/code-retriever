@@ -9,6 +9,15 @@
 
 This document defines how to prepare the approved corpora and source-backed relevance labels, when document and query embeddings may be purchased, how candidate search profiles are calibrated, and how a frozen confirmation run produces or fails to produce `core_retrieval` evidence.
 
+The next relation-aware series is governed by
+[`RELATION-EVIDENCE-COMPLETION-PLAN.md`](RELATION-EVIDENCE-COMPLETION-PLAN.md).
+It adds no relation embedding or repeated query operation: one approved
+retrieval capture writes every active-int8 segment score, and a later
+provider-free pass derives semantic endpoint, contract-closure, and body-free
+hint evidence. The old 32 cases remain closed. Assistant hints plus existing
+`read_span` are evaluated independently later and do not change the four-tool
+MCP contract at this stage.
+
 It is an execution companion to the canonical evaluation contract, not a replacement for it. If this document, an implementation phase, an adviser response, or a chat summary conflicts with the canonical contract, the canonical contract wins. This document does not itself authorize a paid embedding or official evaluation; the status/evidence ledger separately records operations that were approved and completed.
 
 The plan was independently discussed with ChatGPT and Grok. Their common recommendations—provider-free preparation first, explicit spend gates, immutable paired runs, first-loss diagnosis, and limited claims from the current two repositories—are incorporated. Their advice is not ground truth. Section 16 records the material corrections made during reconciliation.
