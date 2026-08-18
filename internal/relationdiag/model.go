@@ -15,16 +15,162 @@ import (
 )
 
 const (
-	SchemaVersion      = 1
-	ProtocolVersion    = "cidx.relation-diagnostic.v1"
+	SchemaVersion      = 2
+	ProbeSchemaVersion = 1
+	ProtocolVersion    = "cidx.relation-diagnostic.v2"
 	IdentityPolicyID   = "path-indexed-sha-language-kind-qualified-symbol-byte-range-v1"
-	SelectionPolicyID  = "one-hop-kind-order-type-call-member-one-bundle-v2"
+	MetadataPolicyID   = "occurrence-context-ast-compiler-v1"
+	DenseFirstPolicyID = "query-edge-metadata-dense-first-v1"
+	GraphFirstPolicyID = "query-edge-metadata-graph-first-dense-crossover-v1"
+	// SelectionPolicyID remains the default only for legacy focused fixtures.
+	SelectionPolicyID  = DenseFirstPolicyID
 	BodyPolicyID       = "related-complete-parent-2x1024-v1"
 	MaxDenseDepth      = 20
 	ProtectedPrimaryK  = 5
 	RelatedParentLimit = 2
 	RelatedBodyLimit   = 1024
 )
+
+type OccurrenceZone string
+
+const (
+	SignatureZone   OccurrenceZone = "SIGNATURE"
+	BodyZone        OccurrenceZone = "BODY"
+	TypeBodyZone    OccurrenceZone = "TYPE_BODY"
+	InitializerZone OccurrenceZone = "INITIALIZER"
+)
+
+func (v OccurrenceZone) Valid() bool {
+	return v == SignatureZone || v == BodyZone || v == TypeBodyZone || v == InitializerZone
+}
+
+type OccurrenceRole string
+
+const (
+	CallFreeFunctionRole  OccurrenceRole = "CALL_FREE_FUNCTION"
+	CallMethodRole        OccurrenceRole = "CALL_METHOD"
+	CallableValueRole     OccurrenceRole = "CALLABLE_VALUE"
+	TypeParameterRole     OccurrenceRole = "TYPE_PARAMETER"
+	TypeReturnRole        OccurrenceRole = "TYPE_RETURN"
+	TypeFieldRole         OccurrenceRole = "TYPE_FIELD"
+	TypeAliasRole         OccurrenceRole = "TYPE_ALIAS"
+	TypeHeritageRole      OccurrenceRole = "TYPE_HERITAGE"
+	TypeArgumentRole      OccurrenceRole = "TYPE_ARGUMENT"
+	TypeLocalRole         OccurrenceRole = "TYPE_LOCAL"
+	TypeOtherRole         OccurrenceRole = "TYPE_OTHER"
+	MemberReceiverRole    OccurrenceRole = "MEMBER_RECEIVER"
+	MemberDeclarationRole OccurrenceRole = "MEMBER_DECLARATION"
+)
+
+func (v OccurrenceRole) Valid() bool {
+	switch v {
+	case CallFreeFunctionRole, CallMethodRole, CallableValueRole, TypeParameterRole, TypeReturnRole, TypeFieldRole, TypeAliasRole, TypeHeritageRole, TypeArgumentRole, TypeLocalRole, TypeOtherRole, MemberReceiverRole, MemberDeclarationRole:
+		return true
+	}
+	return false
+}
+
+type FlowRole string
+
+const (
+	FlowNone        FlowRole = "NONE"
+	FlowReturn      FlowRole = "RETURN"
+	FlowAssignment  FlowRole = "ASSIGNMENT"
+	FlowCondition   FlowRole = "CONDITION"
+	FlowArgument    FlowRole = "ARGUMENT"
+	FlowDeclaration FlowRole = "DECLARATION"
+)
+
+func (v FlowRole) Valid() bool {
+	return v == FlowNone || v == FlowReturn || v == FlowAssignment || v == FlowCondition || v == FlowArgument || v == FlowDeclaration
+}
+
+type FileRole string
+
+const (
+	ProductionFileRole FileRole = "PRODUCTION"
+	TestFileRole       FileRole = "TEST"
+	ExampleFileRole    FileRole = "EXAMPLE"
+	BenchmarkFileRole  FileRole = "BENCHMARK"
+)
+
+func (v FileRole) Valid() bool {
+	return v == ProductionFileRole || v == TestFileRole || v == ExampleFileRole || v == BenchmarkFileRole
+}
+
+type ExecutionMode string
+
+const (
+	DirectExecution     ExecutionMode = "DIRECT"
+	DeferredExecution   ExecutionMode = "DEFERRED"
+	ConcurrentExecution ExecutionMode = "CONCURRENT"
+	AwaitedExecution    ExecutionMode = "AWAITED"
+)
+
+func (v ExecutionMode) Valid() bool {
+	return v == DirectExecution || v == DeferredExecution || v == ConcurrentExecution || v == AwaitedExecution
+}
+
+type ControlRole string
+
+const (
+	ControlNone     ControlRole = "NONE"
+	ControlBranch   ControlRole = "BRANCH"
+	ControlLoop     ControlRole = "LOOP"
+	ControlSwitch   ControlRole = "SWITCH"
+	ControlTryCatch ControlRole = "TRY_CATCH"
+)
+
+func (v ControlRole) Valid() bool {
+	return v == ControlNone || v == ControlBranch || v == ControlLoop || v == ControlSwitch || v == ControlTryCatch
+}
+
+type OccurrenceMetadata struct {
+	Zone               OccurrenceZone `json:"zone"`
+	Role               OccurrenceRole `json:"role"`
+	Flow               FlowRole       `json:"flow_role"`
+	FileRole           FileRole       `json:"file_role"`
+	Execution          ExecutionMode  `json:"execution_mode"`
+	Control            ControlRole    `json:"control_role"`
+	ContextIdentifiers []string       `json:"context_identifiers"`
+	SourceOrdinal      int            `json:"source_ordinal"`
+}
+
+func DefaultOccurrenceMetadata(file string, ordinal int) OccurrenceMetadata {
+	if ordinal < 1 {
+		ordinal = 1
+	}
+	return OccurrenceMetadata{Zone: BodyZone, Role: TypeOtherRole, Flow: FlowNone, FileRole: FileRoleForPath(file), Execution: DirectExecution, Control: ControlNone, ContextIdentifiers: []string{}, SourceOrdinal: ordinal}
+}
+
+func (v OccurrenceMetadata) Validate() error {
+	if !v.Zone.Valid() || !v.Role.Valid() || !v.Flow.Valid() || !v.FileRole.Valid() || !v.Execution.Valid() || !v.Control.Valid() || v.SourceOrdinal < 1 || len(v.ContextIdentifiers) > 8 {
+		return fmt.Errorf("invalid occurrence metadata")
+	}
+	seen := map[string]bool{}
+	for _, token := range v.ContextIdentifiers {
+		if token == "" || strings.TrimSpace(token) != token || strings.ContainsAny(token, "\\/\x00") || seen[token] {
+			return fmt.Errorf("invalid occurrence context identifier")
+		}
+		seen[token] = true
+	}
+	return nil
+}
+
+func FileRoleForPath(value string) FileRole {
+	lower := strings.ToLower(path.Clean(value))
+	base := path.Base(lower)
+	if strings.HasSuffix(base, "_example_test.go") || strings.Contains(base, ".example.") || strings.Contains(lower, "/example/") || strings.Contains(lower, "/examples/") || strings.HasPrefix(base, "example_") {
+		return ExampleFileRole
+	}
+	if strings.HasSuffix(base, "_bench_test.go") || strings.Contains(base, "benchmark") || strings.Contains(base, ".bench.") || strings.HasPrefix(base, "bench_") || strings.Contains(lower, "/benchmark/") || strings.Contains(lower, "/benchmarks/") {
+		return BenchmarkFileRole
+	}
+	if strings.HasSuffix(base, "_test.go") || strings.Contains(base, ".test.") || strings.Contains(lower, "/test/") || strings.Contains(lower, "/tests/") {
+		return TestFileRole
+	}
+	return ProductionFileRole
+}
 
 type RelationKind string
 
@@ -60,23 +206,25 @@ const (
 )
 
 type Parent struct {
-	ID              string `json:"parent_id"`
-	Path            string `json:"path"`
-	IndexedSHA256   string `json:"indexed_sha256"`
-	Language        string `json:"language"`
-	Kind            string `json:"kind"`
-	Symbol          string `json:"symbol"`
-	QualifiedSymbol string `json:"qualified_symbol"`
-	StartByte       int    `json:"start_byte"`
-	EndByte         int    `json:"end_byte"`
-	SourceBody      string `json:"-"`
+	ID              string   `json:"parent_id"`
+	Path            string   `json:"path"`
+	IndexedSHA256   string   `json:"indexed_sha256"`
+	Language        string   `json:"language"`
+	Kind            string   `json:"kind"`
+	Symbol          string   `json:"symbol"`
+	QualifiedSymbol string   `json:"qualified_symbol"`
+	StartByte       int      `json:"start_byte"`
+	EndByte         int      `json:"end_byte"`
+	SourceBody      string   `json:"-"`
+	FileRole        FileRole `json:"file_role"`
+	Deprecated      bool     `json:"deprecated"`
 }
 
 func ParentFromStored(value store.SemanticParent) (Parent, error) {
 	if !validParentFields(value.Path, value.IndexedSHA256, value.Language, value.Kind, value.QualifiedSymbol, value.StartByte, value.EndByte) {
 		return Parent{}, fmt.Errorf("invalid semantic parent")
 	}
-	parent := Parent{Path: value.Path, IndexedSHA256: value.IndexedSHA256, Language: value.Language, Kind: value.Kind, Symbol: value.Symbol, QualifiedSymbol: value.QualifiedSymbol, StartByte: value.StartByte, EndByte: value.EndByte, SourceBody: value.SourceBody}
+	parent := Parent{Path: value.Path, IndexedSHA256: value.IndexedSHA256, Language: value.Language, Kind: value.Kind, Symbol: value.Symbol, QualifiedSymbol: value.QualifiedSymbol, StartByte: value.StartByte, EndByte: value.EndByte, SourceBody: value.SourceBody, FileRole: FileRoleForPath(value.Path), Deprecated: deprecatedParent(value.Language, value.SourceBody)}
 	parent.ID = ParentID(parent)
 	return parent, nil
 }
@@ -106,13 +254,14 @@ func ParentInventory(parents []store.SemanticParent) ([]Parent, error) {
 }
 
 type Candidate struct {
-	ID             string       `json:"id"`
-	Path           string       `json:"path"`
-	Language       string       `json:"language"`
-	Kind           RelationKind `json:"kind"`
-	StartByte      int          `json:"start_byte"`
-	EndByte        int          `json:"end_byte"`
-	SourceParentID string       `json:"source_parent_id,omitempty"`
+	ID             string             `json:"id"`
+	Path           string             `json:"path"`
+	Language       string             `json:"language"`
+	Kind           RelationKind       `json:"kind"`
+	StartByte      int                `json:"start_byte"`
+	EndByte        int                `json:"end_byte"`
+	SourceParentID string             `json:"source_parent_id,omitempty"`
+	Metadata       OccurrenceMetadata `json:"metadata"`
 }
 
 func CandidateID(file, language, parentID string, kind RelationKind, start, end int) string {
@@ -121,20 +270,21 @@ func CandidateID(file, language, parentID string, kind RelationKind, start, end 
 }
 
 type Occurrence struct {
-	ID             string       `json:"relation_id"`
-	SourceParentID string       `json:"source_parent_id,omitempty"`
-	TargetParentID string       `json:"target_parent_id,omitempty"`
-	Path           string       `json:"path"`
-	Language       string       `json:"language"`
-	Kind           RelationKind `json:"relation_kind"`
-	StartByte      int          `json:"start_byte"`
-	EndByte        int          `json:"end_byte"`
-	Outcome        Outcome      `json:"outcome"`
-	Resolver       string       `json:"resolver"`
+	ID             string             `json:"relation_id"`
+	SourceParentID string             `json:"source_parent_id,omitempty"`
+	TargetParentID string             `json:"target_parent_id,omitempty"`
+	Path           string             `json:"path"`
+	Language       string             `json:"language"`
+	Kind           RelationKind       `json:"relation_kind"`
+	StartByte      int                `json:"start_byte"`
+	EndByte        int                `json:"end_byte"`
+	Outcome        Outcome            `json:"outcome"`
+	Resolver       string             `json:"resolver"`
+	Metadata       OccurrenceMetadata `json:"metadata"`
 }
 
 func (v Occurrence) Validate() error {
-	if v.ID == "" || !v.Kind.Valid() || !v.Outcome.Valid() || !validRelative(v.Path) || v.StartByte < 0 || v.EndByte <= v.StartByte || v.Resolver == "" {
+	if v.ID == "" || !v.Kind.Valid() || !v.Outcome.Valid() || !validRelative(v.Path) || v.StartByte < 0 || v.EndByte <= v.StartByte || v.Resolver == "" || v.Metadata.Validate() != nil {
 		return fmt.Errorf("invalid relation occurrence")
 	}
 	if v.Outcome == ResolvedUnique {

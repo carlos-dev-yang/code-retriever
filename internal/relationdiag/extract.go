@@ -51,9 +51,10 @@ func ExtractCandidates(ctx context.Context, file string, language string, source
 			start, end := int(node.StartByte()), int(node.EndByte())
 			if start >= 0 && end > start && end <= len(source) {
 				parent, mapped := ParentContaining(parents, file, start, end)
-				candidate := Candidate{Path: file, Language: language, Kind: kind, StartByte: start, EndByte: end}
+				candidate := Candidate{Path: file, Language: language, Kind: kind, StartByte: start, EndByte: end, Metadata: DefaultOccurrenceMetadata(file, 1)}
 				if mapped {
 					candidate.SourceParentID = parent.ID
+					candidate.Metadata = occurrenceMetadata(node, source, language, kind, parent, 1)
 				}
 				candidate.ID = OccurrenceID(candidate)
 				if !seen[candidate.ID] {
@@ -61,7 +62,7 @@ func ExtractCandidates(ctx context.Context, file string, language string, source
 					if mapped {
 						candidates = append(candidates, candidate)
 					} else {
-						preResolved = append(preResolved, Occurrence{ID: candidate.ID, Path: file, Language: language, Kind: kind, StartByte: start, EndByte: end, Outcome: NoEnclosingParent, Resolver: "tree-sitter-parent-map-v1"})
+						preResolved = append(preResolved, Occurrence{ID: candidate.ID, Path: file, Language: language, Kind: kind, StartByte: start, EndByte: end, Outcome: NoEnclosingParent, Resolver: "tree-sitter-parent-map-v1", Metadata: candidate.Metadata})
 					}
 				}
 			}
@@ -86,8 +87,46 @@ func ExtractCandidates(ctx context.Context, file string, language string, source
 		}
 		return candidates[i].Kind < candidates[j].Kind
 	})
+	assignOccurrenceOrdinals(candidates, preResolved)
 	sort.Slice(preResolved, func(i, j int) bool { return preResolved[i].ID < preResolved[j].ID })
 	return candidates, preResolved, nil
+}
+
+func assignOccurrenceOrdinals(candidates []Candidate, unresolved []Occurrence) {
+	groups := map[string][]int{}
+	for index := range candidates {
+		key := candidates[index].SourceParentID
+		if key == "" {
+			key = "file:" + candidates[index].Path
+		}
+		groups[key] = append(groups[key], index)
+	}
+	for _, indexes := range groups {
+		sort.Slice(indexes, func(i, j int) bool {
+			a, b := candidates[indexes[i]], candidates[indexes[j]]
+			if a.StartByte != b.StartByte {
+				return a.StartByte < b.StartByte
+			}
+			if a.EndByte != b.EndByte {
+				return a.EndByte < b.EndByte
+			}
+			return a.ID < b.ID
+		})
+		for ordinal, index := range indexes {
+			candidates[index].Metadata.SourceOrdinal = ordinal + 1
+		}
+	}
+	// Unmapped occurrences have no enclosing semantic parent, so their file is
+	// the explicit ordinal group rather than an invented parent identity.
+	sort.Slice(unresolved, func(i, j int) bool {
+		if unresolved[i].StartByte != unresolved[j].StartByte {
+			return unresolved[i].StartByte < unresolved[j].StartByte
+		}
+		return unresolved[i].ID < unresolved[j].ID
+	})
+	for ordinal := range unresolved {
+		unresolved[ordinal].Metadata.SourceOrdinal = ordinal + 1
+	}
 }
 
 func relationGrammar(language string) (*treesitter.Language, error) {

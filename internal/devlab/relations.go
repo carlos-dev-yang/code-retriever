@@ -35,6 +35,7 @@ func relations(ctx context.Context, args []string, stdout, stderr io.Writer) err
 	replay := flags.String("replay", "", "frozen dense1024/int8 replay")
 	dataset := flags.String("dataset", "", "frozen dataset")
 	probes := flags.String("probes", "testdata/retrieval/relation-probes-chi-rhf-v1.json", "tracked relation probe file")
+	selectionPolicy := flags.String("selection-policy", relationdiag.DenseFirstPolicyID, "frozen relation selection policy")
 	node := flags.String("node", "node", "Node executable for the local TypeScript resolver")
 	goCommand := flags.String("go", "go", "Go executable for the local Go resolver")
 	typeScriptRoot := flags.String("typescript-root", ".cidx/test/tools/typescript-6.0.3", "materialized local TypeScript 6.0.3 toolchain")
@@ -154,7 +155,7 @@ func relations(ctx context.Context, args []string, stdout, stderr io.Writer) err
 		if err != nil {
 			return err
 		}
-		result, err := relationdiag.Evaluate(ctx, relationdiag.EvaluationRequest{RunID: *runID, EvaluationRoot: evaluationRoot, GraphDirectory: graph, ReplayPath: replayInput, DatasetPath: datasetInput, ProbesPath: probesInput, Parents: parents})
+		result, err := relationdiag.Evaluate(ctx, relationdiag.EvaluationRequest{RunID: *runID, EvaluationRoot: evaluationRoot, GraphDirectory: graph, ReplayPath: replayInput, DatasetPath: datasetInput, ProbesPath: probesInput, Parents: parents, SelectionPolicy: *selectionPolicy})
 		if err != nil {
 			return err
 		}

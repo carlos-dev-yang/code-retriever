@@ -4,7 +4,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { createRequire } from "node:module";
 
-const protocol = "cidx.relation-diagnostic.v1";
+const protocol = "cidx.relation-diagnostic.v2";
 const version = "6.0.3";
 
 function fail(message) { process.stderr.write(`${message}\n`); process.exitCode = 1; }
@@ -54,6 +54,19 @@ function symbolFor(node, candidate, checker, ts) {
   return checker.getSymbolAtLocation(node);
 }
 function unalias(symbol, checker, ts) { return symbol && (symbol.flags & ts.SymbolFlags.Alias) ? checker.getAliasedSymbol(symbol) : symbol; }
+function metadata(candidate) {
+  const value = candidate.metadata;
+  const allowed = {
+    zone: ["SIGNATURE", "BODY", "TYPE_BODY", "INITIALIZER"],
+    role: ["CALL_FREE_FUNCTION", "CALL_METHOD", "CALLABLE_VALUE", "TYPE_PARAMETER", "TYPE_RETURN", "TYPE_FIELD", "TYPE_ALIAS", "TYPE_HERITAGE", "TYPE_ARGUMENT", "TYPE_LOCAL", "TYPE_OTHER", "MEMBER_RECEIVER", "MEMBER_DECLARATION"],
+    flow_role: ["NONE", "RETURN", "ASSIGNMENT", "CONDITION", "ARGUMENT", "DECLARATION"],
+    file_role: ["PRODUCTION", "TEST", "EXAMPLE", "BENCHMARK"],
+    execution_mode: ["DIRECT", "DEFERRED", "CONCURRENT", "AWAITED"],
+    control_role: ["NONE", "BRANCH", "LOOP", "SWITCH", "TRY_CATCH"],
+  };
+  if (!value || !allowed.zone.includes(value.zone) || !allowed.role.includes(value.role) || !allowed.flow_role.includes(value.flow_role) || !allowed.file_role.includes(value.file_role) || !allowed.execution_mode.includes(value.execution_mode) || !allowed.control_role.includes(value.control_role) || !Number.isInteger(value.source_ordinal) || value.source_ordinal < 1 || !Array.isArray(value.context_identifiers) || value.context_identifiers.length > 8) return false;
+  return value.context_identifiers.every((token, index) => typeof token === "string" && token !== "" && token.trim() === token && value.context_identifiers.indexOf(token) === index);
+}
 function main(input) {
   if (!input || input.protocol !== protocol || !path.isAbsolute(input.typescript_root) || !path.isAbsolute(input.source_root) || !Array.isArray(input.files) || !Array.isArray(input.candidates)) throw new Error("invalid resolver request");
   const require = createRequire(path.join(input.typescript_root, "package.json"));
@@ -110,7 +123,7 @@ function main(input) {
   const checker = program.getTypeChecker();
   const ids = new Set();
   for (const candidate of input.candidates) {
-    if (!relative(candidate.id) || !relative(candidate.path) || !["typescript", "tsx"].includes(candidate.language) || !["CALLS", "TYPE_REF", "MEMBER_OF"].includes(candidate.kind) || !Number.isInteger(candidate.start_byte) || !Number.isInteger(candidate.end_byte) || candidate.end_byte <= candidate.start_byte || ids.has(candidate.id)) throw new Error("invalid candidate");
+    if (!relative(candidate.id) || !relative(candidate.path) || !["typescript", "tsx"].includes(candidate.language) || !["CALLS", "TYPE_REF", "MEMBER_OF"].includes(candidate.kind) || !Number.isInteger(candidate.start_byte) || !Number.isInteger(candidate.end_byte) || candidate.end_byte <= candidate.start_byte || !metadata(candidate) || ids.has(candidate.id)) throw new Error("invalid candidate");
     ids.add(candidate.id);
     const absolute = universe.get(candidate.path);
     if (!absolute) { result(candidate.id, "OUT_OF_RESOLVER_SCOPE"); continue; }

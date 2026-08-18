@@ -105,7 +105,10 @@ func goMemberCandidate(file string, declaration *ast.FuncDecl, fset *token.FileS
 	if !ok {
 		return Candidate{}, false
 	}
-	candidate := Candidate{Path: file, Language: "go", Kind: MemberOf, StartByte: start, EndByte: end, SourceParentID: parent.ID}
+	candidate := Candidate{Path: file, Language: "go", Kind: MemberOf, StartByte: start, EndByte: end, SourceParentID: parent.ID, Metadata: DefaultOccurrenceMetadata(file, 1)}
+	candidate.Metadata.Role = MemberDeclarationRole
+	candidate.Metadata.Zone = SignatureZone
+	candidate.Metadata.Flow = FlowDeclaration
 	candidate.ID = OccurrenceID(candidate)
 	return candidate, true
 }
@@ -133,7 +136,7 @@ func goReceiverTypeObject(info *types.Info, declaration *ast.FuncDecl) types.Obj
 }
 
 func unresolved(candidate Candidate, resolver string) Occurrence {
-	return Occurrence{ID: candidate.ID, SourceParentID: candidate.SourceParentID, Path: candidate.Path, Language: candidate.Language, Kind: candidate.Kind, StartByte: candidate.StartByte, EndByte: candidate.EndByte, Outcome: Unresolved, Resolver: resolver}
+	return Occurrence{ID: candidate.ID, SourceParentID: candidate.SourceParentID, Path: candidate.Path, Language: candidate.Language, Kind: candidate.Kind, StartByte: candidate.StartByte, EndByte: candidate.EndByte, Outcome: Unresolved, Resolver: resolver, Metadata: candidate.Metadata}
 }
 
 func goCalledObject(info *types.Info, call *ast.CallExpr) types.Object {

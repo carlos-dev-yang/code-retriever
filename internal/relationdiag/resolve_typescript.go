@@ -92,7 +92,7 @@ func ResolveTypeScript(ctx context.Context, node, helper, typescriptRoot, source
 	occurrences := make([]Occurrence, 0, len(selected))
 	for _, candidate := range selected {
 		response := responses[candidate.ID]
-		occurrence := Occurrence{ID: candidate.ID, SourceParentID: candidate.SourceParentID, Path: candidate.Path, Language: candidate.Language, Kind: candidate.Kind, StartByte: candidate.StartByte, EndByte: candidate.EndByte, Outcome: response.Outcome, Resolver: "typescript-6.0.3-program-typechecker-v1"}
+		occurrence := Occurrence{ID: candidate.ID, SourceParentID: candidate.SourceParentID, Path: candidate.Path, Language: candidate.Language, Kind: candidate.Kind, StartByte: candidate.StartByte, EndByte: candidate.EndByte, Outcome: response.Outcome, Resolver: "typescript-6.0.3-program-typechecker-v1", Metadata: candidate.Metadata}
 		if response.Outcome == ResolvedUnique {
 			if !universePaths[response.TargetPath] {
 				return nil, nil, fmt.Errorf("TypeScript resolver target is outside indexed universe")

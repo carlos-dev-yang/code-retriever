@@ -102,7 +102,7 @@ func TestProbeRequiresExactImmutableParentsAndOccurrenceRange(t *testing.T) {
 	if _, err := db.ExecContext(ctx, `INSERT INTO relation_occurrences(relation_id,source_parent_id,target_parent_id,path,language,relation_kind,start_byte,end_byte,outcome,resolver) VALUES('r','source','target','a.go','go','CALLS',15,20,'RESOLVED_UNIQUE','test')`); err != nil {
 		t.Fatal(err)
 	}
-	probe := probeFile{SchemaVersion: SchemaVersion, Probes: []probe{{ID: "exact", CorpusID: "fixture", Source: probeParent{Path: "a.go", IndexedSHA256: parents["source"].IndexedSHA256, QualifiedSymbol: "p.Source", StartByte: 10, EndByte: 30}, Target: probeParent{Path: "b.go", IndexedSHA256: parents["target"].IndexedSHA256, QualifiedSymbol: "p.Target", StartByte: 40, EndByte: 60}, Kind: Calls, Direction: Forward, ExpectedCardinality: 1, ExpectedOccurrences: []probeOccurrence{{Path: "a.go", StartByte: 15, EndByte: 20}}}}}
+	probe := probeFile{SchemaVersion: ProbeSchemaVersion, Probes: []probe{{ID: "exact", CorpusID: "fixture", Source: probeParent{Path: "a.go", IndexedSHA256: parents["source"].IndexedSHA256, QualifiedSymbol: "p.Source", StartByte: 10, EndByte: 30}, Target: probeParent{Path: "b.go", IndexedSHA256: parents["target"].IndexedSHA256, QualifiedSymbol: "p.Target", StartByte: 40, EndByte: 60}, Kind: Calls, Direction: Forward, ExpectedCardinality: 1, ExpectedOccurrences: []probeOccurrence{{Path: "a.go", StartByte: 15, EndByte: 20}}}}}
 	data, err := json.Marshal(probe)
 	if err != nil {
 		t.Fatal(err)
