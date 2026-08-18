@@ -38,6 +38,7 @@ type CorpusManifest struct {
 	RedistributionNotice  string                  `json:"redistribution_notice,omitempty"`
 	LanguageSlices        []evalcontract.Language `json:"language_slices"`
 	RootSubdir            string                  `json:"root_subdir,omitempty"`
+	TypeScriptConfig      string                  `json:"typescript_config,omitempty"`
 	Include               []string                `json:"include"`
 	Exclude               []string                `json:"exclude"`
 	ExpectedContentSHA256 string                  `json:"expected_content_hash"`
@@ -57,13 +58,25 @@ func LoadCorpusManifest(data []byte) (CorpusManifest, error) {
 }
 
 func (value CorpusManifest) Validate() error {
-	if value.SchemaVersion != CorpusManifestVersion || !validID(value.CorpusID) || !validUpstream(value.UpstreamURL) || !validCommit(value.PinnedCommit) || !validSPDX(value.LicenseSPDX) || !validRelative(value.LicenseEvidence, false) || !validRelative(value.RootSubdir, true) || !validSHA256(value.ExpectedContentSHA256) || !validCommit(value.ExpectedTreeHash) {
+	if value.SchemaVersion != CorpusManifestVersion || !validID(value.CorpusID) || !validUpstream(value.UpstreamURL) || !validCommit(value.PinnedCommit) || !validSPDX(value.LicenseSPDX) || !validRelative(value.LicenseEvidence, false) || !validRelative(value.RootSubdir, true) || !validRelative(value.TypeScriptConfig, true) || !validSHA256(value.ExpectedContentSHA256) || !validCommit(value.ExpectedTreeHash) {
 		return fmt.Errorf("invalid corpus manifest")
 	}
 	if !validLanguages(value.LanguageSlices) || !validPatterns(value.Include, false) || !validPatterns(value.Exclude, true) {
 		return fmt.Errorf("invalid corpus selection policy")
 	}
+	if value.TypeScriptConfig != "" && !containsTypeScript(value.LanguageSlices) {
+		return fmt.Errorf("TypeScript config requires a TypeScript language slice")
+	}
 	return nil
+}
+
+func containsTypeScript(values []evalcontract.Language) bool {
+	for _, value := range values {
+		if value == evalcontract.TypeScript || value == evalcontract.TSX {
+			return true
+		}
+	}
+	return false
 }
 
 // Fingerprint is RFC 8785 canonical JSON followed by a plain SHA-256. The

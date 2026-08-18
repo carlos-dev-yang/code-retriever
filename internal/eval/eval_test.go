@@ -26,6 +26,21 @@ func TestManifestStrictPortableFingerprint(t *testing.T) {
 	if err := m.Validate(); err == nil {
 		t.Fatal("absolute root accepted")
 	}
+	m = fixtureManifest(t.TempDir())
+	m.LanguageSlices = []evalcontract.Language{evalcontract.TypeScript, evalcontract.TSX}
+	m.TypeScriptConfig = "web/tsconfig.json"
+	if _, err := m.Fingerprint(); err != nil {
+		t.Fatalf("portable TypeScript config rejected: %v", err)
+	}
+	m.TypeScriptConfig = "../tsconfig.json"
+	if err := m.Validate(); err == nil {
+		t.Fatal("escaping TypeScript config accepted")
+	}
+	m = fixtureManifest(t.TempDir())
+	m.TypeScriptConfig = "tsconfig.json"
+	if err := m.Validate(); err == nil {
+		t.Fatal("TypeScript config accepted without TypeScript language slice")
+	}
 	data, _ := json.Marshal(fixtureManifest(t.TempDir()))
 	data = []byte(strings.Replace(string(data), `"corpus_id"`, `"corpus_id","corpus_id"`, 1))
 	if _, err := LoadCorpusManifest(data); err == nil {

@@ -102,8 +102,12 @@ func relations(ctx context.Context, args []string, stdout, stderr io.Writer) err
 		if err != nil {
 			return err
 		}
+		tsConfig := manifest.TypeScriptConfig
+		if tsConfig == "" {
+			tsConfig = "tsconfig.json"
+		}
 		request := relationdiag.BuildRequest{RunID: *runID, EvaluationRoot: evaluationRoot, SourceRoot: layout.SourceRoot, RepositoryRoot: controller, Corpus: verified, CorpusManifestFingerprint: fingerprint, Index: index, Parents: parents,
-			Node: *node, TypeScriptHelper: relationdiag.DefaultTypeScriptHelper(controller), TypeScriptRoot: filepath.Join(controller, *typeScriptRoot), TypeScriptLock: filepath.Join(controller, "tools/relationdiag/typescript-toolchain/package-lock.json"), TSConfig: filepath.Join(layout.SourceRoot, "tsconfig.json"),
+			Node: *node, TypeScriptHelper: relationdiag.DefaultTypeScriptHelper(controller), TypeScriptRoot: filepath.Join(controller, *typeScriptRoot), TypeScriptLock: filepath.Join(controller, "tools/relationdiag/typescript-toolchain/package-lock.json"), TSConfig: filepath.Join(layout.SourceRoot, filepath.FromSlash(tsConfig)),
 			Executable: executable, Go: *goCommand,
 			Reproof: func(ctx context.Context) (store.IndexSnapshot, store.SemanticParentSnapshot, error) {
 				latestIndex, err := application.Store.IndexSnapshot(ctx)

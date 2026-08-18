@@ -11,6 +11,7 @@
     "typescript",
     "tsx"
   ],
+  "typescript_config": "web/tsconfig.json",
   "include": [
     "**/*.go",
     "**/*.ts",

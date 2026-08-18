@@ -107,6 +107,12 @@ This ledger is the authoritative resumable state for implementation work. Update
   forces reindex. Focused parser/index/app/devlab normal and race checks, vet,
   build, format, and diff passed. No question, label, semantic score, or
   provider operation was involved.
+- Active mixed-language resolver correction: the Memos graph pass exposed the
+  root-only `tsconfig.json` assumption. The portable corpus manifest now owns
+  an optional, strictly relative `typescript_config`; Memos binds
+  `web/tsconfig.json`, while existing corpora retain the root default. The
+  field participates in the manifest fingerprint and is unavailable without
+  a TypeScript/TSX slice. No machine path or production configuration changed.
 - Completed final admission boundary: [graph-only Pareto evidence](evidence/phase-07/relation-graph-only-pareto-diagnostic-r4.md)
   records the frozen rule, clean implementation and executable, plan/run
   hashes, exact denominators, deterministic repeats, G09/X08 bodies, zero

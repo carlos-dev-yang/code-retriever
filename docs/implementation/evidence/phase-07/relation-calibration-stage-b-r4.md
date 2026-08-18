@@ -19,6 +19,8 @@ commits and cloned only below ignored `.cidx/test/corpora/` state.
 | `usememos-memos-v0.30.0` | `v0.30.0` / `2036c1ffc1b0a1e1fa6a473738c2a5ef520df67f` | MIT | 316 Go + 198 TypeScript + 235 TSX files | `76556530f2cf9f4f159e05dd79e9553ec461d42e` | `00973cde42c69cb631210b3503a6e33618c95d3c92e96850fad0aaf6839eaa3a` |
 
 Memos excludes generated `proto/gen/**` and `web/src/types/proto/**` outputs.
+Its portable manifest binds the repository-relative `web/tsconfig.json` used
+by the TypeScript resolver.
 No source file in the selected slices exceeds the fixed 1 MiB source ceiling.
 All three checkouts were clean and matched their recorded commit and tree.
 
@@ -62,6 +64,13 @@ core fixture covers top-level and nested call signatures; malformed syntax
 retains the existing fail-closed behavior. Focused normal/race tests, vet,
 build, formatting, and diff checks passed. Clean-corpus reindex and relation
 sidecar proof remain the next boundary.
+
+The first mixed-language graph attempt also exposed a legacy root-only
+`tsconfig.json` assumption. Corpus manifest v1 now supports an optional,
+strictly relative `typescript_config`; it is valid only for a TypeScript/TSX
+slice and participates in the portable manifest fingerprint. Existing corpora
+continue to default to root `tsconfig.json`. Memos binds
+`web/tsconfig.json`; no absolute path or machine-specific override is stored.
 
 ## Next boundary
 
