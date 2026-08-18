@@ -59,6 +59,16 @@ completeness with zero hard-negative or `walkXFF` attachment. It emitted only
 32 cases is closed. The complete relation sidecars remain evaluation-only and
 are not a product storage or search dependency.
 
+Current next-series infrastructure: [relation evidence completion Stage A —
+Revision 4](relation-evidence-completion-stage-a-r4.md). Clean commit
+`c863c049128470a190639f5e74b28a4b16a7f0f7` adds the provider-free completion
+consumer and its strict Phase 12 relation-series producer class. Exact graph,
+retrieval, dataset, query-text, profile, segment-universe, parent-collapse,
+provenance, and final-reproof bindings passed Terra review and the main offline
+boundary. This checkpoint contains no new corpus, Voyage operation, label,
+score, or product policy. The owner must select every new calibration
+repository before preparation resumes.
+
 ### 2026-08-17 solo-project relevance-authority revision
 
 The owner explicitly replaced the unavailable human-pass gate after separate

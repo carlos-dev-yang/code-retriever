@@ -10,6 +10,12 @@
 - State: `blocked` — reusable corpus-independent infrastructure is implemented; official evaluation and promotion evidence require external, user-controlled inputs.
 - Date: 2026-08-15
 
+Current narrow follow-up: the [relation evidence completion Stage A
+boundary](../phase-07/relation-evidence-completion-stage-a-r4.md) adds a strict
+production-FTS relation-series artifact class at clean commit `c863c04` while
+preserving the historical safe-token 32-operation class. It produced no new
+query, score, or promotion evidence; Phase 12 remains blocked.
+
 ## Implemented infrastructure
 
 - `internal/eval/retrieval.go` defines the frozen Phase 12 arm plan: FTS, target-f32, active-codec, provider union, both RRF arms, and both lane ablations. It rejects a missing, reordered, duplicate-parent, or mismatched-query arm before results can be measured.

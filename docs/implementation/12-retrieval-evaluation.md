@@ -379,6 +379,15 @@ profile, records the actual selected dimension, and retains serving-f32 only
 as a nonpersistent fidelity reference. Binary/256 remain historical reports
 only. No official corpus or quality claim was produced at this boundary.
 
+The relation-completion Stage A follow-up at clean commit
+`c863c049128470a190639f5e74b28a4b16a7f0f7` adds one strict
+`RELATION_CALIBRATION_POOL_BUILDING` producer class. It requires production
+FTS, explicit series authority and cost controls, exact query-text and active
+segment coverage evidence, and clean provenance. The historical safe-token
+32-operation class is unchanged. This is producer-contract evidence only; no
+new query was executed and no official score or promotion claim exists. Exact
+evidence is [recorded with Phase 07](evidence/phase-07/relation-evidence-completion-stage-a-r4.md).
+
 ## 12. Handoff
 
 Write the selected supported `embedding.serving_dimensions`, reducer, normalizer, metric, and fixed `storage_codec=int8` to the single project config authority only through the explicit profile-change flow. The product default is 1024 and compact 512 is optional. Then run profile reconciliation and provider-free source-bank materialization before Phase 13 and Phase 14 verification.
@@ -420,3 +429,7 @@ If results are inconclusive, record candidates, why they remain undecided, and w
   provenance. Independent Terra review and the one-time commit-boundary
   validation are accepted; it is still not official evaluation evidence.
 - Activation follows evaluation and never substitutes for it.
+- The relation series uses a distinct production-FTS evidence class and may
+  only be consumed by the evaluation-only completion pass. It does not change
+  production FTS, RRF, dense scoring, MCP, or promotion semantics. The
+  historical safe-token 32-operation class remains a separate contract.
