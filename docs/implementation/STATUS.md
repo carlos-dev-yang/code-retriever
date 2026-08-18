@@ -99,6 +99,14 @@ This ledger is the authoritative resumable state for implementation work. Update
   Ignored checkouts are clean. No provider operation has occurred. The active
   step is isolated 1024/int8 indexing, indexed-file parity, parser inventory,
   and relation-sidecar construction.
+- Active Stage B parser correction: the first provider-free pass indexed
+  go-git and Memos but exposed valid semicolonless consecutive generic call
+  signatures in four Zustand public API files that the embedded grammar did
+  not accept. TypeScript chunker v3 performs a same-length, error-free-only
+  shadow parse and preserves original bytes/ranges; global index chunker v3
+  forces reindex. Focused parser/index/app/devlab normal and race checks, vet,
+  build, format, and diff passed. No question, label, semantic score, or
+  provider operation was involved.
 - Completed final admission boundary: [graph-only Pareto evidence](evidence/phase-07/relation-graph-only-pareto-diagnostic-r4.md)
   records the frozen rule, clean implementation and executable, plan/run
   hashes, exact denominators, deterministic repeats, G09/X08 bodies, zero

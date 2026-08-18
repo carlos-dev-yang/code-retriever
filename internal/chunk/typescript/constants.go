@@ -4,7 +4,7 @@ package typescript
 const (
 	// ChunkerVersion changes whenever extraction, JSDoc association, or class
 	// projection rules change. Both embedded grammars share these rules.
-	ChunkerVersion = "typescript-tsx-tree-sitter-0.23.2-jsdoc-class-fields-path-defaults-overloads-v2"
+	ChunkerVersion = "typescript-tsx-tree-sitter-0.23.2-jsdoc-class-fields-path-defaults-overloads-implicit-call-signatures-v3"
 
 	parserID       = ChunkerVersion
 	grammarVersion = "0.23.2"
@@ -47,9 +47,10 @@ const (
 	fieldBody  = "body"
 	fieldValue = "value"
 
-	diagnosticInvalidUTF8       = "TYPESCRIPT_INVALID_UTF8"
-	diagnosticParseError        = "TYPESCRIPT_PARSE_ERROR"
-	diagnosticUnsafeDeclaration = "TYPESCRIPT_UNSAFE_DECLARATION"
+	diagnosticInvalidUTF8                           = "TYPESCRIPT_INVALID_UTF8"
+	diagnosticParseError                            = "TYPESCRIPT_PARSE_ERROR"
+	diagnosticUnsafeDeclaration                     = "TYPESCRIPT_UNSAFE_DECLARATION"
+	diagnosticImplicitTypeMemberTerminatorRecovered = "TYPESCRIPT_IMPLICIT_TYPE_MEMBER_TERMINATOR_RECOVERED"
 
 	functionBoundaryKind = "typescript-function-statement-v1"
 	typeBoundaryKind     = "typescript-type-member-v1"

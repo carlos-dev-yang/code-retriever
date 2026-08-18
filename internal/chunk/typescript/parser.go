@@ -57,9 +57,30 @@ func (value *Chunker) Chunk(ctx context.Context, request chunk.ChunkRequest) (ch
 	if tree == nil {
 		return chunk.ChunkResult{}, errors.New("TypeScript parser returned no tree")
 	}
-	defer tree.Close()
+	defer func() { tree.Close() }()
 
 	root := tree.RootNode()
+	recoveredRanges := []chunk.ByteRange(nil)
+	if root.HasError() {
+		shadow, candidates := recoverImplicitTypeMemberTerminators(root, source)
+		if len(candidates) > 0 {
+			recoveredTree := parser.ParseCtx(ctx, shadow, nil)
+			if err := ctx.Err(); err != nil {
+				if recoveredTree != nil {
+					recoveredTree.Close()
+				}
+				return chunk.ChunkResult{}, err
+			}
+			if recoveredTree != nil && !recoveredTree.RootNode().HasError() {
+				tree.Close()
+				tree = recoveredTree
+				root = tree.RootNode()
+				recoveredRanges = candidates
+			} else if recoveredTree != nil {
+				recoveredTree.Close()
+			}
+		}
+	}
 	result := chunk.ChunkResult{Parser: metadata}
 	result.Parser.RootKind = root.Kind()
 	result.Parser.HasError = root.HasError()
@@ -69,6 +90,10 @@ func (value *Chunker) Chunk(ctx context.Context, request chunk.ChunkRequest) (ch
 	}
 	result.Chunks = extracted.chunks
 	result.Diagnostics = append(result.Diagnostics, extracted.diagnostics...)
+	for index := range recoveredRanges {
+		byteRange := recoveredRanges[index]
+		result.Diagnostics = append(result.Diagnostics, chunk.ChunkDiagnostic{Code: diagnosticImplicitTypeMemberTerminatorRecovered, Severity: chunk.DiagnosticWarning, Range: &byteRange, SafeToIndex: true})
+	}
 	result.Diagnostics = append(result.Diagnostics, collectParseDiagnostics(root, source, result.Chunks)...)
 	sort.SliceStable(result.Chunks, func(i, j int) bool {
 		if result.Chunks[i].SourceRange.Start != result.Chunks[j].SourceRange.Start {
@@ -83,6 +108,109 @@ func (value *Chunker) Chunk(ctx context.Context, request chunk.ChunkRequest) (ch
 		return chunk.ChunkResult{}, fmt.Errorf("validate TypeScript chunk result: %w", err)
 	}
 	return result, nil
+}
+
+// recoverImplicitTypeMemberTerminators creates a same-length parser-only
+// source view for valid TypeScript type literals that omit separators between
+// consecutive generic call signatures. The embedded grammar rejects that
+// legal form even though tsc accepts it. Only erroring type aliases are
+// considered, and the caller accepts the shadow tree only when every parse
+// error disappears. Source chunks and persisted byte ranges always use the
+// untouched request bytes.
+func recoverImplicitTypeMemberTerminators(root *treesitter.Node, source []byte) ([]byte, []chunk.ByteRange) {
+	shadow := append([]byte(nil), source...)
+	seen := map[int]struct{}{}
+	targets := map[int]struct{}{}
+	var ranges []chunk.ByteRange
+	var visit func(*treesitter.Node)
+	visit = func(node *treesitter.Node) {
+		if node.Kind() == nodeTypeAliasDeclaration && node.HasError() {
+			start, end := int(node.StartByte()), int(node.EndByte())
+			if start >= 0 && start < end && end <= len(source) {
+				for newline := start; newline < end; newline++ {
+					if source[newline] != '\n' {
+						continue
+					}
+					next := skipTypeWhitespace(source, newline+1, end)
+					if next >= end || source[next] != '<' || !genericCallSignatureStartsAt(source, next, end) {
+						continue
+					}
+					if _, duplicate := targets[next]; duplicate {
+						continue
+					}
+					previous := previousTypeToken(source, newline-1, start)
+					if !canEndTypeMember(previous) {
+						continue
+					}
+					replace := newline
+					if replace > start && source[replace-1] == '\r' {
+						replace--
+					}
+					if _, duplicate := seen[replace]; duplicate {
+						continue
+					}
+					shadow[replace] = ';'
+					seen[replace] = struct{}{}
+					targets[next] = struct{}{}
+					ranges = append(ranges, chunk.ByteRange{Start: replace, End: replace + 1})
+				}
+			}
+		}
+		for index := uint(0); index < node.NamedChildCount(); index++ {
+			visit(node.NamedChild(index))
+		}
+	}
+	visit(root)
+	return shadow, ranges
+}
+
+func skipTypeWhitespace(source []byte, start, end int) int {
+	for start < end {
+		switch source[start] {
+		case ' ', '\t', '\r', '\n':
+			start++
+		default:
+			return start
+		}
+	}
+	return start
+}
+
+func previousTypeToken(source []byte, start, minimum int) byte {
+	for start >= minimum {
+		switch source[start] {
+		case ' ', '\t', '\r', '\n':
+			start--
+		default:
+			return source[start]
+		}
+	}
+	return 0
+}
+
+func canEndTypeMember(value byte) bool {
+	return value == ')' || value == ']' || value == '}' || value == '>' || value == '\'' || value == '"' || value == '`' || value >= '0' && value <= '9' || value >= 'A' && value <= 'Z' || value >= 'a' && value <= 'z' || value == '_'
+}
+
+func genericCallSignatureStartsAt(source []byte, start, end int) bool {
+	depth := 0
+	for index := start; index < end; index++ {
+		switch source[index] {
+		case '<':
+			depth++
+		case '>':
+			depth--
+			if depth == 0 {
+				next := skipTypeWhitespace(source, index+1, end)
+				return next < end && source[next] == '('
+			}
+		case '\n', '\r':
+			if depth == 0 {
+				return false
+			}
+		}
+	}
+	return false
 }
 
 func normalizedText(source []byte) string {

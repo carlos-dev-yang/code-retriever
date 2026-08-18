@@ -102,6 +102,36 @@ export default () => 1
 	}
 }
 
+func TestTypeScriptChunkerRecoversSemicolonlessGenericCallSignatures(t *testing.T) {
+	source := []byte(`type Create = {
+  <T>(initializer: (value: T) => T): T
+  <T>(): (initializer: (value: T) => T) => T
+}
+
+type Subscribe<T> = {
+  subscribe: {
+    (listener: (value: T) => void): () => void
+    <U>(selector: (value: T) => U): () => void
+  }
+}
+`)
+	result := chunkSource(t, chunk.TypeScript, source)
+	if got, want := chunkSymbols(result.Chunks), []string{"Create", "Subscribe"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("symbols = %#v, want %#v", got, want)
+	}
+	if !hasDiagnostic(result.Diagnostics, diagnosticImplicitTypeMemberTerminatorRecovered, true) {
+		t.Fatalf("missing safe implicit-terminator recovery: %#v", result.Diagnostics)
+	}
+	if hasDiagnostic(result.Diagnostics, diagnosticUnsafeDeclaration, false) || hasDiagnostic(result.Diagnostics, diagnosticParseError, false) {
+		t.Fatalf("recovered declarations remain unsafe: %#v", result.Diagnostics)
+	}
+	for _, sourceChunk := range result.Chunks {
+		if !bytes.Equal(sourceChunk.SourceBody, source[sourceChunk.SourceRange.Start:sourceChunk.SourceRange.End]) {
+			t.Fatalf("%s source body changed", sourceChunk.Symbol)
+		}
+	}
+}
+
 func TestTSXChunkerPreservesJSXAndExactCRLFUTF8Ranges(t *testing.T) {
 	source := []byte("/** Ω docs */\r\nexport const Component = () => <section>Ω<span>child</span></section>\r\n")
 	result := chunkSource(t, chunk.TSX, source)

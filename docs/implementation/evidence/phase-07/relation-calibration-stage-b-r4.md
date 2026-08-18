@@ -46,6 +46,23 @@ All three checkouts were clean and matched their recorded commit and tree.
 - checkout-local state is clean; and
 - no Voyage document/query call or assistant run occurred.
 
+## Parser checkpoint
+
+The first provider-free index pass found one structural corpus gap before any
+question or score was inspected. Go-git and Memos indexed successfully, while
+Zustand stopped on valid semicolonless consecutive generic call signatures in
+four central public API files. Excluding those files would remove the contracts
+the calibration is meant to exercise.
+
+The bounded correction is TypeScript chunker v3 / global index-chunker v3. It
+uses a same-length parser-only shadow for an erroring type alias and accepts the
+shadow only when all parse errors disappear. Persisted source bytes and ranges
+remain original, and each substituted separator emits a safe diagnostic. A
+core fixture covers top-level and nested call signatures; malformed syntax
+retains the existing fail-closed behavior. Focused normal/race tests, vet,
+build, formatting, and diff checks passed. Clean-corpus reindex and relation
+sidecar proof remain the next boundary.
+
 ## Next boundary
 
 Initialize and index three isolated 1024/int8 evaluation workspaces. Verify
