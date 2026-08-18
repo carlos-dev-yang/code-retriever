@@ -516,6 +516,21 @@ hard-negative attachments but did not close X08, which remains
 ordering or question change was made. Exact evidence is
 [`relation-value-parameter-diagnostic-r4.md`](evidence/phase-07/relation-value-parameter-diagnostic-r4.md).
 
+The owner then reopened one bounded decision with four predeclared
+anchor-first directional strength definitions over the same immutable v3
+graphs and frozen dense top 20. Clean commit
+`dd814915902986c3fcb5a36220a35d5f8297b894` completed all eight chi/RHF arms
+and all eight deterministic repeats with zero provider operation. Every arm
+preserved the primary top five and raised formal completeness to `32/32`, with
+zero hard-negative or `walkXFF` attachment. That aggregate is not accepted as
+quality proof: between 6 and 14 queries per corpus/arm received only grade-0 or
+unreviewed attachments. Source-normalized focus and bidirectional specificity
+selected the exact X08 `FormState -> FormStateProps` relation; raw frequency
+and incoming popularity completed X08 only because the required rank-13 parent
+was already selected as an anchor. No arm is accepted for production. Exact
+evidence is
+[`relation-anchor-edge-strength-diagnostic-r4.md`](evidence/phase-07/relation-anchor-edge-strength-diagnostic-r4.md).
+
 Completion reports must not use the metric value itself as a success declaration. They should demonstrate that the evaluation is reproducible and that failures are traceable.
 
 ## 12. Follow-up Handoff
@@ -570,6 +585,7 @@ Phase 12 extends the shared Phase 07 `internal/eval` dataset, ground-truth, metr
 | Treat X08 as a representative value-parameter contract case, not a one-off exception. | The exact `FormState`/`FormStateProps` collision is unique, but every one of the six reviewed public RHF React components declares its `*Props` contract as a value-parameter type annotation. The v2 graph collapses all six into `TYPE_LOCAL`. The next bounded unit therefore adds one mechanically derived role distinct from generic type parameters and evaluates a new policy across all 32 cases; it does not edit X08, add a component-name exception, call Voyage, or retry graph-first traversal. | Retain the role only if all six common contracts are classified correctly and complete-answer plus protected-hard-negative evidence does not regress. Production still requires a separate unexposed confirmation unit. |
 | Defer the value-parameter selector policy decision after measurement. | The v3 graph classified the common six-component pattern correctly, while all-32 replay remained `31/32`, changed only T09/X08 selections, attached no declared hard negative, and left X08 at `RELATION_ADMISSION`. The owner does not need to decide this policy now. | Resume only on explicit owner direction; do not tune another key or replace X08 as an implicit consequence of this run. |
 | Resume the policy question with one predeclared anchor-first directional edge-strength series. | The owner explicitly requested a real test before policy adoption and emphasized graph grades and strengths. Reuse the immutable v3 facts and frozen dense top 20, select two anchors with the existing query/symbol normalizer, enumerate the same outgoing and incoming one-hop candidates, and compare four isolated lexicographic definitions: raw frequency, source-normalized focus, bidirectional target specificity, and incoming popularity. Structural tiers are mechanical graph facts, not relevance grades; all counts come from the complete graph within identical relation-kind/tier strata. | Decide only after all 32 cases, hard negatives, changed attachments, first losses, body packaging, deterministic repeats, and zero-provider evidence are reviewed. Any later production proposal still requires an unexposed confirmation unit. |
+| Reject all four anchor/edge-strength arms as serving policies and retain their metadata as calibration evidence. | All arms formally completed `32/32`, but unconditional bundle selection produced 6–14 noise-only queries per corpus/arm. Source normalization and target specificity uniquely selected X08's exact relation; raw frequency and popularity only packaged the correct anchor while selecting another edge. The result supports anchor-first localization plus source/target strength as ingredients, not an always-on ranker. | A new versioned unit freezes an admission/abstention rule before exposure and the separate unexposed confirmation set validates it without primary, hard-negative, body-budget, or evidence-quality regression. |
 | Do not edit the exposed 32-case calibration set to improve its scores. | The questions, labels, and immutable ranks have now influenced a retrieval-policy decision. Further tuning on them would invalidate their role as an unbiased confirmation unit. | Never for this dataset version; create a new versioned calibration or an unexposed confirmation unit. |
 | Preserve failure taxonomy alongside metrics. | It identifies which implementation layer should change next. | Never. |
 | Call production services directly. | This prevents divergence between evaluation and actual behavior. | Never. |

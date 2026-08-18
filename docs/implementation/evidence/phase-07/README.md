@@ -31,6 +31,15 @@ coverage at `31/32` and X08 at `RELATION_ADMISSION`. The owner deferred the
 policy decision; no question, key, production path, or provider operation was
 changed after the result.
 
+Current directional-strength conclusion: [anchor/edge-strength diagnostic —
+Revision 4](relation-anchor-edge-strength-diagnostic-r4.md). Anchor-first
+localization makes G09 and X08 formally complete in all four predeclared arms,
+but only source-normalized focus and bidirectional specificity select X08's
+exact contract relation. Every arm also emits many grade-0/unreviewed-only
+bundles. No arm is authorized for production; the next problem is a separately
+frozen admission/abstention rule, not another unconditional ordering on the
+exposed 32 cases.
+
 ### 2026-08-17 solo-project relevance-authority revision
 
 The owner explicitly replaced the unavailable human-pass gate after separate

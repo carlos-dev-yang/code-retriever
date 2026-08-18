@@ -1039,3 +1039,58 @@ The owner deferred the policy decision. No further ordering change or X08
 question replacement followed this result. Exact graphs, runs, hashes, and the
 deferred boundary are recorded in
 [`evidence/phase-07/relation-value-parameter-diagnostic-r4.md`](evidence/phase-07/relation-value-parameter-diagnostic-r4.md).
+
+## 17. Directional edge-strength follow-up
+
+The owner reopened one bounded experiment to test the idea that a node's
+outgoing dependencies and incoming uses should carry different, measurable
+strength. The experiment reused the immutable v3 graph and frozen dense top 20
+and compared four isolated, label-blind definitions over identical two-anchor,
+bidirectional one-hop candidates:
+
+- raw exact-edge occurrence frequency;
+- exact-edge frequency normalized by the source's relation-kind/tier stratum;
+- the same source focus plus target incoming-source/occurrence specificity;
+- incoming popularity as an explicit hub-favoring control.
+
+Every definition formally completed G09 and X08 and raised the all-32 replay
+from `30/32` to `32/32`. The mechanism matters more than that aggregate. G09's
+two selected anchors were connected by the exact `RealIP -> realIP` call under
+all four arms. In X08, the anchor selector independently found required
+`FormStateProps` at dense rank 13 and supporting `FormState` at rank 2. Raw
+frequency and popularity then selected different relations, so their formal
+completion came from packaging the correct anchor rather than proving the
+answer relation. Source-normalized focus and bidirectional specificity selected
+the exact `FormState -> FormStateProps` value-parameter contract. Specificity
+also exposed the useful anti-hub distinction: the correct target had two
+incoming sources and two occurrences, while the generic rival had 105 sources
+and 149 occurrences.
+
+None of the four arms is ready for production. Because every query was forced
+to choose a bundle, 6–14 queries per corpus/arm received only grade-0 or
+unreviewed evidence. Incoming popularity especially demonstrated why global
+centrality is the wrong confirmation signal: it favored generic targets and
+produced the most unreviewed RHF attachments. Source normalization produced
+the most RHF grade-2 attachments; specificity was the clearest X08 explanation
+but produced the largest bundle/byte footprint and the most RHF noise-only
+queries.
+
+The refined direction is therefore:
+
+```text
+dense query localization
+-> independently query-matched anchors
+-> verified directional relations
+-> source focus + target specificity as evidence
+-> explicit admission or abstention
+-> bounded related-context packaging
+```
+
+The missing component is not another edge order. It is a label-blind rule that
+can decline to attach graph context when the relation is not coherent enough.
+A verified edge connecting two independently selected anchors is a promising
+general signal because it explains both G09 and X08, but this exposed result
+cannot be used to tune its thresholds. Any such rule must be versioned and
+frozen on a new calibration unit, then validated on the separate unexposed
+confirmation set. Exact artifacts and hashes are recorded in
+[`evidence/phase-07/relation-anchor-edge-strength-diagnostic-r4.md`](evidence/phase-07/relation-anchor-edge-strength-diagnostic-r4.md).
