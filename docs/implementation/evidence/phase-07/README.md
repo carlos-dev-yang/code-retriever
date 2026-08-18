@@ -40,6 +40,15 @@ bundles. No arm is authorized for production; the next problem is a separately
 frozen admission/abstention rule, not another unconditional ordering on the
 exposed 32 cases.
 
+Current frontier-cap conclusion: [bounded graph-frontier diagnostic — Revision
+4](relation-frontier-cap-diagnostic-r4.md). Per-bucket top two reduced the real
+frontier to at most 8 chi and 11 RHF edges per query; no query reached the
+global 32-edge ceiling. Cap-only reproduced the prior specificity selections
+and noise. Direct-anchor bridge abstention reduced emissions but lost chi G09
+and still emitted four noise-only bundles. The cap is retained only as a
+provisional development complexity control; neither arm is authorized for
+production.
+
 ### 2026-08-17 solo-project relevance-authority revision
 
 The owner explicitly replaced the unavailable human-pass gate after separate

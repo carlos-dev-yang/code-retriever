@@ -531,6 +531,21 @@ was already selected as an anchor. No arm is accepted for production. Exact
 evidence is
 [`relation-anchor-edge-strength-diagnostic-r4.md`](evidence/phase-07/relation-anchor-edge-strength-diagnostic-r4.md).
 
+The owner then authorized one bounded frontier test rather than another edge
+ordering. Clean commit `770ff8e0c6c151791d5599bbdf68bd730dab7e99`
+applied a provisional top two per selected-anchor/direction/structural-tier
+bucket, canonical union without backfill, and a hard 32-edge ceiling. Across
+all 32 exposed calibration queries the real maximum was only 8 edges for chi
+and 11 for RHF; no query reached 32. The control materially compressed
+occurrences but selected exactly the same relations as the prior unconditional
+specificity arm, so its noise did not improve. Direct-anchor bridge abstention
+reduced emission from 32 to 10 queries and noise-only emission from 20 to 4,
+but it lost chi G09 because `RealIP -> realIP` ends at a graph-only parent rather
+than the other selected dense anchor. It retained exact RHF X08. Therefore the
+bucket cap remains a provisional development complexity control, while both
+cap-only and bridge-only relevance policies are rejected. Exact evidence is
+[`relation-frontier-cap-diagnostic-r4.md`](evidence/phase-07/relation-frontier-cap-diagnostic-r4.md).
+
 Completion reports must not use the metric value itself as a success declaration. They should demonstrate that the evaluation is reproducible and that failures are traceable.
 
 ## 12. Follow-up Handoff
@@ -586,6 +601,8 @@ Phase 12 extends the shared Phase 07 `internal/eval` dataset, ground-truth, metr
 | Defer the value-parameter selector policy decision after measurement. | The v3 graph classified the common six-component pattern correctly, while all-32 replay remained `31/32`, changed only T09/X08 selections, attached no declared hard negative, and left X08 at `RELATION_ADMISSION`. The owner does not need to decide this policy now. | Resume only on explicit owner direction; do not tune another key or replace X08 as an implicit consequence of this run. |
 | Resume the policy question with one predeclared anchor-first directional edge-strength series. | The owner explicitly requested a real test before policy adoption and emphasized graph grades and strengths. Reuse the immutable v3 facts and frozen dense top 20, select two anchors with the existing query/symbol normalizer, enumerate the same outgoing and incoming one-hop candidates, and compare four isolated lexicographic definitions: raw frequency, source-normalized focus, bidirectional target specificity, and incoming popularity. Structural tiers are mechanical graph facts, not relevance grades; all counts come from the complete graph within identical relation-kind/tier strata. | Decide only after all 32 cases, hard negatives, changed attachments, first losses, body packaging, deterministic repeats, and zero-provider evidence are reviewed. Any later production proposal still requires an unexposed confirmation unit. |
 | Reject all four anchor/edge-strength arms as serving policies and retain their metadata as calibration evidence. | All arms formally completed `32/32`, but unconditional bundle selection produced 6–14 noise-only queries per corpus/arm. Source normalization and target specificity uniquely selected X08's exact relation; raw frequency and popularity only packaged the correct anchor while selecting another edge. The result supports anchor-first localization plus source/target strength as ingredients, not an always-on ranker. | A new versioned unit freezes an admission/abstention rule before exposure and the separate unexposed confirmation set validates it without primary, hard-negative, body-budget, or evidence-quality regression. |
+| Retain the measured top-two bucket frontier only as a provisional development complexity control. | It reduced chi to at most 8 and RHF to at most 11 final edges per query, preserved primary evidence, and produced deterministic repeats. The global 32-edge ceiling, forced bridge reservation, and displacement paths were not exercised by the real corpora, and bounding alone reproduced the prior selector and noise. | A separately frozen evaluation unit measures another corpus/fan-out distribution without tuning this exposed set. |
+| Reject direct-anchor bridge-only abstention as the general relation admission rule. | It reduced emitted noise but lost reachable G09 evidence, because a selected anchor can point to a useful graph-only endpoint. Four of ten emitted bundles were still noise-only. Exact X08 survived, so bridge presence remains a useful feature rather than a complete decision. | At most one final exposed diagnostic tests a predeclared unique same-tier Pareto winner for anchor-to-graph-only evidence, after which policy work moves to a new frozen unit and unexposed confirmation. |
 | Do not edit the exposed 32-case calibration set to improve its scores. | The questions, labels, and immutable ranks have now influenced a retrieval-policy decision. Further tuning on them would invalidate their role as an unbiased confirmation unit. | Never for this dataset version; create a new versioned calibration or an unexposed confirmation unit. |
 | Preserve failure taxonomy alongside metrics. | It identifies which implementation layer should change next. | Never. |
 | Call production services directly. | This prevents divergence between evaluation and actual behavior. | Never. |

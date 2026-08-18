@@ -1054,9 +1054,10 @@ bidirectional one-hop candidates:
 - incoming popularity as an explicit hub-favoring control.
 
 Every definition formally completed G09 and X08 and raised the all-32 replay
-from `30/32` to `32/32`. The mechanism matters more than that aggregate. G09's
-two selected anchors were connected by the exact `RealIP -> realIP` call under
-all four arms. In X08, the anchor selector independently found required
+from `30/32` to `32/32`. The mechanism matters more than that aggregate. Every
+arm selected the exact `RealIP -> realIP` call for G09; the later frontier
+diagnostic made explicit that `realIP` is a graph-only endpoint, not the other
+selected dense anchor. In X08, the anchor selector independently found required
 `FormStateProps` at dense rank 13 and supporting `FormState` at rank 2. Raw
 frequency and popularity then selected different relations, so their formal
 completion came from packaging the correct anchor rather than proving the
@@ -1094,3 +1095,49 @@ cannot be used to tune its thresholds. Any such rule must be versioned and
 frozen on a new calibration unit, then validated on the separate unexposed
 confirmation set. Exact artifacts and hashes are recorded in
 [`evidence/phase-07/relation-anchor-edge-strength-diagnostic-r4.md`](evidence/phase-07/relation-anchor-edge-strength-diagnostic-r4.md).
+
+## 18. Bounded frontier and abstention outcome
+
+The next provider-free diagnostic separated graph size from graph relevance.
+It kept the full immutable relation graph in SQLite but projected only the top
+two edges per selected-anchor, direction, and structural-tier bucket, followed
+by canonical union without backfill. The global safety ceiling was 32 edges.
+
+The local cap controlled fan-out strongly. Across the frozen 32 questions,
+chi moved from 119 reachable directional occurrences to 51 final frontier
+edges in total, with a per-query maximum of 8. RHF moved from 1,290 to 153,
+with a maximum of 11. RHF's largest reduction came before edge ranking: 579
+self occurrences were non-traversable and 349 repeated occurrences collapsed
+inside buckets. No query reached the global ceiling, so the bucket limit—not
+32—was the active control.
+
+That compression did not solve evidence choice. The cap-only arm selected the
+same relation IDs as the earlier bidirectional-specificity arm and retained its
+20 noise-only emitted queries. A direct-anchor bridge requirement reduced
+emission to 10/32 and noise-only emission to 4/10, but it also rejected chi
+G09. G09's useful relation is `RealIP -> realIP`, where the target is outside
+the two selected dense anchors. RHF X08 did form an anchor-to-anchor bridge and
+remained correct.
+
+The result refines the graph model:
+
+```text
+full immutable relation graph
+-> bounded per-query directional/tier frontier
+-> direct-anchor bridge as one coherence feature
+-> optional unique anchor-to-graph-only evidence
+-> explicit abstention
+```
+
+Direct-anchor connectivity is informative but not complete. Useful code context
+may terminate at a graph-only implementation parent, while two dense anchors
+can be structurally connected and still irrelevant to the question. The next
+decision therefore cannot be another global popularity or occurrence score.
+At most one final exposed diagnostic may test a predeclared same-tier unique
+Pareto winner using source focus, source target diversity, and target incoming
+source fan-in, with no learned margin and abstention on multiple nondominated
+edges. Then tuning must move to a new frozen unit and unexposed confirmation.
+
+The exact clean implementation, complexity flow, G09/X08 traces, deterministic
+repeats, and rejected-policy boundary are recorded in
+[`evidence/phase-07/relation-frontier-cap-diagnostic-r4.md`](evidence/phase-07/relation-frontier-cap-diagnostic-r4.md).
