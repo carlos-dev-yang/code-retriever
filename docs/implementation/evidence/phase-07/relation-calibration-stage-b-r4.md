@@ -72,6 +72,13 @@ slice and participates in the portable manifest fingerprint. Existing corpora
 continue to default to root `tsconfig.json`. Memos binds
 `web/tsconfig.json`; no absolute path or machine-specific override is stored.
 
+Reissuing the Memos inventory under the new corpus-manifest fingerprint found
+that the immutable inventory filename bound only corpus ID, index generation,
+and index manifest. It now also binds the full corpus-manifest fingerprint, so
+two portable selection policies can safely coexist over one unchanged index
+generation. Existing immutable packets are preserved; no artifact is deleted
+or overwritten.
+
 ## Next boundary
 
 Initialize and index three isolated 1024/int8 evaluation workspaces. Verify

@@ -66,6 +66,13 @@ func TestLexicalArtifactRootAndPacketImmutability(t *testing.T) {
 	if second, err := writeLexicalInventory(base, corpus, "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", inventory); err != nil || second != first {
 		t.Fatalf("idempotent inventory got=%+v err=%v", second, err)
 	}
+	differentManifest, err := writeLexicalInventory(base, corpus, "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", inventory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if differentManifest.Reference == first.Reference {
+		t.Fatal("distinct corpus manifests share one inventory address")
+	}
 	inventory.Chunks[0].EndByte = 2
 	if _, err := writeLexicalInventory(base, corpus, "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", inventory); err == nil {
 		t.Fatal("inventory collision accepted")

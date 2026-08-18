@@ -113,6 +113,11 @@ This ledger is the authoritative resumable state for implementation work. Update
   `web/tsconfig.json`, while existing corpora retain the root default. The
   field participates in the manifest fingerprint and is unavailable without
   a TypeScript/TSX slice. No machine path or production configuration changed.
+- Active immutable-inventory correction: inventory addresses now bind the
+  full corpus-manifest fingerprint in addition to corpus, generation, and
+  index manifest. This lets distinct portable selection policies coexist over
+  one unchanged index generation without deleting or overwriting retained
+  evidence.
 - Completed final admission boundary: [graph-only Pareto evidence](evidence/phase-07/relation-graph-only-pareto-diagnostic-r4.md)
   records the frozen rule, clean implementation and executable, plan/run
   hashes, exact denominators, deterministic repeats, G09/X08 bodies, zero

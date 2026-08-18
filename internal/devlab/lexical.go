@@ -507,7 +507,7 @@ func writeLexicalInventory(root string, corpus eval.VerifiedCorpus, fingerprint 
 	}
 	data = append(data, '\n')
 	sum := sha256.Sum256(data)
-	reference := path.Join("inventory", fmt.Sprintf("%s-g%d-%s.json", corpus.CorpusID, inventory.Generation, inventory.ManifestSHA256))
+	reference := path.Join("inventory", fmt.Sprintf("%s-g%d-%s-%s.json", corpus.CorpusID, inventory.Generation, inventory.ManifestSHA256, fingerprint))
 	if err := writeExactPacket(root, reference, data); err != nil {
 		return lexicalInventoryReference{}, err
 	}
