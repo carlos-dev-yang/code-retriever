@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"math/bits"
 	"os"
 	"path/filepath"
 	"sort"
@@ -77,6 +78,7 @@ type AdmissionCandidate struct {
 type queryFeatures struct {
 	QueryID                      string     `json:"query_id"`
 	Tokens                       []string   `json:"tokens"`
+	AnchorTokens                 []string   `json:"anchor_tokens"`
 	Direction                    Direction  `json:"direction"`
 	SignatureIntent              bool       `json:"signature_intent"`
 	ValueParameterContractIntent bool       `json:"value_parameter_contract_intent"`
@@ -106,6 +108,85 @@ type queryTrace struct {
 	Attachments       []ParentAttachment `json:"attachments"`
 	WalkXFFAttached   bool               `json:"walkxff_attached"`
 	FirstLoss         string             `json:"first_loss"`
+	AnchorEdge        *anchorEdgeTrace   `json:"anchor_edge,omitempty"`
+}
+
+type anchorSelection struct {
+	Ordinal             int      `json:"ordinal"`
+	Selected            bool     `json:"selected"`
+	SelectedOrdinal     int      `json:"selected_ordinal"`
+	ParentID            string   `json:"parent_id"`
+	DenseRank           int      `json:"dense_rank"`
+	MatchedTokens       []string `json:"matched_tokens"`
+	CoverageNumerator   int      `json:"coverage_numerator"`
+	CoverageDenominator int      `json:"coverage_denominator"`
+	QueryTokens         int      `json:"query_token_count"`
+	ParentTokens        int      `json:"parent_token_count"`
+}
+type anchorGroup struct {
+	QueryID    string            `json:"query_id"`
+	Tokens     []string          `json:"query_tokens"`
+	Candidates []anchorSelection `json:"candidates"`
+	Anchors    []anchorSelection `json:"anchors"`
+}
+type anchorScore struct {
+	anchorSelection
+	coverageNumerator, coverageDenominator int
+}
+type fileRoleSlice struct {
+	Occurrences    int `json:"occurrences"`
+	DistinctSource int `json:"distinct_sources"`
+}
+type structuralTierCount struct {
+	Occurrences     int                        `json:"occurrences"`
+	DistinctSources int                        `json:"distinct_sources"`
+	FileRoleSlices  map[FileRole]fileRoleSlice `json:"file_role_slices"`
+}
+type edgeStats struct {
+	SourceID                             string                     `json:"source_parent_id"`
+	TargetID                             string                     `json:"target_parent_id"`
+	Kind                                 RelationKind               `json:"relation_kind"`
+	Tier                                 StructuralTier             `json:"structural_tier"`
+	EdgeOccurrences                      int                        `json:"edge_occurrences"`
+	SourceStratumOccurrences             int                        `json:"source_stratum_occurrences"`
+	SourceStratumDistinctTargets         int                        `json:"source_stratum_distinct_targets"`
+	TargetIncomingStratumOccurrences     int                        `json:"target_incoming_stratum_occurrences"`
+	TargetIncomingStratumDistinctSources int                        `json:"target_incoming_stratum_distinct_sources"`
+	EdgeFileRoleSlices                   map[FileRole]fileRoleSlice `json:"edge_file_role_slices"`
+	SourceStratumFileRoleSlices          map[FileRole]fileRoleSlice `json:"source_stratum_file_role_slices"`
+	TargetIncomingStratumFileRoleSlices  map[FileRole]fileRoleSlice `json:"target_incoming_stratum_file_role_slices"`
+	Best                                 Fact                       `json:"best_occurrence"`
+}
+type rankingComponent struct {
+	Name        string `json:"name"`
+	Order       string `json:"order"`
+	Value       any    `json:"value,omitempty"`
+	Numerator   *int   `json:"numerator,omitempty"`
+	Denominator *int   `json:"denominator,omitempty"`
+}
+type anchorEdgeCandidate struct {
+	Fact              Fact               `json:"fact"`
+	AnchorOrdinal     int                `json:"anchor_selection_ordinal"`
+	DirectionMismatch int                `json:"direction_mismatch"`
+	Stats             edgeStats          `json:"stats"`
+	RankingTuple      []rankingComponent `json:"ranking_tuple"`
+	Rank              int                `json:"rank"`
+	FirstDifference   string             `json:"first_differing_component,omitempty"`
+}
+type anchorEdgeDenominators struct {
+	Anchors           int `json:"anchors"`
+	DirectionalOneHop int `json:"directional_one_hop_facts"`
+	DistinctEdges     int `json:"distinct_edge_candidates"`
+	Selected          int `json:"selected"`
+	AddedBeforeCap    int `json:"added_before_cap"`
+	PackagedComplete  int `json:"packaged_complete"`
+}
+type anchorEdgeTrace struct {
+	Group            anchorGroup            `json:"anchor_group"`
+	DirectionalFacts []Fact                 `json:"directional_one_hop_facts"`
+	Candidates       []anchorEdgeCandidate  `json:"edge_candidate_stats"`
+	Denominators     anchorEdgeDenominators `json:"denominators"`
+	StagePresence    map[string]bool        `json:"stage_presence"`
 }
 type PrimaryBodyProof struct {
 	ParentID   string `json:"parent_id"`
@@ -248,6 +329,14 @@ func Evaluate(ctx context.Context, request EvaluationRequest) (EvaluationResult,
 		return EvaluationResult{}, err
 	}
 	policy := selectedPolicy(request.SelectionPolicy)
+	var completeStats map[string]edgeStats
+	var tierCounts map[StructuralTier]structuralTierCount
+	if isAnchorEdgePolicy(policy) {
+		completeStats, tierCounts, err = completeGraphEdgeStats(ctx, db)
+		if err != nil {
+			return EvaluationResult{}, err
+		}
+	}
 	traces := make([]queryTrace, 0, len(lane.Ranks))
 	for _, queryID := range sortedKeys(lane.Ranks) {
 		primary, primaryIDs, seedIDs, err := primaryTop5(lane.Ranks[queryID], byHit)
@@ -260,18 +349,49 @@ func Evaluate(ctx context.Context, request EvaluationRequest) (EvaluationResult,
 				return EvaluationResult{}, err
 			}
 		}
+		var group anchorGroup
+		if isAnchorEdgePolicy(policy) {
+			group, err = selectAnchorGroup(queryID, features[queryID].AnchorTokens, lane.Ranks[queryID], byHit, byID)
+			if err != nil {
+				return EvaluationResult{}, err
+			}
+			seedIDs = make([]string, 0, len(group.Anchors))
+			for _, anchor := range group.Anchors {
+				seedIDs = append(seedIDs, anchor.ParentID)
+			}
+		}
 		facts, err := reachableFacts(ctx, db, seedIDs)
 		if err != nil {
 			return EvaluationResult{}, err
 		}
-		bundle := selectBundleWithPolicy(queryID, features[queryID], facts, rankPositions(lane.Ranks[queryID], byHit), byID, primaryIDs, policy)
+		ranks := rankPositions(lane.Ranks[queryID], byHit)
+		var bundle Bundle
+		var anchorTrace *anchorEdgeTrace
+		if isAnchorEdgePolicy(policy) {
+			bundle, anchorTrace, err = selectAnchorEdgeBundle(queryID, features[queryID], group, facts, completeStats, ranks, byID, primaryIDs, policy)
+			if err != nil {
+				return EvaluationResult{}, err
+			}
+		} else {
+			bundle = selectBundleWithPolicy(queryID, features[queryID], facts, ranks, byID, primaryIDs, policy)
+		}
 		related := packageRelated(queryID, bundle, byID, primaryIDs)
+		if anchorTrace != nil {
+			anchorTrace.Denominators.AddedBeforeCap = len(bundle.AddedParentIDs)
+			for _, body := range related {
+				if body.BodyComplete {
+					anchorTrace.Denominators.PackagedComplete++
+				}
+			}
+			anchorTrace.StagePresence["cap"] = len(bundle.AddedParentIDs) > 0
+			anchorTrace.StagePresence["packaging"] = anchorTrace.Denominators.PackagedComplete > 0
+		}
 		proofs := make([]PrimaryBodyProof, 0, len(primaryIDs))
 		for _, id := range primaryIDs {
 			parent := byID[id]
 			proofs = append(proofs, PrimaryBodyProof{ParentID: id, BodySHA256: sha256Hex([]byte(parent.SourceBody))})
 		}
-		traces = append(traces, queryTrace{QueryID: queryID, PrimaryTop5: primary, PrimaryBodyProofs: proofs, StageAFacts: facts, Bundle: bundle, Related: related})
+		traces = append(traces, queryTrace{QueryID: queryID, PrimaryTop5: primary, PrimaryBodyProofs: proofs, StageAFacts: facts, Bundle: bundle, Related: related, AnchorEdge: anchorTrace})
 	}
 	// Labels are deliberately unavailable until the previous loop has finished.
 	datasetBytes, err := os.ReadFile(request.DatasetPath)
@@ -351,7 +471,7 @@ func Evaluate(ctx context.Context, request EvaluationRequest) (EvaluationResult,
 		return EvaluationResult{}, err
 	}
 	defer os.RemoveAll(temporary)
-	if err := writeEvaluationArtifacts(temporary, traces, features, probes, resolution, gate, manifest, replay, binding); err != nil {
+	if err := writeEvaluationArtifacts(temporary, traces, features, probes, resolution, gate, manifest, replay, binding, tierCounts); err != nil {
 		return EvaluationResult{}, err
 	}
 	if err := writeChecksums(temporary); err != nil {
@@ -389,25 +509,39 @@ func relationPolicyFingerprint() (string, error) {
 func relationPolicySpec() map[string]any {
 	return map[string]any{
 		"metadata_policy":                   MetadataPolicyID,
-		"selection_policies":                []string{DenseFirstPolicyID, ValueParameterDenseFirstPolicyID, GraphFirstPolicyID},
+		"selection_policies":                []string{DenseFirstPolicyID, ValueParameterDenseFirstPolicyID, GraphFirstPolicyID, AnchorEdgeRawFrequencyPolicyID, AnchorEdgeSourceNormalizedPolicyID, AnchorEdgeBidirectionalPolicyID, AnchorEdgeIncomingPopularityPolicyID},
 		"dense_first_tuple":                 []string{"qualifier", "negative_context_overlap", "negative_endpoint_overlap", "negative_anchor_overlap", "intent_mismatch", "same_file", "occurrence_file_role", "anchor_dense_rank", "endpoint_dense_rank", "source_ordinal", "occurrence_byte", "stable_id"},
 		"value_parameter_dense_first_tuple": []string{"qualifier", "value_parameter_mismatch", "negative_context_overlap", "negative_endpoint_overlap", "negative_anchor_overlap", "intent_mismatch", "same_file", "occurrence_file_role", "anchor_dense_rank", "endpoint_dense_rank", "source_ordinal", "occurrence_byte", "stable_id"},
 		"graph_first":                       map[string]any{"seed_lanes": []string{"fts", "simple_control"}, "seed_k": ProtectedPrimaryK, "admission_prefix": []string{"qualifier", "negative_context_overlap", "negative_endpoint_overlap", "negative_anchor_overlap", "intent_mismatch", "same_file", "occurrence_file_role"}, "admitted_tier": "all facts tied at best prefix", "rerank_tuple": []string{"best_dense_endpoint_ordinal", "worst_dense_endpoint_ordinal", "source_ordinal", "occurrence_byte", "stable_id"}},
-		"keyword_maps":                      map[string][]string{"signature": {"contract", "props", "type", "interface", "signature", "options", "schema"}, "value_parameter": {"props", "contract"}, "mutation": {"mutate", "set", "write", "assign"}, "return": {"return"}, "condition": {"condition", "when"}, "reverse": {"caller", "used-by"}, "deprecated": {"deprecated"}, "file_roles": {"test", "example", "benchmark"}},
-		"caps":                              map[string]int{"dense_depth": MaxDenseDepth, "protected_primary": ProtectedPrimaryK, "related_parent_limit": RelatedParentLimit, "related_body_limit": RelatedBodyLimit, "context_identifier_limit": 8},
-		"qualifier_rules":                   []string{"deprecated_query_requires_either_endpoint_deprecated", "no_deprecated_query_penalty", "explicit_file_role_uses_occurrence_file_role", "default_production_uses_occurrence_file_role"},
-		"role_rules":                        []string{"resolved_distinct_endpoints_only", "selection_never_reads_source_body", "package_related_applies_complete_body_cap"},
-		"occurrence_zone":                   []OccurrenceZone{SignatureZone, BodyZone, TypeBodyZone, InitializerZone},
-		"occurrence_role":                   []OccurrenceRole{CallFreeFunctionRole, CallMethodRole, CallableValueRole, TypeParameterRole, TypeValueParameterRole, TypeReturnRole, TypeFieldRole, TypeAliasRole, TypeHeritageRole, TypeArgumentRole, TypeLocalRole, TypeOtherRole, MemberReceiverRole, MemberDeclarationRole},
-		"flow_role":                         []FlowRole{FlowNone, FlowReturn, FlowAssignment, FlowCondition, FlowArgument, FlowDeclaration},
-		"file_role":                         []FileRole{ProductionFileRole, TestFileRole, ExampleFileRole, BenchmarkFileRole},
-		"execution_mode":                    []ExecutionMode{DirectExecution, DeferredExecution, ConcurrentExecution, AwaitedExecution},
-		"control_role":                      []ControlRole{ControlNone, ControlBranch, ControlLoop, ControlSwitch, ControlTryCatch},
+		"anchor_edge": map[string]any{
+			"policies":   []string{AnchorEdgeRawFrequencyPolicyID, AnchorEdgeSourceNormalizedPolicyID, AnchorEdgeBidirectionalPolicyID, AnchorEdgeIncomingPopularityPolicyID},
+			"anchors":    "query_tokens=stable_distinct(symbol.ClassifyQuery IdentifierTokens then TextTokens);parent_tokens=stable_distinct(existing_identifier_normalizer(symbol+qualified_symbol));deduped_dense_top20;all_candidates_sorted_by_coverage_then_matched_count_then_dense_rank_then_parent_id;select=min(2,available);coverage=matched_query_tokens/parent_tokens desc;matched_count desc;dense_rank asc;parent_id asc;checked_cross_multiplication;zero_coverage_falls_through;anchor_limit=2",
+			"facts":      "both_outgoing_and_incoming_resolved_unique_one_hop;stored_orientation_source_target_relation_kind_structural_tier;no_self_edge_no_second_hop;direction_mismatch_shared_not_filtering",
+			"tiers":      []string{"DECLARATION_CONTRACT=TYPE_REF:SIGNATURE|TYPE_BODY", "EXECUTABLE_DEPENDENCY=CALLS", "BODY_REFERENCE=TYPE_REF:BODY|INITIALIZER", "DECLARATION_STRUCTURE=MEMBER_OF"},
+			"statistics": "complete_non_self_graph;stratum=relation_kind+structural_tier;edge_occurrences;source_occurrences;source_distinct_targets;target_incoming_occurrences;target_incoming_distinct_sources;file_role_occurrence_and_distinct_source_slices_not_ranked;checked_integer_cross_products",
+			"ranking": map[string][]string{
+				AnchorEdgeRawFrequencyPolicyID:       anchorRankingComponentSequence(AnchorEdgeRawFrequencyPolicyID),
+				AnchorEdgeSourceNormalizedPolicyID:   anchorRankingComponentSequence(AnchorEdgeSourceNormalizedPolicyID),
+				AnchorEdgeBidirectionalPolicyID:      anchorRankingComponentSequence(AnchorEdgeBidirectionalPolicyID),
+				AnchorEdgeIncomingPopularityPolicyID: anchorRankingComponentSequence(AnchorEdgeIncomingPopularityPolicyID),
+			},
+			"visibility": "separate_and_unused",
+		},
+		"keyword_maps":    map[string][]string{"signature": {"contract", "props", "type", "interface", "signature", "options", "schema"}, "value_parameter": {"props", "contract"}, "mutation": {"mutate", "set", "write", "assign"}, "return": {"return"}, "condition": {"condition", "when"}, "reverse": {"caller", "used-by"}, "deprecated": {"deprecated"}, "file_roles": {"test", "example", "benchmark"}},
+		"caps":            map[string]int{"dense_depth": MaxDenseDepth, "protected_primary": ProtectedPrimaryK, "related_parent_limit": RelatedParentLimit, "related_body_limit": RelatedBodyLimit, "context_identifier_limit": 8},
+		"qualifier_rules": []string{"deprecated_query_requires_either_endpoint_deprecated", "no_deprecated_query_penalty", "explicit_file_role_uses_occurrence_file_role", "default_production_uses_occurrence_file_role"},
+		"role_rules":      []string{"resolved_distinct_endpoints_only", "selection_never_reads_source_body", "package_related_applies_complete_body_cap"},
+		"occurrence_zone": []OccurrenceZone{SignatureZone, BodyZone, TypeBodyZone, InitializerZone},
+		"occurrence_role": []OccurrenceRole{CallFreeFunctionRole, CallMethodRole, CallableValueRole, TypeParameterRole, TypeValueParameterRole, TypeReturnRole, TypeFieldRole, TypeAliasRole, TypeHeritageRole, TypeArgumentRole, TypeLocalRole, TypeOtherRole, MemberReceiverRole, MemberDeclarationRole},
+		"flow_role":       []FlowRole{FlowNone, FlowReturn, FlowAssignment, FlowCondition, FlowArgument, FlowDeclaration},
+		"file_role":       []FileRole{ProductionFileRole, TestFileRole, ExampleFileRole, BenchmarkFileRole},
+		"execution_mode":  []ExecutionMode{DirectExecution, DeferredExecution, ConcurrentExecution, AwaitedExecution},
+		"control_role":    []ControlRole{ControlNone, ControlBranch, ControlLoop, ControlSwitch, ControlTryCatch},
 	}
 }
 
 func validateEvaluationRequest(v EvaluationRequest) error {
-	if !strings.HasPrefix(v.RunID, "relation-diagnostic-") || !validRelative(v.RunID) || v.EvaluationRoot == "" || v.GraphDirectory == "" || v.ReplayPath == "" || v.DatasetPath == "" || v.ProbesPath == "" || (v.SelectionPolicy != "" && v.SelectionPolicy != DenseFirstPolicyID && v.SelectionPolicy != ValueParameterDenseFirstPolicyID && v.SelectionPolicy != GraphFirstPolicyID) {
+	if !strings.HasPrefix(v.RunID, "relation-diagnostic-") || !validRelative(v.RunID) || v.EvaluationRoot == "" || v.GraphDirectory == "" || v.ReplayPath == "" || v.DatasetPath == "" || v.ProbesPath == "" || !validSelectionPolicy(v.SelectionPolicy) {
 		return fmt.Errorf("invalid relation diagnostic evaluation request")
 	}
 	for _, dir := range []string{v.EvaluationRoot, v.GraphDirectory} {
@@ -417,6 +551,22 @@ func validateEvaluationRequest(v EvaluationRequest) error {
 		}
 	}
 	return nil
+}
+
+func validSelectionPolicy(policy string) bool {
+	switch policy {
+	case "", DenseFirstPolicyID, ValueParameterDenseFirstPolicyID, GraphFirstPolicyID, AnchorEdgeRawFrequencyPolicyID, AnchorEdgeSourceNormalizedPolicyID, AnchorEdgeBidirectionalPolicyID, AnchorEdgeIncomingPopularityPolicyID:
+		return true
+	}
+	return false
+}
+
+func isAnchorEdgePolicy(policy string) bool {
+	switch policy {
+	case AnchorEdgeRawFrequencyPolicyID, AnchorEdgeSourceNormalizedPolicyID, AnchorEdgeBidirectionalPolicyID, AnchorEdgeIncomingPopularityPolicyID:
+		return true
+	}
+	return false
 }
 func loadReplay(file string) (frozenReplay, error) {
 	data, err := os.ReadFile(file)
@@ -620,11 +770,689 @@ func rankPositions(hits []rankHit, byHit map[string]string) map[string]int {
 	values := map[string]int{}
 	for _, hit := range hits {
 		if id, ok := byHit[hitKey(hit.Path, hit.IndexedSHA256, hit.QualifiedSymbol, hit.StartByte, hit.EndByte)]; ok {
-			values[id] = hit.Rank
+			if existing, seen := values[id]; !seen || hit.Rank < existing {
+				values[id] = hit.Rank
+			}
 		}
 	}
 	return values
 }
+
+func selectAnchorGroup(queryID string, tokens []string, hits []rankHit, byHit map[string]string, parents map[string]Parent) (anchorGroup, error) {
+	if len(hits) != MaxDenseDepth || len(tokens) == 0 {
+		return anchorGroup{}, fmt.Errorf("invalid anchor selection input")
+	}
+	seen := map[string]bool{}
+	values := make([]anchorScore, 0, MaxDenseDepth)
+	for _, hit := range hits {
+		id, ok := byHit[hitKey(hit.Path, hit.IndexedSHA256, hit.QualifiedSymbol, hit.StartByte, hit.EndByte)]
+		if !ok {
+			return anchorGroup{}, fmt.Errorf("anchor rank hit absent from parent inventory")
+		}
+		if seen[id] {
+			continue
+		}
+		seen[id] = true
+		parent, ok := parents[id]
+		if !ok {
+			return anchorGroup{}, fmt.Errorf("anchor parent absent from inventory")
+		}
+		parentTokens := stableUniqueStrings(strings.Fields((symbol.IdentifierNormalizer{}).Normalize(parent.Symbol + " " + parent.QualifiedSymbol)))
+		matched := intersectTokens(tokens, parentTokens)
+		denominator := len(parentTokens)
+		if denominator == 0 {
+			denominator = 1 // a missing normalized symbol has zero coverage and falls through.
+		}
+		values = append(values, anchorScore{anchorSelection: anchorSelection{ParentID: id, DenseRank: hit.Rank, MatchedTokens: matched, CoverageNumerator: len(matched), CoverageDenominator: denominator, QueryTokens: len(tokens), ParentTokens: len(parentTokens)}, coverageNumerator: len(matched), coverageDenominator: denominator})
+	}
+	if len(values) == 0 {
+		return anchorGroup{}, fmt.Errorf("no available dense anchors")
+	}
+	if err := validateAnchorCoverageProducts(values); err != nil {
+		return anchorGroup{}, err
+	}
+	sort.SliceStable(values, func(i, j int) bool {
+		if comparison := compareFractionDesc(uint64(values[i].coverageNumerator), uint64(values[i].coverageDenominator), uint64(values[j].coverageNumerator), uint64(values[j].coverageDenominator)); comparison != 0 {
+			return comparison < 0
+		}
+		if values[i].coverageNumerator != values[j].coverageNumerator {
+			return values[i].coverageNumerator > values[j].coverageNumerator
+		}
+		if values[i].DenseRank != values[j].DenseRank {
+			return values[i].DenseRank < values[j].DenseRank
+		}
+		return values[i].ParentID < values[j].ParentID
+	})
+	group := anchorGroup{QueryID: queryID, Tokens: append([]string(nil), tokens...)}
+	for index := range values {
+		if index < 2 {
+			values[index].Ordinal = index + 1
+			values[index].Selected = true
+			values[index].SelectedOrdinal = index + 1
+			group.Anchors = append(group.Anchors, values[index].anchorSelection)
+		} else {
+			values[index].Ordinal = 0
+			values[index].Selected = false
+			values[index].SelectedOrdinal = 0
+		}
+		group.Candidates = append(group.Candidates, values[index].anchorSelection)
+	}
+	return group, nil
+}
+
+func intersectTokens(left, right []string) []string {
+	set := map[string]bool{}
+	for _, value := range right {
+		set[value] = true
+	}
+	var result []string
+	for _, value := range left {
+		if set[value] {
+			result = append(result, value)
+		}
+	}
+	return result
+}
+
+func validateAnchorCoverageProducts(values []anchorScore) error {
+	var maxNumerator, maxDenominator uint64
+	for _, value := range values {
+		if value.coverageNumerator < 0 || value.coverageDenominator < 1 {
+			return fmt.Errorf("invalid anchor coverage")
+		}
+		if uint64(value.coverageNumerator) > maxNumerator {
+			maxNumerator = uint64(value.coverageNumerator)
+		}
+		if uint64(value.coverageDenominator) > maxDenominator {
+			maxDenominator = uint64(value.coverageDenominator)
+		}
+	}
+	if high, _ := bits.Mul64(maxNumerator, maxDenominator); high != 0 {
+		return fmt.Errorf("anchor coverage cross product overflows")
+	}
+	return nil
+}
+
+func compareFractionDesc(leftNumerator, leftDenominator, rightNumerator, rightDenominator uint64) int {
+	_, left := bits.Mul64(leftNumerator, rightDenominator)
+	_, right := bits.Mul64(rightNumerator, leftDenominator)
+	if left > right {
+		return -1
+	}
+	if left < right {
+		return 1
+	}
+	return 0
+}
+
+func structuralTier(kind RelationKind, metadata OccurrenceMetadata) (StructuralTier, error) {
+	switch {
+	case kind == TypeRef && (metadata.Zone == SignatureZone || metadata.Zone == TypeBodyZone):
+		return DeclarationContractTier, nil
+	case kind == Calls:
+		return ExecutableDependencyTier, nil
+	case kind == TypeRef && (metadata.Zone == BodyZone || metadata.Zone == InitializerZone):
+		return BodyReferenceTier, nil
+	case kind == MemberOf:
+		return DeclarationStructureTier, nil
+	}
+	return "", fmt.Errorf("unmapped resolved relation kind/zone %s/%s", kind, metadata.Zone)
+}
+
+func structuralTierOrdinal(value StructuralTier) int {
+	switch value {
+	case DeclarationContractTier:
+		return 0
+	case ExecutableDependencyTier:
+		return 1
+	case BodyReferenceTier:
+		return 2
+	case DeclarationStructureTier:
+		return 3
+	}
+	return 4
+}
+
+func storedEdgeKey(source, target string, kind RelationKind, tier StructuralTier) string {
+	return source + "\x00" + target + "\x00" + string(kind) + "\x00" + string(tier)
+}
+
+func stratumKey(kind RelationKind, tier StructuralTier, parentID string) string {
+	return string(kind) + "\x00" + string(tier) + "\x00" + parentID
+}
+
+func completeGraphEdgeStats(ctx context.Context, db *sql.DB) (map[string]edgeStats, map[StructuralTier]structuralTierCount, error) {
+	rows, err := db.QueryContext(ctx, `SELECT relation_id,source_parent_id,target_parent_id,relation_kind,path,start_byte,end_byte,occurrence_zone,occurrence_role,flow_role,file_role,execution_mode,control_role,context_identifiers,source_ordinal FROM relation_occurrences WHERE outcome='RESOLVED_UNIQUE' ORDER BY relation_id`)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer rows.Close()
+	edges := map[string]edgeStats{}
+	sourceOccurrences, targetOccurrences := map[string]int{}, map[string]int{}
+	sourceTargets, targetSources := map[string]map[string]bool{}, map[string]map[string]bool{}
+	tierSources := map[StructuralTier]map[string]bool{}
+	edgeSliceCounts, sourceSliceCounts, targetSliceCounts := map[string]map[FileRole]int{}, map[string]map[FileRole]int{}, map[string]map[FileRole]int{}
+	edgeSliceSources, sourceSliceSources, targetSliceSources := map[string]map[FileRole]map[string]bool{}, map[string]map[FileRole]map[string]bool{}, map[string]map[FileRole]map[string]bool{}
+	tierSliceSources := map[StructuralTier]map[FileRole]map[string]bool{}
+	tierCounts := map[StructuralTier]structuralTierCount{}
+	for _, tier := range []StructuralTier{DeclarationContractTier, ExecutableDependencyTier, BodyReferenceTier, DeclarationStructureTier} {
+		tierCounts[tier] = structuralTierCount{FileRoleSlices: completeFileRoleSlices(nil)}
+	}
+	for rows.Next() {
+		fact, source, target, err := scanResolvedFact(rows, Forward, "")
+		if err != nil {
+			return nil, nil, err
+		}
+		tier, err := structuralTier(fact.Kind, fact.Metadata)
+		if err != nil {
+			return nil, nil, err
+		}
+		if source == target {
+			continue // Self relations are outside the one-hop anchor experiment.
+		}
+		key := storedEdgeKey(source, target, fact.Kind, tier)
+		stat := edges[key]
+		if stat.EdgeOccurrences == 0 {
+			stat = edgeStats{SourceID: source, TargetID: target, Kind: fact.Kind, Tier: tier, Best: fact}
+		}
+		stat.EdgeOccurrences++
+		if lessBestOccurrence(fact, stat.Best) {
+			stat.Best = fact
+		}
+		edges[key] = stat
+		sourceKey, targetKey := stratumKey(fact.Kind, tier, source), stratumKey(fact.Kind, tier, target)
+		sourceOccurrences[sourceKey]++
+		targetOccurrences[targetKey]++
+		if sourceTargets[sourceKey] == nil {
+			sourceTargets[sourceKey] = map[string]bool{}
+		}
+		if targetSources[targetKey] == nil {
+			targetSources[targetKey] = map[string]bool{}
+		}
+		sourceTargets[sourceKey][target] = true
+		targetSources[targetKey][source] = true
+		if tierSources[tier] == nil {
+			tierSources[tier] = map[string]bool{}
+		}
+		tierSources[tier][source] = true
+		incrementFileRoleSlice(edgeSliceCounts, edgeSliceSources, key, fact.Metadata.FileRole, source)
+		incrementFileRoleSlice(sourceSliceCounts, sourceSliceSources, sourceKey, fact.Metadata.FileRole, source)
+		incrementFileRoleSlice(targetSliceCounts, targetSliceSources, targetKey, fact.Metadata.FileRole, source)
+		count := tierCounts[tier]
+		if count.FileRoleSlices == nil {
+			count.FileRoleSlices = map[FileRole]fileRoleSlice{}
+		}
+		count.Occurrences++
+		roleCount := count.FileRoleSlices[fact.Metadata.FileRole]
+		roleCount.Occurrences++
+		count.FileRoleSlices[fact.Metadata.FileRole] = roleCount
+		tierCounts[tier] = count
+		if tierSliceSources[tier] == nil {
+			tierSliceSources[tier] = map[FileRole]map[string]bool{}
+		}
+		if tierSliceSources[tier][fact.Metadata.FileRole] == nil {
+			tierSliceSources[tier][fact.Metadata.FileRole] = map[string]bool{}
+		}
+		tierSliceSources[tier][fact.Metadata.FileRole][source] = true
+	}
+	if err := rows.Err(); err != nil {
+		return nil, nil, err
+	}
+	for key, stat := range edges {
+		sourceKey, targetKey := stratumKey(stat.Kind, stat.Tier, stat.SourceID), stratumKey(stat.Kind, stat.Tier, stat.TargetID)
+		stat.SourceStratumOccurrences = sourceOccurrences[sourceKey]
+		stat.SourceStratumDistinctTargets = len(sourceTargets[sourceKey])
+		stat.TargetIncomingStratumOccurrences = targetOccurrences[targetKey]
+		stat.TargetIncomingStratumDistinctSources = len(targetSources[targetKey])
+		stat.EdgeFileRoleSlices = fileRoleSlices(edgeSliceCounts[key], edgeSliceSources[key])
+		stat.SourceStratumFileRoleSlices = fileRoleSlices(sourceSliceCounts[sourceKey], sourceSliceSources[sourceKey])
+		stat.TargetIncomingStratumFileRoleSlices = fileRoleSlices(targetSliceCounts[targetKey], targetSliceSources[targetKey])
+		edges[key] = stat
+	}
+	for tier, count := range tierCounts {
+		count.DistinctSources = len(tierSources[tier])
+		for role, roleSources := range tierSliceSources[tier] {
+			slice := count.FileRoleSlices[role]
+			slice.DistinctSource = len(roleSources)
+			count.FileRoleSlices[role] = slice
+		}
+		count.FileRoleSlices = completeFileRoleSlices(count.FileRoleSlices)
+		tierCounts[tier] = count
+	}
+	if err := validateEdgeRatioProducts(edges); err != nil {
+		return nil, nil, err
+	}
+	return edges, tierCounts, nil
+}
+
+func incrementFileRoleSlice(counts map[string]map[FileRole]int, sources map[string]map[FileRole]map[string]bool, key string, role FileRole, source string) {
+	if counts[key] == nil {
+		counts[key] = map[FileRole]int{}
+	}
+	counts[key][role]++
+	if sources[key] == nil {
+		sources[key] = map[FileRole]map[string]bool{}
+	}
+	if sources[key][role] == nil {
+		sources[key][role] = map[string]bool{}
+	}
+	sources[key][role][source] = true
+}
+
+func fileRoleSlices(counts map[FileRole]int, sources map[FileRole]map[string]bool) map[FileRole]fileRoleSlice {
+	values := map[FileRole]fileRoleSlice{}
+	for role, occurrences := range counts {
+		values[role] = fileRoleSlice{Occurrences: occurrences, DistinctSource: len(sources[role])}
+	}
+	return completeFileRoleSlices(values)
+}
+
+func completeFileRoleSlices(values map[FileRole]fileRoleSlice) map[FileRole]fileRoleSlice {
+	if values == nil {
+		values = map[FileRole]fileRoleSlice{}
+	}
+	for _, role := range []FileRole{ProductionFileRole, TestFileRole, ExampleFileRole, BenchmarkFileRole} {
+		if _, ok := values[role]; !ok {
+			values[role] = fileRoleSlice{}
+		}
+	}
+	return values
+}
+
+func lessBestOccurrence(left, right Fact) bool {
+	if left.Metadata.SourceOrdinal != right.Metadata.SourceOrdinal {
+		return left.Metadata.SourceOrdinal < right.Metadata.SourceOrdinal
+	}
+	if left.OccurrenceByte != right.OccurrenceByte {
+		return left.OccurrenceByte < right.OccurrenceByte
+	}
+	return left.RelationID < right.RelationID
+}
+
+func validateEdgeRatioProducts(edges map[string]edgeStats) error {
+	var maxEdge, maxSource uint64
+	for _, stat := range edges {
+		if stat.EdgeOccurrences < 1 || stat.SourceStratumOccurrences < 1 || stat.SourceStratumDistinctTargets < 1 || stat.TargetIncomingStratumOccurrences < 1 || stat.TargetIncomingStratumDistinctSources < 1 {
+			return fmt.Errorf("invalid complete graph edge statistic")
+		}
+		if uint64(stat.EdgeOccurrences) > maxEdge {
+			maxEdge = uint64(stat.EdgeOccurrences)
+		}
+		if uint64(stat.SourceStratumOccurrences) > maxSource {
+			maxSource = uint64(stat.SourceStratumOccurrences)
+		}
+	}
+	if high, _ := bits.Mul64(maxEdge, maxSource); high != 0 {
+		return fmt.Errorf("edge-strength ratio cross product overflows")
+	}
+	return nil
+}
+
+func scanResolvedFact(rows *sql.Rows, direction Direction, anchor string) (Fact, string, string, error) {
+	var id, source, target, kind, path, zone, role, flow, fileRole, execution, control, contexts string
+	var offset, end, ordinal int
+	if err := rows.Scan(&id, &source, &target, &kind, &path, &offset, &end, &zone, &role, &flow, &fileRole, &execution, &control, &contexts, &ordinal); err != nil {
+		return Fact{}, "", "", err
+	}
+	metadata := DefaultOccurrenceMetadata(path, ordinal)
+	metadata.Zone, metadata.Role, metadata.Flow, metadata.FileRole, metadata.Execution, metadata.Control = OccurrenceZone(zone), OccurrenceRole(role), FlowRole(flow), FileRole(fileRole), ExecutionMode(execution), ControlRole(control)
+	if err := json.Unmarshal([]byte(contexts), &metadata.ContextIdentifiers); err != nil || metadata.Validate() != nil {
+		return Fact{}, "", "", fmt.Errorf("invalid relation metadata")
+	}
+	fact := Fact{RelationID: id, Direction: direction, AnchorID: source, EndpointID: target, Kind: RelationKind(kind), OccurrencePath: path, OccurrenceByte: offset, OccurrenceEndByte: end, Metadata: metadata}
+	if direction == Reverse {
+		fact.AnchorID, fact.EndpointID = target, source
+	}
+	if anchor != "" {
+		fact.AnchorID = anchor
+	}
+	return fact, source, target, nil
+}
+
+func selectAnchorEdgeBundle(queryID string, feature queryFeatures, group anchorGroup, facts []Fact, stats map[string]edgeStats, ranks map[string]int, parents map[string]Parent, primary []string, policy string) (Bundle, *anchorEdgeTrace, error) {
+	result := Bundle{QueryID: queryID, SelectionPolicy: policy}
+	trace := &anchorEdgeTrace{Group: group, StagePresence: map[string]bool{"anchor": len(group.Anchors) > 0, "reachability": false, "strength": false, "cap": false, "packaging": false}}
+	anchorOrdinals := map[string]int{}
+	for _, anchor := range group.Anchors {
+		anchorOrdinals[anchor.ParentID] = anchor.Ordinal
+	}
+	seen := map[string]bool{}
+	for _, fact := range facts {
+		source, target := fact.AnchorID, fact.EndpointID
+		if fact.Direction == Reverse {
+			source, target = fact.EndpointID, fact.AnchorID
+		}
+		tier, err := structuralTier(fact.Kind, fact.Metadata)
+		if err != nil {
+			return Bundle{}, nil, err
+		}
+		if source == target {
+			continue
+		}
+		trace.DirectionalFacts = append(trace.DirectionalFacts, fact)
+		key := storedEdgeKey(source, target, fact.Kind, tier)
+		stat, ok := stats[key]
+		if !ok {
+			return Bundle{}, nil, fmt.Errorf("missing complete graph statistic for reachable edge")
+		}
+		candidateKey := fact.AnchorID + "\x00" + string(fact.Direction) + "\x00" + key
+		if seen[candidateKey] {
+			continue
+		}
+		seen[candidateKey] = true
+		best := stat.Best
+		best.Direction, best.AnchorID, best.EndpointID = fact.Direction, fact.AnchorID, fact.EndpointID
+		candidate := anchorEdgeCandidate{Fact: best, AnchorOrdinal: anchorOrdinals[fact.AnchorID], DirectionMismatch: boolInt(feature.Direction != fact.Direction), Stats: stat}
+		if candidate.AnchorOrdinal < 1 {
+			return Bundle{}, nil, fmt.Errorf("reachable fact lacks selected anchor ordinal")
+		}
+		candidate.RankingTuple = anchorRankingTuple(candidate, ranks, policy)
+		trace.Candidates = append(trace.Candidates, candidate)
+	}
+	trace.Denominators.Anchors, trace.Denominators.DirectionalOneHop, trace.Denominators.DistinctEdges = len(group.Anchors), len(trace.DirectionalFacts), len(trace.Candidates)
+	trace.StagePresence["reachability"] = len(trace.DirectionalFacts) > 0
+	if len(trace.Candidates) == 0 {
+		return result, trace, nil
+	}
+	trace.StagePresence["strength"] = true
+	sort.SliceStable(trace.Candidates, func(i, j int) bool {
+		return compareAnchorEdgeCandidates(trace.Candidates[i], trace.Candidates[j], ranks, policy) < 0
+	})
+	for index := range trace.Candidates {
+		trace.Candidates[index].Rank = index + 1
+		if index > 0 {
+			trace.Candidates[index].FirstDifference = firstAnchorEdgeDifference(trace.Candidates[0], trace.Candidates[index], ranks, policy)
+		}
+	}
+	if err := validateAnchorRanking(trace.Candidates, ranks, policy); err != nil {
+		return Bundle{}, nil, err
+	}
+	selected := trace.Candidates[0]
+	result.Selected = &selected.Fact
+	result.SelectionKey = rankingComponentsAny(selected.RankingTuple)
+	result.AdmissionOrder = make([]AdmissionCandidate, 0, len(trace.Candidates))
+	for _, candidate := range trace.Candidates {
+		result.AdmissionOrder = append(result.AdmissionOrder, AdmissionCandidate{Fact: candidate.Fact, Prefix: []any{candidate.DirectionMismatch, structuralTierOrdinal(candidate.Stats.Tier)}, SelectionKey: rankingComponentsAny(candidate.RankingTuple), Admitted: true})
+	}
+	primarySet := map[string]bool{}
+	for _, id := range primary {
+		primarySet[id] = true
+	}
+	for _, id := range []string{selected.Stats.SourceID, selected.Stats.TargetID} {
+		if _, ok := parents[id]; !ok || primarySet[id] || containsString(result.AddedParentIDs, id) {
+			continue
+		}
+		result.AddedParentIDs = append(result.AddedParentIDs, id)
+		if len(result.AddedParentIDs) == RelatedParentLimit {
+			break
+		}
+	}
+	trace.Denominators.Selected = 1
+	return result, trace, nil
+}
+
+func anchorEndpointRank(candidate anchorEdgeCandidate, ranks map[string]int) int {
+	if rank, ok := ranks[candidate.Fact.EndpointID]; ok {
+		return rank
+	}
+	return MaxDenseDepth + 1
+}
+
+func anchorRankingTuple(candidate anchorEdgeCandidate, ranks map[string]int, policy string) []rankingComponent {
+	stats := candidate.Stats
+	base := []rankingComponent{rankingValue("direction_mismatch", "asc", candidate.DirectionMismatch), rankingValue("structural_tier", "asc", structuralTierOrdinal(stats.Tier))}
+	switch policy {
+	case AnchorEdgeRawFrequencyPolicyID:
+		base = append(base, rankingValue("edge_occurrences", "desc", stats.EdgeOccurrences))
+	case AnchorEdgeSourceNormalizedPolicyID:
+		base = append(base, rankingRatio("edge_occurrences_over_source_stratum_occurrences", stats.EdgeOccurrences, stats.SourceStratumOccurrences), rankingValue("source_stratum_distinct_targets", "asc", stats.SourceStratumDistinctTargets))
+	case AnchorEdgeBidirectionalPolicyID:
+		base = append(base, rankingRatio("edge_occurrences_over_source_stratum_occurrences", stats.EdgeOccurrences, stats.SourceStratumOccurrences), rankingValue("source_stratum_distinct_targets", "asc", stats.SourceStratumDistinctTargets), rankingValue("target_incoming_stratum_distinct_sources", "asc", stats.TargetIncomingStratumDistinctSources), rankingValue("target_incoming_stratum_occurrences", "asc", stats.TargetIncomingStratumOccurrences))
+	case AnchorEdgeIncomingPopularityPolicyID:
+		base = append(base, rankingValue("target_incoming_stratum_distinct_sources", "desc", stats.TargetIncomingStratumDistinctSources), rankingValue("target_incoming_stratum_occurrences", "desc", stats.TargetIncomingStratumOccurrences), rankingValue("edge_occurrences", "desc", stats.EdgeOccurrences))
+	}
+	return append(base,
+		rankingValue("anchor_selection_ordinal", "asc", candidate.AnchorOrdinal),
+		rankingValue("endpoint_dense_rank", "asc", anchorEndpointRank(candidate, ranks)),
+		rankingValue("best_occurrence_ordinal", "asc", stats.Best.Metadata.SourceOrdinal),
+		rankingValue("best_occurrence_byte", "asc", stats.Best.OccurrenceByte),
+		rankingValue("source_id", "asc", stats.SourceID),
+		rankingValue("target_id", "asc", stats.TargetID),
+		rankingValue("relation_kind", "asc", string(stats.Kind)),
+		rankingValue("stable_relation_id", "asc", stats.Best.RelationID),
+	)
+}
+
+func rankingValue(name, order string, value any) rankingComponent {
+	return rankingComponent{Name: name, Order: order, Value: value}
+}
+
+func rankingRatio(name string, numerator, denominator int) rankingComponent {
+	return rankingComponent{Name: name, Order: "desc_rational", Numerator: &numerator, Denominator: &denominator}
+}
+
+func anchorRankingComponentDefinitions(policy string) []rankingComponent {
+	values := []rankingComponent{{Name: "direction_mismatch", Order: "asc"}, {Name: "structural_tier", Order: "asc"}}
+	switch policy {
+	case AnchorEdgeRawFrequencyPolicyID:
+		values = append(values, rankingComponent{Name: "edge_occurrences", Order: "desc"})
+	case AnchorEdgeSourceNormalizedPolicyID:
+		values = append(values, rankingComponent{Name: "edge_occurrences_over_source_stratum_occurrences", Order: "desc_rational"}, rankingComponent{Name: "source_stratum_distinct_targets", Order: "asc"})
+	case AnchorEdgeBidirectionalPolicyID:
+		values = append(values, rankingComponent{Name: "edge_occurrences_over_source_stratum_occurrences", Order: "desc_rational"}, rankingComponent{Name: "source_stratum_distinct_targets", Order: "asc"}, rankingComponent{Name: "target_incoming_stratum_distinct_sources", Order: "asc"}, rankingComponent{Name: "target_incoming_stratum_occurrences", Order: "asc"})
+	case AnchorEdgeIncomingPopularityPolicyID:
+		values = append(values, rankingComponent{Name: "target_incoming_stratum_distinct_sources", Order: "desc"}, rankingComponent{Name: "target_incoming_stratum_occurrences", Order: "desc"}, rankingComponent{Name: "edge_occurrences", Order: "desc"})
+	}
+	return append(values,
+		rankingComponent{Name: "anchor_selection_ordinal", Order: "asc"}, rankingComponent{Name: "endpoint_dense_rank", Order: "asc"}, rankingComponent{Name: "best_occurrence_ordinal", Order: "asc"}, rankingComponent{Name: "best_occurrence_byte", Order: "asc"}, rankingComponent{Name: "source_id", Order: "asc"}, rankingComponent{Name: "target_id", Order: "asc"}, rankingComponent{Name: "relation_kind", Order: "asc"}, rankingComponent{Name: "stable_relation_id", Order: "asc"},
+	)
+}
+
+func anchorRankingComponentSequence(policy string) []string {
+	definitions := anchorRankingComponentDefinitions(policy)
+	values := make([]string, 0, len(definitions))
+	for _, definition := range definitions {
+		values = append(values, definition.Name+":"+definition.Order)
+	}
+	return values
+}
+
+func rankingComponentsAny(values []rankingComponent) []any {
+	result := make([]any, 0, len(values))
+	for _, value := range values {
+		result = append(result, value)
+	}
+	return result
+}
+
+func validateAnchorRanking(values []anchorEdgeCandidate, ranks map[string]int, policy string) error {
+	definitions := anchorRankingComponentDefinitions(policy)
+	for index := range values {
+		if !sameRankingComponentSequence(values[index].RankingTuple, definitions) {
+			return fmt.Errorf("anchor ranking tuple does not match frozen policy component sequence")
+		}
+		if !sameRankingComponents(values[index].RankingTuple, anchorRankingTuple(values[index], ranks, policy)) {
+			return fmt.Errorf("anchor ranking tuple is not mechanically reproducible")
+		}
+		if index > 0 {
+			if compareAnchorEdgeCandidates(values[index-1], values[index], ranks, policy) > 0 {
+				return fmt.Errorf("anchor ranking order is not monotonic")
+			}
+			expected := firstAnchorEdgeDifference(values[0], values[index], ranks, policy)
+			if values[index].FirstDifference != expected || !rankingComponentNamed(values[index].RankingTuple, expected) {
+				return fmt.Errorf("anchor ranking first difference is invalid")
+			}
+		}
+	}
+	return nil
+}
+
+func sameRankingComponentSequence(values, definitions []rankingComponent) bool {
+	if len(values) != len(definitions) {
+		return false
+	}
+	for index := range values {
+		if values[index].Name != definitions[index].Name || values[index].Order != definitions[index].Order {
+			return false
+		}
+	}
+	return true
+}
+
+func sameRankingComponents(left, right []rankingComponent) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	for index := range left {
+		if left[index].Name != right[index].Name || left[index].Order != right[index].Order {
+			return false
+		}
+		if left[index].Numerator != nil || right[index].Numerator != nil {
+			if left[index].Numerator == nil || left[index].Denominator == nil || right[index].Numerator == nil || right[index].Denominator == nil || *left[index].Numerator != *right[index].Numerator || *left[index].Denominator != *right[index].Denominator {
+				return false
+			}
+			continue
+		}
+		if fmt.Sprint(left[index].Value) != fmt.Sprint(right[index].Value) {
+			return false
+		}
+	}
+	return true
+}
+
+func rankingComponentNamed(values []rankingComponent, name string) bool {
+	for _, value := range values {
+		if value.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+func compareAnchorEdgeCandidates(left, right anchorEdgeCandidate, ranks map[string]int, policy string) int {
+	if result := compareInt(left.DirectionMismatch, right.DirectionMismatch); result != 0 {
+		return result
+	}
+	if result := compareInt(structuralTierOrdinal(left.Stats.Tier), structuralTierOrdinal(right.Stats.Tier)); result != 0 {
+		return result
+	}
+	switch policy {
+	case AnchorEdgeRawFrequencyPolicyID:
+		if result := compareIntDesc(left.Stats.EdgeOccurrences, right.Stats.EdgeOccurrences); result != 0 {
+			return result
+		}
+	case AnchorEdgeSourceNormalizedPolicyID:
+		if result := compareFractionDesc(uint64(left.Stats.EdgeOccurrences), uint64(left.Stats.SourceStratumOccurrences), uint64(right.Stats.EdgeOccurrences), uint64(right.Stats.SourceStratumOccurrences)); result != 0 {
+			return result
+		}
+		if result := compareInt(left.Stats.SourceStratumDistinctTargets, right.Stats.SourceStratumDistinctTargets); result != 0 {
+			return result
+		}
+	case AnchorEdgeBidirectionalPolicyID:
+		if result := compareFractionDesc(uint64(left.Stats.EdgeOccurrences), uint64(left.Stats.SourceStratumOccurrences), uint64(right.Stats.EdgeOccurrences), uint64(right.Stats.SourceStratumOccurrences)); result != 0 {
+			return result
+		}
+		if result := compareInt(left.Stats.SourceStratumDistinctTargets, right.Stats.SourceStratumDistinctTargets); result != 0 {
+			return result
+		}
+		if result := compareInt(left.Stats.TargetIncomingStratumDistinctSources, right.Stats.TargetIncomingStratumDistinctSources); result != 0 {
+			return result
+		}
+		if result := compareInt(left.Stats.TargetIncomingStratumOccurrences, right.Stats.TargetIncomingStratumOccurrences); result != 0 {
+			return result
+		}
+	case AnchorEdgeIncomingPopularityPolicyID:
+		if result := compareIntDesc(left.Stats.TargetIncomingStratumDistinctSources, right.Stats.TargetIncomingStratumDistinctSources); result != 0 {
+			return result
+		}
+		if result := compareIntDesc(left.Stats.TargetIncomingStratumOccurrences, right.Stats.TargetIncomingStratumOccurrences); result != 0 {
+			return result
+		}
+		if result := compareIntDesc(left.Stats.EdgeOccurrences, right.Stats.EdgeOccurrences); result != 0 {
+			return result
+		}
+	}
+	if result := compareInt(left.AnchorOrdinal, right.AnchorOrdinal); result != 0 {
+		return result
+	}
+	if result := compareInt(anchorEndpointRank(left, ranks), anchorEndpointRank(right, ranks)); result != 0 {
+		return result
+	}
+	if result := compareInt(left.Stats.Best.Metadata.SourceOrdinal, right.Stats.Best.Metadata.SourceOrdinal); result != 0 {
+		return result
+	}
+	if result := compareInt(left.Stats.Best.OccurrenceByte, right.Stats.Best.OccurrenceByte); result != 0 {
+		return result
+	}
+	if left.Stats.SourceID != right.Stats.SourceID {
+		if left.Stats.SourceID < right.Stats.SourceID {
+			return -1
+		}
+		return 1
+	}
+	if left.Stats.TargetID != right.Stats.TargetID {
+		if left.Stats.TargetID < right.Stats.TargetID {
+			return -1
+		}
+		return 1
+	}
+	if left.Stats.Kind != right.Stats.Kind {
+		if left.Stats.Kind < right.Stats.Kind {
+			return -1
+		}
+		return 1
+	}
+	if left.Stats.Best.RelationID != right.Stats.Best.RelationID {
+		if left.Stats.Best.RelationID < right.Stats.Best.RelationID {
+			return -1
+		}
+		return 1
+	}
+	return 0
+}
+
+func firstAnchorEdgeDifference(left, right anchorEdgeCandidate, ranks map[string]int, policy string) string {
+	return firstUnequalRankingComponent(anchorRankingTuple(left, ranks, policy), anchorRankingTuple(right, ranks, policy))
+}
+
+func firstUnequalRankingComponent(left, right []rankingComponent) string {
+	if len(left) != len(right) {
+		return "tuple_length"
+	}
+	for index := range left {
+		if left[index].Name != right[index].Name || left[index].Order != right[index].Order || !sameRankingComponentOrderValue(left[index], right[index]) {
+			return left[index].Name
+		}
+	}
+	return "identical"
+}
+
+func sameRankingComponentOrderValue(left, right rankingComponent) bool {
+	if left.Numerator != nil || right.Numerator != nil {
+		return left.Numerator != nil && left.Denominator != nil && right.Numerator != nil && right.Denominator != nil && compareFractionDesc(uint64(*left.Numerator), uint64(*left.Denominator), uint64(*right.Numerator), uint64(*right.Denominator)) == 0
+	}
+	switch value := left.Value.(type) {
+	case int:
+		rightValue, ok := right.Value.(int)
+		return ok && value == rightValue
+	case string:
+		rightValue, ok := right.Value.(string)
+		return ok && value == rightValue
+	default:
+		return false
+	}
+}
+
+func compareInt(left, right int) int {
+	if left < right {
+		return -1
+	}
+	if left > right {
+		return 1
+	}
+	return 0
+}
+func compareIntDesc(left, right int) int { return compareInt(right, left) }
 
 func reachableFacts(ctx context.Context, db *sql.DB, seeds []string) ([]Fact, error) {
 	seen := map[string]bool{}
@@ -700,7 +1528,11 @@ func loadQueryFeatures(file string) (map[string]queryFeatures, error) {
 			return nil, fmt.Errorf("invalid query feature input")
 		}
 		tokens := strings.Fields(normalizer.Normalize(item.Text))
-		feature := queryFeatures{QueryID: item.ID, Tokens: uniqueStrings(tokens), Direction: Forward}
+		classified := symbol.ClassifyQuery(item.Text, normalizer)
+		feature := queryFeatures{QueryID: item.ID, Tokens: uniqueStrings(tokens), AnchorTokens: stableUniqueStrings(append(classified.IdentifierTokens, classified.TextTokens...)), Direction: Forward}
+		if len(feature.AnchorTokens) == 0 {
+			return nil, fmt.Errorf("empty classified query tokens")
+		}
 		for _, token := range feature.Tokens {
 			switch token {
 			case "contract", "props", "type", "interface", "signature", "options", "schema":
@@ -971,6 +1803,18 @@ func uniqueStrings(values []string) []string {
 		}
 	}
 	sort.Strings(result)
+	return result
+}
+
+func stableUniqueStrings(values []string) []string {
+	seen := map[string]bool{}
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		if value != "" && !seen[value] {
+			seen[value] = true
+			result = append(result, value)
+		}
+	}
 	return result
 }
 func uniqueFileRoles(values []FileRole) []FileRole {
@@ -1449,7 +2293,7 @@ func resolutionDenominators(ctx context.Context, db *sql.DB) (map[string]int, er
 	return values, rows.Err()
 }
 
-func writeEvaluationArtifacts(root string, traces []queryTrace, features map[string]queryFeatures, probes []probeResult, resolution map[string]int, gate DiagnosticGate, graph GraphManifest, replay frozenReplay, binding evaluationBinding) error {
+func writeEvaluationArtifacts(root string, traces []queryTrace, features map[string]queryFeatures, probes []probeResult, resolution map[string]int, gate DiagnosticGate, graph GraphManifest, replay frozenReplay, binding evaluationBinding, tierCounts map[StructuralTier]structuralTierCount) error {
 	primary, stageA, bundles, bodies, complete := make([]any, 0, len(traces)), []any{}, make([]any, 0, len(traces)), []any{}, make([]any, 0, len(traces))
 	for _, trace := range traces {
 		digest, err := canonicalHash(trace.PrimaryTop5)
@@ -1488,6 +2332,40 @@ func writeEvaluationArtifacts(root string, traces []queryTrace, features map[str
 			return err
 		}
 	}
+	if isAnchorEdgePolicy(binding.SelectionPolicy) {
+		anchorGroups, directionalFacts, candidateStats, rankings := make([]any, 0, len(traces)), []any{}, []any{}, make([]any, 0, len(traces))
+		denominatorRows := make([]any, 0, len(traces))
+		for _, trace := range traces {
+			if trace.AnchorEdge == nil {
+				return fmt.Errorf("anchor-edge policy is missing per-query trace")
+			}
+			anchorGroups = append(anchorGroups, trace.AnchorEdge.Group)
+			for _, fact := range trace.AnchorEdge.DirectionalFacts {
+				directionalFacts = append(directionalFacts, map[string]any{"query_id": trace.QueryID, "fact": fact})
+			}
+			for _, candidate := range trace.AnchorEdge.Candidates {
+				candidateStats = append(candidateStats, map[string]any{"query_id": trace.QueryID, "candidate": candidate})
+			}
+			rankings = append(rankings, map[string]any{"query_id": trace.QueryID, "policy": binding.SelectionPolicy, "selected": firstAnchorCandidate(trace.AnchorEdge.Candidates), "runner_up": secondAnchorCandidate(trace.AnchorEdge.Candidates), "selected_to_runner_up_first_differing_component": selectedRunnerDifference(trace.AnchorEdge.Candidates), "ranked_candidates": trace.AnchorEdge.Candidates})
+			denominatorRows = append(denominatorRows, map[string]any{"query_id": trace.QueryID, "denominators": trace.AnchorEdge.Denominators, "stage_presence": trace.AnchorEdge.StagePresence})
+		}
+		for _, file := range []struct {
+			name string
+			rows []any
+		}{
+			{"anchor-groups.jsonl", anchorGroups}, {"directional-one-hop-facts.jsonl", directionalFacts}, {"edge-candidate-stats.jsonl", candidateStats}, {"policy-ranking.jsonl", rankings},
+		} {
+			if err := writeJSONL(filepath.Join(root, file.name), file.rows); err != nil {
+				return err
+			}
+		}
+		if err := writePortableJSON(filepath.Join(root, "structural-tier-counts.json"), tierCounts, ""); err != nil {
+			return err
+		}
+		if err := writePortableJSON(filepath.Join(root, "denominator-report.json"), map[string]any{"policy": binding.SelectionPolicy, "queries": denominatorRows, "stages": []string{"anchor", "reachability", "strength", "cap", "packaging"}}, ""); err != nil {
+			return err
+		}
+	}
 	aggregate := aggregateMetrics(traces)
 	aggregate["schema_version"], aggregate["selection_policy"], aggregate["metadata_policy"], aggregate["body_policy"], aggregate["primary_top5_protected"] = SchemaVersion, binding.SelectionPolicy, MetadataPolicyID, BodyPolicyID, true
 	aggregate["policy_fingerprint"] = binding.PolicyFingerprint
@@ -1503,7 +2381,7 @@ func writeEvaluationArtifacts(root string, traces []queryTrace, features map[str
 	if binding.GraphLogicalSHA256 != graph.LogicalGraphSHA256 || binding.GraphCorpusID != graph.Corpus.CorpusID || binding.ReplayCorpusID != replay.CorpusID || binding.ExpectedDatasetSHA256 != replay.SourceSHA256["dataset"] || binding.ExpectedDatasetFingerprint != replay.DatasetFingerprint || binding.SelectionPolicy == "" || binding.MetadataPolicy != MetadataPolicyID || !validDigest(binding.PolicyFingerprint) || !validDigest(binding.QueryFeaturesSHA256) {
 		return fmt.Errorf("evaluation binding changed after selection")
 	}
-	manifest := map[string]any{"schema_version": SchemaVersion, "kind": "cidx.relation_diagnostic.v3", "created_at": time.Now().UTC().Format(time.RFC3339Nano), "queries": len(traces), "selection_policy": binding.SelectionPolicy, "metadata_policy": MetadataPolicyID, "policy_spec": relationPolicySpec(), "policy_fingerprint": binding.PolicyFingerprint, "label_loading": "after_query_features_facts_order_selection_and_package_freeze", "zero_provider_operations": true, "binding_verified_before_selection": true, "frozen_binding": binding, "resolution_outcomes": resolution, "diagnostic_eligible": gate.Eligible, "diagnostic_gate_reasons": gate.Reasons}
+	manifest := map[string]any{"schema_version": SchemaVersion, "kind": "cidx.relation_diagnostic.v3", "created_at": time.Now().UTC().Format(time.RFC3339Nano), "queries": len(traces), "selection_policy": binding.SelectionPolicy, "metadata_policy": MetadataPolicyID, "policy_spec": relationPolicySpec(), "policy_fingerprint": binding.PolicyFingerprint, "label_loading": "after_query_features_facts_order_selection_and_package_freeze", "zero_provider_operations": true, "calibration_only": true, "binding_verified_before_selection": true, "frozen_binding": binding, "resolution_outcomes": resolution, "diagnostic_eligible": gate.Eligible, "diagnostic_gate_reasons": gate.Reasons}
 	if err := writePortableJSON(filepath.Join(root, "run-manifest.json"), manifest, ""); err != nil {
 		return err
 	}
@@ -1512,6 +2390,29 @@ func writeEvaluationArtifacts(root string, traces []queryTrace, features map[str
 		gateSummary = fmt.Sprintf("ineligible: %d diagnostic gate reason(s)", len(gate.Reasons))
 	}
 	return os.WriteFile(filepath.Join(root, "report.md"), []byte(fmt.Sprintf("# Relation diagnostic\n\nQueries: %d\n\nDiagnostic eligibility: %s\n\nEvaluation-only diagnostic; not promotion evidence.\n", len(traces), gateSummary)), 0o600)
+}
+
+func firstAnchorCandidate(values []anchorEdgeCandidate) *anchorEdgeCandidate {
+	if len(values) == 0 {
+		return nil
+	}
+	value := values[0]
+	return &value
+}
+
+func secondAnchorCandidate(values []anchorEdgeCandidate) *anchorEdgeCandidate {
+	if len(values) < 2 {
+		return nil
+	}
+	value := values[1]
+	return &value
+}
+
+func selectedRunnerDifference(values []anchorEdgeCandidate) string {
+	if len(values) < 2 {
+		return ""
+	}
+	return values[1].FirstDifference
 }
 func writeJSONL(file string, rows []any) error {
 	var data []byte

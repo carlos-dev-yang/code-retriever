@@ -15,14 +15,18 @@ import (
 )
 
 const (
-	SchemaVersion                    = 3
-	ProbeSchemaVersion               = 1
-	ProtocolVersion                  = "cidx.relation-diagnostic.v3"
-	IdentityPolicyID                 = "path-indexed-sha-language-kind-qualified-symbol-byte-range-v1"
-	MetadataPolicyID                 = "occurrence-context-ast-compiler-v2"
-	DenseFirstPolicyID               = "query-edge-metadata-dense-first-v1"
-	ValueParameterDenseFirstPolicyID = "query-edge-value-parameter-dense-first-v1"
-	GraphFirstPolicyID               = "query-edge-metadata-graph-first-dense-crossover-v1"
+	SchemaVersion                        = 3
+	ProbeSchemaVersion                   = 1
+	ProtocolVersion                      = "cidx.relation-diagnostic.v3"
+	IdentityPolicyID                     = "path-indexed-sha-language-kind-qualified-symbol-byte-range-v1"
+	MetadataPolicyID                     = "occurrence-context-ast-compiler-v2"
+	DenseFirstPolicyID                   = "query-edge-metadata-dense-first-v1"
+	ValueParameterDenseFirstPolicyID     = "query-edge-value-parameter-dense-first-v1"
+	GraphFirstPolicyID                   = "query-edge-metadata-graph-first-dense-crossover-v1"
+	AnchorEdgeRawFrequencyPolicyID       = "anchor-edge-raw-frequency-control-v1"
+	AnchorEdgeSourceNormalizedPolicyID   = "anchor-edge-source-normalized-focus-v1"
+	AnchorEdgeBidirectionalPolicyID      = "anchor-edge-bidirectional-specificity-v1"
+	AnchorEdgeIncomingPopularityPolicyID = "anchor-edge-incoming-popularity-control-v1"
 	// SelectionPolicyID remains the default only for legacy focused fixtures.
 	SelectionPolicyID  = DenseFirstPolicyID
 	BodyPolicyID       = "related-complete-parent-2x1024-v1"
@@ -183,6 +187,21 @@ const (
 )
 
 func (v RelationKind) Valid() bool { return v == Calls || v == TypeRef || v == MemberOf }
+
+// StructuralTier is a mechanical classification of an already resolved graph
+// occurrence. It is evaluation-only and deliberately independent of labels.
+type StructuralTier string
+
+const (
+	DeclarationContractTier  StructuralTier = "DECLARATION_CONTRACT"
+	ExecutableDependencyTier StructuralTier = "EXECUTABLE_DEPENDENCY"
+	BodyReferenceTier        StructuralTier = "BODY_REFERENCE"
+	DeclarationStructureTier StructuralTier = "DECLARATION_STRUCTURE"
+)
+
+func (v StructuralTier) Valid() bool {
+	return v == DeclarationContractTier || v == ExecutableDependencyTier || v == BodyReferenceTier || v == DeclarationStructureTier
+}
 
 type Outcome string
 
