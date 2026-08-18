@@ -27,13 +27,17 @@ const (
 	AnchorEdgeSourceNormalizedPolicyID   = "anchor-edge-source-normalized-focus-v1"
 	AnchorEdgeBidirectionalPolicyID      = "anchor-edge-bidirectional-specificity-v1"
 	AnchorEdgeIncomingPopularityPolicyID = "anchor-edge-incoming-popularity-control-v1"
+	AnchorFrontierCapOnlyPolicyID        = "anchor-frontier-cap-only-v1"
+	AnchorFrontierBridgePolicyID         = "anchor-frontier-bridge-abstention-v1"
 	// SelectionPolicyID remains the default only for legacy focused fixtures.
-	SelectionPolicyID  = DenseFirstPolicyID
-	BodyPolicyID       = "related-complete-parent-2x1024-v1"
-	MaxDenseDepth      = 20
-	ProtectedPrimaryK  = 5
-	RelatedParentLimit = 2
-	RelatedBodyLimit   = 1024
+	SelectionPolicyID   = DenseFirstPolicyID
+	BodyPolicyID        = "related-complete-parent-2x1024-v1"
+	MaxDenseDepth       = 20
+	ProtectedPrimaryK   = 5
+	RelatedParentLimit  = 2
+	RelatedBodyLimit    = 1024
+	FrontierGlobalLimit = 32
+	FrontierBucketLimit = 2
 )
 
 type OccurrenceZone string

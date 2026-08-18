@@ -109,6 +109,7 @@ type queryTrace struct {
 	WalkXFFAttached   bool               `json:"walkxff_attached"`
 	FirstLoss         string             `json:"first_loss"`
 	AnchorEdge        *anchorEdgeTrace   `json:"anchor_edge,omitempty"`
+	Frontier          *frontierTrace     `json:"frontier,omitempty"`
 }
 
 type anchorSelection struct {
@@ -187,6 +188,72 @@ type anchorEdgeTrace struct {
 	Candidates       []anchorEdgeCandidate  `json:"edge_candidate_stats"`
 	Denominators     anchorEdgeDenominators `json:"denominators"`
 	StagePresence    map[string]bool        `json:"stage_presence"`
+}
+type frontierBucket struct {
+	AnchorOrdinal int            `json:"anchor_ordinal"`
+	Direction     Direction      `json:"direction"`
+	Tier          StructuralTier `json:"structural_tier"`
+}
+type frontierEdge struct {
+	CanonicalEdgeID string              `json:"canonical_edge_id"`
+	Bucket          frontierBucket      `json:"bucket"`
+	Candidate       anchorEdgeCandidate `json:"candidate"`
+	DirectBridge    bool                `json:"direct_anchor_bridge"`
+}
+type frontierBridgeReservation struct {
+	CanonicalEdgeID          string         `json:"canonical_edge_id"`
+	Outcome                  string         `json:"outcome"`
+	EligibleBucket           frontierBucket `json:"eligible_bucket"`
+	DisplacedCanonicalEdgeID string         `json:"displaced_canonical_edge_id"`
+}
+type frontierBridgeDisplacement struct {
+	BridgeCanonicalEdgeID    string         `json:"bridge_canonical_edge_id"`
+	DisplacedCanonicalEdgeID string         `json:"displaced_canonical_edge_id"`
+	Bucket                   frontierBucket `json:"bucket"`
+}
+type frontierCounts struct {
+	RawDirectionalFacts               int `json:"raw_directional_facts"`
+	SelfFactsRemoved                  int `json:"self_facts_removed"`
+	NonSelfDirectionalFacts           int `json:"non_self_directional_facts"`
+	BucketDistinctCanonicalViews      int `json:"bucket_distinct_canonical_views"`
+	RepeatedOccurrenceCollapse        int `json:"repeated_occurrence_collapse"`
+	GlobalCanonicalUniverseEdges      int `json:"global_canonical_universe_edges"`
+	UniverseCrossBucketDuplicateViews int `json:"universe_cross_bucket_duplicate_views"`
+	BucketTruncations                 int `json:"bucket_truncations"`
+	ProvisionalRows                   int `json:"provisional_rows"`
+	PostCapCrossBucketDuplicates      int `json:"post_cap_cross_bucket_duplicates"`
+	FinalRetained                     int `json:"final_retained"`
+	// Legacy field names retain the explicit semantics above for old readers.
+	CanonicalEdges         int `json:"canonical_edges"`
+	OccurrenceCollapse     int `json:"occurrence_collapse"`
+	ProvisionalBucketEdges int `json:"provisional_bucket_edges"`
+	CanonicalUnionEdges    int `json:"canonical_union_edges"`
+	CrossBucketDuplicates  int `json:"cross_bucket_duplicates"`
+	ReservedBridgeEdges    int `json:"reserved_bridge_edges"`
+	RetainedFrontierEdges  int `json:"retained_frontier_edges"`
+	TruncatedEdges         int `json:"truncated_edges"`
+}
+type frontierBucketCounts struct {
+	PreCapDistinct int `json:"pre_cap_distinct"`
+	Retained       int `json:"retained"`
+	Truncated      int `json:"truncated"`
+}
+type frontierTrace struct {
+	Policy              string                          `json:"policy"`
+	Group               anchorGroup                     `json:"anchor_group"`
+	Counts              frontierCounts                  `json:"counts"`
+	Buckets             map[string][]frontierEdge       `json:"buckets"`
+	BucketCounts        map[string]frontierBucketCounts `json:"bucket_counts"`
+	Provisional         []frontierEdge                  `json:"provisional_top2_per_bucket"`
+	CanonicalUnion      []frontierEdge                  `json:"canonical_union"`
+	BridgeReservations  []frontierBridgeReservation     `json:"bridge_reservations"`
+	BridgeDisplacements []frontierBridgeDisplacement    `json:"bridge_displacements"`
+	FinalFrontier       []frontierEdge                  `json:"final_frontier"`
+	FinalDigest         string                          `json:"final_frontier_sha256"`
+	CapReached          bool                            `json:"cap_reached"`
+	AbstentionReason    string                          `json:"abstention_reason,omitempty"`
+	FirstLossReason     string                          `json:"first_loss_reason,omitempty"`
+	Selected            *frontierEdge                   `json:"selected,omitempty"`
 }
 type PrimaryBodyProof struct {
 	ParentID   string `json:"parent_id"`
@@ -331,7 +398,7 @@ func Evaluate(ctx context.Context, request EvaluationRequest) (EvaluationResult,
 	policy := selectedPolicy(request.SelectionPolicy)
 	var completeStats map[string]edgeStats
 	var tierCounts map[StructuralTier]structuralTierCount
-	if isAnchorEdgePolicy(policy) {
+	if isAnchorEdgePolicy(policy) || isFrontierPolicy(policy) {
 		completeStats, tierCounts, err = completeGraphEdgeStats(ctx, db)
 		if err != nil {
 			return EvaluationResult{}, err
@@ -350,7 +417,7 @@ func Evaluate(ctx context.Context, request EvaluationRequest) (EvaluationResult,
 			}
 		}
 		var group anchorGroup
-		if isAnchorEdgePolicy(policy) {
+		if isAnchorEdgePolicy(policy) || isFrontierPolicy(policy) {
 			group, err = selectAnchorGroup(queryID, features[queryID].AnchorTokens, lane.Ranks[queryID], byHit, byID)
 			if err != nil {
 				return EvaluationResult{}, err
@@ -367,7 +434,13 @@ func Evaluate(ctx context.Context, request EvaluationRequest) (EvaluationResult,
 		ranks := rankPositions(lane.Ranks[queryID], byHit)
 		var bundle Bundle
 		var anchorTrace *anchorEdgeTrace
-		if isAnchorEdgePolicy(policy) {
+		var frontierTrace *frontierTrace
+		if isFrontierPolicy(policy) {
+			bundle, frontierTrace, err = selectFrontierBundle(queryID, features[queryID], group, facts, completeStats, ranks, byID, primaryIDs, policy)
+			if err != nil {
+				return EvaluationResult{}, err
+			}
+		} else if isAnchorEdgePolicy(policy) {
 			bundle, anchorTrace, err = selectAnchorEdgeBundle(queryID, features[queryID], group, facts, completeStats, ranks, byID, primaryIDs, policy)
 			if err != nil {
 				return EvaluationResult{}, err
@@ -391,7 +464,7 @@ func Evaluate(ctx context.Context, request EvaluationRequest) (EvaluationResult,
 			parent := byID[id]
 			proofs = append(proofs, PrimaryBodyProof{ParentID: id, BodySHA256: sha256Hex([]byte(parent.SourceBody))})
 		}
-		traces = append(traces, queryTrace{QueryID: queryID, PrimaryTop5: primary, PrimaryBodyProofs: proofs, StageAFacts: facts, Bundle: bundle, Related: related, AnchorEdge: anchorTrace})
+		traces = append(traces, queryTrace{QueryID: queryID, PrimaryTop5: primary, PrimaryBodyProofs: proofs, StageAFacts: facts, Bundle: bundle, Related: related, AnchorEdge: anchorTrace, Frontier: frontierTrace})
 	}
 	// Labels are deliberately unavailable until the previous loop has finished.
 	datasetBytes, err := os.ReadFile(request.DatasetPath)
@@ -509,7 +582,7 @@ func relationPolicyFingerprint() (string, error) {
 func relationPolicySpec() map[string]any {
 	return map[string]any{
 		"metadata_policy":                   MetadataPolicyID,
-		"selection_policies":                []string{DenseFirstPolicyID, ValueParameterDenseFirstPolicyID, GraphFirstPolicyID, AnchorEdgeRawFrequencyPolicyID, AnchorEdgeSourceNormalizedPolicyID, AnchorEdgeBidirectionalPolicyID, AnchorEdgeIncomingPopularityPolicyID},
+		"selection_policies":                []string{DenseFirstPolicyID, ValueParameterDenseFirstPolicyID, GraphFirstPolicyID, AnchorEdgeRawFrequencyPolicyID, AnchorEdgeSourceNormalizedPolicyID, AnchorEdgeBidirectionalPolicyID, AnchorEdgeIncomingPopularityPolicyID, AnchorFrontierCapOnlyPolicyID, AnchorFrontierBridgePolicyID},
 		"dense_first_tuple":                 []string{"qualifier", "negative_context_overlap", "negative_endpoint_overlap", "negative_anchor_overlap", "intent_mismatch", "same_file", "occurrence_file_role", "anchor_dense_rank", "endpoint_dense_rank", "source_ordinal", "occurrence_byte", "stable_id"},
 		"value_parameter_dense_first_tuple": []string{"qualifier", "value_parameter_mismatch", "negative_context_overlap", "negative_endpoint_overlap", "negative_anchor_overlap", "intent_mismatch", "same_file", "occurrence_file_role", "anchor_dense_rank", "endpoint_dense_rank", "source_ordinal", "occurrence_byte", "stable_id"},
 		"graph_first":                       map[string]any{"seed_lanes": []string{"fts", "simple_control"}, "seed_k": ProtectedPrimaryK, "admission_prefix": []string{"qualifier", "negative_context_overlap", "negative_endpoint_overlap", "negative_anchor_overlap", "intent_mismatch", "same_file", "occurrence_file_role"}, "admitted_tier": "all facts tied at best prefix", "rerank_tuple": []string{"best_dense_endpoint_ordinal", "worst_dense_endpoint_ordinal", "source_ordinal", "occurrence_byte", "stable_id"}},
@@ -526,6 +599,14 @@ func relationPolicySpec() map[string]any {
 				AnchorEdgeIncomingPopularityPolicyID: anchorRankingComponentSequence(AnchorEdgeIncomingPopularityPolicyID),
 			},
 			"visibility": "separate_and_unused",
+		},
+		"anchor_frontier": map[string]any{
+			"policies":           []string{AnchorFrontierCapOnlyPolicyID, AnchorFrontierBridgePolicyID},
+			"shared":             "anchor_selection=anchor_edge;uncapped_resolved_non_self_one_hop_canonical_typed_tier_edges;bucket=anchor_ordinal_x_direction_x_structural_tier;bucket_order=anchor_edge_bidirectional_specificity_then_canonical_edge;provisional=top2_per_bucket;bridge_reservation_happens_within_one_eligible_bucket_before_canonical_union;canonical_union_without_backfill;global_cap=32;bundle_cap_and_packaging=anchor_edge",
+			"bridge_reservation": "unique_canonical_direct_edges_between_selected_anchors;eligible_buckets_from_uncapped_universe;deterministic_bridge_and_bucket_order=anchor_edge_bidirectional_specificity_then_canonical_edge;survived_bridge_keeps_slot;reserved_bridge_replaces_worst_non_bridge_or_uses_unfilled_slot;overflow=BRIDGE_CAP_OVERFLOW;record_outcome_eligible_bucket_and_concrete_displaced_canonical_edge",
+			"digest":             "canonical_ordered_final_frontier_identity_sha256",
+			"observability":      "raw_input_directional_facts;self_facts_removed;non_self_directional_facts;sum_bucket_distinct_canonical_views;repeated_occurrence_collapse=non_self_minus_bucket_views;global_canonical_universe_edges;universe_cross_bucket_duplicate_views=bucket_views_minus_global_universe;per_bucket_pre_cap_retained_truncated;total_bucket_truncations;provisional_rows;post_cap_cross_bucket_duplicates;final_retained",
+			"arms":               map[string]string{AnchorFrontierCapOnlyPolicyID: "select_deterministic_top_final_frontier_edge", AnchorFrontierBridgePolicyID: "select_deterministic_direct_anchor_bridge_from_final_frontier_else_NO_DIRECT_ANCHOR_BRIDGE"},
 		},
 		"keyword_maps":    map[string][]string{"signature": {"contract", "props", "type", "interface", "signature", "options", "schema"}, "value_parameter": {"props", "contract"}, "mutation": {"mutate", "set", "write", "assign"}, "return": {"return"}, "condition": {"condition", "when"}, "reverse": {"caller", "used-by"}, "deprecated": {"deprecated"}, "file_roles": {"test", "example", "benchmark"}},
 		"caps":            map[string]int{"dense_depth": MaxDenseDepth, "protected_primary": ProtectedPrimaryK, "related_parent_limit": RelatedParentLimit, "related_body_limit": RelatedBodyLimit, "context_identifier_limit": 8},
@@ -555,10 +636,14 @@ func validateEvaluationRequest(v EvaluationRequest) error {
 
 func validSelectionPolicy(policy string) bool {
 	switch policy {
-	case "", DenseFirstPolicyID, ValueParameterDenseFirstPolicyID, GraphFirstPolicyID, AnchorEdgeRawFrequencyPolicyID, AnchorEdgeSourceNormalizedPolicyID, AnchorEdgeBidirectionalPolicyID, AnchorEdgeIncomingPopularityPolicyID:
+	case "", DenseFirstPolicyID, ValueParameterDenseFirstPolicyID, GraphFirstPolicyID, AnchorEdgeRawFrequencyPolicyID, AnchorEdgeSourceNormalizedPolicyID, AnchorEdgeBidirectionalPolicyID, AnchorEdgeIncomingPopularityPolicyID, AnchorFrontierCapOnlyPolicyID, AnchorFrontierBridgePolicyID:
 		return true
 	}
 	return false
+}
+
+func isFrontierPolicy(policy string) bool {
+	return policy == AnchorFrontierCapOnlyPolicyID || policy == AnchorFrontierBridgePolicyID
 }
 
 func isAnchorEdgePolicy(policy string) bool {
@@ -1189,6 +1274,302 @@ func selectAnchorEdgeBundle(queryID string, feature queryFeatures, group anchorG
 	}
 	trace.Denominators.Selected = 1
 	return result, trace, nil
+}
+
+func selectFrontierBundle(queryID string, feature queryFeatures, group anchorGroup, facts []Fact, stats map[string]edgeStats, ranks map[string]int, parents map[string]Parent, primary []string, policy string) (Bundle, *frontierTrace, error) {
+	trace, err := buildFrontierTrace(group, feature, facts, stats, ranks)
+	if err != nil {
+		return Bundle{}, nil, err
+	}
+	trace.Policy = policy
+	result := Bundle{QueryID: queryID, SelectionPolicy: policy}
+	if trace.AbstentionReason != "" {
+		trace.FirstLossReason = trace.AbstentionReason
+		return result, trace, nil
+	}
+	var selected *frontierEdge
+	switch policy {
+	case AnchorFrontierCapOnlyPolicyID:
+		if len(trace.FinalFrontier) > 0 {
+			value := trace.FinalFrontier[0]
+			selected = &value
+		} else {
+			trace.AbstentionReason, trace.FirstLossReason = "NO_FRONTIER_EDGE", "NO_FRONTIER_EDGE"
+		}
+	case AnchorFrontierBridgePolicyID:
+		for index := range trace.FinalFrontier {
+			if trace.FinalFrontier[index].DirectBridge {
+				value := trace.FinalFrontier[index]
+				selected = &value
+				break
+			}
+		}
+		if selected == nil {
+			trace.AbstentionReason, trace.FirstLossReason = "NO_DIRECT_ANCHOR_BRIDGE", "NO_DIRECT_ANCHOR_BRIDGE"
+		}
+	default:
+		return Bundle{}, nil, fmt.Errorf("invalid frontier policy")
+	}
+	if selected == nil {
+		return result, trace, nil
+	}
+	trace.Selected = selected
+	selectedFact := selected.Candidate.Fact
+	result.Selected = &selectedFact
+	result.SelectionKey = rankingComponentsAny(selected.Candidate.RankingTuple)
+	result.AdmissionOrder = make([]AdmissionCandidate, 0, len(trace.FinalFrontier))
+	for _, edge := range trace.FinalFrontier {
+		result.AdmissionOrder = append(result.AdmissionOrder, AdmissionCandidate{Fact: edge.Candidate.Fact, Prefix: []any{edge.Candidate.DirectionMismatch, structuralTierOrdinal(edge.Candidate.Stats.Tier)}, SelectionKey: rankingComponentsAny(edge.Candidate.RankingTuple), Admitted: true})
+	}
+	primarySet := map[string]bool{}
+	for _, id := range primary {
+		primarySet[id] = true
+	}
+	for _, id := range []string{selected.Candidate.Stats.SourceID, selected.Candidate.Stats.TargetID} {
+		if _, ok := parents[id]; !ok || primarySet[id] || containsString(result.AddedParentIDs, id) {
+			continue
+		}
+		result.AddedParentIDs = append(result.AddedParentIDs, id)
+		if len(result.AddedParentIDs) == RelatedParentLimit {
+			break
+		}
+	}
+	return result, trace, nil
+}
+
+func buildFrontierTrace(group anchorGroup, feature queryFeatures, facts []Fact, stats map[string]edgeStats, ranks map[string]int) (*frontierTrace, error) {
+	trace := &frontierTrace{Group: group, Buckets: map[string][]frontierEdge{}, BucketCounts: map[string]frontierBucketCounts{}}
+	anchorOrdinals := map[string]int{}
+	for _, anchor := range group.Anchors {
+		anchorOrdinals[anchor.ParentID] = anchor.Ordinal
+	}
+	buckets := map[string]map[string]frontierEdge{}
+	canonical := map[string]frontierEdge{}
+	for _, fact := range facts {
+		trace.Counts.RawDirectionalFacts++
+		source, target := fact.AnchorID, fact.EndpointID
+		if fact.Direction == Reverse {
+			source, target = fact.EndpointID, fact.AnchorID
+		}
+		tier, err := structuralTier(fact.Kind, fact.Metadata)
+		if err != nil {
+			return nil, err
+		}
+		if source == target {
+			trace.Counts.SelfFactsRemoved++
+			continue
+		}
+		trace.Counts.NonSelfDirectionalFacts++
+		stat, ok := stats[storedEdgeKey(source, target, fact.Kind, tier)]
+		if !ok {
+			return nil, fmt.Errorf("missing complete graph statistic for frontier edge")
+		}
+		ordinal := anchorOrdinals[fact.AnchorID]
+		if ordinal < 1 {
+			return nil, fmt.Errorf("frontier fact lacks selected anchor ordinal")
+		}
+		best := stat.Best
+		best.Direction, best.AnchorID, best.EndpointID = fact.Direction, fact.AnchorID, fact.EndpointID
+		candidate := anchorEdgeCandidate{Fact: best, AnchorOrdinal: ordinal, DirectionMismatch: boolInt(feature.Direction != fact.Direction), Stats: stat}
+		candidate.RankingTuple = anchorRankingTuple(candidate, ranks, AnchorEdgeBidirectionalPolicyID)
+		bucket := frontierBucket{AnchorOrdinal: ordinal, Direction: fact.Direction, Tier: tier}
+		edge := frontierEdge{CanonicalEdgeID: storedEdgeKey(source, target, fact.Kind, tier), Bucket: bucket, Candidate: candidate, DirectBridge: directAnchorBridge(group.Anchors, source, target)}
+		bucketKey := frontierBucketKey(bucket)
+		if buckets[bucketKey] == nil {
+			buckets[bucketKey] = map[string]frontierEdge{}
+		}
+		if existing, exists := buckets[bucketKey][edge.CanonicalEdgeID]; !exists || lessFrontierEdge(edge, existing, ranks) {
+			buckets[bucketKey][edge.CanonicalEdgeID] = edge
+		}
+		if existing, exists := canonical[edge.CanonicalEdgeID]; !exists || lessFrontierEdge(edge, existing, ranks) {
+			canonical[edge.CanonicalEdgeID] = edge
+		}
+	}
+	eligibleBuckets := map[string][]frontierEdge{}
+	provisionalBuckets := map[string][]frontierEdge{}
+	for _, key := range sortedKeys(buckets) {
+		values := frontierEdgeValues(buckets[key], ranks)
+		trace.Buckets[key] = append([]frontierEdge(nil), values...)
+		eligibleBuckets[key] = append([]frontierEdge(nil), values...)
+		counts := frontierBucketCounts{PreCapDistinct: len(values)}
+		trace.Counts.BucketDistinctCanonicalViews += counts.PreCapDistinct
+		if len(values) > FrontierBucketLimit {
+			values = values[:FrontierBucketLimit]
+		}
+		provisionalBuckets[key] = append([]frontierEdge(nil), values...)
+		trace.BucketCounts[key] = counts
+	}
+	trace.Counts.RepeatedOccurrenceCollapse = trace.Counts.NonSelfDirectionalFacts - trace.Counts.BucketDistinctCanonicalViews
+	trace.Counts.GlobalCanonicalUniverseEdges = len(canonical)
+	trace.Counts.UniverseCrossBucketDuplicateViews = trace.Counts.BucketDistinctCanonicalViews - trace.Counts.GlobalCanonicalUniverseEdges
+	trace.Counts.CanonicalEdges = trace.Counts.GlobalCanonicalUniverseEdges
+	trace.Counts.OccurrenceCollapse = trace.Counts.RepeatedOccurrenceCollapse
+	reservations, displacements, overflow := assignFrontierBridges(provisionalBuckets, eligibleBuckets, ranks)
+	trace.BridgeReservations, trace.BridgeDisplacements = reservations, displacements
+	trace.Counts.ReservedBridgeEdges = len(reservations)
+	provisional, err := frontierProvisionalEdges(provisionalBuckets, ranks)
+	if err != nil {
+		return nil, err
+	}
+	trace.Provisional = append([]frontierEdge(nil), provisional...)
+	trace.Counts.ProvisionalRows, trace.Counts.ProvisionalBucketEdges = len(provisional), len(provisional)
+	for key, counts := range trace.BucketCounts {
+		counts.Retained = len(provisionalBuckets[key])
+		counts.Truncated = counts.PreCapDistinct - counts.Retained
+		trace.Counts.BucketTruncations += counts.Truncated
+		trace.BucketCounts[key] = counts
+	}
+	trace.Counts.TruncatedEdges = trace.Counts.BucketTruncations
+	if overflow {
+		trace.CapReached = true
+		trace.AbstentionReason, trace.FirstLossReason = "BRIDGE_CAP_OVERFLOW", "BRIDGE_CAP_OVERFLOW"
+		return finalizeFrontierDigest(trace)
+	}
+	union := map[string]frontierEdge{}
+	for _, edge := range provisional {
+		if existing, exists := union[edge.CanonicalEdgeID]; !exists || lessFrontierEdge(edge, existing, ranks) {
+			union[edge.CanonicalEdgeID] = edge
+		}
+	}
+	trace.Counts.CanonicalUnionEdges = len(union)
+	trace.Counts.PostCapCrossBucketDuplicates = len(provisional) - len(union)
+	trace.Counts.CrossBucketDuplicates = trace.Counts.PostCapCrossBucketDuplicates
+	trace.CanonicalUnion = frontierEdgeValues(union, ranks)
+	trace.FinalFrontier = append([]frontierEdge(nil), trace.CanonicalUnion...)
+	if len(trace.FinalFrontier) > FrontierGlobalLimit {
+		return nil, fmt.Errorf("frontier global cap exceeded after canonical union")
+	}
+	trace.Counts.FinalRetained, trace.Counts.RetainedFrontierEdges = len(trace.FinalFrontier), len(trace.FinalFrontier)
+	trace.CapReached = len(trace.FinalFrontier) == FrontierGlobalLimit
+	return finalizeFrontierDigest(trace)
+}
+
+func frontierProvisionalEdges(buckets map[string][]frontierEdge, ranks map[string]int) ([]frontierEdge, error) {
+	var provisional []frontierEdge
+	for _, key := range sortedKeys(buckets) {
+		values := buckets[key]
+		sort.SliceStable(values, func(i, j int) bool { return lessFrontierEdge(values[i], values[j], ranks) })
+		if len(values) > FrontierBucketLimit {
+			return nil, fmt.Errorf("frontier bucket exceeds cap after bridge reservation")
+		}
+		provisional = append(provisional, values...)
+	}
+	return provisional, nil
+}
+
+func assignFrontierBridges(provisional, eligible map[string][]frontierEdge, ranks map[string]int) ([]frontierBridgeReservation, []frontierBridgeDisplacement, bool) {
+	bridgeChoices := map[string][]frontierEdge{}
+	for _, values := range eligible {
+		for _, edge := range values {
+			if edge.DirectBridge {
+				bridgeChoices[edge.CanonicalEdgeID] = append(bridgeChoices[edge.CanonicalEdgeID], edge)
+			}
+		}
+	}
+	bridges := make([]frontierEdge, 0, len(bridgeChoices))
+	for _, values := range bridgeChoices {
+		sort.SliceStable(values, func(i, j int) bool { return lessFrontierEdge(values[i], values[j], ranks) })
+		bridges = append(bridges, values[0])
+	}
+	sort.SliceStable(bridges, func(i, j int) bool { return lessFrontierEdge(bridges[i], bridges[j], ranks) })
+	reservations := make([]frontierBridgeReservation, 0, len(bridges))
+	displacements := []frontierBridgeDisplacement{}
+	for _, bridge := range bridges {
+		choices := bridgeChoices[bridge.CanonicalEdgeID]
+		sort.SliceStable(choices, func(i, j int) bool { return lessFrontierEdge(choices[i], choices[j], ranks) })
+		var survived *frontierEdge
+		for _, choice := range choices {
+			for _, current := range provisional[frontierBucketKey(choice.Bucket)] {
+				if current.CanonicalEdgeID == bridge.CanonicalEdgeID {
+					value := choice
+					survived = &value
+					break
+				}
+			}
+			if survived != nil {
+				break
+			}
+		}
+		if survived != nil {
+			reservations = append(reservations, frontierBridgeReservation{CanonicalEdgeID: bridge.CanonicalEdgeID, Outcome: "SURVIVED", EligibleBucket: survived.Bucket})
+			continue
+		}
+		assigned := false
+		for _, choice := range choices {
+			bucketKey := frontierBucketKey(choice.Bucket)
+			values := provisional[bucketKey]
+			if len(values) < FrontierBucketLimit {
+				provisional[bucketKey] = append(values, choice)
+				reservations = append(reservations, frontierBridgeReservation{CanonicalEdgeID: bridge.CanonicalEdgeID, Outcome: "RESERVED", EligibleBucket: choice.Bucket})
+				assigned = true
+				break
+			}
+			worst := -1
+			for index := range values {
+				if values[index].DirectBridge {
+					continue
+				}
+				if worst == -1 || lessFrontierEdge(values[worst], values[index], ranks) {
+					worst = index
+				}
+			}
+			if worst == -1 {
+				continue
+			}
+			displaced := values[worst]
+			values[worst] = choice
+			provisional[bucketKey] = values
+			reservations = append(reservations, frontierBridgeReservation{CanonicalEdgeID: bridge.CanonicalEdgeID, Outcome: "RESERVED", EligibleBucket: choice.Bucket, DisplacedCanonicalEdgeID: displaced.CanonicalEdgeID})
+			displacements = append(displacements, frontierBridgeDisplacement{BridgeCanonicalEdgeID: bridge.CanonicalEdgeID, DisplacedCanonicalEdgeID: displaced.CanonicalEdgeID, Bucket: choice.Bucket})
+			assigned = true
+			break
+		}
+		if !assigned {
+			return reservations, displacements, true
+		}
+	}
+	return reservations, displacements, false
+}
+
+func frontierBucketKey(bucket frontierBucket) string {
+	return fmt.Sprintf("%d\x00%s\x00%s", bucket.AnchorOrdinal, bucket.Direction, bucket.Tier)
+}
+
+func directAnchorBridge(anchors []anchorSelection, source, target string) bool {
+	return len(anchors) == 2 && ((source == anchors[0].ParentID && target == anchors[1].ParentID) || (source == anchors[1].ParentID && target == anchors[0].ParentID))
+}
+
+func lessFrontierEdge(left, right frontierEdge, ranks map[string]int) bool {
+	if comparison := compareAnchorEdgeCandidates(left.Candidate, right.Candidate, ranks, AnchorEdgeBidirectionalPolicyID); comparison != 0 {
+		return comparison < 0
+	}
+	return left.CanonicalEdgeID < right.CanonicalEdgeID
+}
+
+func frontierEdgeValues(values map[string]frontierEdge, ranks map[string]int) []frontierEdge {
+	result := make([]frontierEdge, 0, len(values))
+	for _, value := range values {
+		result = append(result, value)
+	}
+	sort.SliceStable(result, func(i, j int) bool { return lessFrontierEdge(result[i], result[j], ranks) })
+	return result
+}
+
+func finalizeFrontierDigest(trace *frontierTrace) (*frontierTrace, error) {
+	type digestEntry struct {
+		CanonicalEdgeID, AnchorID, EndpointID, RelationID string
+		Direction                                         Direction
+	}
+	entries := make([]digestEntry, 0, len(trace.FinalFrontier))
+	for _, edge := range trace.FinalFrontier {
+		entries = append(entries, digestEntry{CanonicalEdgeID: edge.CanonicalEdgeID, AnchorID: edge.Candidate.Fact.AnchorID, EndpointID: edge.Candidate.Fact.EndpointID, RelationID: edge.Candidate.Fact.RelationID, Direction: edge.Candidate.Fact.Direction})
+	}
+	digest, err := canonicalHash(entries)
+	if err != nil {
+		return nil, err
+	}
+	trace.FinalDigest = digest
+	return trace, nil
 }
 
 func anchorEndpointRank(candidate anchorEdgeCandidate, ranks map[string]int) int {
@@ -2363,6 +2744,18 @@ func writeEvaluationArtifacts(root string, traces []queryTrace, features map[str
 			return err
 		}
 		if err := writePortableJSON(filepath.Join(root, "denominator-report.json"), map[string]any{"policy": binding.SelectionPolicy, "queries": denominatorRows, "stages": []string{"anchor", "reachability", "strength", "cap", "packaging"}}, ""); err != nil {
+			return err
+		}
+	}
+	if isFrontierPolicy(binding.SelectionPolicy) {
+		rows := make([]any, 0, len(traces))
+		for _, trace := range traces {
+			if trace.Frontier == nil {
+				return fmt.Errorf("frontier policy is missing per-query trace")
+			}
+			rows = append(rows, map[string]any{"query_id": trace.QueryID, "frontier": trace.Frontier})
+		}
+		if err := writeJSONL(filepath.Join(root, "frontier-cap-diagnostic.jsonl"), rows); err != nil {
 			return err
 		}
 	}

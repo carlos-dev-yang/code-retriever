@@ -22,6 +22,15 @@ This ledger is the authoritative resumable state for implementation work. Update
   promotion evidence.
 - Completed Phase 07 relation-graph diagnostic owner: `/root` (development-only sidecar; production integration rejected at the measured boundary)
 - Completed Phase 07 anchor/edge-strength diagnostic owner: `/root` (four predeclared provider-free calibration arms; no product/search/provider change)
+- Active bounded Phase 07 frontier-cap diagnostic owner: `/root` (user-authorized
+  provider-free follow-up). It keeps the immutable v3 graph intact and adds two
+  development-only arms over one identical frontier: exactly two anchors,
+  outgoing/incoming traversal, four structural tiers, provisional top two per
+  bucket, canonical edge union without backfill, and a hard maximum of 32
+  distinct edges. Direct anchor bridges are reserved inside that same ceiling.
+  The only paired-arm difference is ordinary deterministic admission versus
+  `NO_DIRECT_ANCHOR_BRIDGE` abstention. These values are provisional calibration
+  controls, and the exposed 32 cases remain diagnostic/regression evidence only.
 - Phase 07 simple-control implementation owner: `/root/phase07_simple_control` (store/eval/devlab only; no corpus, provider, or production-ranking mutation)
 - Last updated: 2026-08-18
 - Canonical target: [`local-code-search-mcp-v1-design-r4.md`](../../local-code-search-mcp-v1-design-r4.md)
@@ -67,11 +76,12 @@ This ledger is the authoritative resumable state for implementation work. Update
   found 57 such production functions: 51 in previously parentless files and six
   in files with an existing type parent.
 - Next eligible phase: use the closed Phase 07 calibration checkpoint for bounded Phase 12 calibration analysis while Phase 07 prepares a separate unexposed confirmation set.
-- Exact next action: do not tune these 32 exposed cases again. Specify a new
-  versioned admission/abstention unit that can return no graph bundle, using
-  source focus and target specificity only as structural evidence. Freeze it
-  before exposure on a new calibration unit, then validate it on the separate
-  unexposed confirmation set before any product/search integration.
+- Exact next action: implement and measure the explicitly authorized bounded
+  frontier-cap diagnostic without changing the graph, queries, labels, dense
+  reference, product search, or provider state. Use the exposed 32 cases only to
+  measure cap mechanics, abstention, noise, completeness, and regressions. Any
+  later product policy still requires a separately frozen calibration unit and
+  the unexposed confirmation set.
 
 Existing phase completion rows and implementation are historical work produced against earlier design revisions. They must not be read as proof that the current code satisfies Revision 4; the implementation remains a prototype until it is explicitly reconciled and revalidated against the final target contract.
 
