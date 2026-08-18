@@ -491,6 +491,22 @@ call Voyage again. If confirmation labels change after results were exposed,
 that rescore is diagnostic/regression only and a new unexposed confirmation
 unit is required for promotion.
 
+On 2026-08-18 the clean relation-metadata v2 sidecars and two predeclared
+provider-free policies completed at commit
+`c197cdafa93852df2c1463d2636378caae288130`. Metadata dense-first preserved
+the frozen dense top five, recovered chi G09 through the exact
+`RealIP -> realIP` call, and raised complete related evidence from `30/32` to
+`31/32`. RHF X08 remained `RELATION_ADMISSION` even though the exact
+`FormState -> FormStateProps` relation was resolved and reachable. The
+conditional graph-first crossover added no complete answer and made its chi
+arm ineligible by attaching the protected `middleware.walkXFF` parent to G05.
+All six immutable graph/run artifacts passed checksum, provenance, probe,
+zero-provider, and independent Terra review. The accepted calibration-only
+evidence is
+[`relation-edge-metadata-diagnostic-r4.md`](evidence/phase-07/relation-edge-metadata-diagnostic-r4.md).
+It authorizes neither selector for production and does not change the separate
+unexposed-confirmation requirement.
+
 Completion reports must not use the metric value itself as a success declaration. They should demonstrate that the evaluation is reproducible and that failures are traceable.
 
 ## 12. Follow-up Handoff
@@ -541,6 +557,7 @@ Phase 12 extends the shared Phase 07 `internal/eval` dataset, ground-truth, metr
 | Evaluate compiler-resolved relations first as an immutable development sidecar with protected dense top five and at most two related-evidence parents. | Dense already localizes every calibration query by top 20, while G09 and X08 expose missing call/type evidence completion. kb-guide review found production schema, MCP, and serving integration premature until resolver accuracy, deterministic admission, packaging, and actual evidence value are measured. | The fixed chi/RHF diagnostic proves or rejects the relation architecture; any production integration still requires a separate plan and unexposed confirmation. |
 | Reject the fixed relation selector for production while retaining the compiler-resolved sidecar as development evidence. | Clean provider-free replay recovered every pinned G09/X08/T09/T10 relation exactly, but selected unrelated one-hop facts for G09 and X08 and preserved complete-at-five at `30/32`. The first loss is relation admission, not extraction or parent mapping. | A separately specified query-conditioned evidence-group selector is measured on a new evaluation unit without retuning the exposed 32 cases. |
 | Run one predeclared relation-context metadata diagnostic and only then a conditional graph-first crossover. | The owner rejected relation-text embedding and authorized AST/compiler-derived edge context only. The first arm preserves dense-first retrieval and freezes its metadata key before results. If admission remains unresolved, the second arm uses the already frozen FTS/simple-control parents as graph seeds and the already frozen dense-1024/int8 ordinal as the post-graph reranker. Both are new immutable calibration-diagnostic units over unchanged questions/labels, make zero Voyage calls, use no RRF, and cannot become confirmation or production evidence. | A new unexposed confirmation unit supports a production admission decision, or a graph-only parent outside the frozen dense depth requires a separately approved fresh query-embedding design. |
+| Retain relation metadata as development evidence, reject both measured selectors for production, and reject graph-first crossover under the fixed policy. | Metadata dense-first recovered G09 and reached `31/32`, proving that AST/compiler occurrence context can improve evidence assembly. X08 remained an admission loss. Graph-first added no completeness and attached protected `walkXFF` evidence to G05, failing its explicit gate. The result separates useful stored structure from an insufficient relevance decision. | A newly versioned calibration unit specifies a different query-conditioned admission design before exposure, and the separate unexposed confirmation set then validates it without a protected-slice or safety regression. |
 | Do not edit the exposed 32-case calibration set to improve its scores. | The questions, labels, and immutable ranks have now influenced a retrieval-policy decision. Further tuning on them would invalidate their role as an unbiased confirmation unit. | Never for this dataset version; create a new versioned calibration or an unexposed confirmation unit. |
 | Preserve failure taxonomy alongside metrics. | It identifies which implementation layer should change next. | Never. |
 | Call production services directly. | This prevents divergence between evaluation and actual behavior. | Never. |

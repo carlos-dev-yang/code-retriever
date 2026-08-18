@@ -6,24 +6,25 @@ This ledger is the authoritative resumable state for implementation work. Update
 
 - Active phase: 07 — frozen chi/RHF calibration checkpoint and unexposed confirmation handoff
 - Active owner: `/root`
-- Active bounded follow-up: `/root` is implementing a development-only,
-  LLM-free relation-context metadata diagnostic. The metadata policy and
-  dense-first arm are frozen before results; a provider-free lexical-seed
-  graph-first crossover runs only if relation admission remains unresolved.
+- Completed bounded follow-up: the development-only, LLM-free relation-context
+  metadata diagnostic and its conditional provider-free graph-first crossover
+  are complete at clean commit `c197cdafa93852df2c1463d2636378caae288130`.
 - Completed Phase 07 relation-graph diagnostic owner: `/root` (development-only sidecar; production integration rejected at the measured boundary)
 - Phase 07 simple-control implementation owner: `/root/phase07_simple_control` (store/eval/devlab only; no corpus, provider, or production-ranking mutation)
 - Last updated: 2026-08-18
 - Canonical target: [`local-code-search-mcp-v1-design-r4.md`](../../local-code-search-mcp-v1-design-r4.md)
 - Current blocker: the 32-case chi/RHF calibration set is frozen and replayed under `OWNER_ADOPTED_DUAL_AI_REVIEW`; Phase 07 completion and official promotion still require a separate unexposed confirmation set at the contract floors. Mixed-language, assistant, and release-candidate evidence remain later gates.
 - Latest contract change: source and state roots are now distinct runtime inputs. Normal state is `<source>/.cidx` with production DB `.cidx/db/index.db`; cidx development evaluation uses disposable sources under `.cidx/test/corpora/` and preserved named states under `.cidx/test/states/`. Absolute source/state paths are removed from SQLite metadata.
-- Latest evaluation change: clean provider-free relation replay recovered the exact pinned G09/X08/T09/T10 call/type facts but preserved dense complete-at-five at `30/32`; both remaining cases failed at relation admission. The current fixed selector is rejected for production, while the immutable compiler-resolved sidecar and negative evidence are retained for development.
-- Current diagnostic entry gate: preserve the frozen 32 questions, labels,
-  document vectors, dense top five, production search, FTS/RRF, and MCP. Add
-  only compiler/AST-derived occurrence context to the isolated sidecar, use no
-  relation embedding, and compare immutable arms under new run identities.
-  The conditional crossover uses frozen FTS/simple-control seeds and frozen
-  dense-1024/int8 ordinals, so it makes zero Voyage calls and persists no query
-  vector.
+- Latest evaluation change: AST/compiler edge metadata recovered chi G09 and
+  raised complete related evidence from `30/32` to `31/32`, but RHF X08 remains
+  `RELATION_ADMISSION`. The conditional graph-first crossover added no complete
+  answer and attached protected `middleware.walkXFF` evidence to chi G05, so
+  its chi arm is ineligible. Both selectors are rejected for production; the
+  metadata sidecar remains development evidence.
+- Completed metadata boundary: [relation-edge metadata evidence](evidence/phase-07/relation-edge-metadata-diagnostic-r4.md)
+  records the clean chi/RHF v2 graphs, dense-first and graph-first runs, exact
+  hashes, unchanged primary top five, zero Voyage operations, G09/X08 traces,
+  the graph-first safety failure, and Terra `CLEAR`.
 - Completed diagnostic boundary: [relation-graph evidence](evidence/phase-07/relation-usage-graph-diagnostic-r4.md) records clean commit `02834052921116a6341c44d7f7fd7e51f6a87005`, exact graph/probe/run hashes, zero provider calls, unchanged top five, and Terra `CLEAR`. It authorizes no production schema, MCP, ranking, FTS/RRF, query/label, or provider change.
 - Evaluation execution plan: [`EVALUATION-EMBEDDING-EXECUTION-PLAN.md`](EVALUATION-EMBEDDING-EXECUTION-PLAN.md) records the provider-free preparation sequence, dual-AI blind pooling, separate document/query spend gates, source-bank invalidation rules, calibration/confirmation freeze points, and exact next actions; it authorizes no paid operation.
 - Final corpus-independent review: [`int8-source-profile-final-review.md`](evidence/revision-4/int8-source-profile-final-review.md) maps the committed config-through-package implementation to the current product decision and records no remaining implementation finding.
@@ -42,11 +43,11 @@ This ledger is the authoritative resumable state for implementation work. Update
   found 57 such production functions: 51 in previously parentless files and six
   in files with an existing type parent.
 - Next eligible phase: use the closed Phase 07 calibration checkpoint for bounded Phase 12 calibration analysis while Phase 07 prepares a separate unexposed confirmation set.
-- Exact next action: complete the predeclared relation-context metadata arm on
-  chi/RHF, inspect its immutable first-loss/gate output, and run the separately
-  identified provider-free graph-first crossover only if an admission loss
-  remains. Record this as calibration diagnostic evidence only, keep it out of
-  production, then return to the separate unexposed confirmation set.
+- Exact next action: do not tune either relation selector on the exposed 32
+  cases and do not productize graph-first traversal. If relation admission is
+  revisited, specify it against a newly versioned calibration unit; otherwise
+  return to authoring and blind-reviewing the separate unexposed confirmation
+  set required by Phase 07/12.
 
 Existing phase completion rows and implementation are historical work produced against earlier design revisions. They must not be read as proof that the current code satisfies Revision 4; the implementation remains a prototype until it is explicitly reconciled and revalidated against the final target contract.
 
@@ -61,7 +62,7 @@ Existing phase completion rows and implementation are historical work produced a
 | 04 | done | `/root`; main-agent validation | Yes — original Phase 04 document/evidence, Phase 02/03 contracts, real chi/RHF structural audit, accepted user decision, and current workspace inspected | Revision 4 path-derived existing-field labels, overload correction, version bump, focused boundary validation, and full provider-free generation-3 handoff accepted | [Phase 04 evidence](evidence/phase-04/README.md) | Resume Phase 07 against corrected inventory |
 | 05 | done | `/root` | Yes — current int8/source contract, Phase 02 reconciliation, full Phase 05 document, historical evidence, strict legacy equivalence code, publication reproof, and existing core fixtures inspected | Exact int8-equivalent legacy rows can be atomically rekeyed; canonical retired 256/Binary profiles and every unproven row remain pending; focused test/race/vet/build/format boundary passed with no source-bank/lab/provider action | [Current int8 reproof](evidence/phase-05/int8-serving-key-reproof.md) and historical [R4 evidence](evidence/phase-05/revision-4.md) | Hand active canonical inputs and current-profile pending keys to Phase 08/10 |
 | 06 | done | terra/high implementation agent; Codex validation | Yes — [Phase 05 evidence](evidence/phase-05/README.md) and the store/config/symbol handoff inspected | Safe query construction, central resolved query policy/fingerprint, generation-pinned FTS/BM25 materialization with full pre-limit ordering, and [Phase 06 evidence](evidence/phase-06/README.md) accepted | Main focused race, vet, build, format, dependency-boundary, and diff checks passed | Enter Phase 07 or the unpaid implementation portion of Phase 08 |
-| 07 | in_progress | `/root` | Yes — full execution/index/evaluation/Phase 07 documents; Phase 06 evidence; explicit corpus/document/query authorization; tracked manifests/bindings; corrected Phase 04 and project-local Phase 02 evidence; current blind-review/adoption/replay artifacts; accepted relation-sidecar evidence; owner-authorized metadata/crossover boundary | The frozen 32-case calibration replay is closed; the first clean relation diagnostic preserved `30/32`; a separately identified, development-only metadata arm is active with a conditional provider-free graph-first crossover; confirmation floors remain outstanding | [Frozen calibration checkpoint](evidence/phase-07/dual-ai-calibration-freeze-r4.md), [relation diagnostic](evidence/phase-07/relation-usage-graph-diagnostic-r4.md), [relation-context research](RELATION-AWARE-CODE-CONTEXT-RESEARCH.md), [Phase 07 evidence](evidence/phase-07/README.md), and [retired-profile contract](RETIRED-VECTOR-PROFILES.md) | Finish the immutable metadata diagnostic and conditional crossover without Voyage or production changes; then return to an unexposed confirmation set |
+| 07 | in_progress | `/root` | Yes — full execution/index/evaluation/Phase 07 documents; Phase 06 evidence; explicit corpus/document/query authorization; tracked manifests/bindings; corrected Phase 04 and project-local Phase 02 evidence; frozen calibration replay; accepted relation sidecar and metadata/crossover evidence | Metadata dense-first recovered G09 and reached `31/32`; X08 remains admission-limited; graph-first added no completeness and failed the chi walkXFF gate; all artifacts passed Terra review; confirmation floors remain outstanding | [Frozen calibration checkpoint](evidence/phase-07/dual-ai-calibration-freeze-r4.md), [relation metadata diagnostic](evidence/phase-07/relation-edge-metadata-diagnostic-r4.md), [relation-context research](RELATION-AWARE-CODE-CONTEXT-RESEARCH.md), [Phase 07 evidence](evidence/phase-07/README.md), and [retired-profile contract](RETIRED-VECTOR-PROFILES.md) | Keep exposed cases immutable and selectors out of production; use a new calibration unit for any later admission design, then return to the unexposed confirmation set |
 | 08 | done | `/root` | Yes — full Phase 08 document, historical R4 evidence, accepted source-bank decision, Phase 05 handoff, live lab/embedclient wiring, and current state layout inspected | Product `db/embeddings.db` owns immutable document 1024-f32; `lab/evaluation.db` contains metadata only; compatible legacy rows copy read-only; focused test/race/vet/build/format/import/schema boundary passed | [Current source-bank evidence](evidence/phase-08/int8-source-bank-reconciliation.md), historical [R4 evidence](evidence/phase-08/revision-4.md), and [source-bank decision](SOURCE-VECTOR-BANK-DECISION.md) | Hand compatible sources and missing keys to Phase 09/10 |
 | 09 | done | `/root` | Yes — prior Phase 09 evidence, live vector/materialization code, Phase 08 source-bank boundary, five-profile evidence, and retired-profile contract inspected | Int8-only transform/materialization/search contract, production v5 cache, retired runtime removal, and one final offline boundary accepted | [Current evidence](evidence/phase-09/int8-only-materialization-reconciliation.md), historical [Phase 09 evidence](evidence/phase-09/README.md), and [retired-profile contract](RETIRED-VECTOR-PROFILES.md) | Hand direct int8 transform/scorer and source-bank rematerialization to Phase 10/11 |
 | 10 | done | `/root` | Yes — accepted Phase 09 boundary, prior Phase 10 R4 evidence, active embedding path, source-bank decision, and retired-profile contract inspected | Source-bank-first provider success handling, compatible local reuse, public source/Voyage plan split, provider-only request accounting, and final offline boundary accepted | [Current evidence](evidence/phase-10/source-bank-first-document-publication.md), historical [R4 evidence](evidence/phase-10/revision-4.md), and [source-bank decision](SOURCE-VECTOR-BANK-DECISION.md) | Hand current int8 coverage/profile state to Phase 11 |

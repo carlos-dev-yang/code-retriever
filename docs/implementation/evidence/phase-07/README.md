@@ -5,7 +5,7 @@
   product boundary is reconciled; the 32-case chi/RHF calibration set is
   frozen, adopted, and replayed; a separate unexposed promotion-capable
   confirmation set remains outstanding.
-- Date: 2026-08-17
+- Date: 2026-08-18
 
 Current product authority: [Retired Vector Profiles and Evidence Boundary](../../RETIRED-VECTOR-PROFILES.md).
 
@@ -16,6 +16,13 @@ Current relation-graph conclusion: [compiler-resolved relation/usage graph
 diagnostic — Revision 4](relation-usage-graph-diagnostic-r4.md). Exact relation
 recovery passed, but the fixed label-blind selector preserved `30/32` rather
 than closing G09/X08, so no production graph integration is authorized.
+
+Current relation-metadata conclusion: [AST/compiler edge-metadata and
+conditional graph-first diagnostic — Revision 4](relation-edge-metadata-diagnostic-r4.md).
+Metadata dense-first recovers G09 and reaches `31/32`, but X08 remains a
+relation-admission loss. The predeclared graph-first crossover adds no complete
+answer and fails the chi `walkXFF` safety gate. Metadata remains
+development-sidecar evidence; neither selector is authorized for production.
 
 ### 2026-08-17 solo-project relevance-authority revision
 

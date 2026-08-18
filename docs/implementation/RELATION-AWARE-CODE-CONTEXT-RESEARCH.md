@@ -980,3 +980,41 @@ useful candidate-evidence layer but not a sufficient answer selector. Current
 production integration is rejected; exact artifacts, hashes, and the next
 boundary are recorded in
 [`evidence/phase-07/relation-usage-graph-diagnostic-r4.md`](evidence/phase-07/relation-usage-graph-diagnostic-r4.md).
+
+## 15. Measured edge-metadata and graph-first outcome
+
+The bounded follow-up added no relation prose and no relation embedding. It
+stored mechanically derived occurrence zone, role, flow, execution/control
+context, file role, nearby identifiers, parent-local ordinal, and frozen
+parent traits in a v2 development sidecar.
+
+That metadata materially helped one case. Dense-first selected the exact
+`RealIP -> realIP` call for G09 and attached both complete grade-2 parents,
+raising chi from `11/12` to `12/12`. RHF stayed `19/20`: the exact
+`FormState -> FormStateProps` type reference was resolved and reachable, but
+the selector preferred a higher-context-overlap relation between two grade-0
+types. X08 therefore remains `RELATION_ADMISSION`, not extraction,
+resolution, reachability, packaging, or embedding coverage.
+
+The conditional graph-first crossover then used frozen FTS/simple-control
+top-five parents as graph seeds and reranked only the best metadata tier by
+the existing dense ordinal. It added no complete answer: chi stayed `12/12`
+and RHF stayed `19/20`. It also attached the expressly guarded
+`middleware.walkXFF` parent to G05, making the chi arm ineligible.
+
+The evidence narrows the design direction:
+
+- edge metadata is useful supporting evidence and should remain available in
+  the development sidecar;
+- graph adjacency or graph-first traversal is not a relevance decision;
+- dense localization plus a fixed lexicographic metadata key still cannot
+  reliably identify the answer relation;
+- the remaining problem is query-conditioned evidence-group admission; and
+- the exposed 32 cases must not be used to reorder the metadata key now that
+  its failure is known.
+
+Production graph integration remains rejected. A later selector must be
+specified against a new calibration unit and validated on the separate
+unexposed confirmation set. Exact hashes, G09/X08 traces, the graph-first
+safety failure, and the zero-provider boundary are recorded in
+[`evidence/phase-07/relation-edge-metadata-diagnostic-r4.md`](evidence/phase-07/relation-edge-metadata-diagnostic-r4.md).
