@@ -89,6 +89,7 @@ type completionCollapsedRow struct {
 	Variant string `json:"variant"`
 	Ranking struct {
 		QueryID           string              `json:"query_id"`
+		Variant           string              `json:"variant"`
 		QueryVectorSHA256 string              `json:"query_vector_sha256"`
 		Hits              []eval.RetrievalHit `json:"hits"`
 	} `json:"ranking"`
@@ -715,6 +716,9 @@ func loadActiveCollapsedRows(root string, queryIDs []string) (map[string]complet
 		if err := strictJSON([]byte(line), &row); err != nil {
 			return nil, err
 		}
+		if err := validateCollapsedRowWire(row); err != nil {
+			return nil, err
+		}
 		if row.Variant != "serving_active_codec" {
 			continue
 		}
@@ -732,6 +736,13 @@ func loadActiveCollapsedRows(root string, queryIDs []string) (map[string]complet
 		return nil, fmt.Errorf("active-int8 query-vector digest cardinality mismatch")
 	}
 	return result, nil
+}
+
+func validateCollapsedRowWire(row completionCollapsedRow) error {
+	if row.Variant == "" || row.Ranking.Variant == "" || row.Variant != row.Ranking.Variant {
+		return fmt.Errorf("collapsed artifact variant binding mismatch")
+	}
+	return nil
 }
 
 func collapseActiveScores(queryID string, segments []search.EvaluationSegmentHit, byHit map[string]string, byID map[string]Parent) ([]semanticParentScore, error) {

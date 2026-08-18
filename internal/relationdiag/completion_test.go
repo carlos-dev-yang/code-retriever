@@ -13,6 +13,21 @@ import (
 
 const completionTestDigest = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
+func TestCompletionCollapsedRowConsumesNestedVariantAndBindsIt(t *testing.T) {
+	const rowJSON = `{"query_id":"q1","variant":"serving_active_codec","ranking":{"query_id":"q1","variant":"serving_active_codec","query_vector_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","hits":[]},"failure_stage":""}`
+	var row completionCollapsedRow
+	if err := strictJSON([]byte(rowJSON), &row); err != nil {
+		t.Fatalf("strict artifact decode: %v", err)
+	}
+	if err := validateCollapsedRowWire(row); err != nil {
+		t.Fatalf("variant binding: %v", err)
+	}
+	row.Ranking.Variant = "target_f32"
+	if err := validateCollapsedRowWire(row); err == nil {
+		t.Fatal("expected nested/top-level variant mismatch rejection")
+	}
+}
+
 func TestCompletionCollapsedTopKAllowsOnlyPortableTieOrderVariation(t *testing.T) {
 	values := []semanticParentScore{
 		{ParentID: "a", NativeScore: 1, GlobalRank: 1, TieStartRank: 1, TieEndRank: 2},
