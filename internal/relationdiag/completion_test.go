@@ -28,18 +28,71 @@ func TestCompletionCollapsedRowConsumesNestedVariantAndBindsIt(t *testing.T) {
 	}
 }
 
-func TestCompletionCollapsedTopKAllowsOnlyPortableTieOrderVariation(t *testing.T) {
-	values := []semanticParentScore{
-		{ParentID: "a", NativeScore: 1, GlobalRank: 1, TieStartRank: 1, TieEndRank: 2},
-		{ParentID: "b", NativeScore: 1, GlobalRank: 2, TieStartRank: 1, TieEndRank: 2},
+func TestCompletionBindsActiveSegmentAndCollapsedQueryDigest(t *testing.T) {
+	segments := completionSegmentRow{QueryID: "q1", Variant: "serving_active_codec", QueryVectorSHA256: completionTestDigest, Segments: []search.EvaluationSegmentHit{{Rank: 1}}}
+	collapsed := completionCollapsedRow{QueryID: "q1"}
+	collapsed.Ranking.QueryVectorSHA256 = completionTestDigest
+	if err := validateActiveInt8QueryVectorBinding(segments, collapsed); err != nil {
+		t.Fatal(err)
 	}
-	value := 1.0
+	segments.QueryVectorSHA256 = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+	if err := validateActiveInt8QueryVectorBinding(segments, collapsed); err == nil {
+		t.Fatal("expected segment/collapsed query digest mismatch rejection")
+	}
+}
+
+func TestCompletionCollapseUsesProducerObservedSegmentRank(t *testing.T) {
+	parentA := Parent{ID: "a", Path: "a.go", IndexedSHA256: completionTestDigest, QualifiedSymbol: "p.A", StartByte: 0, EndByte: 40}
+	parentB := Parent{ID: "b", Path: "b.go", IndexedSHA256: completionTestDigest, QualifiedSymbol: "p.B", StartByte: 0, EndByte: 40}
+	segments := []search.EvaluationSegmentHit{
+		{CanonicalInputSHA256: completionTestDigest, Path: parentA.Path, IndexedSHA256: parentA.IndexedSHA256, QualifiedSymbol: parentA.QualifiedSymbol, ParentStartByte: parentA.StartByte, ParentEndByte: parentA.EndByte, StartByte: 10, EndByte: 20, Rank: 4, Score: 1},
+		{CanonicalInputSHA256: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", Path: parentA.Path, IndexedSHA256: parentA.IndexedSHA256, QualifiedSymbol: parentA.QualifiedSymbol, ParentStartByte: parentA.StartByte, ParentEndByte: parentA.EndByte, StartByte: 20, EndByte: 30, Rank: 2, Score: 1},
+		{CanonicalInputSHA256: "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", Path: parentB.Path, IndexedSHA256: parentB.IndexedSHA256, QualifiedSymbol: parentB.QualifiedSymbol, ParentStartByte: parentB.StartByte, ParentEndByte: parentB.EndByte, StartByte: 0, EndByte: 10, Rank: 1, Score: 1},
+	}
+	byHit := map[string]string{
+		hitKey(parentA.Path, parentA.IndexedSHA256, parentA.QualifiedSymbol, parentA.StartByte, parentA.EndByte): parentA.ID,
+		hitKey(parentB.Path, parentB.IndexedSHA256, parentB.QualifiedSymbol, parentB.StartByte, parentB.EndByte): parentB.ID,
+	}
+	values, err := collapseActiveScores("q1", segments, byHit, map[string]Parent{parentA.ID: parentA, parentB.ID: parentB})
+	if err != nil || len(values) != 2 || values[0].ParentID != parentB.ID || values[1].ParentID != parentA.ID || values[1].WinningSegment.Rank != 2 {
+		t.Fatalf("values=%+v err=%v", values, err)
+	}
+}
+
+func TestCompletionCollapsedTopKRequiresExactProducerOrder(t *testing.T) {
+	values := []semanticParentScore{
+		{ParentID: "a", Path: "a.go", IndexedSHA256: completionTestDigest, QualifiedSymbol: "p.A", StartByte: 0, EndByte: 1, NativeScore: 1, GlobalRank: 1, TieStartRank: 1, TieEndRank: 2, WinningSegment: search.EvaluationSegmentHit{Rank: 1}},
+		{ParentID: "b", Path: "b.go", IndexedSHA256: completionTestDigest, QualifiedSymbol: "p.B", StartByte: 2, EndByte: 3, NativeScore: 1, GlobalRank: 2, TieStartRank: 1, TieEndRank: 2, WinningSegment: search.EvaluationSegmentHit{Rank: 2}},
+		{ParentID: "c", Path: "c.go", IndexedSHA256: completionTestDigest, QualifiedSymbol: "p.C", StartByte: 4, EndByte: 5, NativeScore: 0.8, GlobalRank: 3, TieStartRank: 3, TieEndRank: 3, WinningSegment: search.EvaluationSegmentHit{Rank: 3}},
+		{ParentID: "d", Path: "d.go", IndexedSHA256: completionTestDigest, QualifiedSymbol: "p.D", StartByte: 6, EndByte: 7, NativeScore: 0.7, GlobalRank: 4, TieStartRank: 4, TieEndRank: 4, WinningSegment: search.EvaluationSegmentHit{Rank: 4}},
+		{ParentID: "e", Path: "e.go", IndexedSHA256: completionTestDigest, QualifiedSymbol: "p.E", StartByte: 8, EndByte: 9, NativeScore: 0.6, GlobalRank: 5, TieStartRank: 5, TieEndRank: 5, WinningSegment: search.EvaluationSegmentHit{Rank: 5}},
+	}
+	value, c, d, e := 1.0, 0.8, 0.7, 0.6
 	row := completionCollapsedRow{}
-	row.Ranking.Hits = []eval.RetrievalHit{{Path: "b.go", IndexedSHA256: completionTestDigest, QualifiedSymbol: "p.B", StartByte: 2, EndByte: 3, Rank: 1, Score: &value}, {Path: "a.go", IndexedSHA256: completionTestDigest, QualifiedSymbol: "p.A", StartByte: 0, EndByte: 1, Rank: 2, Score: &value}}
-	byHit := map[string]string{hitKey("a.go", completionTestDigest, "p.A", 0, 1): "a", hitKey("b.go", completionTestDigest, "p.B", 2, 3): "b"}
+	row.Ranking.Hits = []eval.RetrievalHit{
+		{Path: "a.go", IndexedSHA256: completionTestDigest, QualifiedSymbol: "p.A", StartByte: 0, EndByte: 1, Rank: 1, Score: &value},
+		{Path: "b.go", IndexedSHA256: completionTestDigest, QualifiedSymbol: "p.B", StartByte: 2, EndByte: 3, Rank: 2, Score: &value},
+		{Path: "c.go", IndexedSHA256: completionTestDigest, QualifiedSymbol: "p.C", StartByte: 4, EndByte: 5, Rank: 3, Score: &c},
+		{Path: "d.go", IndexedSHA256: completionTestDigest, QualifiedSymbol: "p.D", StartByte: 6, EndByte: 7, Rank: 4, Score: &d},
+		{Path: "e.go", IndexedSHA256: completionTestDigest, QualifiedSymbol: "p.E", StartByte: 8, EndByte: 9, Rank: 5, Score: &e},
+	}
+	byHit := map[string]string{
+		hitKey("a.go", completionTestDigest, "p.A", 0, 1): "a",
+		hitKey("b.go", completionTestDigest, "p.B", 2, 3): "b",
+		hitKey("c.go", completionTestDigest, "p.C", 4, 5): "c",
+		hitKey("d.go", completionTestDigest, "p.D", 6, 7): "d",
+		hitKey("e.go", completionTestDigest, "p.E", 8, 9): "e",
+	}
 	if err := validateCollapsedTopK(values, row, byHit); err != nil {
 		t.Fatal(err)
 	}
+	row.Ranking.Hits[0], row.Ranking.Hits[1] = row.Ranking.Hits[1], row.Ranking.Hits[0]
+	row.Ranking.Hits[0].Rank, row.Ranking.Hits[1].Rank = 1, 2
+	if err := validateCollapsedTopK(values, row, byHit); err == nil {
+		t.Fatal("expected tied top-five order rejection")
+	}
+	row.Ranking.Hits[0], row.Ranking.Hits[1] = row.Ranking.Hits[1], row.Ranking.Hits[0]
+	row.Ranking.Hits[0].Rank, row.Ranking.Hits[1].Rank = 1, 2
 	value = 0.5
 	row.Ranking.Hits[0].Score = &value
 	if err := validateCollapsedTopK(values, row, byHit); err == nil {
@@ -88,15 +141,46 @@ func TestCompletionTieBoundaryIsExplicitRatherThanDerivedFromPortableOrder(t *te
 	}
 }
 
-func TestCompletionUsesAuthoritativeCollapsedOrderForTopTwenty(t *testing.T) {
-	value := 1.0
+func TestCompletionDerivesTopTwentyAfterAuthoritativeProductTopFive(t *testing.T) {
 	row := completionCollapsedRow{}
-	for index := 0; index < MaxDenseDepth; index++ {
-		row.Ranking.Hits = append(row.Ranking.Hits, eval.RetrievalHit{Path: fmt.Sprintf("p%02d.go", MaxDenseDepth-index), IndexedSHA256: completionTestDigest, QualifiedSymbol: fmt.Sprintf("p.F%02d", MaxDenseDepth-index), StartByte: index, EndByte: index + 1, Rank: index + 1, Score: &value})
+	values, byHit := make([]semanticParentScore, 0, MaxDenseDepth+2), map[string]string{}
+	for index := 0; index < MaxDenseDepth+2; index++ {
+		id := fmt.Sprintf("p%02d", index)
+		score := float64(MaxDenseDepth - index)
+		if index < ProtectedPrimaryK {
+			score = float64(MaxDenseDepth)
+		}
+		value := semanticParentScore{ParentID: id, Path: id + ".go", IndexedSHA256: completionTestDigest, QualifiedSymbol: "p." + id, StartByte: index * 2, EndByte: index*2 + 1, NativeScore: score, GlobalRank: index + 1, TieStartRank: index + 1, TieEndRank: index + 1, WinningSegment: search.EvaluationSegmentHit{Rank: index + 1}}
+		if index < ProtectedPrimaryK {
+			value.TieStartRank, value.TieEndRank = 1, ProtectedPrimaryK
+		}
+		values = append(values, value)
+		byHit[hitKey(value.Path, value.IndexedSHA256, value.QualifiedSymbol, value.StartByte, value.EndByte)] = id
 	}
-	hits, err := completionRankHits(row)
-	if err != nil || hits[0].Path != "p20.go" || hits[ProtectedPrimaryK-1].Path != "p16.go" {
-		t.Fatalf("hits=%+v err=%v", hits[:ProtectedPrimaryK], err)
+	for rank := 1; rank <= ProtectedPrimaryK; rank++ {
+		value := values[rank-1]
+		score := value.NativeScore
+		row.Ranking.Hits = append(row.Ranking.Hits, eval.RetrievalHit{Path: value.Path, IndexedSHA256: value.IndexedSHA256, QualifiedSymbol: value.QualifiedSymbol, StartByte: value.StartByte, EndByte: value.EndByte, Rank: rank, Score: &score})
+	}
+	hits, err := completionRankHits(row, values, byHit)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(hits) != MaxDenseDepth || hits[0].Path != "p00.go" || hits[ProtectedPrimaryK-1].Path != "p04.go" || hits[ProtectedPrimaryK].Path != "p05.go" || hits[MaxDenseDepth-1].Path != "p19.go" {
+		t.Fatalf("hits=%+v", hits)
+	}
+	seen := map[string]bool{}
+	for index, hit := range hits {
+		if hit.Rank != index+1 || seen[hit.Path] {
+			t.Fatalf("reconstructed hit[%d]=%+v", index, hit)
+		}
+		seen[hit.Path] = true
+	}
+	replacement := values[ProtectedPrimaryK]
+	replacementScore := replacement.NativeScore
+	row.Ranking.Hits[ProtectedPrimaryK-1] = eval.RetrievalHit{Path: replacement.Path, IndexedSHA256: replacement.IndexedSHA256, QualifiedSymbol: replacement.QualifiedSymbol, StartByte: replacement.StartByte, EndByte: replacement.EndByte, Rank: ProtectedPrimaryK, Score: &replacementScore}
+	if _, err := completionRankHits(row, values, byHit); err == nil {
+		t.Fatal("expected fifth/sixth parent substitution rejection")
 	}
 }
 
@@ -160,5 +244,10 @@ func TestCompletionSegmentObservationIdentityKeepsDistinctSpans(t *testing.T) {
 	}
 	if completionSegmentObservationKey(first) != completionSegmentObservationKey(first) {
 		t.Fatal("observation identity is not deterministic")
+	}
+	second = first
+	second.Rank = first.Rank + 1
+	if completionSegmentObservationKey(first) != completionSegmentObservationKey(second) {
+		t.Fatal("producer rank changed occurrence identity")
 	}
 }

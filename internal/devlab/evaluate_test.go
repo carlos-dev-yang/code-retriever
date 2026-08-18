@@ -90,6 +90,32 @@ func TestRetrievalAdapterPlanApplyAndArtifactAreLocalSafe(t *testing.T) {
 	if strings.Contains(string(all), "synthetic query text") || strings.Contains(string(all), "func FindThing") {
 		t.Fatal("portable artifact copied query text or source body")
 	}
+	segmentBytes, err := os.ReadFile(filepath.Join(artifactRoot, "dense-segment-candidates.jsonl"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	activeRows := 0
+	for _, line := range strings.Split(strings.TrimSpace(string(segmentBytes)), "\n") {
+		var row retrievalSegmentArtifactRow
+		if err := json.Unmarshal([]byte(line), &row); err != nil {
+			t.Fatal(err)
+		}
+		if row.Variant != eval.VariantServingActiveCodec {
+			continue
+		}
+		activeRows++
+		if row.QueryVectorSHA256 != digest {
+			t.Fatalf("segment query digest=%q want=%q", row.QueryVectorSHA256, digest)
+		}
+		for index, segment := range row.Segments {
+			if segment.Rank != index+1 {
+				t.Fatalf("segment rank[%d]=%d", index, segment.Rank)
+			}
+		}
+	}
+	if activeRows != 1 {
+		t.Fatalf("serving-active segment rows=%d", activeRows)
+	}
 	assertEvaluationRows(t, raw, 1)
 }
 

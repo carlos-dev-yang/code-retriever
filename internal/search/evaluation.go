@@ -135,9 +135,11 @@ type EvaluationRankedHit struct {
 	Score                                *float64
 }
 
-// EvaluationSegmentHit is the actual pre-collapse dense observation. It
-// carries only portable parent/segment identity and a native score; raw f32
-// values and source bytes remain private to the request.
+// EvaluationSegmentHit is the actual pre-collapse dense observation. Rank is
+// the producer-observed order from vectorChunkBefore and is consequently the
+// portable stable tie key for evaluation-only re-collapse. It carries only
+// portable parent/segment identity and a native score; raw f32 values, source
+// bytes, and SQLite IDs remain private to the request.
 type EvaluationSegmentHit struct {
 	CanonicalInputSHA256 string  `json:"canonical_input_sha256"`
 	Path                 string  `json:"path"`
@@ -337,7 +339,11 @@ func targetVectorScores(ctx context.Context, query []float32, snapshot store.Hyb
 }
 
 func evaluationSegments(snapshot store.HybridSearchSnapshot, scores map[string]float64) []EvaluationSegmentHit {
-	result := make([]EvaluationSegmentHit, 0, len(snapshot.Segments))
+	type observedSegment struct {
+		vector vectorChunk
+		hit    EvaluationSegmentHit
+	}
+	observed := make([]observedSegment, 0, len(snapshot.Segments))
 	for _, segment := range snapshot.Segments {
 		score, ok := scores[segment.CanonicalInputSHA256]
 		if !ok {
@@ -347,22 +353,16 @@ func evaluationSegments(snapshot store.HybridSearchSnapshot, scores map[string]f
 		if !ok {
 			continue
 		}
-		result = append(result, EvaluationSegmentHit{CanonicalInputSHA256: segment.CanonicalInputSHA256, Path: chunk.Path, IndexedSHA256: chunk.IndexedSHA256, QualifiedSymbol: chunk.QualifiedSymbol, ParentStartByte: chunk.StartByte, ParentEndByte: chunk.EndByte, StartByte: chunk.StartByte + segment.DisplayStart, EndByte: chunk.StartByte + segment.DisplayEnd, Score: score})
+		observed = append(observed, observedSegment{
+			vector: vectorChunk{segment: segment, score: score, path: chunk.Path, startByte: chunk.StartByte},
+			hit:    EvaluationSegmentHit{CanonicalInputSHA256: segment.CanonicalInputSHA256, Path: chunk.Path, IndexedSHA256: chunk.IndexedSHA256, QualifiedSymbol: chunk.QualifiedSymbol, ParentStartByte: chunk.StartByte, ParentEndByte: chunk.EndByte, StartByte: chunk.StartByte + segment.DisplayStart, EndByte: chunk.StartByte + segment.DisplayEnd, Score: score},
+		})
 	}
-	sort.Slice(result, func(i, j int) bool {
-		if result[i].Score != result[j].Score {
-			return result[i].Score > result[j].Score
-		}
-		if result[i].Path != result[j].Path {
-			return result[i].Path < result[j].Path
-		}
-		if result[i].StartByte != result[j].StartByte {
-			return result[i].StartByte < result[j].StartByte
-		}
-		return result[i].CanonicalInputSHA256 < result[j].CanonicalInputSHA256
-	})
-	for index := range result {
-		result[index].Rank = index + 1
+	sort.Slice(observed, func(i, j int) bool { return vectorChunkBefore(observed[i].vector, observed[j].vector) })
+	result := make([]EvaluationSegmentHit, 0, len(observed))
+	for index, value := range observed {
+		value.hit.Rank = index + 1
+		result = append(result, value.hit)
 	}
 	return result
 }

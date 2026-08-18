@@ -466,6 +466,30 @@ func TestDeterministicInt8ScanRRFAndSharedKeyCollapse(t *testing.T) {
 	}
 }
 
+func TestEvaluationSegmentsUseProductVectorTieOrder(t *testing.T) {
+	snapshot := store.HybridSearchSnapshot{
+		Chunks: map[int64]store.HybridChunk{
+			1: {ID: 1, Path: "a.go", StartByte: 0, EndByte: 40, QualifiedSymbol: "p.First"},
+			2: {ID: 2, Path: "a.go", StartByte: 0, EndByte: 40, QualifiedSymbol: "p.Second"},
+		},
+		Segments: []store.HybridSegment{
+			{ID: 2, ChunkID: 1, CanonicalInputSHA256: "second", DisplayStart: 20, DisplayEnd: 30},
+			{ID: 1, ChunkID: 2, CanonicalInputSHA256: "third", DisplayStart: 0, DisplayEnd: 10},
+			{ID: 1, ChunkID: 1, CanonicalInputSHA256: "first", DisplayStart: 10, DisplayEnd: 20},
+		},
+	}
+	segments := evaluationSegments(snapshot, map[string]float64{"first": 1, "second": 1, "third": 1})
+	if len(segments) != 3 {
+		t.Fatalf("segments=%+v", segments)
+	}
+	want := []string{"first", "second", "third"}
+	for index, value := range segments {
+		if value.Rank != index+1 || value.CanonicalInputSHA256 != want[index] {
+			t.Fatalf("segment[%d]=%+v want=%q", index, value, want[index])
+		}
+	}
+}
+
 func TestBlockedQueryDoesNotBlockFTS(t *testing.T) {
 	ctx := context.Background()
 	resolved := searchConfig(t, true)

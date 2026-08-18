@@ -80,9 +80,10 @@ type retrievalCompletionChecksums struct {
 	EntriesSum                string                       `json:"entries_checksum"`
 }
 type completionSegmentRow struct {
-	QueryID  string                        `json:"query_id"`
-	Variant  string                        `json:"variant"`
-	Segments []search.EvaluationSegmentHit `json:"segments"`
+	QueryID           string                        `json:"query_id"`
+	Variant           string                        `json:"variant"`
+	QueryVectorSHA256 string                        `json:"query_vector_sha256"`
+	Segments          []search.EvaluationSegmentHit `json:"segments"`
 }
 type completionCollapsedRow struct {
 	QueryID string `json:"query_id"`
@@ -633,7 +634,7 @@ func loadActiveInt8Scores(root string, queryIDs []string, rawDocumentInputs int,
 	if err != nil {
 		return nil, nil, err
 	}
-	segments, expected := map[string][]search.EvaluationSegmentHit{}, map[string]bool{}
+	segments, segmentRows, expected := map[string][]search.EvaluationSegmentHit{}, map[string]completionSegmentRow{}, map[string]bool{}
 	for _, id := range queryIDs {
 		expected[id] = true
 	}
@@ -648,7 +649,7 @@ func loadActiveInt8Scores(root string, queryIDs []string, rawDocumentInputs int,
 		if row.Variant != "serving_active_codec" {
 			continue
 		}
-		if !expected[row.QueryID] || segments[row.QueryID] != nil || len(row.Segments) != expectedCounts[row.QueryID] {
+		if !expected[row.QueryID] || segments[row.QueryID] != nil || !validDigest(row.QueryVectorSHA256) || len(row.Segments) != expectedCounts[row.QueryID] {
 			return nil, nil, fmt.Errorf("invalid active-int8 segment artifact row")
 		}
 		if err := validateCompletionCanonicalInputUniverse(row.Segments, rawDocumentInputs); err != nil {
@@ -666,6 +667,7 @@ func loadActiveInt8Scores(root string, queryIDs []string, rawDocumentInputs int,
 			observations[key] = true
 		}
 		segments[row.QueryID] = row.Segments
+		segmentRows[row.QueryID] = row
 	}
 	collapsed, err := loadActiveCollapsedRows(root, queryIDs)
 	if err != nil {
@@ -674,7 +676,19 @@ func loadActiveInt8Scores(root string, queryIDs []string, rawDocumentInputs int,
 	if len(segments) != len(queryIDs) || len(collapsed) != len(queryIDs) {
 		return nil, nil, fmt.Errorf("active-int8 artifact query cardinality mismatch")
 	}
+	for _, queryID := range queryIDs {
+		if err := validateActiveInt8QueryVectorBinding(segmentRows[queryID], collapsed[queryID]); err != nil {
+			return nil, nil, err
+		}
+	}
 	return segments, collapsed, nil
+}
+
+func validateActiveInt8QueryVectorBinding(segments completionSegmentRow, collapsed completionCollapsedRow) error {
+	if segments.QueryID == "" || len(segments.Segments) == 0 || !validDigest(segments.QueryVectorSHA256) || collapsed.QueryID != segments.QueryID || !validDigest(collapsed.Ranking.QueryVectorSHA256) || segments.QueryVectorSHA256 != collapsed.Ranking.QueryVectorSHA256 {
+		return fmt.Errorf("active-int8 query-vector binding is invalid")
+	}
+	return nil
 }
 
 func validateCompletionCanonicalInputUniverse(segments []search.EvaluationSegmentHit, rawDocumentInputs int) error {
@@ -764,6 +778,7 @@ func collapseActiveScores(queryID string, segments []search.EvaluationSegmentHit
 	sort.Slice(values, func(i, j int) bool { return completionParentBefore(values[i], values[j]) })
 	for i := range values {
 		values[i].GlobalRank, values[i].ParentCount = i+1, len(values)
+		values[i].ExactTieOrderIndependentlyVerified = true
 	}
 	for start := 0; start < len(values); {
 		end := start + 1
@@ -779,25 +794,18 @@ func collapseActiveScores(queryID string, segments []search.EvaluationSegmentHit
 	return values, nil
 }
 func validateCollapsedTopK(values []semanticParentScore, row completionCollapsedRow, byHit map[string]string) error {
+	if len(row.Ranking.Hits) != ProtectedPrimaryK {
+		return fmt.Errorf("authoritative active-int8 collapsed product top%d is missing", ProtectedPrimaryK)
+	}
 	if len(values) < len(row.Ranking.Hits) {
 		return fmt.Errorf("collapsed active top-k exceeds collapsed segment parents")
 	}
-	byParent := map[string]semanticParentScore{}
-	for _, value := range values {
-		byParent[value.ParentID] = value
-	}
-	seen := map[string]bool{}
-	for _, hit := range row.Ranking.Hits {
+	for index, hit := range row.Ranking.Hits {
 		id := byHit[hitKey(hit.Path, hit.IndexedSHA256, hit.QualifiedSymbol, hit.StartByte, hit.EndByte)]
-		value, ok := byParent[id]
-		// The portable segment wire has no production segment IDs, so a
-		// score tie may use a different stable order than production. The
-		// exact active top-K identities/scores are still cross-checked and
-		// the portable rank is retained as an explicit tie range.
-		if id == "" || seen[id] || !ok || hit.Score == nil || value.NativeScore != *hit.Score || hit.Rank < value.TieStartRank || hit.Rank > value.TieEndRank {
+		value := values[index]
+		if id == "" || hit.Score == nil || hit.Rank != index+1 || value.GlobalRank != index+1 || value.ParentID != id || value.Path != hit.Path || value.IndexedSHA256 != hit.IndexedSHA256 || value.QualifiedSymbol != hit.QualifiedSymbol || value.StartByte != hit.StartByte || value.EndByte != hit.EndByte || value.NativeScore != *hit.Score || value.WinningSegment.Rank < 1 {
 			return fmt.Errorf("active-int8 collapsed parent cross-check failed")
 		}
-		seen[id] = true
 	}
 	return nil
 }
@@ -805,39 +813,43 @@ func completionSegmentBefore(a, b search.EvaluationSegmentHit) bool {
 	if a.Score != b.Score {
 		return a.Score > b.Score
 	}
-	if a.Path != b.Path {
-		return a.Path < b.Path
-	}
-	if a.ParentStartByte != b.ParentStartByte {
-		return a.ParentStartByte < b.ParentStartByte
-	}
-	return a.CanonicalInputSHA256 < b.CanonicalInputSHA256
+	return a.Rank < b.Rank
 }
 func completionParentBefore(a, b semanticParentScore) bool {
 	if a.NativeScore != b.NativeScore {
 		return a.NativeScore > b.NativeScore
 	}
-	if a.Path != b.Path {
-		return a.Path < b.Path
-	}
-	if a.StartByte != b.StartByte {
-		return a.StartByte < b.StartByte
-	}
-	return a.ParentID < b.ParentID
+	return a.WinningSegment.Rank < b.WinningSegment.Rank
 }
-func completionRankHits(row completionCollapsedRow) ([]rankHit, error) {
-	if len(row.Ranking.Hits) < MaxDenseDepth {
-		return nil, fmt.Errorf("authoritative active-int8 collapsed top20 is missing")
+func completionRankHits(row completionCollapsedRow, values []semanticParentScore, byHit map[string]string) ([]rankHit, error) {
+	// The retrieval artifact records the product return_k (the protected top
+	// five), not the diagnostic depth. Keep those exact rows and their order
+	// authoritative after binding them back to the complete active-int8
+	// collapse. The evaluation-only tail then comes solely from that immutable
+	// complete collapse, so it neither changes product search nor needs another
+	// provider operation.
+	if err := validateCollapsedTopK(values, row, byHit); err != nil {
+		return nil, err
 	}
-	hits := make([]rankHit, MaxDenseDepth)
-	for i, value := range row.Ranking.Hits[:MaxDenseDepth] {
-		if value.Rank != i+1 || value.Score == nil {
-			return nil, fmt.Errorf("invalid authoritative active-int8 collapsed top20")
+	if len(values) < MaxDenseDepth {
+		return nil, fmt.Errorf("complete active-int8 collapse has fewer than %d parents", MaxDenseDepth)
+	}
+	hits := make([]rankHit, 0, MaxDenseDepth)
+	for _, value := range row.Ranking.Hits {
+		if value.Score == nil {
+			return nil, fmt.Errorf("invalid authoritative active-int8 collapsed product top%d", ProtectedPrimaryK)
 		}
 		score := *value.Score
-		hits[i] = rankHit{Path: value.Path, IndexedSHA256: value.IndexedSHA256, QualifiedSymbol: value.QualifiedSymbol, StartByte: value.StartByte, EndByte: value.EndByte, Rank: value.Rank, Score: &score}
+		hits = append(hits, rankHit{Path: value.Path, IndexedSHA256: value.IndexedSHA256, QualifiedSymbol: value.QualifiedSymbol, StartByte: value.StartByte, EndByte: value.EndByte, Rank: value.Rank, Score: &score})
 	}
-	return hits, nil
+	for _, value := range values[ProtectedPrimaryK:] {
+		score := value.NativeScore
+		hits = append(hits, rankHit{Path: value.Path, IndexedSHA256: value.IndexedSHA256, QualifiedSymbol: value.QualifiedSymbol, StartByte: value.StartByte, EndByte: value.EndByte, Rank: len(hits) + 1, Score: &score})
+		if len(hits) == MaxDenseDepth {
+			return hits, nil
+		}
+	}
+	return nil, fmt.Errorf("complete active-int8 collapse cannot reconstruct top%d", MaxDenseDepth)
 }
 
 func completionEvidence(ctx context.Context, db *sql.DB, queryIDs []string, featuresByQuery map[string]queryFeatures, scores map[string][]semanticParentScore, collapsed map[string]completionCollapsedRow, parents map[string]Parent, lines map[string]completionParentLines, byHit map[string]string) ([]semanticEndpointFeature, []closureCandidate, []relationHint, []any, error) {
@@ -852,7 +864,7 @@ func completionEvidence(ctx context.Context, db *sql.DB, queryIDs []string, feat
 		if feature.QueryID != queryID || len(values) < ProtectedPrimaryK {
 			return nil, nil, nil, nil, fmt.Errorf("invalid completion query universe")
 		}
-		hits, err := completionRankHits(collapsed[queryID])
+		hits, err := completionRankHits(collapsed[queryID], values, byHit)
 		if err != nil {
 			return nil, nil, nil, nil, err
 		}

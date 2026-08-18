@@ -729,17 +729,21 @@ func validatePublishedExperimentSegments(file string, manifest *retrievalExperim
 		if line == "" {
 			continue
 		}
-		var row struct {
-			QueryID  string                        `json:"query_id"`
-			Variant  eval.RetrievalVariant         `json:"variant"`
-			Segments []search.EvaluationSegmentHit `json:"segments"`
-		}
+		var row retrievalSegmentArtifactRow
 		if err := json.Unmarshal([]byte(line), &row); err != nil {
 			return err
 		}
 		if row.Variant == eval.VariantServingActiveCodec {
 			if _, seen := counts[row.QueryID]; seen {
 				return fmt.Errorf("duplicate serving-active segment row")
+			}
+			if len(row.QueryVectorSHA256) != 64 || !canonicalVCSRevision(row.QueryVectorSHA256) {
+				return fmt.Errorf("serving-active segment row lacks query-vector digest")
+			}
+			for index, segment := range row.Segments {
+				if segment.Rank != index+1 {
+					return fmt.Errorf("serving-active segment rank is not producer-observed order")
+				}
 			}
 			count, err := servingActiveCanonicalInputCount(row.Segments)
 			if err != nil {
@@ -758,6 +762,16 @@ func validatePublishedExperimentSegments(file string, manifest *retrievalExperim
 		}
 	}
 	return nil
+}
+
+// retrievalSegmentArtifactRow keeps the query-vector digest beside the full
+// segment order. The digest is a binding only; no query vector bytes or
+// database identifiers enter the artifact.
+type retrievalSegmentArtifactRow struct {
+	QueryID           string                        `json:"query_id"`
+	Variant           eval.RetrievalVariant         `json:"variant"`
+	QueryVectorSHA256 string                        `json:"query_vector_sha256"`
+	Segments          []search.EvaluationSegmentHit `json:"segments"`
 }
 
 func servingActiveCanonicalInputCount(segments []search.EvaluationSegmentHit) (int, error) {
@@ -830,7 +844,10 @@ func writeRetrievalLines(root string, dataset eval.EvaluationDataset, run eval.R
 		files["per-query-trace.jsonl"] = append(files["per-query-trace.jsonl"], trace)
 		for _, arm := range item.Arms {
 			if len(arm.Segments) > 0 {
-				files["dense-segment-candidates.jsonl"] = append(files["dense-segment-candidates.jsonl"], map[string]any{"query_id": item.Case.QueryID, "variant": arm.Ranking.Variant, "segments": arm.Segments})
+				if arm.Ranking.QueryVectorSHA256 == "" {
+					return fmt.Errorf("dense segment artifact lacks query-vector digest")
+				}
+				files["dense-segment-candidates.jsonl"] = append(files["dense-segment-candidates.jsonl"], retrievalSegmentArtifactRow{QueryID: item.Case.QueryID, Variant: arm.Ranking.Variant, QueryVectorSHA256: arm.Ranking.QueryVectorSHA256, Segments: arm.Segments})
 			}
 			if arm.Ranking.Variant == eval.VariantTargetF32 || arm.Ranking.Variant == eval.VariantServingActiveCodec {
 				files["collapsed-parent-candidates.jsonl"] = append(files["collapsed-parent-candidates.jsonl"], map[string]any{"query_id": item.Case.QueryID, "variant": arm.Ranking.Variant, "ranking": arm.Ranking, "failure_stage": arm.FailureStage})
