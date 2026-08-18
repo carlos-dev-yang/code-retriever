@@ -49,6 +49,16 @@ and still emitted four noise-only bundles. The cap is retained only as a
 provisional development complexity control; neither arm is authorized for
 production.
 
+Final exposed admission conclusion: [graph-only Pareto admission diagnostic —
+Revision 4](relation-graph-only-pareto-diagnostic-r4.md). The predeclared
+bridge-or-unique-Pareto arm preserved the accepted bounded frontier and dense
+top five, recovered exact G09 and X08 evidence, and reached `32/32` formal
+completeness with zero hard-negative or `walkXFF` attachment. It emitted only
+`7/17` useful bundles; the unique graph-only Pareto branch was useful in just
+`1/7`. The rule is rejected for product use. All policy tuning on these exposed
+32 cases is closed. The complete relation sidecars remain evaluation-only and
+are not a product storage or search dependency.
+
 ### 2026-08-17 solo-project relevance-authority revision
 
 The owner explicitly replaced the unavailable human-pass gate after separate

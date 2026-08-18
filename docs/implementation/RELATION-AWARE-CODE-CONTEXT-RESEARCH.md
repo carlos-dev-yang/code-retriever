@@ -1141,3 +1141,42 @@ edges. Then tuning must move to a new frozen unit and unexposed confirmation.
 The exact clean implementation, complexity flow, G09/X08 traces, deterministic
 repeats, and rejected-policy boundary are recorded in
 [`evidence/phase-07/relation-frontier-cap-diagnostic-r4.md`](evidence/phase-07/relation-frontier-cap-diagnostic-r4.md).
+
+## 19. Final graph-only Pareto outcome
+
+The one permitted final exposed arm kept the same frontier and admitted a
+direct selected-anchor bridge first. Without a bridge it considered only
+outgoing edges to parents absent from dense top 20. Candidates were compared
+inside each structural tier by exact source focus, source target diversity,
+and target incoming-source fan-in. Exactly one nondominated survivor emitted;
+zero or multiple survivors abstained.
+
+This recovered the intended structural cases. G09 selected the exact
+`RealIP -> realIP` call as its sole graph-only Pareto winner, and X08 selected
+the exact `FormState -> FormStateProps` value-parameter relation as a direct
+anchor bridge. Complete related evidence rose from `30/32` to `32/32`, the
+dense top five stayed byte-identical, and no reviewed hard negative or
+`walkXFF` parent was attached.
+
+The answer-evidence distribution rejects the admission rule despite that
+aggregate. Direct bridges emitted 10 bundles, of which 6 were useful and 4
+noise-only. Unique graph-only Pareto emitted 7, of which only G09 was useful;
+the other 6 were noise-only. Combined, 17 queries emitted, 15 abstained, and
+10/17 emissions were noise-only.
+
+The graph conclusion is therefore narrower than product adoption:
+
+```text
+retain full evaluation sidecar for audit and future experiments
+retain bounded query frontier as provisional complexity control
+retain relation metadata as diagnostic features
+reject bridge/Pareto as the current relevance policy
+do not connect the sidecar to product storage or search
+```
+
+The evaluation sidecar may keep the complete occurrence record because it is
+ignored, immutable diagnostic state. A future product design should not copy
+that storage contract: it may consume only a separately designed aggregated
+and bounded adjacency representation after independent confirmation. No more
+policy tuning may use the exposed 32 cases. Exact evidence is recorded in
+[`evidence/phase-07/relation-graph-only-pareto-diagnostic-r4.md`](evidence/phase-07/relation-graph-only-pareto-diagnostic-r4.md).

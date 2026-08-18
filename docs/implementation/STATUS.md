@@ -6,11 +6,12 @@ This ledger is the authoritative resumable state for implementation work. Update
 
 - Active phase: 07 — frozen chi/RHF calibration checkpoint and unexposed confirmation handoff
 - Active owner: `/root`
-- Active bounded work: one final provider-free graph-only Pareto admission
-  diagnostic is `in_progress`. It reuses the evaluation-only complete relation
-  sidecar, reads only the already bounded query frontier, and does not change
-  product storage, search, MCP, embeddings, questions, or labels. The rule was
-  frozen before execution; tuning on the exposed 32 cases ends after this run.
+- Completed bounded work: the final provider-free graph-only Pareto admission
+  diagnostic is complete at clean commit
+  `497c000bf0d3e9452fd8ff1ce9f570a3df144525`. It reuses the
+  evaluation-only complete relation sidecar and the accepted bounded frontier;
+  product storage, search, MCP, embeddings, questions, and labels are
+  unchanged. All policy tuning on the exposed 32 cases is now closed.
 - Completed bounded follow-up: the development-only, LLM-free relation-context
   metadata diagnostic and its conditional provider-free graph-first crossover
   are complete at clean commit `c197cdafa93852df2c1463d2636378caae288130`.
@@ -34,25 +35,39 @@ This ledger is the authoritative resumable state for implementation work. Update
   Cap-only reproduces the prior specificity selector and noise. Bridge-only
   reduces emission but loses G09 and retains four noise-only bundles. The cap
   remains a provisional development control; neither arm is a product policy.
+- Completed final Phase 07 Pareto-admission diagnostic owner: `/root`. Four
+  deterministic provider-free runs reproduced combined chi+RHF formal
+  completeness `32/32` in both the initial and repeat pair, but emitted only 7
+  useful bundles versus 10 noise-only bundles. The unique
+  graph-only branch was useful in `1/7`; bridge, Pareto, and their combined
+  rule are rejected for product use. The full sidecar remains evaluation-only.
 - Phase 07 simple-control implementation owner: `/root/phase07_simple_control` (store/eval/devlab only; no corpus, provider, or production-ranking mutation)
 - Last updated: 2026-08-18
 - Canonical target: [`local-code-search-mcp-v1-design-r4.md`](../../local-code-search-mcp-v1-design-r4.md)
 - Current blocker: the 32-case chi/RHF calibration set is frozen and replayed under `OWNER_ADOPTED_DUAL_AI_REVIEW`; Phase 07 completion and official promotion still require a separate unexposed confirmation set at the contract floors. Mixed-language, assistant, and release-candidate evidence remain later gates.
 - Latest contract change: source and state roots are now distinct runtime inputs. Normal state is `<source>/.cidx` with production DB `.cidx/db/index.db`; cidx development evaluation uses disposable sources under `.cidx/test/corpora/` and preserved named states under `.cidx/test/states/`. Absolute source/state paths are removed from SQLite metadata.
-- Latest evaluation change: four clean anchor-first directional edge-strength
-  arms all preserved the frozen dense top five and made G09/X08 formally
-  complete, raising related evidence from `30/32` to `32/32` with zero new
-  hard-negative or `walkXFF` attachment. Only source-normalized focus and
-  bidirectional specificity selected X08's exact contract relation; every arm
-  still emitted many grade-0/unreviewed-only bundles. All four serving policies
-  are rejected. The next unresolved design problem is label-blind
-  admission/abstention, not another unconditional edge order.
+- Latest evaluation change: the final clean bridge-or-unique-Pareto arm
+  preserved the frozen dense top five, recovered exact G09/X08 evidence, and
+  raised related completeness from `30/32` to `32/32` with zero hard-negative
+  or `walkXFF` attachment. Only `7/17` emitted bundles were useful and the new
+  Pareto branch was useful in `1/7`, so it is rejected as a serving policy.
+  Any further label-blind admission work requires a separately frozen unit.
 - Latest bounded-frontier result: chi compresses `119 -> 115 -> 79 -> 56 ->
   51` and RHF `1290 -> 711 -> 362 -> 158 -> 153` across self removal,
   occurrence collapse, bucket truncation, and canonical dedupe. Cap-only is
   complete `32/32` but emits 20 noise-only queries. Bridge-only emits `10/32`,
   keeps X08, loses G09, and leaves 4 noise-only emissions. Primary top five,
   hard-negative safety, deterministic repeats, and zero-provider gates pass.
+- Latest admission result: the unchanged 204-edge combined frontier partitions
+  into 11 bridge views, 64 incoming exclusions, 38 dense-endpoint exclusions,
+  and 91 graph-only candidates. Outcomes are 10 direct bridges, 7 unique
+  Pareto winners, 13 multiple-winner abstentions, and 2 no-candidate
+  abstentions. Exact G09 and X08 evidence is recovered, but 10/17 emitted
+  bundles are noise-only. The rule is not a serving candidate.
+- Completed final admission boundary: [graph-only Pareto evidence](evidence/phase-07/relation-graph-only-pareto-diagnostic-r4.md)
+  records the frozen rule, clean implementation and executable, plan/run
+  hashes, exact denominators, deterministic repeats, G09/X08 bodies, zero
+  provider/hard-negative/`walkXFF`, metric-guide rejection, and Terra `CLEAR`.
 - Completed frontier boundary: [frontier-cap evidence](evidence/phase-07/relation-frontier-cap-diagnostic-r4.md)
   records the exact implementation, clean executable, eight artifacts,
   complexity and relevance denominators, G09/X08 traces, `kb-guide` review,
@@ -89,17 +104,11 @@ This ledger is the authoritative resumable state for implementation work. Update
   found 57 such production functions: 51 in previously parentless files and six
   in files with an existing type parent.
 - Next eligible phase: use the closed Phase 07 calibration checkpoint for bounded Phase 12 calibration analysis while Phase 07 prepares a separate unexposed confirmation set.
-- Exact next action: if the owner continues the already authorized graph
-  diagnostic, predeclare one final provider-free arm that admits either a
-  direct selected-anchor bridge or a unique same-tier Pareto winner from a
-  selected anchor to a graph-only endpoint. The winner must have higher source
-  focus, no-greater source-target diversity, and no-greater target-incoming-
-  source fan-in, with at least one strict improvement. Use no learned margin or
-  case exception and abstain when multiple candidates are nondominated. After
-  that single probe, stop tuning these exposed 32 cases; freeze a new unit and
-  validate on the separate unexposed confirmation set before product/search
-  integration. The full rule is recorded in the
-  [frontier-cap evidence](evidence/phase-07/relation-frontier-cap-diagnostic-r4.md).
+- Exact next action: do not tune another relation admission rule on the exposed
+  32 cases. If graph work resumes, first freeze a separate development unit,
+  then validate the chosen design on the already required unexposed
+  confirmation set. Product integration needs a new storage/search plan that
+  consumes a bounded aggregate rather than the complete evaluation sidecar.
 
 Existing phase completion rows and implementation are historical work produced against earlier design revisions. They must not be read as proof that the current code satisfies Revision 4; the implementation remains a prototype until it is explicitly reconciled and revalidated against the final target contract.
 
@@ -114,7 +123,7 @@ Existing phase completion rows and implementation are historical work produced a
 | 04 | done | `/root`; main-agent validation | Yes — original Phase 04 document/evidence, Phase 02/03 contracts, real chi/RHF structural audit, accepted user decision, and current workspace inspected | Revision 4 path-derived existing-field labels, overload correction, version bump, focused boundary validation, and full provider-free generation-3 handoff accepted | [Phase 04 evidence](evidence/phase-04/README.md) | Resume Phase 07 against corrected inventory |
 | 05 | done | `/root` | Yes — current int8/source contract, Phase 02 reconciliation, full Phase 05 document, historical evidence, strict legacy equivalence code, publication reproof, and existing core fixtures inspected | Exact int8-equivalent legacy rows can be atomically rekeyed; canonical retired 256/Binary profiles and every unproven row remain pending; focused test/race/vet/build/format boundary passed with no source-bank/lab/provider action | [Current int8 reproof](evidence/phase-05/int8-serving-key-reproof.md) and historical [R4 evidence](evidence/phase-05/revision-4.md) | Hand active canonical inputs and current-profile pending keys to Phase 08/10 |
 | 06 | done | terra/high implementation agent; Codex validation | Yes — [Phase 05 evidence](evidence/phase-05/README.md) and the store/config/symbol handoff inspected | Safe query construction, central resolved query policy/fingerprint, generation-pinned FTS/BM25 materialization with full pre-limit ordering, and [Phase 06 evidence](evidence/phase-06/README.md) accepted | Main focused race, vet, build, format, dependency-boundary, and diff checks passed | Enter Phase 07 or the unpaid implementation portion of Phase 08 |
-| 07 | in_progress | `/root` | Yes — full execution/index/evaluation/Phase 07 documents; Phase 06 evidence; explicit corpus/document/query authorization; tracked manifests/bindings; corrected Phase 04 and project-local Phase 02 evidence; frozen calibration replay; accepted relation sidecar plus metadata/value-parameter diagnostics; 2026-08-18 kb-guide metric reviews | Frontier cap completed at clean `770ff8e0c6c151791d5599bbdf68bd730dab7e99`: 4 initial arms + 4 deterministic repeats, real maximum 8 chi/11 RHF edges, cap-only `32/32` with unchanged noise, bridge-only `31/32` with G09 abstention, zero provider/hard-negative/`walkXFF`, Terra `CLEAR`; no policy adopted | [Frontier-cap diagnostic](evidence/phase-07/relation-frontier-cap-diagnostic-r4.md), [anchor/edge-strength diagnostic](evidence/phase-07/relation-anchor-edge-strength-diagnostic-r4.md), [frozen calibration checkpoint](evidence/phase-07/dual-ai-calibration-freeze-r4.md), [relation metadata diagnostic](evidence/phase-07/relation-edge-metadata-diagnostic-r4.md), [value-parameter diagnostic](evidence/phase-07/relation-value-parameter-diagnostic-r4.md), [relation-context research](RELATION-AWARE-CODE-CONTEXT-RESEARCH.md), [Phase 07 evidence](evidence/phase-07/README.md), and [retired-profile contract](RETIRED-VECTOR-PROFILES.md) | At most one predeclared graph-only Pareto diagnostic; then freeze a new unit and validate only on unexposed confirmation before product integration |
+| 07 | in_progress | `/root` | Yes — full execution/index/evaluation/Phase 07 documents; Phase 06 evidence; explicit corpus/document/query authorization; tracked manifests/bindings; corrected Phase 04 and project-local Phase 02 evidence; frozen calibration replay; accepted relation sidecar plus metadata/value-parameter diagnostics; 2026-08-18 kb-guide metric reviews | Final Pareto diagnostic completed at clean `497c000bf0d3e9452fd8ff1ce9f570a3df144525`: exact G09/X08 recovery and `32/32`, but 10/17 noise-only emissions and Pareto usefulness 1/7; deterministic repeats, zero provider/hard-negative/`walkXFF`, Terra `CLEAR`; policy rejected | [Graph-only Pareto diagnostic](evidence/phase-07/relation-graph-only-pareto-diagnostic-r4.md), [frontier-cap diagnostic](evidence/phase-07/relation-frontier-cap-diagnostic-r4.md), [anchor/edge-strength diagnostic](evidence/phase-07/relation-anchor-edge-strength-diagnostic-r4.md), [frozen calibration checkpoint](evidence/phase-07/dual-ai-calibration-freeze-r4.md), [relation metadata diagnostic](evidence/phase-07/relation-edge-metadata-diagnostic-r4.md), [value-parameter diagnostic](evidence/phase-07/relation-value-parameter-diagnostic-r4.md), [relation-context research](RELATION-AWARE-CODE-CONTEXT-RESEARCH.md), [Phase 07 evidence](evidence/phase-07/README.md), and [retired-profile contract](RETIRED-VECTOR-PROFILES.md) | Close tuning on exposed 32; freeze a new unit and validate only on unexposed confirmation before any product integration |
 | 08 | done | `/root` | Yes — full Phase 08 document, historical R4 evidence, accepted source-bank decision, Phase 05 handoff, live lab/embedclient wiring, and current state layout inspected | Product `db/embeddings.db` owns immutable document 1024-f32; `lab/evaluation.db` contains metadata only; compatible legacy rows copy read-only; focused test/race/vet/build/format/import/schema boundary passed | [Current source-bank evidence](evidence/phase-08/int8-source-bank-reconciliation.md), historical [R4 evidence](evidence/phase-08/revision-4.md), and [source-bank decision](SOURCE-VECTOR-BANK-DECISION.md) | Hand compatible sources and missing keys to Phase 09/10 |
 | 09 | done | `/root` | Yes — prior Phase 09 evidence, live vector/materialization code, Phase 08 source-bank boundary, five-profile evidence, and retired-profile contract inspected | Int8-only transform/materialization/search contract, production v5 cache, retired runtime removal, and one final offline boundary accepted | [Current evidence](evidence/phase-09/int8-only-materialization-reconciliation.md), historical [Phase 09 evidence](evidence/phase-09/README.md), and [retired-profile contract](RETIRED-VECTOR-PROFILES.md) | Hand direct int8 transform/scorer and source-bank rematerialization to Phase 10/11 |
 | 10 | done | `/root` | Yes — accepted Phase 09 boundary, prior Phase 10 R4 evidence, active embedding path, source-bank decision, and retired-profile contract inspected | Source-bank-first provider success handling, compatible local reuse, public source/Voyage plan split, provider-only request accounting, and final offline boundary accepted | [Current evidence](evidence/phase-10/source-bank-first-document-publication.md), historical [R4 evidence](evidence/phase-10/revision-4.md), and [source-bank decision](SOURCE-VECTOR-BANK-DECISION.md) | Hand current int8 coverage/profile state to Phase 11 |
