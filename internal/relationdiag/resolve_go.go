@@ -9,14 +9,21 @@ import (
 	"path/filepath"
 	"sort"
 
+	"cidx/internal/store"
 	"golang.org/x/tools/go/packages"
 )
 
 // ResolveGo uses go/packages/go/types as the only Go target authority. A
 // Tree-sitter candidate that cannot be tied to a type-checker occurrence is
 // retained as UNRESOLVED; it is never text-matched to a declaration.
-func ResolveGo(ctx context.Context, sourceRoot string, parents []Parent, candidates []Candidate, goCommand string) ([]Occurrence, []FileResolution, error) {
+func ResolveGo(ctx context.Context, sourceRoot string, parents []Parent, candidates []Candidate, indexedFiles map[string]store.IndexedFile, goCommand string) ([]Occurrence, []FileResolution, error) {
 	byKey := map[string]Candidate{}
+	indexed := map[string]struct{}{}
+	for file := range indexedFiles {
+		if languageForPath(file) == "go" {
+			indexed[file] = struct{}{}
+		}
+	}
 	for _, candidate := range candidates {
 		if candidate.Language != "go" {
 			continue
@@ -61,22 +68,25 @@ func ResolveGo(ctx context.Context, sourceRoot string, parents []Parent, candida
 				continue
 			}
 			rel = filepath.ToSlash(rel)
+			if _, ok := indexed[rel]; !ok {
+				continue
+			}
 			fileStates[rel] = FileResolution{Path: rel, Language: "go", Outcome: "RESOLVED"}
 			ast.Inspect(file, func(node ast.Node) bool {
 				switch node := node.(type) {
 				case *ast.FuncDecl:
 					if candidate, ok := goMemberCandidate(rel, node, pkg.Fset, parents); ok {
-						result[candidate.ID] = resolveGoCandidate(candidate, goReceiverTypeObject(pkg.TypesInfo, node), pkg.Fset, sourceRoot, parents)
+						result[candidate.ID] = resolveGoCandidate(candidate, goReceiverTypeObject(pkg.TypesInfo, node), pkg.Fset, sourceRoot, parents, indexed)
 					}
 				case *ast.CallExpr:
 					candidate, ok := byKey[candidateKey(rel, Calls, offset(pkg.Fset, node.Pos()), offset(pkg.Fset, node.End()))]
 					if ok {
-						result[candidate.ID] = resolveGoCandidate(candidate, goCalledObject(pkg.TypesInfo, node), pkg.Fset, sourceRoot, parents)
+						result[candidate.ID] = resolveGoCandidate(candidate, goCalledObject(pkg.TypesInfo, node), pkg.Fset, sourceRoot, parents, indexed)
 					}
 				case *ast.Ident:
 					candidate, ok := byKey[candidateKey(rel, TypeRef, offset(pkg.Fset, node.Pos()), offset(pkg.Fset, node.End()))]
 					if ok && isTypeObject(pkg.TypesInfo.Uses[node]) {
-						result[candidate.ID] = resolveGoCandidate(candidate, pkg.TypesInfo.Uses[node], pkg.Fset, sourceRoot, parents)
+						result[candidate.ID] = resolveGoCandidate(candidate, pkg.TypesInfo.Uses[node], pkg.Fset, sourceRoot, parents, indexed)
 					}
 				}
 				return true
@@ -164,7 +174,7 @@ func isTypeObject(object types.Object) bool {
 	return ok
 }
 
-func resolveGoCandidate(candidate Candidate, object types.Object, fset *token.FileSet, root string, parents []Parent) Occurrence {
+func resolveGoCandidate(candidate Candidate, object types.Object, fset *token.FileSet, root string, parents []Parent, indexed map[string]struct{}) Occurrence {
 	base := unresolved(candidate, "go/packages-go/types-v1")
 	if object == nil {
 		return base
@@ -179,6 +189,10 @@ func resolveGoCandidate(candidate Candidate, object types.Object, fset *token.Fi
 		return base
 	}
 	rel = filepath.ToSlash(rel)
+	if _, ok := indexed[rel]; !ok {
+		base.Outcome = OutOfCorpus
+		return base
+	}
 	start := position.Offset
 	if target, ok := ParentContaining(parents, rel, start, start+1); ok {
 		base.Outcome, base.TargetParentID = ResolvedUnique, target.ID

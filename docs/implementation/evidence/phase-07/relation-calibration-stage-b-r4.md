@@ -79,6 +79,15 @@ two portable selection policies can safely coexist over one unchanged index
 generation. Existing immutable packets are preserved; no artifact is deleted
 or overwritten.
 
+The first complete mixed graph also showed 788 file-resolution rows for 749
+indexed Memos files. The 39-row difference exactly matched generated Go files
+excluded by the manifest: `go/packages` correctly loaded them for compiler
+resolution, but the diagnostic persisted their file states and classified
+references to them as parent-mapping failures. The resolver now retains the
+compiler's wider read scope while constraining persisted file states and
+target membership to the committed index snapshot. Excluded or dependency
+targets are `OUT_OF_CORPUS`; they cannot enter the graph universe.
+
 ## Next boundary
 
 Initialize and index three isolated 1024/int8 evaluation workspaces. Verify

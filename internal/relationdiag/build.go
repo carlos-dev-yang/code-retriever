@@ -88,7 +88,7 @@ func Build(ctx context.Context, request BuildRequest) (BuildResult, error) {
 	if err != nil {
 		return BuildResult{}, err
 	}
-	goOccurrences, goFiles, err := ResolveGo(ctx, request.SourceRoot, parents, candidates, request.Go)
+	goOccurrences, goFiles, err := ResolveGo(ctx, request.SourceRoot, parents, candidates, request.Index.Files, request.Go)
 	if err != nil {
 		return BuildResult{}, err
 	}

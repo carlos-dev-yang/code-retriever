@@ -118,6 +118,12 @@ This ledger is the authoritative resumable state for implementation work. Update
   index manifest. This lets distinct portable selection policies coexist over
   one unchanged index generation without deleting or overwriting retained
   evidence.
+- Active Go resolver-universe correction: Memos proved that `go/packages`
+  loaded 39 generated Go files excluded from the committed index. Compiler
+  loading may remain wider for type resolution, but persisted file states and
+  target membership are now restricted to the exact index snapshot; excluded
+  and dependency targets classify as `OUT_OF_CORPUS`, not parent-mapping
+  failures.
 - Completed final admission boundary: [graph-only Pareto evidence](evidence/phase-07/relation-graph-only-pareto-diagnostic-r4.md)
   records the frozen rule, clean implementation and executable, plan/run
   hashes, exact denominators, deterministic repeats, G09/X08 bodies, zero
