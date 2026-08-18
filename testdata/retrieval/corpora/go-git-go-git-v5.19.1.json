@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "corpus_id": "go-git-go-git-v5.19.1",
+  "upstream_url": "https://github.com/go-git/go-git.git",
+  "pinned_commit": "3c3be601aa6c0fd0d536c0d1e4f898b4c60e65fe",
+  "license_spdx": "Apache-2.0",
+  "license_evidence": "LICENSE",
+  "redistribution_notice": "Upstream Apache-2.0 license; this manifest contains provenance only and no corpus source.",
+  "language_slices": [
+    "go"
+  ],
+  "include": [
+    "**/*.go"
+  ],
+  "exclude": [],
+  "expected_content_hash": "6aad05e8967f3753fc3e931b29886423deac9bb3b70db5ac59be8f3c4e39b0a8",
+  "expected_tree_hash": "5a1a3e1ea1b25aa788b16e731f3421c61f9d02cc",
+  "clean_tree_required": true
+}

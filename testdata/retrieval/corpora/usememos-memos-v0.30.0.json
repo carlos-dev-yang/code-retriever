@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "corpus_id": "usememos-memos-v0.30.0",
+  "upstream_url": "https://github.com/usememos/memos.git",
+  "pinned_commit": "2036c1ffc1b0a1e1fa6a473738c2a5ef520df67f",
+  "license_spdx": "MIT",
+  "license_evidence": "LICENSE",
+  "redistribution_notice": "Upstream MIT license; generated protobuf outputs are excluded and this manifest contains provenance only, not corpus source.",
+  "language_slices": [
+    "go",
+    "typescript",
+    "tsx"
+  ],
+  "include": [
+    "**/*.go",
+    "**/*.ts",
+    "**/*.tsx"
+  ],
+  "exclude": [
+    "proto/gen/**",
+    "web/src/types/proto/**"
+  ],
+  "expected_content_hash": "00973cde42c69cb631210b3503a6e33618c95d3c92e96850fad0aaf6839eaa3a",
+  "expected_tree_hash": "76556530f2cf9f4f159e05dd79e9553ec461d42e",
+  "clean_tree_required": true
+}

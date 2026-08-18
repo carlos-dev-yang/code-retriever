@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "corpus_id": "pmndrs-zustand-v5.0.14",
+  "upstream_url": "https://github.com/pmndrs/zustand.git",
+  "pinned_commit": "bfb2a9e7ce52608d54d8a077fb87ac9d12e73c58",
+  "license_spdx": "MIT",
+  "license_evidence": "LICENSE",
+  "redistribution_notice": "Upstream MIT license; this manifest contains provenance only and no corpus source.",
+  "language_slices": [
+    "typescript",
+    "tsx"
+  ],
+  "include": [
+    "**/*.ts",
+    "**/*.tsx"
+  ],
+  "exclude": [],
+  "expected_content_hash": "c75def47f3fe0281ebac2e59f3310464ceac376c824006406f107dff0d935e6f",
+  "expected_tree_hash": "ef6d48f7e24cc3cb56c82b862bcf23d813168fd4",
+  "clean_tree_required": true
+}

@@ -44,7 +44,7 @@ This ledger is the authoritative resumable state for implementation work. Update
 - Phase 07 simple-control implementation owner: `/root/phase07_simple_control` (store/eval/devlab only; no corpus, provider, or production-ranking mutation)
 - Last updated: 2026-08-19
 - Canonical target: [`local-code-search-mcp-v1-design-r4.md`](../../local-code-search-mcp-v1-design-r4.md)
-- Current blocker: the 32-case chi/RHF calibration set is frozen and replayed under `OWNER_ADOPTED_DUAL_AI_REVIEW`; Phase 07 completion and official promotion still require a separate unexposed confirmation set at the contract floors. Mixed-language, assistant, and release-candidate evidence remain later gates.
+- Current blocker: the 32-case chi/RHF calibration set is frozen and replayed under `OWNER_ADOPTED_DUAL_AI_REVIEW`; Phase 07 completion and official promotion still require a separate unexposed confirmation set at the contract floors. The owner has selected the new calibration repositories and provider-free Stage B is active. Document and query embedding remain separate plan-bound boundaries. Mixed-language confirmation, assistant, and release-candidate evidence remain later gates.
 - Latest contract change: source and state roots are now distinct runtime inputs. Normal state is `<source>/.cidx` with production DB `.cidx/db/index.db`; cidx development evaluation uses disposable sources under `.cidx/test/corpora/` and preserved named states under `.cidx/test/states/`. Absolute source/state paths are removed from SQLite metadata.
 - Latest evaluation change: the final clean bridge-or-unique-Pareto arm
   preserved the frozen dense top five, recovered exact G09/X08 evidence, and
@@ -91,6 +91,14 @@ This ledger is the authoritative resumable state for implementation work. Update
   verification passed. The host's Go 1.26.3 shim is recorded separately from
   the accepted already-cached Go 1.26.4 offline toolchain. Exact evidence is
   [the offline readiness report](evidence/phase-07/relation-evidence-completion-offline-readiness-r4.md).
+- Active Stage B corpus boundary: the owner selected `go-git/go-git`
+  `v5.19.1`, `pmndrs/zustand` `v5.0.14`, and `usememos/memos`
+  `v0.30.0`. Their exact commits, licenses, Git trees, selected language
+  slices, generated-file exclusions, and selected-content hashes are frozen
+  in [the Stage B evidence](evidence/phase-07/relation-calibration-stage-b-r4.md).
+  Ignored checkouts are clean. No provider operation has occurred. The active
+  step is isolated 1024/int8 indexing, indexed-file parity, parser inventory,
+  and relation-sidecar construction.
 - Completed final admission boundary: [graph-only Pareto evidence](evidence/phase-07/relation-graph-only-pareto-diagnostic-r4.md)
   records the frozen rule, clean implementation and executable, plan/run
   hashes, exact denominators, deterministic repeats, G09/X08 bodies, zero
@@ -131,10 +139,13 @@ This ledger is the authoritative resumable state for implementation work. Update
   found 57 such production functions: 51 in previously parentless files and six
   in files with an existing type parent.
 - Next eligible phase: use the closed Phase 07 calibration checkpoint for bounded Phase 12 calibration analysis while Phase 07 prepares a separate unexposed confirmation set.
-- Exact next action: obtain explicit user selection/approval of every new
-  calibration repository. Then create portable manifests and ignored local
-  bindings before any clone, corpus run, document capture, or query operation.
-  Do not inspect new semantic scores for the exposed 32 cases.
+- Exact next action: initialize and index the three selected repositories in
+  isolated `.cidx/test/states/` namespaces, verify manifest/index parity and
+  parser/semantic-parent coverage, then build relation sidecars. Author and
+  freeze the new calibration query unit only after that provider-free audit.
+  Record exact document/query operation counts and cost ceilings before their
+  separate Voyage apply boundaries. Do not inspect new semantic scores for the
+  exposed 32 cases.
 
 Existing phase completion rows and implementation are historical work produced against earlier design revisions. They must not be read as proof that the current code satisfies Revision 4; the implementation remains a prototype until it is explicitly reconciled and revalidated against the final target contract.
 
@@ -149,7 +160,7 @@ Existing phase completion rows and implementation are historical work produced a
 | 04 | done | `/root`; main-agent validation | Yes — original Phase 04 document/evidence, Phase 02/03 contracts, real chi/RHF structural audit, accepted user decision, and current workspace inspected | Revision 4 path-derived existing-field labels, overload correction, version bump, focused boundary validation, and full provider-free generation-3 handoff accepted | [Phase 04 evidence](evidence/phase-04/README.md) | Resume Phase 07 against corrected inventory |
 | 05 | done | `/root` | Yes — current int8/source contract, Phase 02 reconciliation, full Phase 05 document, historical evidence, strict legacy equivalence code, publication reproof, and existing core fixtures inspected | Exact int8-equivalent legacy rows can be atomically rekeyed; canonical retired 256/Binary profiles and every unproven row remain pending; focused test/race/vet/build/format boundary passed with no source-bank/lab/provider action | [Current int8 reproof](evidence/phase-05/int8-serving-key-reproof.md) and historical [R4 evidence](evidence/phase-05/revision-4.md) | Hand active canonical inputs and current-profile pending keys to Phase 08/10 |
 | 06 | done | terra/high implementation agent; Codex validation | Yes — [Phase 05 evidence](evidence/phase-05/README.md) and the store/config/symbol handoff inspected | Safe query construction, central resolved query policy/fingerprint, generation-pinned FTS/BM25 materialization with full pre-limit ordering, and [Phase 06 evidence](evidence/phase-06/README.md) accepted | Main focused race, vet, build, format, dependency-boundary, and diff checks passed | Enter Phase 07 or the unpaid implementation portion of Phase 08 |
-| 07 | in_progress | `/root` | Yes — full execution/index/evaluation/Phase 07 documents; Phase 06 evidence; frozen calibration replay; accepted relation diagnostics; relation completion authority; 2026-08-18 metric reviews | Corpus-independent Stage A accepted at `c863c049128470a190639f5e74b28a4b16a7f0f7`; 2026-08-19 full offline readiness, retained-artifact integrity, exact frozen regression replay, and package follow-up passed; no new corpus/provider run | [Offline readiness](evidence/phase-07/relation-evidence-completion-offline-readiness-r4.md), [Relation Stage A](evidence/phase-07/relation-evidence-completion-stage-a-r4.md), [graph-only Pareto diagnostic](evidence/phase-07/relation-graph-only-pareto-diagnostic-r4.md), [frozen calibration checkpoint](evidence/phase-07/dual-ai-calibration-freeze-r4.md), [Phase 07 evidence](evidence/phase-07/README.md), and [retired-profile contract](RETIRED-VECTOR-PROFILES.md) | Owner selects and approves every new calibration repository; then prepare the new unit without reopening the exposed 32 |
+| 07 | in_progress | `/root` | Yes — full execution/index/evaluation/Phase 07 documents; Phase 06 evidence; frozen calibration replay; accepted relation diagnostics; relation completion authority; 2026-08-18 metric reviews | Corpus-independent Stage A and offline readiness accepted; three owner-selected calibration repositories are pinned with portable manifests and clean ignored checkouts; no provider run | [Stage B corpus evidence](evidence/phase-07/relation-calibration-stage-b-r4.md), [Offline readiness](evidence/phase-07/relation-evidence-completion-offline-readiness-r4.md), [Relation Stage A](evidence/phase-07/relation-evidence-completion-stage-a-r4.md), [graph-only Pareto diagnostic](evidence/phase-07/relation-graph-only-pareto-diagnostic-r4.md), [frozen calibration checkpoint](evidence/phase-07/dual-ai-calibration-freeze-r4.md), [Phase 07 evidence](evidence/phase-07/README.md), and [retired-profile contract](RETIRED-VECTOR-PROFILES.md) | Run isolated indexing/parity/parser/graph audit, then author the unexposed calibration unit without reopening the exposed 32 |
 | 08 | done | `/root` | Yes — full Phase 08 document, historical R4 evidence, accepted source-bank decision, Phase 05 handoff, live lab/embedclient wiring, and current state layout inspected | Product `db/embeddings.db` owns immutable document 1024-f32; `lab/evaluation.db` contains metadata only; compatible legacy rows copy read-only; focused test/race/vet/build/format/import/schema boundary passed | [Current source-bank evidence](evidence/phase-08/int8-source-bank-reconciliation.md), historical [R4 evidence](evidence/phase-08/revision-4.md), and [source-bank decision](SOURCE-VECTOR-BANK-DECISION.md) | Hand compatible sources and missing keys to Phase 09/10 |
 | 09 | done | `/root` | Yes — prior Phase 09 evidence, live vector/materialization code, Phase 08 source-bank boundary, five-profile evidence, and retired-profile contract inspected | Int8-only transform/materialization/search contract, production v5 cache, retired runtime removal, and one final offline boundary accepted | [Current evidence](evidence/phase-09/int8-only-materialization-reconciliation.md), historical [Phase 09 evidence](evidence/phase-09/README.md), and [retired-profile contract](RETIRED-VECTOR-PROFILES.md) | Hand direct int8 transform/scorer and source-bank rematerialization to Phase 10/11 |
 | 10 | done | `/root` | Yes — accepted Phase 09 boundary, prior Phase 10 R4 evidence, active embedding path, source-bank decision, and retired-profile contract inspected | Source-bank-first provider success handling, compatible local reuse, public source/Voyage plan split, provider-only request accounting, and final offline boundary accepted | [Current evidence](evidence/phase-10/source-bank-first-document-publication.md), historical [R4 evidence](evidence/phase-10/revision-4.md), and [source-bank decision](SOURCE-VECTOR-BANK-DECISION.md) | Hand current int8 coverage/profile state to Phase 11 |
