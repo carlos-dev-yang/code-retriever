@@ -144,8 +144,46 @@ artifact; production FTS will be captured in the Phase 12 retrieval artifact.
 
 ## Next boundary
 
-Commit this score-unexposed draft unit and build a clean executable. Run exact
-document-capture dry plans for the three immutable indexes, bind the dated
-Voyage input price and the owner's USD 5 billing ceiling, then capture the
-1024-dimensional document source bank. Materialize only the active 1024/int8
-serving profile. Query embedding remains a separate 40-operation apply series.
+### Document source capture
+
+The draft unit was frozen at clean commit
+`d59a36ef5b1f4f79adf80b0853c8d8ef70caf5ce`. A clean Go 1.26.4 executable
+reported that commit with `source_modified=false` before any provider call.
+
+The public Voyage documentation retrieved on 2026-08-19 did not yet list
+`voyage-code-4`; the owner had independently confirmed its table entry as
+USD 0.12 per million input tokens and a 200-million-token allowance. The
+experiment therefore records the price identity as
+`owner-confirmed-voyage-code-4-2026-08-19-usd0.12-per-million`, without changing
+the canonical v1 model. The project-local credential file was mode 0600,
+git-ignored, and contained only the expected key variable; its value was never
+printed or copied into an artifact.
+
+| Corpus | Distinct inputs | Dry upper-bound tokens | Request groups | Actual tokens | Persisted | Failed |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| go-git | 5,655 | 3,492,377 | 45 | 1,050,252 | 5,655 | 0 |
+| Zustand | 127 | 63,919 | 1 | 16,273 | 127 | 0 |
+| Memos | 4,877 | 3,875,172 | 39 | 970,012 | 4,877 | 0 |
+| **Total** | **10,659** | **7,431,468** | **85** | **2,036,537** | **10,659** | **0** |
+
+At the frozen rate, the conservative initial-attempt ceiling was USD 0.8918
+and the initial-plus-three-retries ceiling was USD 3.5671, both within the
+owner's USD 5 billing ceiling. Actual observed input tokens correspond to at
+most USD 0.2444 before any provider free allowance.
+
+All three source banks pass SQLite integrity checks and contain exactly one
+validated 1024-f32 row for every distinct canonical input. Local
+materialization published exactly 10,659 `cidx-int8-symmetric-v1` serving rows,
+occupying 10,914,816 int8 payload bytes.
+Workspace status reports complete segment coverage (`5659/5659`, `127/127`,
+and `4877/4877`), zero pending/failed inputs, and unchanged index generations
+and manifests. A repeated capture plan has zero paid misses for all corpora.
+
+## Next boundary
+
+Run provider-free retrieval plans for the 12/12/16 draft datasets under one
+`RELATION_CALIBRATION_POOL_BUILDING` series of exactly 40 logical query
+operations. Freeze the same price identity and USD 5 series cap, then apply
+each query once. The resulting full active-int8 score artifacts feed relation
+completion; no query vector is persisted and no historical chi/RHF query is
+reopened.

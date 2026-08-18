@@ -124,6 +124,13 @@ This ledger is the authoritative resumable state for implementation work. Update
   target membership are now restricted to the exact index snapshot; excluded
   and dependency targets classify as `OUT_OF_CORPUS`, not parent-mapping
   failures.
+- Active Stage B document boundary: clean commit `d59a36e` froze 40 new draft
+  cases before score exposure. Voyage document capture persisted all 10,659
+  distinct 1024-f32 source inputs with zero failure and 2,036,537 observed
+  input tokens, then local materialization published complete 1024/int8
+  coverage. The source-bank and production SQLite integrity checks pass and
+  repeated capture plans have zero paid misses. Query embedding has not yet
+  run.
 - Completed final admission boundary: [graph-only Pareto evidence](evidence/phase-07/relation-graph-only-pareto-diagnostic-r4.md)
   records the frozen rule, clean implementation and executable, plan/run
   hashes, exact denominators, deterministic repeats, G09/X08 bodies, zero
@@ -164,12 +171,12 @@ This ledger is the authoritative resumable state for implementation work. Update
   found 57 such production functions: 51 in previously parentless files and six
   in files with an existing type parent.
 - Next eligible phase: use the closed Phase 07 calibration checkpoint for bounded Phase 12 calibration analysis while Phase 07 prepares a separate unexposed confirmation set.
-- Exact next action: commit the score-unexposed 40-case Stage B draft unit,
-  build a clean executable, and run exact document-capture dry plans against
-  the three accepted index generations. Bind the dated Voyage price and USD 5
-  owner ceiling before document apply. Materialize 1024/int8, then plan the
-  separate 40-operation relation-calibration query series. Do not reopen or
-  inspect semantic scores for the historical chi/RHF 32 cases.
+- Exact next action: commit the Stage B document-capture evidence, rebuild the
+  clean executable, and dry-plan the 12/12/16 query artifacts as one exact
+  40-operation `RELATION_CALIBRATION_POOL_BUILDING` series. Apply under the
+  same owner-confirmed USD 0.12/M price and USD 5 ceiling, then run the
+  provider-free relation completion consumer. Do not reopen or inspect
+  semantic scores for the historical chi/RHF 32 cases.
 
 Existing phase completion rows and implementation are historical work produced against earlier design revisions. They must not be read as proof that the current code satisfies Revision 4; the implementation remains a prototype until it is explicitly reconciled and revalidated against the final target contract.
 
