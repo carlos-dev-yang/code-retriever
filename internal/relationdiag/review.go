@@ -316,11 +316,11 @@ func PrepareReview(request ReviewPrepareRequest) (string, error) {
 		if input.SourceRoot == "" {
 			return "", fmt.Errorf("source-root reproof is required for review packet preparation")
 		}
-		features, hintRows, closureRows, ids, err := loadReviewCompletion(input)
+		features, hintRows, closureRows, ids, completionManifest, err := loadReviewCompletion(input)
 		if err != nil {
 			return "", err
 		}
-		if err := validateReviewMember(input.Directory, request.Contract.Members, len(ids), seenMembers); err != nil {
+		if err := validateReviewMember(completionManifest, request.Contract.Members, len(ids), seenMembers); err != nil {
 			return "", err
 		}
 		endpoints += len(features)
@@ -334,14 +334,6 @@ func PrepareReview(request ReviewPrepareRequest) (string, error) {
 			queryIDs[id] = true
 		}
 		if err := validateReviewQueries(input.Queries, ids); err != nil {
-			return "", err
-		}
-		var completionManifest struct {
-			CorpusID     string `json:"corpus_id"`
-			Kind         string `json:"kind"`
-			LabelLoading string `json:"label_loading"`
-		}
-		if err := readReviewJSON(filepath.Join(input.Directory, "run-manifest.json"), &completionManifest); err != nil {
 			return "", err
 		}
 		for _, query := range input.Queries {
@@ -572,11 +564,11 @@ func PrepareReviewEmissions(request ReviewEmissionPrepareRequest) (string, error
 	allClosures, allHints := []closureCandidate{}, []relationHint{}
 	queries := []ReviewEmissionQuery{}
 	for _, input := range request.Completions {
-		features, hints, closures, traces, err := loadReviewCompletion(ReviewCompletionInput{Directory: input.Directory})
+		features, hints, closures, traces, completionManifest, err := loadReviewCompletion(ReviewCompletionInput{Directory: input.Directory})
 		if err != nil {
 			return "", err
 		}
-		if err := validateReviewMember(input.Directory, request.Contract.Members, len(traces), seenMembers); err != nil {
+		if err := validateReviewMember(completionManifest, request.Contract.Members, len(traces), seenMembers); err != nil {
 			return "", err
 		}
 		if len(input.Queries) != len(traces) {
@@ -1917,24 +1909,38 @@ func aggregateReviewPolicyDeliveries(deliveries []reviewPolicyDelivery) []review
 	return result
 }
 
-func loadReviewCompletion(input ReviewCompletionInput) ([]semanticEndpointFeature, []relationHint, []closureCandidate, []string, error) {
+// reviewCompletionManifestProjection intentionally projects only the fields
+// consumed by Stage E. It is decoded only after the complete immutable
+// completion artifact has passed checksum verification; ordinary review input
+// and packet JSON continue to use strict decoding.
+type reviewCompletionManifestProjection struct {
+	Kind                    string `json:"kind"`
+	LabelLoading            string `json:"label_loading"`
+	CorpusID                string `json:"corpus_id"`
+	DatasetSHA256           string `json:"dataset_sha256"`
+	ArtifactChecksumsSHA256 string `json:"-"`
+}
+
+func loadReviewCompletion(input ReviewCompletionInput) ([]semanticEndpointFeature, []relationHint, []closureCandidate, []string, reviewCompletionManifestProjection, error) {
 	if input.Directory == "" {
-		return nil, nil, nil, nil, fmt.Errorf("missing completion directory")
+		return nil, nil, nil, nil, reviewCompletionManifestProjection{}, fmt.Errorf("missing completion directory")
 	}
 	expected := []string{"run-manifest.json", "input-artifact-binding.json", "semantic-parent-scores.jsonl", "relation-endpoint-features.jsonl", "contract-closure-candidates.jsonl", "relation-hints.jsonl", "semantic-admission-results.jsonl", "closure-package-results.jsonl", "per-query-relation-trace.jsonl", "aggregate-relation-metrics.json", "cohort-language-report.json", "first-loss-report.json", "report.md"}
 	if err := verifyChecksums(input.Directory, expected); err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, reviewCompletionManifestProjection{}, err
 	}
-	var manifest struct {
-		Kind         string `json:"kind"`
-		LabelLoading string `json:"label_loading"`
+	manifest, err := readChecksumVerifiedCompletionManifestProjection(input.Directory)
+	if err != nil {
+		return nil, nil, nil, nil, reviewCompletionManifestProjection{}, err
 	}
-	if err := readReviewJSON(filepath.Join(input.Directory, "run-manifest.json"), &manifest); err != nil {
-		return nil, nil, nil, nil, err
+	if manifest.Kind != ReviewAcceptedCompletionKind || manifest.LabelLoading != "LABEL_FIELDS_NOT_DECODED_STAGE_A" || manifest.CorpusID == "" || !validDigest(manifest.DatasetSHA256) {
+		return nil, nil, nil, nil, reviewCompletionManifestProjection{}, fmt.Errorf("completion directory is not accepted review v2")
 	}
-	if manifest.Kind != ReviewAcceptedCompletionKind || manifest.LabelLoading != "LABEL_FIELDS_NOT_DECODED_STAGE_A" {
-		return nil, nil, nil, nil, fmt.Errorf("completion directory is not accepted review v2")
+	artifactChecksum, err := fileSHA256(filepath.Join(input.Directory, "artifact-checksums.json"))
+	if err != nil {
+		return nil, nil, nil, nil, reviewCompletionManifestProjection{}, err
 	}
+	manifest.ArtifactChecksumsSHA256 = artifactChecksum
 	features := []semanticEndpointFeature{}
 	hints := []relationHint{}
 	closures := []closureCandidate{}
@@ -1942,44 +1948,58 @@ func loadReviewCompletion(input ReviewCompletionInput) ([]semanticEndpointFeatur
 		QueryID string `json:"query_id"`
 	}{}
 	if err := readReviewJSONL(filepath.Join(input.Directory, "relation-endpoint-features.jsonl"), &features); err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, reviewCompletionManifestProjection{}, err
 	}
 	if err := readReviewJSONL(filepath.Join(input.Directory, "relation-hints.jsonl"), &hints); err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, reviewCompletionManifestProjection{}, err
 	}
 	if err := readReviewJSONL(filepath.Join(input.Directory, "contract-closure-candidates.jsonl"), &closures); err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, reviewCompletionManifestProjection{}, err
 	}
 	if err := readReviewJSONL(filepath.Join(input.Directory, "per-query-relation-trace.jsonl"), &traces); err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, reviewCompletionManifestProjection{}, err
 	}
 	ids := map[string]bool{}
 	for _, trace := range traces {
 		if trace.QueryID == "" || ids[trace.QueryID] {
-			return nil, nil, nil, nil, fmt.Errorf("invalid completion query trace")
+			return nil, nil, nil, nil, reviewCompletionManifestProjection{}, fmt.Errorf("invalid completion query trace")
 		}
 		ids[trace.QueryID] = true
 	}
 	for _, v := range features {
 		if !ids[v.QueryID] {
-			return nil, nil, nil, nil, fmt.Errorf("endpoint feature lacks completion query trace")
+			return nil, nil, nil, nil, reviewCompletionManifestProjection{}, fmt.Errorf("endpoint feature lacks completion query trace")
 		}
 	}
 	for _, v := range hints {
 		if !ids[v.QueryID] {
-			return nil, nil, nil, nil, fmt.Errorf("relation hint lacks completion query trace")
+			return nil, nil, nil, nil, reviewCompletionManifestProjection{}, fmt.Errorf("relation hint lacks completion query trace")
 		}
 	}
 	for _, v := range closures {
 		if !ids[v.QueryID] {
-			return nil, nil, nil, nil, fmt.Errorf("closure candidate lacks completion query trace")
+			return nil, nil, nil, nil, reviewCompletionManifestProjection{}, fmt.Errorf("closure candidate lacks completion query trace")
 		}
 	}
 	result := make([]string, 0, len(ids))
 	for id := range ids {
 		result = append(result, id)
 	}
-	return features, hints, closures, result, nil
+	return features, hints, closures, result, manifest, nil
+}
+func readChecksumVerifiedCompletionManifestProjection(fileRoot string) (reviewCompletionManifestProjection, error) {
+	data, err := os.ReadFile(filepath.Join(fileRoot, "run-manifest.json"))
+	if err != nil {
+		return reviewCompletionManifestProjection{}, err
+	}
+	var manifest reviewCompletionManifestProjection
+	// The enclosing loader has verified artifact-checksums.json against the
+	// full fixed Stage-A file set. Allow producer-owned additive fields such as
+	// build_info without weakening strict decoding for mutable inputs.
+	if err := json.Unmarshal(data, &manifest); err != nil {
+		return reviewCompletionManifestProjection{}, err
+	}
+	return manifest, nil
 }
 func validateReviewContract(c ReviewSeriesContract) error {
 	if !exactReviewSeriesContract(c) {
@@ -2003,23 +2023,12 @@ func validateReviewContract(c ReviewSeriesContract) error {
 	return nil
 }
 
-func validateReviewMember(root string, members []ReviewSeriesMember, queryCount int, seen map[string]bool) error {
+func validateReviewMember(manifest reviewCompletionManifestProjection, members []ReviewSeriesMember, queryCount int, seen map[string]bool) error {
 	if len(members) == 0 {
 		return nil
 	}
-	var manifest struct {
-		CorpusID      string `json:"corpus_id"`
-		DatasetSHA256 string `json:"dataset_sha256"`
-	}
-	if err := readReviewJSON(filepath.Join(root, "run-manifest.json"), &manifest); err != nil {
-		return err
-	}
-	digest, err := fileSHA256(filepath.Join(root, "artifact-checksums.json"))
-	if err != nil {
-		return err
-	}
 	for _, member := range members {
-		if member.CorpusID == manifest.CorpusID && member.DatasetSHA256 == manifest.DatasetSHA256 && member.CompletionArtifactChecksum == digest && member.QueryCount == queryCount {
+		if member.CorpusID == manifest.CorpusID && member.DatasetSHA256 == manifest.DatasetSHA256 && member.CompletionArtifactChecksum == manifest.ArtifactChecksumsSHA256 && member.QueryCount == queryCount {
 			if seen[member.CorpusID] {
 				return fmt.Errorf("duplicate review completion member")
 			}

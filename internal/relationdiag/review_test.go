@@ -13,6 +13,33 @@ func reviewTestContract() ReviewSeriesContract {
 	return canonicalReviewSeriesContract()
 }
 
+func TestChecksumVerifiedCompletionManifestProjectionAllowsProducerBuildInfo(t *testing.T) {
+	root := t.TempDir()
+	manifest := []byte(`{
+  "kind": "cidx.relation_evidence_completion.stage_a.v1",
+  "label_loading": "LABEL_FIELDS_NOT_DECODED_STAGE_A",
+  "corpus_id": "producer-corpus",
+  "dataset_sha256": "b5ddc298a3a7c8b5a816ce439208667fa566c69e175777d9205a6bf983ef80ba",
+  "build_info": {"producer": "stage-a", "version": 2}
+}`)
+	if err := os.WriteFile(filepath.Join(root, "run-manifest.json"), manifest, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	var strict struct {
+		Kind string `json:"kind"`
+	}
+	if err := readReviewJSON(filepath.Join(root, "run-manifest.json"), &strict); err == nil {
+		t.Fatal("ordinary strict JSON reader accepted producer-only build_info")
+	}
+	got, err := readChecksumVerifiedCompletionManifestProjection(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Kind != ReviewAcceptedCompletionKind || got.CorpusID != "producer-corpus" || got.DatasetSHA256 != "b5ddc298a3a7c8b5a816ce439208667fa566c69e175777d9205a6bf983ef80ba" {
+		t.Fatalf("unexpected manifest projection: %+v", got)
+	}
+}
+
 func TestReviewPolicyFreezesCellsAndEmissionsBeforeLabels(t *testing.T) {
 	if got := len(reviewClosureCells()); got != 9 {
 		t.Fatalf("closure cells=%d", got)
