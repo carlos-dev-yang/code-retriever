@@ -1,7 +1,9 @@
 # 07. Lexical Chunking and Search Evaluation
 
 - Status: `in_progress` — the chi/RHF 32-case calibration set is frozen under
-  `owner-adopted-dual-ai-v1`, its provider-free replay is accepted, and a
+  `owner-adopted-dual-ai-v1`, its provider-free replay is accepted, the
+  40-query relation Stage E/F unit is closed, assistant A/B is deferred, and
+  the current test is search selection plus residual isolated noise. A
   separate unexposed promotion-capable confirmation set remains outstanding
 - Prerequisite phase: `06-fts-search`
 - Follow-up phase: `12-retrieval-evaluation`
@@ -601,6 +603,14 @@ runtime never consumes the review labels. Exact digests, measurements, gates,
 and limitations are in
 [`relation-calibration-stage-ef-r4.md`](evidence/phase-07/relation-calibration-stage-ef-r4.md).
 
+A later provider-free overlap replay reclassified most Stage F “noise” as
+neighborhood overlap and showed six of nine baseline misses are sibling
+symbols in already-retrieved files. That replay and the current packaging
+plan are
+[`relation-overlap-noise-diagnostic-r4.md`](evidence/phase-07/relation-overlap-noise-diagnostic-r4.md)
+and [`RELATION-PACKAGING-NEXT.md`](RELATION-PACKAGING-NEXT.md). Assistant A/B
+is deferred.
+
 Completion reports must not use the metric value itself as a success declaration. They should demonstrate that the evaluation is reproducible and that failures are traceable.
 
 ## 12. Follow-up Handoff
@@ -662,7 +672,9 @@ Phase 12 extends the shared Phase 07 `internal/eval` dataset, ground-truth, metr
 | Reject direct-bridge, unique graph-only Pareto, and their combined admission rule for product use; close all policy tuning on the exposed 32 cases. | The final arm recovered G09 and X08 and reached `32/32` without primary or hard-negative regression, but only `7/17` emitted bundles were useful. The new Pareto branch supplied the missing G09 evidence yet was useful in only `1/7` emissions. The measured graph features remain useful diagnostics, not a sufficient relevance decision. | A separately frozen new development unit specifies another admission design before exposure, followed by the existing unexposed confirmation requirement. |
 | Freeze the next relation series around existing semantic scores, interpretive contract closure, and body-free assistant hints. | The previous selectors used lexical and ordinal query features but never the continuous dense score of graph endpoints. Existing retrieval artifacts already contain every active-int8 segment score from one request, so a provider-free relation pass can derive global parent rank/percentile and ambiguity without persisting vectors or repeating queries. Contract closure and assistant pull answer separate questions and keep dual count/byte budgets. | After corpus-independent evaluator review, the user approves new calibration repositories. A distinct confirmation unit validates the frozen policy, and assistant A/B independently decides push versus pull before any product wire change. |
 | Accept the corpus-independent relation-completion Stage A boundary without claiming a result. | Clean commit `c863c04` binds producer/consumer evidence, label-free candidate construction, active-int8 completeness, closure/hint budget grids, and final reproof. It performs no corpus or provider operation and leaves product search/MCP unchanged. | The owner selects every new calibration repository; only then may the new unit be prepared and separately approved for document/query operations. |
-| Close the 40-query relation Stage E/F calibration without selecting a policy. | Two complete blinded AI passes, source-only conflict adjudication, whole-digest owner adoption, and deterministic evaluation of all 25 frozen cells prove that graph-derived closure/hints make additional required source evidence available while protecting dense top five. Closure count 2/2,048 bytes moves complete queries `31 -> 36`; hint count 4/4,096 bytes moves `31 -> 37`, but both expose noise, no semantic family was opened, and the 38/40 upper envelope is not a combinable policy. | Never reopen, rescore, add cells, or tune this unit. Freeze one exact policy or an explicit no-policy contract independently, then run assistant-use A/B and a separate unexposed confirmation unit. |
+| Close the 40-query relation Stage E/F calibration without selecting a policy. | Two complete blinded AI passes, source-only conflict adjudication, whole-digest owner adoption, and deterministic evaluation of all 25 frozen cells prove that graph-derived closure/hints make additional required source evidence available while protecting dense top five. Closure count 2/2,048 bytes moves complete queries `31 -> 36`; hint count 4/4,096 bytes moves `31 -> 37`, but both expose noise, no semantic family was opened, and the 38/40 upper envelope is not a combinable policy. | Never reopen, rescore, add cells, or tune this unit. |
+| Defer assistant final-answer A/B; measure search selection and residual isolated noise only. | The owner rejected host/model-dependent agent-answer gates as the current product test. cidx remains a lightweight retrieval MCP: embeddings plus local graph, no in-process LLM, explicit limitation reporting. | Resume assistant-use only on explicit later host-integration direction. |
+| Treat overlapping graph neighborhood as payload to organize, not as dump-or-hide noise. | Provider-free v2 replay of the frozen 40-query unit showed six of nine baseline misses are sibling symbols in files already returned by dense top five. Hint-cell isolated parents are 13/133; file collapse leaves zero noise-only queries. Three remaining misses are cross-file at ranks 14, 40, and 134. Topology-only dense top-10 recovers 3/9; the earlier 5/9 draft is withdrawn. | Follow [RELATION-PACKAGING-NEXT.md](RELATION-PACKAGING-NEXT.md). Do not change questions, labels, ranking, or the four-tool MCP surface. |
 | Do not edit the exposed 32-case calibration set to improve its scores. | The questions, labels, and immutable ranks have now influenced a retrieval-policy decision. Further tuning on them would invalidate their role as an unbiased confirmation unit. | Never for this dataset version; create a new versioned calibration or an unexposed confirmation unit. |
 | Preserve failure taxonomy alongside metrics. | It identifies which implementation layer should change next. | Never. |
 | Call production services directly. | This prevents divergence between evaluation and actual behavior. | Never. |

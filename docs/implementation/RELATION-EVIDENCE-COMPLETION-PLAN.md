@@ -1,6 +1,10 @@
 # Relation Evidence Completion: Semantic Admission, Contract Closure, and Assistant Pull
 
-- Status: pre-implementation experiment authority
+- Status: historical; Stage A–F completed; assistant-pull A/B deferred
+- Current experiment authority:
+  [RELATION-PACKAGING-NEXT.md](RELATION-PACKAGING-NEXT.md)
+- Current handoff:
+  [RELATION-ASSISTANT-VALIDATION-HANDOFF.md](RELATION-ASSISTANT-VALIDATION-HANDOFF.md)
 - Date: 2026-08-18
 - Owning phases: Phase 07 calibration and relation evidence, Phase 12 core
   retrieval evaluation, and later Phase 14 assistant-use evidence

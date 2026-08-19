@@ -4,8 +4,9 @@
 - State: `in_progress` — the default `1024/int8` and compact `512/int8`
   product boundary is reconciled; the 32-case chi/RHF calibration set is
   frozen, adopted, and replayed; the separate 40-query relation Stage E/F
-  calibration is also closed with no selected policy; an unexposed
-  promotion-capable confirmation set remains outstanding.
+  calibration is also closed with no selected policy; assistant A/B is
+  deferred; current follow-up is selection rate and noise organization; an
+  unexposed promotion-capable confirmation set remains outstanding.
 - Date: 2026-08-19
 
 Current product authority: [Retired Vector Profiles and Evidence Boundary](../../RETIRED-VECTOR-PROFILES.md).
@@ -90,6 +91,13 @@ family was never opened, and no policy was selected. This proves bounded
 evidence availability, not assistant final-answer improvement or
 cross-repository generalization. The review labels are evaluation-only and
 are not a runtime project dependency.
+
+Current overlap/selection replay: [relation overlap and search-selection
+diagnostic v2 — Revision 4](relation-overlap-noise-diagnostic-r4.md).
+Assistant A/B is deferred. Six of nine baseline misses are sibling symbols
+in already-retrieved files; topology-only dense top-10 recovers 3/9.
+Current experiment authority is
+[RELATION-PACKAGING-NEXT.md](../../RELATION-PACKAGING-NEXT.md).
 
 ### 2026-08-17 solo-project relevance-authority revision
 
@@ -553,13 +561,12 @@ The focused tests cover portable/duplicate-field manifest rejection, local Git b
 
 Keep both the exposed 32-case calibration and the closed 40-query relation
 calibration immutable. Select nothing by taking a per-query upper envelope.
-Before confirmation, freeze either one exact relation policy or an explicit
-no-policy contract without reopening either calibration. Independently run the
-assistant-use A/B for dense-only, bounded closure, and body-free hints plus the
-existing `read_span`; that experiment measures product behavior rather than
-relevance-label availability. Only a distinct unexposed unit may provide
-confirmation evidence. Do not call Voyage again for either closed calibration
-while its corpus, questions, policies, and embeddings are unchanged.
+Follow [RELATION-PACKAGING-NEXT.md](../../RELATION-PACKAGING-NEXT.md): freeze
+the mechanical same-file sibling and organized one-hop packaging contract,
+then run that evaluation-only pass with limitation reporting. Do not start
+assistant A/B. Only a distinct unexposed unit may later provide confirmation
+evidence. Do not call Voyage again for either closed calibration while its
+corpus, questions, policies, and embeddings are unchanged.
 
 The ignored source-link review views are
 `.cidx/test/states/chi/evaluations/review/pass1-v2-chi-review.md` and

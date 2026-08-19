@@ -6,7 +6,9 @@
   historical document evidence remains. All corpus-independent implementation
   and local package boundaries are reconciled; Phase 07 chi/RHF calibration
   and the separate 40-query relation Stage E/F calibration are closed, no
-  relation policy is selected, and an unexposed confirmation set remains
+  relation policy is selected, assistant-use A/B is deferred, and the current
+  graph/search test is required-parent selection plus residual isolated noise
+  with organized neighborhood packaging. An unexposed confirmation set remains
   outstanding
 - Canonical design: [Local Code Search MCP v1 Final Target Contract — Revision 4](../../local-code-search-mcp-v1-design-r4.md)
 - Earlier designs: [original](../../local-code-search-mcp-v1-design.md), [r1](../../local-code-search-mcp-v1-design-r1.md), [r2](../../local-code-search-mcp-v1-design-r2.md), [r3](../../local-code-search-mcp-v1-design-r3.md)
@@ -14,7 +16,9 @@
 - Evaluation and promotion contract: [cidx v1 Evaluation and Promotion Contract](EVALUATION-CONTRACT.md)
 - Evaluation execution: [Retrieval Evaluation and Embedding Execution Plan](EVALUATION-EMBEDDING-EXECUTION-PLAN.md)
 - Relation-graph experiment journal: [complete chi/RHF graph investigation and review dossier](RELATION-GRAPH-EXPERIMENT-JOURNAL.md)
-- Next relation experiment authority: [semantic admission, contract closure, and assistant-pull plan](RELATION-EVIDENCE-COMPLETION-PLAN.md)
+- Current relation experiment authority: [selection and packaging plan](RELATION-PACKAGING-NEXT.md)
+- Relation evidence handoff: [handoff](RELATION-ASSISTANT-VALIDATION-HANDOFF.md)
+- Historical relation completion plan: [semantic admission, contract closure, and assistant-pull plan](RELATION-EVIDENCE-COMPLETION-PLAN.md)
 - Persistent state: [Phase Status Ledger](STATUS.md)
 - Final corpus-independent review: [int8/source-profile implementation-to-design review](evidence/revision-4/int8-source-profile-final-review.md)
 - Last updated: 2026-08-19
@@ -87,7 +91,7 @@ Allowed states are `planned | in_progress | blocked | done`. A phase becomes `do
 | 04 | done | [TypeScript and TSX chunker](04-typescript-tsx-chunker.md) | 02 | Accepted path-derived retrieval labels and real-corpus overload correction; versioned full reindex handoff | [Evidence](evidence/phase-04/README.md) |
 | 05 | done | [Worktree indexing pipeline](05-worktree-index-pipeline.md) | 03, 04, reconciled 02 | Remove the chunk-cap contract, inject `target_segment_bytes`, preserve atomic local reindex, and safely rekey only current int8-equivalent legacy vectors | [Current int8 reproof](evidence/phase-05/int8-serving-key-reproof.md) and [historical R4 evidence](evidence/phase-05/revision-4.md) |
 | 06 | done | [FTS search](06-fts-search.md) | 05 | Contentless FTS, safe queries, BM25 chunk candidates | [Evidence](06-fts-search.md#11-completion-evidence) |
-| 07 | in_progress | [Lexical evaluation](07-lexical-evaluation.md) | 06, corrected 04 inventory, reconciled 02/08/09/11 | Frozen 32-case chi/RHF calibration plus closed 40-query relation Stage E/F calibration; bounded graph evidence availability is proved, no relation policy is selected, and assistant-use plus unexposed confirmation remain | [Stage E/F relation calibration](evidence/phase-07/relation-calibration-stage-ef-r4.md), [graph-only Pareto diagnostic](evidence/phase-07/relation-graph-only-pareto-diagnostic-r4.md), [frozen checkpoint](evidence/phase-07/dual-ai-calibration-freeze-r4.md), and [evidence index](evidence/phase-07/README.md) |
+| 07 | in_progress | [Lexical evaluation](07-lexical-evaluation.md) | 06, corrected 04 inventory, reconciled 02/08/09/11 | Frozen 32-case chi/RHF calibration plus closed 40-query relation Stage E/F calibration; bounded graph evidence availability is proved; current follow-up is selection rate and noise organization, not assistant A/B | [Overlap/selection diagnostic](evidence/phase-07/relation-overlap-noise-diagnostic-r4.md), [Stage E/F relation calibration](evidence/phase-07/relation-calibration-stage-ef-r4.md), [graph-only Pareto diagnostic](evidence/phase-07/relation-graph-only-pareto-diagnostic-r4.md), [frozen checkpoint](evidence/phase-07/dual-ai-calibration-freeze-r4.md), and [evidence index](evidence/phase-07/README.md) |
 | 08 | done | [Document source-vector bank](08-raw-embedding-lab.md) | reconciled 02, 05 | Split durable product 1024-f32 source storage from vector-free evaluation run/artifact state while retaining the shared synchronous executor | [Current source-bank evidence](evidence/phase-08/int8-source-bank-reconciliation.md) and [historical R4 evidence](evidence/phase-08/revision-4.md) |
 | 09 | done | [Vector materialization](09-vector-materialization.md) | reconciled 02, existing 01/05/08 | Int8-only 1024-default/512-optional transform, production v5 cache, atomic materialization, and direct scan boundary | [Current evidence](evidence/phase-09/int8-only-materialization-reconciliation.md) and [historical evidence](evidence/phase-09/README.md) |
 | 10 | done | [Embedding orchestration and reconciliation](10-embedding-orchestration-and-reconciliation.md) | reconciled 02/09, existing 05/08 | Source-bank-first Voyage document publication, provider-free source reuse, and provider-only request accounting | [Current evidence](evidence/phase-10/source-bank-first-document-publication.md) and [historical R4 evidence](evidence/phase-10/revision-4.md) |
@@ -356,6 +360,7 @@ Do not introduce a deferred item implicitly for implementation convenience.
 
 | Date | Change | Reason |
 | --- | --- | --- |
+| 2026-08-19 | Deferred assistant A/B; made required-parent selection, isolated-noise residual, and mechanical packaging the current relation test | Owner rejected host/model-dependent final-answer gates; Stage E/F plus overlap replay show sibling packaging as the first loss | |
 | 2026-08-17 | Made 1024/int8 the default, retained compact 512/int8, productized durable document source-1024 f32, and removed Binary/256 code paths | Preserve maximum measured int8 fidelity by default while making dimension changes provider-free and keeping retired evidence document-only |
 | 2026-08-14 | Created the phase-oriented implementation plan | Decompose the r3 contract into executable work and evidence |
 | 2026-08-14 | Separated the 1024-dimensional document-f32 lab from runtime serving | Reduce repeated initial evaluation cost without creating a multi-profile runtime |

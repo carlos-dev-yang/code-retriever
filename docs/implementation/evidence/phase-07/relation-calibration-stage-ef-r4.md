@@ -175,8 +175,9 @@ reproved. No Voyage or other network/provider operation was performed.
 This 40-query calibration unit is permanently closed. Do not add cells,
 rescore it, alter its labels, or derive thresholds from it.
 
-The next design boundary must first freeze either one exact policy or an
-explicit no-policy contract without reopening this calibration. A separate
-assistant-use A/B must then compare unchanged dense search, bounded closure,
-and body-free hints plus existing `read_span`. Formal claims require a distinct
-unexposed confirmation unit after that choice is immutable.
+Owner direction on 2026-08-19 superseded the assistant-use A/B as the next
+step. The current follow-up is mechanical packaging on this frozen unit:
+[overlap/selection diagnostic](relation-overlap-noise-diagnostic-r4.md) and
+[RELATION-PACKAGING-NEXT.md](../../RELATION-PACKAGING-NEXT.md). Formal claims
+still require a distinct unexposed confirmation unit after a packaging
+contract is immutable. Do not start assistant A/B from this report.

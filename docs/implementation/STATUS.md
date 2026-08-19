@@ -4,7 +4,7 @@ This ledger is the authoritative resumable state for implementation work. Update
 
 ## Current state
 
-- Active phase: 07 — closed relation calibration and policy/assistant/confirmation handoff
+- Active phase: 07 — closed relation calibration; current work is mechanical packaging, not assistant A/B
 - Active owner: `/root`
 - Completed bounded work: the final provider-free graph-only Pareto admission
   diagnostic is complete at clean commit
@@ -43,8 +43,12 @@ This ledger is the authoritative resumable state for implementation work. Update
   rule are rejected for product use. The full sidecar remains evaluation-only.
 - Phase 07 simple-control implementation owner: `/root/phase07_simple_control` (store/eval/devlab only; no corpus, provider, or production-ranking mutation)
 - Last updated: 2026-08-19
+- Latest owner direction: assistant final-answer A/B is not a current
+  goal. Graph/search follow-up measures only required-parent selection and
+  residual isolated noise, and organizes overlapping neighborhood as the
+  result rather than dumping it or hiding it.
 - Canonical target: [`local-code-search-mcp-v1-design-r4.md`](../../local-code-search-mcp-v1-design-r4.md)
-- Current blocker: the 32-case chi/RHF set and the separate 40-query go-git/Zustand/Memos relation calibration are closed under `OWNER_ADOPTED_DUAL_AI_REVIEW`. Stage E/F proves bounded graph evidence availability but selects no relation policy. Phase 07 completion and official promotion still require an immutable exact-policy or explicit no-policy contract, a distinct unexposed confirmation unit, and separate assistant-use evidence. The closed sets must not be rescored or tuned.
+- Current blocker: the 32-case chi/RHF set and the separate 40-query go-git/Zustand/Memos relation calibration are closed under `OWNER_ADOPTED_DUAL_AI_REVIEW`. Stage E/F proves bounded graph evidence availability but selects no relation policy. Phase 07 completion still requires an exact packaging/no-policy contract and a distinct unexposed confirmation unit. Assistant-use evidence is deferred and is not a current graph gate. The closed sets must not be rescored or tuned.
 - Latest contract change: source and state roots are now distinct runtime inputs. Normal state is `<source>/.cidx` with production DB `.cidx/db/index.db`; cidx development evaluation uses disposable sources under `.cidx/test/corpora/` and preserved named states under `.cidx/test/states/`. Absolute source/state paths are removed from SQLite metadata.
 - Latest evaluation change: the 40-query relation Stage E/F unit completed two
   blinded reviews, source-only adjudication, whole-digest adoption, and two
@@ -53,6 +57,14 @@ This ledger is the authoritative resumable state for implementation work. Update
   hint count 4/4,096 bytes reaches 58/61 and 37/40, with substantial noise in
   both. The descriptive upper envelope is 38/40 and is not a policy.
   `NO_POLICY_SELECTED_EVALUATION_ONLY` is final for this closed unit.
+- Latest selection/noise diagnostic: v2 replay (SHA-256
+  `33a91723549c12486da93c07a638907537ff5065ad7375432109cbb19939656d`)
+  shows six of nine baseline misses are sibling symbols in files already
+  returned by dense top five; three are cross-file at ranks 14, 40, and 134.
+  Topology-only dense top-10 recovers 3/9, not the withdrawn 5/9 draft.
+  Hint-cell isolated parents are 13/133 and file collapse leaves zero
+  noise-only queries. Assistant A/B is deferred. Exact report:
+  [overlap/selection diagnostic](evidence/phase-07/relation-overlap-noise-diagnostic-r4.md).
 - Latest bounded-frontier result: chi compresses `119 -> 115 -> 79 -> 56 ->
   51` and RHF `1290 -> 711 -> 362 -> 158 -> 153` across self removal,
   occurrence collapse, bucket truncation, and canonical dedupe. Cap-only is
@@ -65,14 +77,14 @@ This ledger is the authoritative resumable state for implementation work. Update
   Pareto winners, 13 multiple-winner abstentions, and 2 no-candidate
   abstentions. Exact G09 and X08 evidence is recovered, but 10/17 emitted
   bundles are noise-only. The rule is not a serving candidate.
-- Completed relation-series authority: the experiment is governed by
-  [the relation evidence completion plan](RELATION-EVIDENCE-COMPLETION-PLAN.md).
-  It reuses the existing full active-int8 segment-score artifact to derive
-  provider-free semantic endpoint features, inventories bounded one-hop
-  contract closure, and prepares body-free relation hints for an independent
-  later assistant A/B. The exposed 32 cases remain closed. No new corpus,
-  provider operation, production graph path, search wire, or fifth MCP tool is
-  authorized at this documentation checkpoint.
+- Completed relation-series authority: Stage A–F remain historical evidence
+  under [the relation evidence completion plan](RELATION-EVIDENCE-COMPLETION-PLAN.md).
+  Current follow-up is governed by
+  [the packaging plan](RELATION-PACKAGING-NEXT.md) and the corrected
+  [handoff](RELATION-ASSISTANT-VALIDATION-HANDOFF.md). The exposed 32 cases
+  and the 40-query unit remain closed. No new corpus, provider operation,
+  production graph path, search wire, fifth MCP tool, or assistant A/B is
+  authorized.
 - Completed relation Stage A boundary: clean implementation commit
   `c863c049128470a190639f5e74b28a4b16a7f0f7` adds the provider-free
   completion consumer and plan-bound Phase 12 producer class. It binds graph,
@@ -183,12 +195,14 @@ This ledger is the authoritative resumable state for implementation work. Update
   in the same chunker-version/reindex boundary. The accepted implementation
   found 57 such production functions: 51 in previously parentless files and six
   in files with an existing type parent.
-- Next eligible phase: freeze one exact relation policy or an explicit no-policy contract without reopening either closed calibration, then prepare independent assistant-use and unexposed-confirmation work.
-- Exact next action: preserve the Stage E/F result as evaluation evidence,
-  define the immutable assistant A/B arms (dense-only, bounded closure,
-  body-free hints plus existing `read_span`), and choose an exact policy or
-  explicit no-policy contract before a separate unexposed confirmation run.
-  Do not inspect, rescore, add cells to, or tune either closed calibration.
+- Next eligible phase: freeze one mechanical packaging contract for
+  same-file sibling expansion and organized one-hop file/symbol clusters,
+  without reopening either closed calibration and without assistant A/B.
+- Exact next action: freeze `experiment-contract.json` from
+  [RELATION-PACKAGING-NEXT.md](RELATION-PACKAGING-NEXT.md), then implement
+  the evaluation-only same-file sibling and organized one-hop packaging
+  pass with count/byte caps and limitation fields. Do not inspect, rescore,
+  add cells to, or tune either closed calibration. Do not start assistant A/B.
 
 Existing phase completion rows and implementation are historical work produced against earlier design revisions. They must not be read as proof that the current code satisfies Revision 4; the implementation remains a prototype until it is explicitly reconciled and revalidated against the final target contract.
 
@@ -203,12 +217,12 @@ Existing phase completion rows and implementation are historical work produced a
 | 04 | done | `/root`; main-agent validation | Yes — original Phase 04 document/evidence, Phase 02/03 contracts, real chi/RHF structural audit, accepted user decision, and current workspace inspected | Revision 4 path-derived existing-field labels, overload correction, version bump, focused boundary validation, and full provider-free generation-3 handoff accepted | [Phase 04 evidence](evidence/phase-04/README.md) | Resume Phase 07 against corrected inventory |
 | 05 | done | `/root` | Yes — current int8/source contract, Phase 02 reconciliation, full Phase 05 document, historical evidence, strict legacy equivalence code, publication reproof, and existing core fixtures inspected | Exact int8-equivalent legacy rows can be atomically rekeyed; canonical retired 256/Binary profiles and every unproven row remain pending; focused test/race/vet/build/format boundary passed with no source-bank/lab/provider action | [Current int8 reproof](evidence/phase-05/int8-serving-key-reproof.md) and historical [R4 evidence](evidence/phase-05/revision-4.md) | Hand active canonical inputs and current-profile pending keys to Phase 08/10 |
 | 06 | done | terra/high implementation agent; Codex validation | Yes — [Phase 05 evidence](evidence/phase-05/README.md) and the store/config/symbol handoff inspected | Safe query construction, central resolved query policy/fingerprint, generation-pinned FTS/BM25 materialization with full pre-limit ordering, and [Phase 06 evidence](evidence/phase-06/README.md) accepted | Main focused race, vet, build, format, dependency-boundary, and diff checks passed | Enter Phase 07 or the unpaid implementation portion of Phase 08 |
-| 07 | in_progress | `/root` | Yes — full execution/index/evaluation/Phase 07 documents; Phase 06 evidence; frozen calibration replay; accepted relation diagnostics; relation completion authority; Stage E/F dual-AI review and metric-guide reconciliation | Corpus-independent Stage A and offline readiness accepted; three owner-selected corpora pass immutable retrieval/graph binding; the 40-query Stage E/F calibration is frozen, adopted, and evaluated twice with identical output; graph evidence availability is proved but no policy is selected | [Stage E/F relation calibration](evidence/phase-07/relation-calibration-stage-ef-r4.md), [Stage B corpus evidence](evidence/phase-07/relation-calibration-stage-b-r4.md), [Relation Stage A](evidence/phase-07/relation-evidence-completion-stage-a-r4.md), [frozen chi/RHF checkpoint](evidence/phase-07/dual-ai-calibration-freeze-r4.md), [Phase 07 evidence](evidence/phase-07/README.md), and [retired-profile contract](RETIRED-VECTOR-PROFILES.md) | Freeze one exact policy or explicit no-policy contract; then run separate assistant-use A/B and a distinct unexposed confirmation unit without reopening calibration |
+| 07 | in_progress | `/root` | Yes — full execution/index/evaluation/Phase 07 documents; Phase 06 evidence; frozen calibration replay; accepted relation diagnostics; relation completion authority; Stage E/F dual-AI review and metric-guide reconciliation | Corpus-independent Stage A and offline readiness accepted; three owner-selected corpora pass immutable retrieval/graph binding; the 40-query Stage E/F calibration is frozen, adopted, and evaluated twice with identical output; overlap/selection replay shows six of nine misses are same-file siblings and that most labeled graph noise is neighborhood overlap | [Overlap/selection diagnostic](evidence/phase-07/relation-overlap-noise-diagnostic-r4.md), [Stage E/F relation calibration](evidence/phase-07/relation-calibration-stage-ef-r4.md), [Stage B corpus evidence](evidence/phase-07/relation-calibration-stage-b-r4.md), [Relation Stage A](evidence/phase-07/relation-evidence-completion-stage-a-r4.md), [frozen chi/RHF checkpoint](evidence/phase-07/dual-ai-calibration-freeze-r4.md), [Phase 07 evidence](evidence/phase-07/README.md), and [retired-profile contract](RETIRED-VECTOR-PROFILES.md) | Freeze mechanical same-file sibling packaging plus organized one-hop clusters with limitation reporting; do not run assistant A/B; keep a distinct unexposed confirmation unit |
 | 08 | done | `/root` | Yes — full Phase 08 document, historical R4 evidence, accepted source-bank decision, Phase 05 handoff, live lab/embedclient wiring, and current state layout inspected | Product `db/embeddings.db` owns immutable document 1024-f32; `lab/evaluation.db` contains metadata only; compatible legacy rows copy read-only; focused test/race/vet/build/format/import/schema boundary passed | [Current source-bank evidence](evidence/phase-08/int8-source-bank-reconciliation.md), historical [R4 evidence](evidence/phase-08/revision-4.md), and [source-bank decision](SOURCE-VECTOR-BANK-DECISION.md) | Hand compatible sources and missing keys to Phase 09/10 |
 | 09 | done | `/root` | Yes — prior Phase 09 evidence, live vector/materialization code, Phase 08 source-bank boundary, five-profile evidence, and retired-profile contract inspected | Int8-only transform/materialization/search contract, production v5 cache, retired runtime removal, and one final offline boundary accepted | [Current evidence](evidence/phase-09/int8-only-materialization-reconciliation.md), historical [Phase 09 evidence](evidence/phase-09/README.md), and [retired-profile contract](RETIRED-VECTOR-PROFILES.md) | Hand direct int8 transform/scorer and source-bank rematerialization to Phase 10/11 |
 | 10 | done | `/root` | Yes — accepted Phase 09 boundary, prior Phase 10 R4 evidence, active embedding path, source-bank decision, and retired-profile contract inspected | Source-bank-first provider success handling, compatible local reuse, public source/Voyage plan split, provider-only request accounting, and final offline boundary accepted | [Current evidence](evidence/phase-10/source-bank-first-document-publication.md), historical [R4 evidence](evidence/phase-10/revision-4.md), and [source-bank decision](SOURCE-VECTOR-BANK-DECISION.md) | Hand current int8 coverage/profile state to Phase 11 |
 | 11 | done | `/root` | Yes — accepted Phase 09/10 boundaries, prior Phase 11 R4 evidence, live vector scan/evaluation code, five-profile evidence, and retired-profile contract inspected | Current request-local int8 scan, nonpersistent serving-f32 reference, fallback/RRF/body behavior, retired comparison removal, and focused boundary accepted | [Current evidence](evidence/phase-11/int8-only-query-search-reconciliation.md), historical [R4 evidence](evidence/phase-11/revision-4.md), and [retired-profile contract](RETIRED-VECTOR-PROFILES.md) | Hand the current evaluation arms to Phase 12 |
-| 12 | blocked | `/root` | Yes — accepted current Phase 11 boundary, prior Phase 12 R4 evidence, evaluation contract, current schemas/adapters, relation completion authority, retired-profile contract, and closed relation Stage E/F calibration inspected | Corpus-independent adapter, historical 32-case replay, production-FTS relation artifacts, and calibration-only relation value evidence are accepted; no policy was selected and official `core_retrieval` still lacks independent confirmation plus assistant inputs | [Stage E/F calibration](evidence/phase-07/relation-calibration-stage-ef-r4.md), [Relation Stage A](evidence/phase-07/relation-evidence-completion-stage-a-r4.md), [current evidence](evidence/phase-12/int8-only-evaluation-reconciliation.md), and [R4 accounting evidence](evidence/phase-12/revision-4.md) | Freeze exact policy/no-policy authority, then run distinct unexposed confirmation and assistant-use evidence before any official promotion claim |
+| 12 | blocked | `/root` | Yes — accepted current Phase 11 boundary, prior Phase 12 R4 evidence, evaluation contract, current schemas/adapters, relation completion authority, retired-profile contract, and closed relation Stage E/F calibration inspected | Corpus-independent adapter, historical 32-case replay, production-FTS relation artifacts, and calibration-only relation value evidence are accepted; no policy was selected and official `core_retrieval` still lacks independent confirmation | [Overlap/selection diagnostic](evidence/phase-07/relation-overlap-noise-diagnostic-r4.md), [Stage E/F calibration](evidence/phase-07/relation-calibration-stage-ef-r4.md), [Relation Stage A](evidence/phase-07/relation-evidence-completion-stage-a-r4.md), [current evidence](evidence/phase-12/int8-only-evaluation-reconciliation.md), and [R4 accounting evidence](evidence/phase-12/revision-4.md) | Freeze exact packaging/no-policy authority, then run a distinct unexposed confirmation unit; assistant-use is deferred and is not a current gate |
 | 13 | done | `/root` | Yes — current Phase 02/08/11/12 boundaries, prior Phase 13 R4 evidence, live init/CLI/MCP code, source-bank decision, and retired-profile contract inspected | Default 1024/optional 512 fixed-int8 CLI, provider-free source reuse, four-tool MCP, and focused offline boundary accepted | [Current evidence](evidence/phase-13/int8-only-cli-mcp-reconciliation.md), historical [R4 evidence](evidence/phase-13/revision-4.md), and [retired-profile contract](RETIRED-VECTOR-PROFILES.md) | Hand the current CLI/MCP surface to Phase 14 |
 | 14 | blocked | `/root` | Yes — accepted current Phase 13 boundary, prior Phase 14 checkpoint, current scripts/docs, source-bank decision, five-profile evidence, and retired-profile contract inspected | Clean-provenance local darwin/arm64 archive proves default 1024/int8, provider-free compact 512/int8, negative-only Binary/256, and source-bank-free four-tool serving; official promotion scope remains externally gated | [Current int8 package evidence](evidence/phase-14/int8-profile-package-reconciliation.md), historical [R4 checkpoint](evidence/phase-14/revision-4.md), [source-bank decision](SOURCE-VECTOR-BANK-DECISION.md), and [retired-profile contract](RETIRED-VECTOR-PROFILES.md) | Resume after official Phase 12 core evidence and frozen assistant/host inputs exist |
 
