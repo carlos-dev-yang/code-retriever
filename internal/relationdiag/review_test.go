@@ -220,6 +220,43 @@ func TestReviewPassRejectsUngradedAndInvalidHardNegative(t *testing.T) {
 	if _, err := PrepareReviewAdoption(root, frozenDir, pass, second); err == nil {
 		t.Fatal("previously blessed grade-2 conflict was accepted")
 	}
+	passOneDigest, err := canonicalHash(pass)
+	if err != nil {
+		t.Fatal(err)
+	}
+	passTwoDigest, err := canonicalHash(second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	adjudications := ReviewAdjudications{
+		SchemaVersion:  1,
+		Kind:           "cidx.relation_calibration.review_adjudications.v1",
+		PreparedDigest: digest,
+		PassOneDigest:  passOneDigest,
+		PassTwoDigest:  passTwoDigest,
+		Entries: []ReviewAdjudication{{
+			Subject:          "parent",
+			AttachmentID:     "q00-a0",
+			Grade:            2,
+			RequiredGroupIDs: []string{"g-1"},
+			Rationale:        "source directly satisfies the requirement",
+		}},
+	}
+	adjudicatedDir := filepath.Join(root, "adjudicated")
+	adjudicatedExpected, err := PrepareReviewAdoptionWithAdjudications(root, adjudicatedDir, pass, second, adjudications)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var adjudicatedTemplate ReviewAdoption
+	if err := readReviewJSON(filepath.Join(adjudicatedDir, "owner-adoption-input.json"), &adjudicatedTemplate); err != nil {
+		t.Fatal(err)
+	}
+	if adjudicatedTemplate.Adopted || adjudicatedTemplate.FrozenDigest != adjudicatedExpected || adjudicatedTemplate.PrelabelDigest != prelabel.Digest {
+		t.Fatalf("unexpected adjudicated adoption template: %+v", adjudicatedTemplate)
+	}
+	if _, err := FreezeReviewWithAdjudications(root, adjudicatedDir, pass, second, adjudications, ReviewAdoption{SchemaVersion: 1, Kind: "cidx.relation_calibration.owner_adoption.v1", FrozenDigest: adjudicatedExpected, PrelabelDigest: prelabel.Digest, Adopted: true, ProtocolVersion: "owner-adopted-dual-ai-v1", RelevanceAuthority: "OWNER_ADOPTED_DUAL_AI_REVIEW", ReviewValidation: "NO_INDEPENDENT_HUMAN_REVIEW", Overrides: []string{}}); err != nil {
+		t.Fatal(err)
+	}
 	second.Grades[0] = ReviewGrade{AttachmentID: "q00-a0", Grade: 2, RequiredGroupIDs: []string{"g-1"}, Rationale: "supported"}
 	if err := writeReviewJSON(filepath.Join(root, "pass-2-packet.json"), packetTwo); err != nil {
 		t.Fatal(err)

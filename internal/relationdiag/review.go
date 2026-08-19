@@ -1095,6 +1095,21 @@ func PrepareReviewAdoption(preparedDir, outputDir string, passOne, passTwo Revie
 	if err != nil {
 		return "", err
 	}
+	return writeReviewAdoptionInput(outputDir, frozen)
+}
+
+// PrepareReviewAdoptionWithAdjudications writes the exact reconciliation
+// digest after the explicitly bound conflict adjudications have been applied.
+// Like PrepareReviewAdoption, it cannot freeze labels or bypass owner adoption.
+func PrepareReviewAdoptionWithAdjudications(preparedDir, outputDir string, passOne, passTwo ReviewPass, adjudications ReviewAdjudications) (string, error) {
+	frozen, err := reconcileReview(preparedDir, passOne, passTwo, adjudications)
+	if err != nil {
+		return "", err
+	}
+	return writeReviewAdoptionInput(outputDir, frozen)
+}
+
+func writeReviewAdoptionInput(outputDir string, frozen reviewFrozen) (string, error) {
 	input := ReviewAdoption{SchemaVersion: 1, Kind: "cidx.relation_calibration.owner_adoption.v1", FrozenDigest: frozen.ReconciledDigest, PrelabelDigest: frozen.PrelabelDigest, Adopted: false, ProtocolVersion: "owner-adopted-dual-ai-v1", RelevanceAuthority: "OWNER_ADOPTED_DUAL_AI_REVIEW", ReviewValidation: "NO_INDEPENDENT_HUMAN_REVIEW", Overrides: []string{}}
 	if err := writeReviewJSON(filepath.Join(outputDir, "owner-adoption-input.json"), input); err != nil {
 		return "", err

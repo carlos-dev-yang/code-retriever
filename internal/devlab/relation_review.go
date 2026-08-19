@@ -179,8 +179,23 @@ func relationReview(ctx context.Context, args []string, stdout, stderr io.Writer
 		if err := decode(two, &second); err != nil {
 			return err
 		}
+		var entries relationdiag.ReviewAdjudications
+		if *adjudication != "" {
+			file, err := read(*adjudication)
+			if err != nil {
+				return err
+			}
+			if err := decode(file, &entries); err != nil {
+				return err
+			}
+		}
 		if *adoption == "" {
-			digest, err := relationdiag.PrepareReviewAdoption(preparedDir, outputDir, first, second)
+			var digest string
+			if *adjudication != "" {
+				digest, err = relationdiag.PrepareReviewAdoptionWithAdjudications(preparedDir, outputDir, first, second, entries)
+			} else {
+				digest, err = relationdiag.PrepareReviewAdoption(preparedDir, outputDir, first, second)
+			}
 			if err != nil {
 				return err
 			}
@@ -195,14 +210,6 @@ func relationReview(ctx context.Context, args []string, stdout, stderr io.Writer
 			return err
 		}
 		if *adjudication != "" {
-			file, err := read(*adjudication)
-			if err != nil {
-				return err
-			}
-			var entries relationdiag.ReviewAdjudications
-			if err := decode(file, &entries); err != nil {
-				return err
-			}
 			digest, err := relationdiag.FreezeReviewWithAdjudications(preparedDir, outputDir, first, second, entries, owner)
 			if err != nil {
 				return err
