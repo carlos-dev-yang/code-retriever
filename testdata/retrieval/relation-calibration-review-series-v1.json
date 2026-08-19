@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "kind": "cidx.relation_calibration.review_series.v1",
+  "series_id": "relation-calibration-review-series-v1",
+  "accepted_completion_repeat": "v2_byte_identical_completion_replay",
+  "query_count": 40,
+  "raw_endpoint_features": 250,
+  "raw_relation_hints": 289,
+  "raw_contract_closure_candidates": 576,
+  "members": [
+    {"corpus_id":"go-git-go-git-v5.19.1","dataset_sha256":"b5ddc298a3a7c8b5a816ce439208667fa566c69e175777d9205a6bf983ef80ba","completion_artifact_checksum":"0831205fe994f160aa313510faa20b59560a32881039e96a99b68b0acda82932","query_count":12},
+    {"corpus_id":"pmndrs-zustand-v5.0.14","dataset_sha256":"9ddff18f0a0b5d7665e60b322e25f7b11ad41f0201ac4d3c650886974aba4db7","completion_artifact_checksum":"33ad57507b998fd5b009d60762e853a58915fa35c85188d25ab9037c107b2659","query_count":12},
+    {"corpus_id":"usememos-memos-v0.30.0","dataset_sha256":"4d3a546c9c7fd891c80f10f5be3c2e9a105f3458275d345a93b38529fa47fbd7","completion_artifact_checksum":"3126284514d60ac651a38b5bbf2896634fa1b6f734e512a4415b2c82ba5368fa","query_count":16}
+  ]
+}

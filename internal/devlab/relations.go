@@ -23,6 +23,9 @@ func relations(ctx context.Context, args []string, stdout, stderr io.Writer) err
 	if len(args) == 0 {
 		return fmt.Errorf("missing dev relations subcommand")
 	}
+	if args[0] == "review" {
+		return relationReview(ctx, args[1:], stdout, stderr)
+	}
 	flags := flag.NewFlagSet("dev relations "+args[0], flag.ContinueOnError)
 	flags.SetOutput(stderr)
 	repository := flags.String("root", ".", "controlling cidx repository root")
