@@ -31,9 +31,23 @@ func TestReviewPolicyFreezesCellsAndEmissionsBeforeLabels(t *testing.T) {
 func TestReviewPassRejectsUngradedAndInvalidHardNegative(t *testing.T) {
 	root := t.TempDir()
 	contract := reviewTestContract()
-	prepared := reviewPrepared{SchemaVersion: 1, Kind: "cidx.relation_calibration.review_prepared.v1", Policy: ReviewPolicyID, Contract: contract, SemanticStatus: ReviewSemanticStatus, ClosureCells: reviewClosureCells(), HintCells: reviewHintCells(), Universe: []ReviewAttachment{{AttachmentID: "a", QueryID: "q", Path: "a.go", IndexedSHA256: completionTestDigest, StartByte: 0, EndByte: 4, Body: "body"}}, Candidates: []reviewCandidate{{AttachmentID: "a", QueryID: "q", RequiredGroupIDs: []string{"g-1"}}}}
+	prepared := reviewPrepared{SchemaVersion: 1, Kind: "cidx.relation_calibration.review_prepared.v1", Policy: ReviewPolicyID, Contract: contract, SemanticStatus: ReviewSemanticStatus, ClosureCells: reviewClosureCells(), HintCells: reviewHintCells()}
 	for i := 0; i < 40; i++ {
-		prepared.Queries = append(prepared.Queries, reviewQueryRecord{Packet: ReviewPacketQuery{QueryID: fmt.Sprintf("q%02d", i), Text: "q", Language: "go", AnswerMode: "SINGLE"}})
+		queryID := fmt.Sprintf("q%02d", i)
+		query := reviewQueryRecord{Packet: ReviewPacketQuery{QueryID: queryID, Text: "q", Language: "go", AnswerMode: "SINGLE"}, CorpusID: "test-corpus"}
+		if i == 0 {
+			query.RequiredGroups = []ReviewRequiredGroup{{ID: "g-1", SourceParentIDs: []string{"p0"}}}
+		}
+		prepared.Queries = append(prepared.Queries, query)
+		for primary := 0; primary < ProtectedPrimaryK; primary++ {
+			id := fmt.Sprintf("%s-a%d", queryID, primary)
+			prepared.Universe = append(prepared.Universe, ReviewAttachment{AttachmentID: id, QueryID: queryID, Path: id + ".go", IndexedSHA256: completionTestDigest, StartByte: 0, EndByte: 4, Body: "body"})
+			candidate := reviewCandidate{AttachmentID: id, QueryID: queryID, Families: []string{"protected_primary"}}
+			if queryID == "q00" && primary == 0 {
+				candidate.RequiredGroupIDs = []string{"g-1"}
+			}
+			prepared.Candidates = append(prepared.Candidates, candidate)
+		}
 	}
 	var universeErr error
 	prepared.UniverseDigest, universeErr = canonicalReviewUniverseHash(prepared)
@@ -45,6 +59,21 @@ func TestReviewPassRejectsUngradedAndInvalidHardNegative(t *testing.T) {
 			prepared.Emissions = append(prepared.Emissions, reviewEmission{QueryID: fmt.Sprintf("q%02d", query), Cell: cell})
 		}
 	}
+	prelabelQueries := make([]ReviewEmissionQuery, 0, len(prepared.Queries))
+	controls := make([]reviewEmissionControl, 0, len(prepared.Queries)*25)
+	for _, query := range prepared.Queries {
+		prelabelQueries = append(prelabelQueries, ReviewEmissionQuery{QueryID: query.Packet.QueryID, Text: query.Packet.Text, Language: query.Packet.Language, AnswerMode: query.Packet.AnswerMode})
+		for _, cell := range append(reviewClosureCells(), reviewHintCells()...) {
+			controls = append(controls, reviewEmissionControl{QueryID: query.Packet.QueryID, Cell: cell, OmissionCounts: map[string]int{}})
+		}
+	}
+	prelabel := reviewEmissionFreeze{SchemaVersion: 1, Kind: "cidx.relation_calibration.review_emissions_prelabels.v1", Contract: contract, Queries: prelabelQueries, Controls: controls}
+	var err error
+	prelabel.Digest, err = canonicalReviewEmissionFreezeHash(prelabel)
+	if err != nil {
+		t.Fatal(err)
+	}
+	prepared.PrelabelDigest = prelabel.Digest
 	digest, err := canonicalReviewPreparedHash(prepared)
 	if err != nil {
 		t.Fatal(err)
@@ -56,6 +85,9 @@ func TestReviewPassRejectsUngradedAndInvalidHardNegative(t *testing.T) {
 	}
 	packet := ReviewPacket{SchemaVersion: 1, Kind: "cidx.relation_calibration.review_packet.v1", Policy: ReviewPolicyID, PreparedDigest: digest, CanonicalUniverseDigest: prepared.UniverseDigest, PassID: "pass-1", Attachments: prepared.Universe, Queries: packetQueries}
 	if err := writeReviewJSON(filepath.Join(root, "prepared.json"), prepared); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeReviewJSON(filepath.Join(root, "emissions-prelabels.json"), prelabel); err != nil {
 		t.Fatal(err)
 	}
 	if err := writeReviewJSON(filepath.Join(root, "pass-1-packet.json"), packet); err != nil {
@@ -75,6 +107,10 @@ func TestReviewPassRejectsUngradedAndInvalidHardNegative(t *testing.T) {
 	}
 	packetTwo := packet
 	packetTwo.PassID = "pass-2"
+	packetTwo.Attachments = shuffleReviewAttachments(prepared.Universe, digest, "pass-2")
+	if sameReviewAttachmentOrder(packet.Attachments, packetTwo.Attachments) {
+		packetTwo.Attachments = append(packetTwo.Attachments[1:], packetTwo.Attachments[0])
+	}
 	if err := writeReviewJSON(filepath.Join(root, "pass-2-packet.json"), packetTwo); err != nil {
 		t.Fatal(err)
 	}
@@ -94,7 +130,15 @@ func TestReviewPassRejectsUngradedAndInvalidHardNegative(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pass := ReviewPass{SchemaVersion: 1, Kind: "cidx.relation_calibration.review_pass.v1", PreparedDigest: digest, PacketDigest: packetDigest, PassID: "pass-1", ReviewerID: "reviewer-a", ModelFamily: "model-a", SourceVerified: true, BlindnessAttestation: reviewBlindnessAttestation, Grades: []ReviewGrade{{AttachmentID: "a", Grade: 2, RequiredGroupIDs: []string{"g-1"}, Rationale: "supported"}}}
+	grades := make([]ReviewGrade, 0, len(prepared.Universe))
+	for _, attachment := range prepared.Universe {
+		grade := ReviewGrade{AttachmentID: attachment.AttachmentID, Grade: 0, Rationale: "not needed"}
+		if attachment.AttachmentID == "q00-a0" {
+			grade = ReviewGrade{AttachmentID: attachment.AttachmentID, Grade: 2, RequiredGroupIDs: []string{"g-1"}, Rationale: "supported"}
+		}
+		grades = append(grades, grade)
+	}
+	pass := ReviewPass{SchemaVersion: 1, Kind: "cidx.relation_calibration.review_pass.v1", PreparedDigest: digest, PacketDigest: packetDigest, PassID: "pass-1", ReviewerID: "reviewer-a", ModelFamily: "model-a", SourceVerified: true, BlindnessAttestation: reviewBlindnessAttestation, Grades: grades}
 	if err := ValidateReviewPass(root, pass); err != nil {
 		t.Fatal(err)
 	}
@@ -112,12 +156,14 @@ func TestReviewPassRejectsUngradedAndInvalidHardNegative(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	second := ReviewPass{SchemaVersion: 1, Kind: "cidx.relation_calibration.review_pass.v1", PreparedDigest: digest, PacketDigest: secondDigest, PassID: "pass-2", ReviewerID: "reviewer-b", ModelFamily: "model-b", SourceVerified: true, BlindnessAttestation: reviewBlindnessAttestation, Grades: []ReviewGrade{{AttachmentID: "a", Grade: 0, HardNegative: true, HardNegativeGroupIDs: []string{"g-1"}, HardNegativeReason: "misleading", Rationale: "not useful"}}}
+	secondGrades := append([]ReviewGrade(nil), grades...)
+	secondGrades[0] = ReviewGrade{AttachmentID: "q00-a0", Grade: 0, HardNegative: true, HardNegativeGroupIDs: []string{"g-1"}, HardNegativeReason: "misleading", Rationale: "not useful"}
+	second := ReviewPass{SchemaVersion: 1, Kind: "cidx.relation_calibration.review_pass.v1", PreparedDigest: digest, PacketDigest: secondDigest, PassID: "pass-2", ReviewerID: "reviewer-b", ModelFamily: "model-b", SourceVerified: true, BlindnessAttestation: reviewBlindnessAttestation, Grades: secondGrades}
 	frozenDir := filepath.Join(root, "frozen")
 	if _, err := PrepareReviewAdoption(root, frozenDir, pass, second); err == nil {
 		t.Fatal("previously blessed grade-2 conflict was accepted")
 	}
-	second.Grades[0] = ReviewGrade{AttachmentID: "a", Grade: 2, RequiredGroupIDs: []string{"g-1"}, Rationale: "supported"}
+	second.Grades[0] = ReviewGrade{AttachmentID: "q00-a0", Grade: 2, RequiredGroupIDs: []string{"g-1"}, Rationale: "supported"}
 	if err := writeReviewJSON(filepath.Join(root, "pass-2-packet.json"), packetTwo); err != nil {
 		t.Fatal(err)
 	}
@@ -125,11 +171,68 @@ func TestReviewPassRejectsUngradedAndInvalidHardNegative(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := FreezeReview(root, frozenDir, pass, second, ReviewAdoption{SchemaVersion: 1, Kind: "cidx.relation_calibration.owner_adoption.v1", FrozenDigest: expected, Adopted: true, ProtocolVersion: "owner-adopted-dual-ai-v1", RelevanceAuthority: "OWNER_ADOPTED_DUAL_AI_REVIEW", ReviewValidation: "NO_INDEPENDENT_HUMAN_REVIEW", Overrides: []string{}}); err != nil {
+	if _, err := FreezeReview(root, frozenDir, pass, second, ReviewAdoption{SchemaVersion: 1, Kind: "cidx.relation_calibration.owner_adoption.v1", FrozenDigest: expected, PrelabelDigest: prelabel.Digest, Adopted: true, ProtocolVersion: "owner-adopted-dual-ai-v1", RelevanceAuthority: "OWNER_ADOPTED_DUAL_AI_REVIEW", ReviewValidation: "NO_INDEPENDENT_HUMAN_REVIEW", Overrides: []string{}}); err != nil {
 		t.Fatal(err)
 	}
-	if err := SelectReview(root, frozenDir, filepath.Join(root, "selected")); err != nil {
+	selected := filepath.Join(root, "selected")
+	if err := SelectReview(root, frozenDir, selected); err != nil {
 		t.Fatal(err)
+	}
+	var selection map[string]any
+	if err := readReviewJSON(filepath.Join(selected, "selection.json"), &selection); err != nil {
+		t.Fatal(err)
+	}
+	if selection["kind"] != ReviewPolicyEvaluationKind || selection["selection_state"] != ReviewPolicySelectionState || selection["query_cell_records"] != float64(1000) || !validDigest(selection["prepared_digest"].(string)) || !validDigest(selection["frozen_digest"].(string)) || !validDigest(selection["owner_adoption_sha256"].(string)) || !validDigest(selection["prelabel_digest"].(string)) {
+		t.Fatalf("unexpected policy selection: %+v", selection)
+	}
+	rows := []reviewPolicyQueryCell{}
+	if err := readReviewJSONL(filepath.Join(selected, "per-query-cell.jsonl"), &rows); err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 1000 {
+		t.Fatalf("per-query cell rows=%d", len(rows))
+	}
+	familyRows := map[string]int{}
+	for _, row := range rows {
+		familyRows[row.Cell.Family]++
+	}
+	if familyRows["closure"] != 360 || familyRows["hint"] != 640 {
+		t.Fatalf("unexpected cell family rows=%v", familyRows)
+	}
+	if err := verifyChecksums(selected, []string{"selection.json", "per-query-cell.jsonl", "cell-aggregates.jsonl", "delivery-aggregates.jsonl"}); err != nil {
+		t.Fatal(err)
+	}
+	repeat := filepath.Join(root, "selected-repeat")
+	if err := SelectReview(root, frozenDir, repeat); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"selection.json", "per-query-cell.jsonl", "cell-aggregates.jsonl", "delivery-aggregates.jsonl", "artifact-checksums.json"} {
+		first, err := os.ReadFile(filepath.Join(selected, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		second, err := os.ReadFile(filepath.Join(repeat, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(first) != string(second) {
+			t.Fatalf("selection repeat differs for %s", name)
+		}
+	}
+	// A replacement that recomputes its own digest is still rejected: the
+	// prepared, frozen, and adopted digests bind the original pre-label object.
+	tamperedPrelabel := prelabel
+	tamperedPrelabel.Controls = append([]reviewEmissionControl(nil), prelabel.Controls...)
+	tamperedPrelabel.Controls[0].CandidateCount = 1
+	tamperedPrelabel.Digest, err = canonicalReviewEmissionFreezeHash(tamperedPrelabel)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := writeReviewJSON(filepath.Join(root, "emissions-prelabels.json"), tamperedPrelabel); err != nil {
+		t.Fatal(err)
+	}
+	if err := SelectReview(root, frozenDir, filepath.Join(root, "selected-tampered-prelabel")); err == nil {
+		t.Fatal("accepted self-hashed pre-label replacement")
 	}
 }
 
@@ -208,5 +311,48 @@ func TestReviewPacketBlindnessAndHintControl(t *testing.T) {
 	}
 	if !found {
 		t.Fatal("non-empty hint control was not frozen")
+	}
+}
+
+func TestReviewDeliveryOutcomeRequiresSharedDirectGroup(t *testing.T) {
+	useful, groups := reviewDeliveryOutcome(
+		reviewLabel{AttachmentID: "parent", Grade: 2, GroupIDs: []string{"g-1"}},
+		reviewLabel{AttachmentID: "relation", Grade: 2, GroupIDs: []string{"g-1"}},
+	)
+	if useful != "USEFUL" || !sameReviewGroups(groups, []string{"g-1"}) {
+		t.Fatalf("shared grade-2 delivery=%q groups=%v", useful, groups)
+	}
+	for _, value := range []struct {
+		parent   reviewLabel
+		relation reviewLabel
+		want     string
+	}{
+		{reviewLabel{Grade: 2, GroupIDs: []string{"g-1"}}, reviewLabel{Grade: 2, GroupIDs: []string{"g-2"}}, "NOISE"},
+		{reviewLabel{Grade: 1}, reviewLabel{Grade: 2, GroupIDs: []string{"g-1"}}, "SUPPORT"},
+		{reviewLabel{Grade: 0, HardNegative: true, HardNegativeGroupIDs: []string{"g-1"}}, reviewLabel{Grade: 2, GroupIDs: []string{"g-1"}}, "HARD_NEGATIVE"},
+	} {
+		got, _ := reviewDeliveryOutcome(value.parent, value.relation)
+		if got != value.want {
+			t.Fatalf("delivery=%q want=%q", got, value.want)
+		}
+	}
+}
+
+func TestReviewParentHardNegativeIsNotNoise(t *testing.T) {
+	if got := reviewParentOutcome(reviewLabel{Grade: 0, HardNegative: true, HardNegativeGroupIDs: []string{"g"}}); got != "HARD_NEGATIVE" {
+		t.Fatalf("hard-negative parent outcome=%q", got)
+	}
+	if got := reviewParentOutcome(reviewLabel{Grade: 0}); got != "NOISE" {
+		t.Fatalf("ordinary grade-zero parent outcome=%q", got)
+	}
+	row := reviewPolicyQueryCell{QueryID: "q", CorpusID: "corpus", Language: "go", Cohorts: []string{"relation"}, Cell: ReviewBudgetCell{Family: "closure", Count: 1, Bytes: 1024}, CandidateCount: 1, EmittedCount: 1, ParentAttachments: 1, ParentHardNeg: 1, OmissionCounts: map[string]int{}}
+	aggregates := aggregateReviewPolicyCells([]reviewPolicyQueryCell{row})
+	if err := validateReviewPolicyDenominators([]reviewPolicyQueryCell{row}, aggregates); err != nil {
+		t.Fatal(err)
+	}
+	for _, aggregate := range aggregates {
+		if aggregate.ScopeType == "global" && (aggregate.ParentHardNeg != 1 || aggregate.ParentNoise != 0) {
+			t.Fatalf("parent hard-negative aggregate=%+v", aggregate)
+		}
 	}
 }

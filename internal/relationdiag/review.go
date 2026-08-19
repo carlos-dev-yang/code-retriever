@@ -209,6 +209,7 @@ type ReviewAdoption struct {
 	SchemaVersion      int      `json:"schema_version"`
 	Kind               string   `json:"kind"`
 	FrozenDigest       string   `json:"frozen_digest"`
+	PrelabelDigest     string   `json:"prelabel_digest"`
 	Adopted            bool     `json:"adopted"`
 	ProtocolVersion    string   `json:"protocol_version"`
 	RelevanceAuthority string   `json:"relevance_authority"`
@@ -237,6 +238,7 @@ type reviewPrepared struct {
 	Candidates     []reviewCandidate        `json:"candidates"`
 	Queries        []reviewQueryRecord      `json:"query_topology"`
 	Relations      []ReviewRelationEvidence `json:"relation_attachments"`
+	PrelabelDigest string                   `json:"prelabel_digest"`
 	Digest         string                   `json:"digest"`
 }
 type reviewUniverseBinding struct {
@@ -284,6 +286,7 @@ type reviewFrozen struct {
 	PassTwoDigest       string        `json:"pass_two_digest"`
 	ReconciledDigest    string        `json:"reconciled_digest"`
 	OwnerAdoptionSHA256 string        `json:"owner_adoption_sha256"`
+	PrelabelDigest      string        `json:"prelabel_digest"`
 	ParentLabels        []reviewLabel `json:"parent_labels"`
 	RelationLabels      []reviewLabel `json:"relation_labels"`
 	Digest              string        `json:"digest"`
@@ -471,7 +474,7 @@ func PrepareReview(request ReviewPrepareRequest) (string, error) {
 	}
 	sort.Slice(relations, func(i, j int) bool { return relations[i].AttachmentID < relations[j].AttachmentID })
 	sort.Slice(packetQueries, func(i, j int) bool { return packetQueries[i].Packet.QueryID < packetQueries[j].Packet.QueryID })
-	prepared := reviewPrepared{SchemaVersion: 1, Kind: "cidx.relation_calibration.review_prepared.v1", Policy: ReviewPolicyID, Contract: request.Contract, SemanticStatus: ReviewSemanticStatus, ClosureCells: reviewClosureCells(), HintCells: reviewHintCells(), Universe: attachments, Candidates: dereferenceCandidates(values), Queries: packetQueries, Relations: relations}
+	prepared := reviewPrepared{SchemaVersion: 1, Kind: "cidx.relation_calibration.review_prepared.v1", Policy: ReviewPolicyID, Contract: request.Contract, SemanticStatus: ReviewSemanticStatus, ClosureCells: reviewClosureCells(), HintCells: reviewHintCells(), Universe: attachments, Candidates: dereferenceCandidates(values), Queries: packetQueries, Relations: relations, PrelabelDigest: emissionFreeze.Digest}
 	var universeErr error
 	prepared.UniverseDigest, universeErr = canonicalReviewUniverseHash(prepared)
 	if universeErr != nil {
@@ -519,7 +522,7 @@ func PrepareReview(request ReviewPrepareRequest) (string, error) {
 		return "", err
 	}
 	prepared.Digest = digest
-	if err := writeReviewPrepared(request.OutputDir, prepared, attachments); err != nil {
+	if err := writeReviewPrepared(request.OutputDir, prepared, attachments, emissionFreeze); err != nil {
 		return "", err
 	}
 	return digest, nil
@@ -965,7 +968,7 @@ func FreezeReview(preparedDir, outputDir string, passOne, passTwo ReviewPass, ad
 	if err != nil {
 		return "", err
 	}
-	if !validReviewAdoption(adoption, frozen.ReconciledDigest) {
+	if !validReviewAdoption(adoption, frozen.ReconciledDigest, frozen.PrelabelDigest) {
 		return "", fmt.Errorf("whole-digest review adoption required")
 	}
 	adoptionDigest, err := canonicalHash(adoption)
@@ -995,7 +998,7 @@ func PrepareReviewAdoption(preparedDir, outputDir string, passOne, passTwo Revie
 	if err != nil {
 		return "", err
 	}
-	input := ReviewAdoption{SchemaVersion: 1, Kind: "cidx.relation_calibration.owner_adoption.v1", FrozenDigest: frozen.ReconciledDigest, Adopted: false, ProtocolVersion: "owner-adopted-dual-ai-v1", RelevanceAuthority: "OWNER_ADOPTED_DUAL_AI_REVIEW", ReviewValidation: "NO_INDEPENDENT_HUMAN_REVIEW", Overrides: []string{}}
+	input := ReviewAdoption{SchemaVersion: 1, Kind: "cidx.relation_calibration.owner_adoption.v1", FrozenDigest: frozen.ReconciledDigest, PrelabelDigest: frozen.PrelabelDigest, Adopted: false, ProtocolVersion: "owner-adopted-dual-ai-v1", RelevanceAuthority: "OWNER_ADOPTED_DUAL_AI_REVIEW", ReviewValidation: "NO_INDEPENDENT_HUMAN_REVIEW", Overrides: []string{}}
 	if err := writeReviewJSON(filepath.Join(outputDir, "owner-adoption-input.json"), input); err != nil {
 		return "", err
 	}
@@ -1007,7 +1010,7 @@ func FreezeReviewWithAdjudications(preparedDir, outputDir string, passOne, passT
 	if err != nil {
 		return "", err
 	}
-	if !validReviewAdoption(adoption, frozen.ReconciledDigest) {
+	if !validReviewAdoption(adoption, frozen.ReconciledDigest, frozen.PrelabelDigest) {
 		return "", fmt.Errorf("whole-digest review adoption required")
 	}
 	adoptionDigest, err := canonicalHash(adoption)
@@ -1120,7 +1123,7 @@ func reconcileReview(preparedDir string, passOne, passTwo ReviewPass, adjudicati
 	if err != nil {
 		return reviewFrozen{}, err
 	}
-	frozen := reviewFrozen{SchemaVersion: 1, Kind: "cidx.relation_calibration.review_frozen.v1", PreparedDigest: prepared.Digest, PassOneDigest: p1, PassTwoDigest: p2, ParentLabels: parents, RelationLabels: relations}
+	frozen := reviewFrozen{SchemaVersion: 1, Kind: "cidx.relation_calibration.review_frozen.v1", PreparedDigest: prepared.Digest, PassOneDigest: p1, PassTwoDigest: p2, PrelabelDigest: prepared.PrelabelDigest, ParentLabels: parents, RelationLabels: relations}
 	base := frozen
 	base.ReconciledDigest = ""
 	base.OwnerAdoptionSHA256 = ""
@@ -1133,10 +1136,136 @@ func reconcileReview(preparedDir string, passOne, passTwo ReviewPass, adjudicati
 	return frozen, nil
 }
 
+// reviewPolicyQueryCell is one of the fixed 40 x 25 Stage F observations.
+// All source-sensitive candidate construction has already happened in Stage E;
+// this row only joins the adopted labels to an immutable pre-label control.
+type reviewPolicyQueryCell struct {
+	SchemaVersion       int              `json:"schema_version"`
+	Kind                string           `json:"kind"`
+	PreparedDigest      string           `json:"prepared_digest"`
+	FrozenDigest        string           `json:"frozen_digest"`
+	OwnerAdoptionSHA256 string           `json:"owner_adoption_sha256"`
+	PrelabelDigest      string           `json:"prelabel_digest"`
+	QueryID             string           `json:"query_id"`
+	CorpusID            string           `json:"corpus_id"`
+	Language            string           `json:"language"`
+	Cohorts             []string         `json:"cohorts"`
+	Cell                ReviewBudgetCell `json:"cell"`
+	CandidateCount      int              `json:"candidate_count"`
+	EmittedCount        int              `json:"emitted_count"`
+	ActualBytes         int              `json:"actual_bytes"`
+	OmissionCounts      map[string]int   `json:"omission_counts"`
+	NoCandidateAbstain  bool             `json:"no_candidate_abstain"`
+	GateAbstain         bool             `json:"gate_abstain"`
+	BaselineGroups      int              `json:"baseline_groups"`
+	BaselineComplete    int              `json:"baseline_complete_groups"`
+	ParentNewCoverage   int              `json:"parent_direct_useful_new_coverage"`
+	ParentComplete      int              `json:"parent_complete_groups"`
+	DeliveryNewCoverage int              `json:"delivery_useful_new_coverage"`
+	DeliveryComplete    int              `json:"delivery_complete_groups"`
+	ParentAttachments   int              `json:"emitted_parent_attachments"`
+	ParentGrade2        int              `json:"emitted_parent_grade_2"`
+	ParentSupport       int              `json:"emitted_parent_support"`
+	ParentNoise         int              `json:"emitted_parent_noise"`
+	ParentHardNeg       int              `json:"emitted_parent_hard_negative"`
+	DeliveryCount       int              `json:"emitted_delivery_attachments"`
+	DeliveryUseful      int              `json:"delivery_useful"`
+	DeliverySupport     int              `json:"delivery_support"`
+	DeliveryNoise       int              `json:"delivery_noise"`
+	DeliveryHardNeg     int              `json:"delivery_hard_negative"`
+}
+
+type reviewPolicyDelivery struct {
+	PreparedDigest      string
+	FrozenDigest        string
+	OwnerAdoptionSHA256 string
+	PrelabelDigest      string
+	QueryID             string
+	CorpusID            string
+	Language            string
+	Cohorts             []string
+	Cell                ReviewBudgetCell
+	RelationKind        string
+	Direction           string
+	Role                string
+	Outcome             string
+}
+
+type reviewPolicyCellAggregate struct {
+	SchemaVersion         int              `json:"schema_version"`
+	Kind                  string           `json:"kind"`
+	PreparedDigest        string           `json:"prepared_digest"`
+	FrozenDigest          string           `json:"frozen_digest"`
+	OwnerAdoptionSHA256   string           `json:"owner_adoption_sha256"`
+	PrelabelDigest        string           `json:"prelabel_digest"`
+	ScopeType             string           `json:"scope_type"`
+	Scope                 string           `json:"scope"`
+	Cell                  ReviewBudgetCell `json:"cell"`
+	Queries               int              `json:"queries"`
+	QueriesWithCandidates int              `json:"queries_with_candidates"`
+	NoCandidateAbstain    int              `json:"no_candidate_abstain"`
+	GateAbstain           int              `json:"gate_abstain"`
+	EmittingQueries       int              `json:"emitting_queries"`
+	CandidateRows         int              `json:"candidate_rows"`
+	PrelabelEmittedRows   int              `json:"prelabel_emitted_rows"`
+	ActualBytes           int              `json:"actual_bytes"`
+	OmissionCounts        map[string]int   `json:"omission_counts"`
+	BaselineGroups        int              `json:"baseline_groups"`
+	BaselineComplete      int              `json:"baseline_complete_groups"`
+	ParentNewCoverage     int              `json:"parent_direct_useful_new_coverage"`
+	ParentComplete        int              `json:"parent_complete_groups"`
+	DeliveryNewCoverage   int              `json:"delivery_useful_new_coverage"`
+	DeliveryComplete      int              `json:"delivery_complete_groups"`
+	ParentAttachments     int              `json:"emitted_parent_attachments"`
+	ParentGrade2          int              `json:"emitted_parent_grade_2"`
+	ParentSupport         int              `json:"emitted_parent_support"`
+	ParentNoise           int              `json:"emitted_parent_noise"`
+	ParentHardNeg         int              `json:"emitted_parent_hard_negative"`
+	DeliveryCount         int              `json:"emitted_delivery_attachments"`
+	DeliveryUseful        int              `json:"delivery_useful"`
+	DeliverySupport       int              `json:"delivery_support"`
+	DeliveryNoise         int              `json:"delivery_noise"`
+	DeliveryHardNeg       int              `json:"delivery_hard_negative"`
+}
+
+type reviewPolicyDeliveryAggregate struct {
+	SchemaVersion       int              `json:"schema_version"`
+	Kind                string           `json:"kind"`
+	PreparedDigest      string           `json:"prepared_digest"`
+	FrozenDigest        string           `json:"frozen_digest"`
+	OwnerAdoptionSHA256 string           `json:"owner_adoption_sha256"`
+	PrelabelDigest      string           `json:"prelabel_digest"`
+	ScopeType           string           `json:"scope_type"`
+	Scope               string           `json:"scope"`
+	Cell                ReviewBudgetCell `json:"cell"`
+	Dimension           string           `json:"dimension"`
+	Value               string           `json:"value"`
+	Deliveries          int              `json:"deliveries"`
+	Useful              int              `json:"useful"`
+	Support             int              `json:"support"`
+	Noise               int              `json:"noise"`
+	HardNegative        int              `json:"hard_negative"`
+}
+
+type reviewPolicyScope struct {
+	Type  string
+	Value string
+}
+
+// SelectReview evaluates every frozen closure and hint cell. It does not
+// choose a policy: semantic cells were deliberately unavailable before labels
+// opened, and this bounded run is evidence accounting only.
 func SelectReview(preparedDir, frozenDir, outputDir string) error {
 	prepared, _, err := readReviewPrepared(preparedDir)
 	if err != nil {
 		return err
+	}
+	// The Stage E prepared packet carries the immutable pre-label source and
+	// its digest. Freeze and owner adoption bind that digest before labels are
+	// used; a self-hashed replacement can therefore never be substituted here.
+	prelabel, err := readReviewEmissionFreeze(preparedDir, prepared.Contract)
+	if err != nil || prelabel.Digest != prepared.PrelabelDigest || !samePrelabelQueries(prelabel.Queries, prepared.Queries) || !validReviewPrelabelControls(prelabel, prepared) {
+		return fmt.Errorf("invalid immutable pre-label control binding")
 	}
 	var frozen reviewFrozen
 	if err = readReviewJSON(filepath.Join(frozenDir, "frozen.json"), &frozen); err != nil {
@@ -1146,69 +1275,646 @@ func SelectReview(preparedDir, frozenDir, outputDir string) error {
 	if err = readReviewJSON(filepath.Join(frozenDir, "owner-adoption.json"), &adoption); err != nil {
 		return err
 	}
+	parentLabels, relationLabels, err := validatedReviewFrozenLabels(prepared, frozen, adoption)
+	if err != nil {
+		return err
+	}
+	if err = ensureEmptyReviewSelectionDir(outputDir); err != nil {
+		return err
+	}
+	rows, deliveries, err := evaluateReviewPolicyCells(prepared, prelabel, frozen, parentLabels, relationLabels)
+	if err != nil {
+		return err
+	}
+	if len(rows) != prepared.Contract.QueryCount*(len(reviewClosureCells())+len(reviewHintCells())) {
+		return fmt.Errorf("incomplete policy evaluation cell set")
+	}
+	cellAggregates := aggregateReviewPolicyCells(rows)
+	if err = validateReviewPolicyDenominators(rows, cellAggregates); err != nil {
+		return err
+	}
+	deliveryAggregates := aggregateReviewPolicyDeliveries(deliveries)
+	selection := struct {
+		SchemaVersion            int    `json:"schema_version"`
+		Kind                     string `json:"kind"`
+		EvaluationPolicy         string `json:"evaluation_policy"`
+		SelectionState           string `json:"selection_state"`
+		SemanticStatus           string `json:"semantic_status"`
+		PreparedDigest           string `json:"prepared_digest"`
+		FrozenDigest             string `json:"frozen_digest"`
+		OwnerAdoptionSHA256      string `json:"owner_adoption_sha256"`
+		PrelabelDigest           string `json:"prelabel_digest"`
+		QueryCellRecords         int    `json:"query_cell_records"`
+		CellAggregateRecords     int    `json:"cell_aggregate_records"`
+		DeliveryAggregateRecords int    `json:"delivery_aggregate_records"`
+	}{1, ReviewPolicyEvaluationKind, ReviewPolicyID, ReviewPolicySelectionState, ReviewSemanticStatus, prepared.Digest, frozen.Digest, frozen.OwnerAdoptionSHA256, prelabel.Digest, len(rows), len(cellAggregates), len(deliveryAggregates)}
+	if err = writeReviewJSON(filepath.Join(outputDir, "selection.json"), selection); err != nil {
+		return err
+	}
+	queryRows := make([]any, len(rows))
+	for i := range rows {
+		queryRows[i] = rows[i]
+	}
+	if err = writeJSONL(filepath.Join(outputDir, "per-query-cell.jsonl"), queryRows); err != nil {
+		return err
+	}
+	aggregateRows := make([]any, len(cellAggregates))
+	for i := range cellAggregates {
+		aggregateRows[i] = cellAggregates[i]
+	}
+	if err = writeJSONL(filepath.Join(outputDir, "cell-aggregates.jsonl"), aggregateRows); err != nil {
+		return err
+	}
+	deliveryRows := make([]any, len(deliveryAggregates))
+	for i := range deliveryAggregates {
+		deliveryRows[i] = deliveryAggregates[i]
+	}
+	if err = writeJSONL(filepath.Join(outputDir, "delivery-aggregates.jsonl"), deliveryRows); err != nil {
+		return err
+	}
+	return writeChecksums(outputDir)
+}
+
+func ensureEmptyReviewSelectionDir(root string) error {
+	if err := os.MkdirAll(root, 0o700); err != nil {
+		return err
+	}
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		return err
+	}
+	if len(entries) != 0 {
+		return fmt.Errorf("policy evaluation output directory must be empty")
+	}
+	return nil
+}
+
+func validReviewPrelabelControls(prelabel reviewEmissionFreeze, prepared reviewPrepared) bool {
+	controls := map[string]reviewEmissionControl{}
+	for _, control := range prelabel.Controls {
+		key := control.QueryID + "\x00" + reviewCellKey(control.Cell)
+		if key == "\x00" || controls[key].QueryID != "" || !validReviewPolicyControl(control) {
+			return false
+		}
+		controls[key] = control
+	}
+	if len(controls) != prepared.Contract.QueryCount*(len(reviewClosureCells())+len(reviewHintCells())) {
+		return false
+	}
+	attachmentQuery := map[string]string{}
+	for _, candidate := range prepared.Candidates {
+		attachmentQuery[candidate.AttachmentID] = candidate.QueryID
+	}
+	relations := map[string]ReviewRelationEvidence{}
+	for _, relation := range prepared.Relations {
+		relations[relation.AttachmentID] = relation
+	}
+	for _, emission := range prepared.Emissions {
+		control, ok := controls[emission.QueryID+"\x00"+reviewCellKey(emission.Cell)]
+		if !ok || len(emission.AttachmentIDs) > control.EmittedCount || !sameReviewStringList(emission.AttachmentIDs, uniqueSortedReviewIDs(emission.AttachmentIDs)) || !sameReviewStringList(emission.RelationAttachmentIDs, uniqueSortedReviewIDs(emission.RelationAttachmentIDs)) {
+			return false
+		}
+		targets := map[string]bool{}
+		for _, id := range emission.AttachmentIDs {
+			if attachmentQuery[id] != emission.QueryID {
+				return false
+			}
+			targets[id] = true
+		}
+		for _, id := range emission.RelationAttachmentIDs {
+			relation, ok := relations[id]
+			if !ok || relation.QueryID != emission.QueryID || relation.DeliveryFamily != emission.Cell.Family || !targets[relation.TargetAttachmentID] {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func validReviewPolicyControl(control reviewEmissionControl) bool {
+	if control.QueryID == "" || (control.Cell.Family != "closure" && control.Cell.Family != "hint") || control.CandidateCount < 0 || control.EmittedCount < 0 || control.ActualBytes < 0 || control.EmittedCount > control.CandidateCount || control.EmittedCount > control.Cell.Count || control.ActualBytes > control.Cell.Bytes {
+		return false
+	}
+	if control.Cell.Family == "closure" && (!intMember(control.Cell.Count, closureCountBudgetGrid) || !intMember(control.Cell.Bytes, closureByteBudgetGrid)) {
+		return false
+	}
+	if control.Cell.Family == "hint" && (!intMember(control.Cell.Count, hintCountBudgetGrid) || !intMember(control.Cell.Bytes, hintByteBudgetGrid)) {
+		return false
+	}
+	for key, count := range control.OmissionCounts {
+		if key == "" || count <= 0 {
+			return false
+		}
+	}
+	return true
+}
+
+func validatedReviewFrozenLabels(prepared reviewPrepared, frozen reviewFrozen, adoption ReviewAdoption) (map[string]reviewLabel, map[string]reviewLabel, error) {
 	digest := frozen.Digest
 	frozen.Digest = ""
 	actual, hashErr := canonicalHash(frozen)
 	frozen.Digest = digest
+	base := frozen
+	base.ReconciledDigest = ""
+	base.OwnerAdoptionSHA256 = ""
+	base.Digest = ""
+	reconciled, reconcileErr := canonicalHash(base)
 	adoptionDigest, adoptionErr := canonicalHash(adoption)
-	if hashErr != nil || adoptionErr != nil || !validDigest(digest) || actual != digest || frozen.Kind != "cidx.relation_calibration.review_frozen.v1" || frozen.PreparedDigest != prepared.Digest || len(frozen.ParentLabels) != len(prepared.Candidates) || len(frozen.RelationLabels) != len(prepared.Relations) || !validReviewAdoption(adoption, frozen.ReconciledDigest) || frozen.OwnerAdoptionSHA256 != adoptionDigest {
-		return fmt.Errorf("invalid frozen review binding")
+	if hashErr != nil || reconcileErr != nil || adoptionErr != nil || !validDigest(digest) || actual != digest || reconciled != frozen.ReconciledDigest || frozen.Kind != "cidx.relation_calibration.review_frozen.v1" || frozen.PreparedDigest != prepared.Digest || frozen.PrelabelDigest != prepared.PrelabelDigest || !validReviewAdoption(adoption, frozen.ReconciledDigest, frozen.PrelabelDigest) || frozen.OwnerAdoptionSHA256 != adoptionDigest {
+		return nil, nil, fmt.Errorf("invalid frozen review binding")
 	}
-	labels := map[string]reviewLabel{}
-	for _, label := range frozen.ParentLabels {
-		labels[label.AttachmentID] = label
-	}
-	denominators := map[string]map[string]int{}
+	parentIDs, relationIDs := map[string]bool{}, map[string]bool{}
 	for _, candidate := range prepared.Candidates {
-		label, ok := labels[candidate.AttachmentID]
-		if !ok {
-			return fmt.Errorf("missing frozen review label")
+		parentIDs[candidate.AttachmentID] = true
+	}
+	for _, relation := range prepared.Relations {
+		relationIDs[relation.AttachmentID] = true
+	}
+	parents, err := reviewFrozenLabelMap(prepared, frozen.ParentLabels, parentIDs)
+	if err != nil {
+		return nil, nil, err
+	}
+	relations, err := reviewFrozenLabelMap(prepared, frozen.RelationLabels, relationIDs)
+	if err != nil {
+		return nil, nil, err
+	}
+	return parents, relations, nil
+}
+
+func reviewFrozenLabelMap(prepared reviewPrepared, labels []reviewLabel, expected map[string]bool) (map[string]reviewLabel, error) {
+	if len(labels) != len(expected) {
+		return nil, fmt.Errorf("frozen review label cardinality mismatch")
+	}
+	result := map[string]reviewLabel{}
+	for _, label := range labels {
+		if !expected[label.AttachmentID] || result[label.AttachmentID].AttachmentID != "" || !validFrozenReviewLabel(prepared, label) {
+			return nil, fmt.Errorf("invalid frozen review label")
 		}
+		result[label.AttachmentID] = label
+	}
+	if len(result) != len(expected) {
+		return nil, fmt.Errorf("missing frozen review label")
+	}
+	return result, nil
+}
+
+func validFrozenReviewLabel(prepared reviewPrepared, label reviewLabel) bool {
+	if (label.Grade != 0 && label.Grade != 1 && label.Grade != 2) || !reviewGroupIDs(label.GroupIDs) || !reviewGroupIDs(label.HardNegativeGroupIDs) {
+		return false
+	}
+	allowed := reviewAllowedGroupIDs(prepared, label.AttachmentID)
+	if label.Grade == 2 {
+		if len(label.GroupIDs) == 0 || !reviewGroupSubset(label.GroupIDs, allowed) {
+			return false
+		}
+	} else if len(label.GroupIDs) != 0 {
+		return false
+	}
+	if label.HardNegative {
+		return label.Grade == 0 && len(label.HardNegativeGroupIDs) > 0 && reviewGroupSubset(label.HardNegativeGroupIDs, allowed)
+	}
+	return len(label.HardNegativeGroupIDs) == 0
+}
+
+func evaluateReviewPolicyCells(prepared reviewPrepared, prelabel reviewEmissionFreeze, frozen reviewFrozen, parents, relationLabels map[string]reviewLabel) ([]reviewPolicyQueryCell, []reviewPolicyDelivery, error) {
+	controls := map[string]reviewEmissionControl{}
+	for _, control := range prelabel.Controls {
+		controls[control.QueryID+"\x00"+reviewCellKey(control.Cell)] = control
+	}
+	queries := map[string]reviewQueryRecord{}
+	for _, query := range prepared.Queries {
+		queries[query.Packet.QueryID] = query
+	}
+	candidates := map[string]reviewCandidate{}
+	protected := map[string]map[string]bool{}
+	for _, candidate := range prepared.Candidates {
+		candidates[candidate.AttachmentID] = candidate
 		for _, family := range candidate.Families {
-			if denominators[family] == nil {
-				denominators[family] = map[string]int{"total": 0, "grade_2": 0, "grade_1": 0, "grade_0": 0, "hard_negative": 0}
-			}
-			d := denominators[family]
-			d["total"]++
-			d[fmt.Sprintf("grade_%d", label.Grade)]++
-			if label.HardNegative {
-				d["hard_negative"]++
+			if family == "protected_primary" {
+				if protected[candidate.QueryID] == nil {
+					protected[candidate.QueryID] = map[string]bool{}
+				}
+				protected[candidate.QueryID][candidate.AttachmentID] = true
 			}
 		}
 	}
-	cellDenominators := map[string]map[string]int{}
-	for _, emission := range prepared.Emissions {
-		key := reviewCellKey(emission.Cell)
-		if cellDenominators[key] == nil {
-			cellDenominators[key] = map[string]int{"total": 0, "grade_2": 0, "grade_1": 0, "grade_0": 0, "hard_negative": 0}
+	relations := map[string]ReviewRelationEvidence{}
+	for _, relation := range prepared.Relations {
+		relations[relation.AttachmentID] = relation
+	}
+	baseline := map[string]map[string]bool{}
+	for queryID, query := range queries {
+		if len(protected[queryID]) != ProtectedPrimaryK {
+			return nil, nil, fmt.Errorf("protected primary identity mismatch")
 		}
-		for _, attachmentID := range emission.AttachmentIDs {
-			label, ok := labels[attachmentID]
+		baseline[queryID] = map[string]bool{}
+		for id := range protected[queryID] {
+			label, ok := parents[id]
 			if !ok {
-				return fmt.Errorf("emission references an unlabelled attachment")
+				return nil, nil, fmt.Errorf("protected primary label missing")
 			}
-			d := cellDenominators[key]
-			d["total"]++
-			d[fmt.Sprintf("grade_%d", label.Grade)]++
-			if label.HardNegative {
-				d["hard_negative"]++
+			if label.Grade == 2 {
+				for _, group := range label.GroupIDs {
+					baseline[queryID][group] = true
+				}
+			}
+		}
+		if !reviewGroupSetSubset(baseline[queryID], reviewQueryGroupSet(query)) {
+			return nil, nil, fmt.Errorf("baseline group outside query topology")
+		}
+	}
+	rows := make([]reviewPolicyQueryCell, 0, len(prepared.Emissions))
+	deliveries := []reviewPolicyDelivery{}
+	for _, emission := range prepared.Emissions {
+		query, ok := queries[emission.QueryID]
+		if !ok {
+			return nil, nil, fmt.Errorf("emission query is absent from topology")
+		}
+		control := controls[emission.QueryID+"\x00"+reviewCellKey(emission.Cell)]
+		groups := reviewQueryGroupSet(query)
+		base := baseline[emission.QueryID]
+		parentAdded := map[string]bool{}
+		parentGrade2, parentSupport, parentNoise, parentHardNeg := 0, 0, 0, 0
+		for _, attachmentID := range emission.AttachmentIDs {
+			label := parents[attachmentID]
+			switch reviewParentOutcome(label) {
+			case "HARD_NEGATIVE":
+				parentHardNeg++
+			case "GRADE_2":
+				parentGrade2++
+				for _, group := range label.GroupIDs {
+					parentAdded[group] = true
+				}
+			case "SUPPORT":
+				parentSupport++
+			default:
+				parentNoise++
+			}
+		}
+		parentComplete := unionReviewGroupSets(base, parentAdded)
+		deliveryAdded := map[string]bool{}
+		deliveryUseful, deliverySupport, deliveryNoise, deliveryHardNeg := 0, 0, 0, 0
+		for _, relationID := range emission.RelationAttachmentIDs {
+			relation := relations[relationID]
+			parentLabel := parents[relation.TargetAttachmentID]
+			relationLabel := relationLabels[relationID]
+			outcome, shared := reviewDeliveryOutcome(parentLabel, relationLabel)
+			switch outcome {
+			case "HARD_NEGATIVE":
+				deliveryHardNeg++
+			case "USEFUL":
+				deliveryUseful++
+				for _, group := range shared {
+					deliveryAdded[group] = true
+				}
+			case "SUPPORT":
+				deliverySupport++
+			default:
+				deliveryNoise++
+			}
+			deliveries = append(deliveries, reviewPolicyDelivery{PreparedDigest: prepared.Digest, FrozenDigest: frozen.Digest, OwnerAdoptionSHA256: frozen.OwnerAdoptionSHA256, PrelabelDigest: prelabel.Digest, QueryID: emission.QueryID, CorpusID: query.CorpusID, Language: query.Packet.Language, Cohorts: append([]string(nil), query.Cohorts...), Cell: emission.Cell, RelationKind: relation.RelationKind, Direction: relation.Direction, Role: relation.Role, Outcome: outcome})
+		}
+		deliveryComplete := unionReviewGroupSets(base, deliveryAdded)
+		row := reviewPolicyQueryCell{SchemaVersion: 1, Kind: "policy_evaluation.query_cell.v1", PreparedDigest: prepared.Digest, FrozenDigest: frozen.Digest, OwnerAdoptionSHA256: frozen.OwnerAdoptionSHA256, PrelabelDigest: prelabel.Digest, QueryID: emission.QueryID, CorpusID: query.CorpusID, Language: query.Packet.Language, Cohorts: append([]string(nil), query.Cohorts...), Cell: emission.Cell, CandidateCount: control.CandidateCount, EmittedCount: control.EmittedCount, ActualBytes: control.ActualBytes, OmissionCounts: copyReviewCounts(control.OmissionCounts), NoCandidateAbstain: control.CandidateCount == 0, GateAbstain: false, BaselineGroups: len(groups), BaselineComplete: reviewGroupSetCount(base, groups), ParentNewCoverage: reviewNewGroupCount(parentAdded, base, groups), ParentComplete: reviewGroupSetCount(parentComplete, groups), DeliveryNewCoverage: reviewNewGroupCount(deliveryAdded, base, groups), DeliveryComplete: reviewGroupSetCount(deliveryComplete, groups), ParentAttachments: len(emission.AttachmentIDs), ParentGrade2: parentGrade2, ParentSupport: parentSupport, ParentNoise: parentNoise, ParentHardNeg: parentHardNeg, DeliveryCount: len(emission.RelationAttachmentIDs), DeliveryUseful: deliveryUseful, DeliverySupport: deliverySupport, DeliveryNoise: deliveryNoise, DeliveryHardNeg: deliveryHardNeg}
+		rows = append(rows, row)
+	}
+	sort.Slice(rows, func(i, j int) bool {
+		if rows[i].QueryID != rows[j].QueryID {
+			return rows[i].QueryID < rows[j].QueryID
+		}
+		if rows[i].Cell.Family != rows[j].Cell.Family {
+			return rows[i].Cell.Family < rows[j].Cell.Family
+		}
+		if rows[i].Cell.Count != rows[j].Cell.Count {
+			return rows[i].Cell.Count < rows[j].Cell.Count
+		}
+		return rows[i].Cell.Bytes < rows[j].Cell.Bytes
+	})
+	sort.Slice(deliveries, func(i, j int) bool {
+		if deliveries[i].QueryID != deliveries[j].QueryID {
+			return deliveries[i].QueryID < deliveries[j].QueryID
+		}
+		if deliveries[i].Cell.Family != deliveries[j].Cell.Family {
+			return deliveries[i].Cell.Family < deliveries[j].Cell.Family
+		}
+		if deliveries[i].Cell.Count != deliveries[j].Cell.Count {
+			return deliveries[i].Cell.Count < deliveries[j].Cell.Count
+		}
+		if deliveries[i].Cell.Bytes != deliveries[j].Cell.Bytes {
+			return deliveries[i].Cell.Bytes < deliveries[j].Cell.Bytes
+		}
+		if deliveries[i].RelationKind != deliveries[j].RelationKind {
+			return deliveries[i].RelationKind < deliveries[j].RelationKind
+		}
+		if deliveries[i].Direction != deliveries[j].Direction {
+			return deliveries[i].Direction < deliveries[j].Direction
+		}
+		return deliveries[i].Role < deliveries[j].Role
+	})
+	return rows, deliveries, nil
+}
+
+func reviewQueryGroupSet(query reviewQueryRecord) map[string]bool {
+	result := map[string]bool{}
+	for _, group := range query.RequiredGroups {
+		result[group.ID] = true
+	}
+	return result
+}
+func reviewGroupSetSubset(values, allowed map[string]bool) bool {
+	for value := range values {
+		if !allowed[value] {
+			return false
+		}
+	}
+	return true
+}
+func unionReviewGroupSets(a, b map[string]bool) map[string]bool {
+	out := map[string]bool{}
+	for k := range a {
+		out[k] = true
+	}
+	for k := range b {
+		out[k] = true
+	}
+	return out
+}
+func reviewGroupSetCount(values, allowed map[string]bool) int {
+	n := 0
+	for value := range values {
+		if allowed[value] {
+			n++
+		}
+	}
+	return n
+}
+func reviewNewGroupCount(values, baseline, allowed map[string]bool) int {
+	n := 0
+	for value := range values {
+		if allowed[value] && !baseline[value] {
+			n++
+		}
+	}
+	return n
+}
+func copyReviewCounts(values map[string]int) map[string]int {
+	out := map[string]int{}
+	for k, v := range values {
+		out[k] = v
+	}
+	return out
+}
+
+func reviewParentOutcome(label reviewLabel) string {
+	if label.HardNegative {
+		return "HARD_NEGATIVE"
+	}
+	switch label.Grade {
+	case 2:
+		return "GRADE_2"
+	case 1:
+		return "SUPPORT"
+	default:
+		return "NOISE"
+	}
+}
+
+func validateReviewPolicyDenominators(rows []reviewPolicyQueryCell, aggregates []reviewPolicyCellAggregate) error {
+	expected := map[string]reviewPolicyCellAggregate{}
+	for _, row := range rows {
+		if row.NoCandidateAbstain != (row.CandidateCount == 0) || row.GateAbstain || row.CandidateCount < 0 || row.EmittedCount < 0 || row.EmittedCount > row.CandidateCount || row.EmittedCount > row.Cell.Count || row.ActualBytes < 0 || row.ActualBytes > row.Cell.Bytes || row.ParentAttachments != row.ParentGrade2+row.ParentSupport+row.ParentNoise+row.ParentHardNeg || row.DeliveryCount != row.DeliveryUseful+row.DeliverySupport+row.DeliveryNoise+row.DeliveryHardNeg || row.BaselineComplete > row.BaselineGroups || row.ParentComplete != row.BaselineComplete+row.ParentNewCoverage || row.DeliveryComplete != row.BaselineComplete+row.DeliveryNewCoverage || row.ParentComplete > row.BaselineGroups || row.DeliveryComplete > row.BaselineGroups {
+			return fmt.Errorf("invalid policy evaluation denominator equation")
+		}
+		key := reviewCellKey(row.Cell)
+		value := expected[key]
+		value.Cell = row.Cell
+		value.Queries++
+		if row.CandidateCount > 0 {
+			value.QueriesWithCandidates++
+		}
+		if row.NoCandidateAbstain {
+			value.NoCandidateAbstain++
+		}
+		if row.EmittedCount > 0 {
+			value.EmittingQueries++
+		}
+		value.CandidateRows += row.CandidateCount
+		value.PrelabelEmittedRows += row.EmittedCount
+		value.ActualBytes += row.ActualBytes
+		value.BaselineGroups += row.BaselineGroups
+		value.BaselineComplete += row.BaselineComplete
+		value.ParentNewCoverage += row.ParentNewCoverage
+		value.ParentComplete += row.ParentComplete
+		value.DeliveryNewCoverage += row.DeliveryNewCoverage
+		value.DeliveryComplete += row.DeliveryComplete
+		value.ParentAttachments += row.ParentAttachments
+		value.ParentGrade2 += row.ParentGrade2
+		value.ParentSupport += row.ParentSupport
+		value.ParentNoise += row.ParentNoise
+		value.ParentHardNeg += row.ParentHardNeg
+		value.DeliveryCount += row.DeliveryCount
+		value.DeliveryUseful += row.DeliveryUseful
+		value.DeliverySupport += row.DeliverySupport
+		value.DeliveryNoise += row.DeliveryNoise
+		value.DeliveryHardNeg += row.DeliveryHardNeg
+		if value.OmissionCounts == nil {
+			value.OmissionCounts = map[string]int{}
+		}
+		for omission, count := range row.OmissionCounts {
+			value.OmissionCounts[omission] += count
+		}
+		expected[key] = value
+	}
+	seen := map[string]bool{}
+	for _, aggregate := range aggregates {
+		if aggregate.ScopeType != "global" || aggregate.Scope != "all" {
+			continue
+		}
+		key := reviewCellKey(aggregate.Cell)
+		if seen[key] || !sameReviewPolicyAggregate(expected[key], aggregate) {
+			return fmt.Errorf("global policy evaluation aggregate mismatch")
+		}
+		seen[key] = true
+	}
+	if len(seen) != len(expected) {
+		return fmt.Errorf("missing global policy evaluation aggregate")
+	}
+	return nil
+}
+
+func sameReviewPolicyAggregate(expected, actual reviewPolicyCellAggregate) bool {
+	return expected.Queries == actual.Queries && expected.QueriesWithCandidates == actual.QueriesWithCandidates && expected.NoCandidateAbstain == actual.NoCandidateAbstain && expected.GateAbstain == actual.GateAbstain && expected.EmittingQueries == actual.EmittingQueries && expected.CandidateRows == actual.CandidateRows && expected.PrelabelEmittedRows == actual.PrelabelEmittedRows && expected.ActualBytes == actual.ActualBytes && expected.BaselineGroups == actual.BaselineGroups && expected.BaselineComplete == actual.BaselineComplete && expected.ParentNewCoverage == actual.ParentNewCoverage && expected.ParentComplete == actual.ParentComplete && expected.DeliveryNewCoverage == actual.DeliveryNewCoverage && expected.DeliveryComplete == actual.DeliveryComplete && expected.ParentAttachments == actual.ParentAttachments && expected.ParentGrade2 == actual.ParentGrade2 && expected.ParentSupport == actual.ParentSupport && expected.ParentNoise == actual.ParentNoise && expected.ParentHardNeg == actual.ParentHardNeg && expected.DeliveryCount == actual.DeliveryCount && expected.DeliveryUseful == actual.DeliveryUseful && expected.DeliverySupport == actual.DeliverySupport && expected.DeliveryNoise == actual.DeliveryNoise && expected.DeliveryHardNeg == actual.DeliveryHardNeg && sameReviewCountMap(expected.OmissionCounts, actual.OmissionCounts)
+}
+
+func sameReviewCountMap(a, b map[string]int) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for key, value := range a {
+		if b[key] != value {
+			return false
+		}
+	}
+	return true
+}
+
+func reviewDeliveryOutcome(parent, relation reviewLabel) (string, []string) {
+	if parent.HardNegative || relation.HardNegative {
+		return "HARD_NEGATIVE", nil
+	}
+	if parent.Grade == 2 && relation.Grade == 2 {
+		shared := []string{}
+		for _, group := range parent.GroupIDs {
+			if intMemberString(group, relation.GroupIDs) {
+				shared = append(shared, group)
+			}
+		}
+		if len(shared) > 0 {
+			return "USEFUL", uniqueSortedReviewIDs(shared)
+		}
+	}
+	if parent.Grade == 1 || relation.Grade == 1 {
+		return "SUPPORT", nil
+	}
+	return "NOISE", nil
+}
+func intMemberString(value string, values []string) bool {
+	for _, item := range values {
+		if item == value {
+			return true
+		}
+	}
+	return false
+}
+
+func reviewPolicyScopes(corpus, language string, cohorts []string) []reviewPolicyScope {
+	result := []reviewPolicyScope{{Type: "global", Value: "all"}, {Type: "corpus", Value: corpus}, {Type: "language", Value: language}}
+	for _, cohort := range uniqueSortedReviewIDs(cohorts) {
+		result = append(result, reviewPolicyScope{Type: "cohort", Value: cohort})
+	}
+	return result
+}
+
+func aggregateReviewPolicyCells(rows []reviewPolicyQueryCell) []reviewPolicyCellAggregate {
+	values := map[string]*reviewPolicyCellAggregate{}
+	for _, row := range rows {
+		for _, scope := range reviewPolicyScopes(row.CorpusID, row.Language, row.Cohorts) {
+			key := scope.Type + "\x00" + scope.Value + "\x00" + reviewCellKey(row.Cell)
+			value := values[key]
+			if value == nil {
+				value = &reviewPolicyCellAggregate{SchemaVersion: 1, Kind: "policy_evaluation.cell_aggregate.v1", PreparedDigest: row.PreparedDigest, FrozenDigest: row.FrozenDigest, OwnerAdoptionSHA256: row.OwnerAdoptionSHA256, PrelabelDigest: row.PrelabelDigest, ScopeType: scope.Type, Scope: scope.Value, Cell: row.Cell, OmissionCounts: map[string]int{}}
+				values[key] = value
+			}
+			value.Queries++
+			if row.CandidateCount > 0 {
+				value.QueriesWithCandidates++
+			}
+			if row.NoCandidateAbstain {
+				value.NoCandidateAbstain++
+			}
+			if row.GateAbstain {
+				value.GateAbstain++
+			}
+			if row.EmittedCount > 0 {
+				value.EmittingQueries++
+			}
+			value.CandidateRows += row.CandidateCount
+			value.PrelabelEmittedRows += row.EmittedCount
+			value.ActualBytes += row.ActualBytes
+			value.BaselineGroups += row.BaselineGroups
+			value.BaselineComplete += row.BaselineComplete
+			value.ParentNewCoverage += row.ParentNewCoverage
+			value.ParentComplete += row.ParentComplete
+			value.DeliveryNewCoverage += row.DeliveryNewCoverage
+			value.DeliveryComplete += row.DeliveryComplete
+			value.ParentAttachments += row.ParentAttachments
+			value.ParentGrade2 += row.ParentGrade2
+			value.ParentSupport += row.ParentSupport
+			value.ParentNoise += row.ParentNoise
+			value.ParentHardNeg += row.ParentHardNeg
+			value.DeliveryCount += row.DeliveryCount
+			value.DeliveryUseful += row.DeliveryUseful
+			value.DeliverySupport += row.DeliverySupport
+			value.DeliveryNoise += row.DeliveryNoise
+			value.DeliveryHardNeg += row.DeliveryHardNeg
+			for omission, count := range row.OmissionCounts {
+				value.OmissionCounts[omission] += count
 			}
 		}
 	}
-	relationLabels := map[string]reviewLabel{}
-	for _, label := range frozen.RelationLabels {
-		relationLabels[label.AttachmentID] = label
+	result := make([]reviewPolicyCellAggregate, 0, len(values))
+	for _, value := range values {
+		result = append(result, *value)
 	}
-	relationDenominators := map[string]int{"total": 0, "grade_2": 0, "grade_1": 0, "grade_0": 0, "hard_negative": 0}
-	for _, label := range relationLabels {
-		relationDenominators["total"]++
-		relationDenominators[fmt.Sprintf("grade_%d", label.Grade)]++
-		if label.HardNegative {
-			relationDenominators["hard_negative"]++
+	sort.Slice(result, func(i, j int) bool {
+		if result[i].ScopeType != result[j].ScopeType {
+			return result[i].ScopeType < result[j].ScopeType
+		}
+		if result[i].Scope != result[j].Scope {
+			return result[i].Scope < result[j].Scope
+		}
+		if result[i].Cell.Family != result[j].Cell.Family {
+			return result[i].Cell.Family < result[j].Cell.Family
+		}
+		if result[i].Cell.Count != result[j].Cell.Count {
+			return result[i].Cell.Count < result[j].Cell.Count
+		}
+		return result[i].Cell.Bytes < result[j].Cell.Bytes
+	})
+	return result
+}
+
+func aggregateReviewPolicyDeliveries(deliveries []reviewPolicyDelivery) []reviewPolicyDeliveryAggregate {
+	values := map[string]*reviewPolicyDeliveryAggregate{}
+	for _, delivery := range deliveries {
+		for _, scope := range reviewPolicyScopes(delivery.CorpusID, delivery.Language, delivery.Cohorts) {
+			for _, dimension := range []struct{ Name, Value string }{{"relation_kind", delivery.RelationKind}, {"direction", delivery.Direction}, {"role", delivery.Role}} {
+				key := scope.Type + "\x00" + scope.Value + "\x00" + reviewCellKey(delivery.Cell) + "\x00" + dimension.Name + "\x00" + dimension.Value
+				value := values[key]
+				if value == nil {
+					value = &reviewPolicyDeliveryAggregate{SchemaVersion: 1, Kind: "policy_evaluation.delivery_aggregate.v1", PreparedDigest: delivery.PreparedDigest, FrozenDigest: delivery.FrozenDigest, OwnerAdoptionSHA256: delivery.OwnerAdoptionSHA256, PrelabelDigest: delivery.PrelabelDigest, ScopeType: scope.Type, Scope: scope.Value, Cell: delivery.Cell, Dimension: dimension.Name, Value: dimension.Value}
+					values[key] = value
+				}
+				value.Deliveries++
+				switch delivery.Outcome {
+				case "USEFUL":
+					value.Useful++
+				case "SUPPORT":
+					value.Support++
+				case "HARD_NEGATIVE":
+					value.HardNegative++
+				default:
+					value.Noise++
+				}
+			}
 		}
 	}
-	result := map[string]any{"schema_version": 1, "kind": "cidx.relation_calibration.review_selection.v1", "policy": ReviewPolicyID, "prepared_digest": prepared.Digest, "frozen_digest": frozen.Digest, "owner_adoption_sha256": frozen.OwnerAdoptionSHA256, "semantic_status": ReviewSemanticStatus, "candidate_denominators": denominators, "relation_denominators": relationDenominators, "cell_emission_denominators": cellDenominators, "selection": "NO_POLICY_SELECTED_NO_PREDECLARED_DECISION_RULE"}
-	return writeReviewJSON(filepath.Join(outputDir, "selection.json"), result)
+	result := make([]reviewPolicyDeliveryAggregate, 0, len(values))
+	for _, value := range values {
+		result = append(result, *value)
+	}
+	sort.Slice(result, func(i, j int) bool {
+		if result[i].ScopeType != result[j].ScopeType {
+			return result[i].ScopeType < result[j].ScopeType
+		}
+		if result[i].Scope != result[j].Scope {
+			return result[i].Scope < result[j].Scope
+		}
+		if result[i].Cell.Family != result[j].Cell.Family {
+			return result[i].Cell.Family < result[j].Cell.Family
+		}
+		if result[i].Cell.Count != result[j].Cell.Count {
+			return result[i].Cell.Count < result[j].Cell.Count
+		}
+		if result[i].Cell.Bytes != result[j].Cell.Bytes {
+			return result[i].Cell.Bytes < result[j].Cell.Bytes
+		}
+		if result[i].Dimension != result[j].Dimension {
+			return result[i].Dimension < result[j].Dimension
+		}
+		return result[i].Value < result[j].Value
+	})
+	return result
 }
 
 func loadReviewCompletion(input ReviewCompletionInput) ([]semanticEndpointFeature, []relationHint, []closureCandidate, []string, error) {
@@ -1357,11 +2063,17 @@ func reviewGroupTopology(groups []ReviewRequiredGroup) bool {
 	}
 	return true
 }
-func writeReviewPrepared(root string, prepared reviewPrepared, attachments []ReviewAttachment) error {
+func writeReviewPrepared(root string, prepared reviewPrepared, attachments []ReviewAttachment, prelabel reviewEmissionFreeze) error {
 	if err := os.MkdirAll(root, 0o700); err != nil {
 		return err
 	}
 	if err := writeReviewJSON(filepath.Join(root, "prepared.json"), prepared); err != nil {
+		return err
+	}
+	if prelabel.Digest != prepared.PrelabelDigest {
+		return fmt.Errorf("prepared pre-label digest mismatch")
+	}
+	if err := writeReviewJSON(filepath.Join(root, "emissions-prelabels.json"), prelabel); err != nil {
 		return err
 	}
 	first := shuffleReviewAttachments(attachments, prepared.Digest, "pass-1")
@@ -1394,8 +2106,12 @@ func readReviewPrepared(root string) (reviewPrepared, map[string]ReviewPacket, e
 	prepared.Digest = ""
 	actual, err := canonicalReviewPreparedHash(prepared)
 	prepared.Digest = digest
-	if err != nil || !validDigest(digest) || actual != digest || prepared.Kind != "cidx.relation_calibration.review_prepared.v1" || validateReviewContract(prepared.Contract) != nil || len(prepared.ClosureCells) != 9 || len(prepared.HintCells) != 16 || !validReviewEmissionSet(prepared) || prepared.SemanticStatus != ReviewSemanticStatus || !validReviewUniverse(prepared) {
+	if err != nil || !validDigest(digest) || actual != digest || prepared.Kind != "cidx.relation_calibration.review_prepared.v1" || validateReviewContract(prepared.Contract) != nil || len(prepared.ClosureCells) != 9 || len(prepared.HintCells) != 16 || !validReviewEmissionSet(prepared) || prepared.SemanticStatus != ReviewSemanticStatus || !validReviewUniverse(prepared) || !validDigest(prepared.PrelabelDigest) {
 		return reviewPrepared{}, nil, fmt.Errorf("invalid prepared review")
+	}
+	prelabel, prelabelErr := readReviewEmissionFreeze(root, prepared.Contract)
+	if prelabelErr != nil || prelabel.Digest != prepared.PrelabelDigest || !samePrelabelQueries(prelabel.Queries, prepared.Queries) || !validReviewPrelabelControls(prelabel, prepared) {
+		return reviewPrepared{}, nil, fmt.Errorf("invalid prepared pre-label binding")
 	}
 	packets := map[string]ReviewPacket{}
 	for _, pass := range []string{"pass-1", "pass-2"} {
@@ -1609,8 +2325,8 @@ func reviewGradeMap(grades []ReviewGrade) map[string]ReviewGrade {
 	}
 	return result
 }
-func validReviewAdoption(adoption ReviewAdoption, reconciled string) bool {
-	return adoption.SchemaVersion == 1 && adoption.Kind == "cidx.relation_calibration.owner_adoption.v1" && adoption.Adopted && adoption.FrozenDigest == reconciled && adoption.ProtocolVersion == "owner-adopted-dual-ai-v1" && adoption.RelevanceAuthority == "OWNER_ADOPTED_DUAL_AI_REVIEW" && adoption.ReviewValidation == "NO_INDEPENDENT_HUMAN_REVIEW" && len(adoption.Overrides) == 0
+func validReviewAdoption(adoption ReviewAdoption, reconciled, prelabel string) bool {
+	return adoption.SchemaVersion == 1 && adoption.Kind == "cidx.relation_calibration.owner_adoption.v1" && adoption.Adopted && adoption.FrozenDigest == reconciled && adoption.PrelabelDigest == prelabel && adoption.ProtocolVersion == "owner-adopted-dual-ai-v1" && adoption.RelevanceAuthority == "OWNER_ADOPTED_DUAL_AI_REVIEW" && adoption.ReviewValidation == "NO_INDEPENDENT_HUMAN_REVIEW" && len(adoption.Overrides) == 0
 }
 func minReviewGrade(a, b int) int {
 	if a < b {

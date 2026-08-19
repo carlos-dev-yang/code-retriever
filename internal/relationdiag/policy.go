@@ -3,6 +3,14 @@ package relationdiag
 const (
 	ReviewPolicyID       = "relation-calibration-review-stage-ef-v1"
 	ReviewSemanticStatus = "NOT_OPENED_NO_FINITE_CELL_MANIFEST"
+	// ReviewPolicyEvaluationKind identifies the bounded, provider-free Stage F
+	// accounting artifact. It is deliberately an evaluation, not a selected
+	// product policy: Stage A did not freeze a finite semantic rule manifest.
+	ReviewPolicyEvaluationKind = "policy_evaluation.v1"
+	// ReviewPolicySelectionState is intentionally the only admissible Stage F
+	// outcome for this series. The artifact reports every predeclared
+	// closure/hint cell without choosing a winner or weighted quality score.
+	ReviewPolicySelectionState = "NO_POLICY_SELECTED_EVALUATION_ONLY"
 	// The accepted v2 name means the second byte-identical completion replay;
 	// the producer manifest itself remains the v1 Stage-A schema.
 	ReviewAcceptedCompletionKind   = "cidx.relation_evidence_completion.stage_a.v1"
