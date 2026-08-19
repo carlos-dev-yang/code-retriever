@@ -458,3 +458,27 @@ func TestReviewHardNegativeUsesBoundQueryGroupsNotCandidateTruth(t *testing.T) {
 		t.Fatal("accepted grade-2 on non-truth candidate")
 	}
 }
+
+func TestReviewRelationGradeCannotExceedExactTargetParent(t *testing.T) {
+	prepared := reviewPrepared{Relations: []ReviewRelationEvidence{{AttachmentID: "relation", TargetAttachmentID: "parent"}}}
+	for _, value := range []struct {
+		name     string
+		relation ReviewGrade
+		parent   ReviewGrade
+		want     bool
+	}{
+		{"relation-2 target-1", ReviewGrade{AttachmentID: "relation", Grade: 2, RequiredGroupIDs: []string{"g"}}, ReviewGrade{AttachmentID: "parent", Grade: 1}, false},
+		{"relation-2 group mismatch", ReviewGrade{AttachmentID: "relation", Grade: 2, RequiredGroupIDs: []string{"other"}}, ReviewGrade{AttachmentID: "parent", Grade: 2, RequiredGroupIDs: []string{"g"}}, false},
+		{"relation-1 target-1", ReviewGrade{AttachmentID: "relation", Grade: 1}, ReviewGrade{AttachmentID: "parent", Grade: 1}, true},
+		{"relation-0 hard-negative target-0", ReviewGrade{AttachmentID: "relation", Grade: 0, HardNegative: true, HardNegativeGroupIDs: []string{"g"}}, ReviewGrade{AttachmentID: "parent", Grade: 0}, true},
+	} {
+		t.Run(value.name, func(t *testing.T) {
+			if got := validReviewRelationGrade(prepared, value.relation, map[string]ReviewGrade{"parent": value.parent}); got != value.want {
+				t.Fatalf("validReviewRelationGrade()=%v want %v", got, value.want)
+			}
+		})
+	}
+	if validFrozenReviewRelationGrades(prepared, map[string]reviewLabel{"parent": {AttachmentID: "parent", Grade: 2, GroupIDs: []string{"g"}}}, map[string]reviewLabel{"relation": {AttachmentID: "relation", Grade: 2, GroupIDs: []string{"other"}}}) {
+		t.Fatal("accepted frozen relation grade-2 group mismatch")
+	}
+}

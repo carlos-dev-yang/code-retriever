@@ -889,15 +889,17 @@ func ValidateReviewPass(preparedDir string, pass ReviewPass) error {
 		return fmt.Errorf("review relation grade cardinality mismatch")
 	}
 	seen := map[string]bool{}
+	parentGrades := map[string]ReviewGrade{}
 	for _, grade := range pass.Grades {
 		if seen[grade.AttachmentID] || !packetAttachment(packet, grade.AttachmentID) || !validReviewGradeFor(prepared, grade.AttachmentID, grade) {
 			return fmt.Errorf("invalid relation review grade")
 		}
 		seen[grade.AttachmentID] = true
+		parentGrades[grade.AttachmentID] = grade
 	}
 	seen = map[string]bool{}
 	for _, grade := range pass.RelationGrades {
-		if seen[grade.AttachmentID] || !packetRelation(packet, grade.AttachmentID) || !validReviewGradeFor(prepared, grade.AttachmentID, grade) {
+		if seen[grade.AttachmentID] || !packetRelation(packet, grade.AttachmentID) || !validReviewGradeFor(prepared, grade.AttachmentID, grade) || !validReviewRelationGrade(prepared, grade, parentGrades) {
 			return fmt.Errorf("invalid relation review grade")
 		}
 		seen[grade.AttachmentID] = true
@@ -911,6 +913,35 @@ func packetRelation(packet ReviewPacket, id string) bool {
 		}
 	}
 	return false
+}
+
+// validReviewRelationGrade keeps relation evidence subordinate to the exact
+// target parent that it annotates. HN remains an independent grade-0 finding,
+// but it cannot elevate a relation above its target parent's grade.
+func validReviewRelationGrade(prepared reviewPrepared, grade ReviewGrade, parentGrades map[string]ReviewGrade) bool {
+	targetID, ok := reviewRelationTargetAttachmentID(prepared, grade.AttachmentID)
+	if !ok {
+		return false
+	}
+	target, ok := parentGrades[targetID]
+	if !ok || grade.Grade > target.Grade {
+		return false
+	}
+	return grade.Grade != 2 || (target.Grade == 2 && reviewGroupSubset(grade.RequiredGroupIDs, target.RequiredGroupIDs))
+}
+
+func reviewRelationTargetAttachmentID(prepared reviewPrepared, id string) (string, bool) {
+	result := ""
+	for _, relation := range prepared.Relations {
+		if relation.AttachmentID != id {
+			continue
+		}
+		if result != "" || relation.TargetAttachmentID == "" {
+			return "", false
+		}
+		result = relation.TargetAttachmentID
+	}
+	return result, result != ""
 }
 func validReviewGradeFor(prepared reviewPrepared, id string, grade ReviewGrade) bool {
 	if strings.TrimSpace(grade.Rationale) == "" || (grade.Grade != 0 && grade.Grade != 1 && grade.Grade != 2) || !reviewGroupIDs(grade.RequiredGroupIDs) || !reviewGroupIDs(grade.HardNegativeGroupIDs) {
@@ -1196,6 +1227,9 @@ func reconcileReview(preparedDir string, passOne, passTwo ReviewPass, adjudicati
 	relations, err := reconcile(relationIDs, oneRelations, twoRelations, "relation")
 	if err != nil {
 		return reviewFrozen{}, err
+	}
+	if !validFrozenReviewRelationGrades(prepared, labelsByReviewAttachmentID(parents), labelsByReviewAttachmentID(relations)) {
+		return reviewFrozen{}, fmt.Errorf("reconciled relation grade exceeds target parent")
 	}
 	frozen := reviewFrozen{SchemaVersion: 1, Kind: "cidx.relation_calibration.review_frozen.v1", PreparedDigest: prepared.Digest, PassOneDigest: p1, PassTwoDigest: p2, PrelabelDigest: prepared.PrelabelDigest, ParentLabels: parents, RelationLabels: relations}
 	base := frozen
@@ -1512,7 +1546,32 @@ func validatedReviewFrozenLabels(prepared reviewPrepared, frozen reviewFrozen, a
 	if err != nil {
 		return nil, nil, err
 	}
+	if !validFrozenReviewRelationGrades(prepared, parents, relations) {
+		return nil, nil, fmt.Errorf("invalid frozen relation grade")
+	}
 	return parents, relations, nil
+}
+
+func labelsByReviewAttachmentID(labels []reviewLabel) map[string]reviewLabel {
+	result := make(map[string]reviewLabel, len(labels))
+	for _, label := range labels {
+		result[label.AttachmentID] = label
+	}
+	return result
+}
+
+func validFrozenReviewRelationGrades(prepared reviewPrepared, parents, relations map[string]reviewLabel) bool {
+	for id, relation := range relations {
+		targetID, ok := reviewRelationTargetAttachmentID(prepared, id)
+		target, targetOK := parents[targetID]
+		if !ok || !targetOK || relation.Grade > target.Grade {
+			return false
+		}
+		if relation.Grade == 2 && (target.Grade != 2 || !reviewGroupSubset(relation.GroupIDs, target.GroupIDs)) {
+			return false
+		}
+	}
+	return true
 }
 
 func reviewFrozenLabelMap(prepared reviewPrepared, labels []reviewLabel, expected map[string]bool) (map[string]reviewLabel, error) {
