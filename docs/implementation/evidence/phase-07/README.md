@@ -3,8 +3,9 @@
 - Phase: `07-lexical-evaluation`
 - State: `in_progress` — the default `1024/int8` and compact `512/int8`
   product boundary is reconciled; the 32-case chi/RHF calibration set is
-  frozen, adopted, and replayed; a separate unexposed promotion-capable
-  confirmation set remains outstanding.
+  frozen, adopted, and replayed; the separate 40-query relation Stage E/F
+  calibration is also closed with no selected policy; an unexposed
+  promotion-capable confirmation set remains outstanding.
 - Date: 2026-08-19
 
 Current product authority: [Retired Vector Profiles and Evidence Boundary](../../RETIRED-VECTOR-PROFILES.md).
@@ -77,6 +78,18 @@ chi/RHF Pareto replay passed with zero provider operations. The same pass found
 and repaired the packaging license allowlist for the newly linked `x/tools`
 modules; installed-release verification then passed. This evidence does not
 authorize a new repository or provider operation.
+
+Current relation calibration result: [Stage E/F dual-AI review, freeze, and
+fixed-cell evaluation — Revision 4](relation-calibration-stage-ef-r4.md). The
+40-query go-git/Zustand/Memos unit completed two blinded passes, source-only
+conflict adjudication, whole-digest owner adoption, and two byte-identical
+Stage F runs. Closure count 2/2,048 body bytes improved complete queries from
+31 to 36; hint count 4/4,096 disclosure bytes improved them from 31 to 37.
+Both expose noise, the per-query upper envelope is only 38/40, the semantic
+family was never opened, and no policy was selected. This proves bounded
+evidence availability, not assistant final-answer improvement or
+cross-repository generalization. The review labels are evaluation-only and
+are not a runtime project dependency.
 
 ### 2026-08-17 solo-project relevance-authority revision
 
@@ -538,13 +551,15 @@ The focused tests cover portable/duplicate-field manifest rejection, local Git b
 
 ## Next action
 
-Keep the exposed 32-case calibration set immutable. Use its accepted
-`1024/int8` dense baseline and separate FTS control as Phase 12 calibration
-inputs without reopening the rejected RRF weight branch. Independently author
-a new unexposed promotion-capable confirmation set, then apply the same
-dual-AI/owner-adoption protocol before any confirmation run. Do not call
-Voyage again for the closed calibration set while its corpus, questions,
-retrieval policies, and embeddings are unchanged.
+Keep both the exposed 32-case calibration and the closed 40-query relation
+calibration immutable. Select nothing by taking a per-query upper envelope.
+Before confirmation, freeze either one exact relation policy or an explicit
+no-policy contract without reopening either calibration. Independently run the
+assistant-use A/B for dense-only, bounded closure, and body-free hints plus the
+existing `read_span`; that experiment measures product behavior rather than
+relevance-label availability. Only a distinct unexposed unit may provide
+confirmation evidence. Do not call Voyage again for either closed calibration
+while its corpus, questions, policies, and embeddings are unchanged.
 
 The ignored source-link review views are
 `.cidx/test/states/chi/evaluations/review/pass1-v2-chi-review.md` and

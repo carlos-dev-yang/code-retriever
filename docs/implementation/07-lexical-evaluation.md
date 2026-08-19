@@ -580,23 +580,26 @@ provider call or vector persistence. Terra's final review is `CLEAR`; the main
 one-time offline boundary passed. No corpus or score was run. See
 [`relation-evidence-completion-stage-a-r4.md`](evidence/phase-07/relation-evidence-completion-stage-a-r4.md).
 
-The new 40-query Stage E review is in progress over the predeclared 1,000
-closure/hint cell emissions. Its blinded source universe contains 616 parent
-attachments and 1,115 relation attachments. The first independent ChatGPT
-pass is complete and validates from clean commit
-`978fe1b0541c47160472dae0aad9887dffae88d0`. The second Grok pass has all
-eleven source judgments: replacement-account Expert chats completed shard 10
-at 65 parents/121 relations and shard 11 at 31 parents/43 relations, with exact
-ID, schema, topology, hard-negative, relation-target ceiling, and target-group
-subset validation. Four earlier shards still require explicit confirmation of
-their omitted hard-negative fields before the complete pass can validate.
-The validator correction at that commit treats the immutable query topology,
-not the hidden unadopted draft candidate mapping, as the authority for
-associating a source-verified grade-2 attachment with an existing requirement
-group. It still rejects invented groups and keeps every relation grade at or
-below its target parent with grade-2 groups restricted to the target parent's
-grade-2 groups. No reconciliation, owner adoption, Stage F result, or policy
-selection is claimed at this checkpoint.
+The 40-query Stage E/F calibration is complete and closed. Its predeclared
+1,000 closure/hint query-cell emissions were frozen before review; the blinded
+source universe contains 616 parent attachments and 1,115 relation
+attachments. ChatGPT and Grok independently covered the whole universe. A
+third source-only Terra pass resolved 102 grade/group conflicts, after which
+the owner adopted the whole reconciled digest with zero row override under the
+permanent `NO_INDEPENDENT_HUMAN_REVIEW` limitation. Clean commit `ba44fab`
+fixes and reproves the adjudication-aware owner-adoption CLI path.
+
+Stage F evaluated all 25 predeclared cells twice with byte-identical output.
+The dense baseline completes 52/61 groups and 31/40 queries. A representative
+closure cell (count 2, 2,048 body bytes) reaches 57/61 groups and 36/40 queries;
+a representative body-free hint cell (count 4, 4,096 disclosure bytes) reaches
+58/61 and 37/40. Both also expose substantial support/noise, and a descriptive
+per-query upper envelope reaches only 38/40. Therefore Stage F records
+`NO_POLICY_SELECTED_EVALUATION_ONLY`; it does not authorize server push,
+assistant hints, a production graph path, confirmation, or promotion. The
+runtime never consumes the review labels. Exact digests, measurements, gates,
+and limitations are in
+[`relation-calibration-stage-ef-r4.md`](evidence/phase-07/relation-calibration-stage-ef-r4.md).
 
 Completion reports must not use the metric value itself as a success declaration. They should demonstrate that the evaluation is reproducible and that failures are traceable.
 
@@ -659,6 +662,7 @@ Phase 12 extends the shared Phase 07 `internal/eval` dataset, ground-truth, metr
 | Reject direct-bridge, unique graph-only Pareto, and their combined admission rule for product use; close all policy tuning on the exposed 32 cases. | The final arm recovered G09 and X08 and reached `32/32` without primary or hard-negative regression, but only `7/17` emitted bundles were useful. The new Pareto branch supplied the missing G09 evidence yet was useful in only `1/7` emissions. The measured graph features remain useful diagnostics, not a sufficient relevance decision. | A separately frozen new development unit specifies another admission design before exposure, followed by the existing unexposed confirmation requirement. |
 | Freeze the next relation series around existing semantic scores, interpretive contract closure, and body-free assistant hints. | The previous selectors used lexical and ordinal query features but never the continuous dense score of graph endpoints. Existing retrieval artifacts already contain every active-int8 segment score from one request, so a provider-free relation pass can derive global parent rank/percentile and ambiguity without persisting vectors or repeating queries. Contract closure and assistant pull answer separate questions and keep dual count/byte budgets. | After corpus-independent evaluator review, the user approves new calibration repositories. A distinct confirmation unit validates the frozen policy, and assistant A/B independently decides push versus pull before any product wire change. |
 | Accept the corpus-independent relation-completion Stage A boundary without claiming a result. | Clean commit `c863c04` binds producer/consumer evidence, label-free candidate construction, active-int8 completeness, closure/hint budget grids, and final reproof. It performs no corpus or provider operation and leaves product search/MCP unchanged. | The owner selects every new calibration repository; only then may the new unit be prepared and separately approved for document/query operations. |
+| Close the 40-query relation Stage E/F calibration without selecting a policy. | Two complete blinded AI passes, source-only conflict adjudication, whole-digest owner adoption, and deterministic evaluation of all 25 frozen cells prove that graph-derived closure/hints make additional required source evidence available while protecting dense top five. Closure count 2/2,048 bytes moves complete queries `31 -> 36`; hint count 4/4,096 bytes moves `31 -> 37`, but both expose noise, no semantic family was opened, and the 38/40 upper envelope is not a combinable policy. | Never reopen, rescore, add cells, or tune this unit. Freeze one exact policy or an explicit no-policy contract independently, then run assistant-use A/B and a separate unexposed confirmation unit. |
 | Do not edit the exposed 32-case calibration set to improve its scores. | The questions, labels, and immutable ranks have now influenced a retrieval-policy decision. Further tuning on them would invalidate their role as an unbiased confirmation unit. | Never for this dataset version; create a new versioned calibration or an unexposed confirmation unit. |
 | Preserve failure taxonomy alongside metrics. | It identifies which implementation layer should change next. | Never. |
 | Call production services directly. | This prevents divergence between evaluation and actual behavior. | Never. |
