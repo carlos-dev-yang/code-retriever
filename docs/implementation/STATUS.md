@@ -93,10 +93,14 @@ This ledger is the authoritative resumable state for implementation work. Update
   provenance. Invented groups and relation grades above their target parent
   still fail closed. Independent Terra review reported `CLEAR`; the full
   normal test/build/module/format checks and focused race/vet checks passed.
-  Grok has completed nine
-  of eleven blinded shards; the remaining shards and explicit HN fields wait
-  for its account-level weekly limit to reset on 2026-08-20. No reconciliation,
-  owner adoption, Stage F scoring, or policy selection has occurred.
+  Grok has now returned all eleven blinded shards. The replacement account's
+  new Expert chats produced shard 10 with 65 parent and 121 relation grades,
+  and shard 11 with 31 parent and 43 relation grades. Both pass exact ID,
+  seven-field schema, query-topology, hard-negative, relation-target grade
+  ceiling, and grade-2 target-group-subset validation. Four earlier shards
+  still need their omitted hard-negative fields explicitly confirmed before
+  the complete second pass can be assembled. No reconciliation, owner
+  adoption, Stage F scoring, or policy selection has occurred.
 - Completed offline readiness checkpoint: the full normal/race/vet/build/
   module/format/schema/script/dependency boundary passed, 64 retained artifact
   manifests covering 727 files match their recorded bytes and SHA-256 values,
@@ -187,11 +191,11 @@ This ledger is the authoritative resumable state for implementation work. Update
   found 57 such production functions: 51 in previously parentless files and six
   in files with an existing type parent.
 - Next eligible phase: use the closed Phase 07 calibration checkpoint for bounded Phase 12 calibration analysis while Phase 07 prepares a separate unexposed confirmation set.
-- Exact next action: after the Grok weekly limit resets, finish its two missing
-  blinded shards and the four explicit hard-negative field confirmations,
-  validate both complete passes, reconcile source-backed disagreements, bind
-  whole-digest owner adoption, and run Stage F twice with byte-identical
-  logical outputs. Do not inspect or tune the historical chi/RHF 32 cases.
+- Exact next action: obtain the four explicit hard-negative field
+  confirmations for Grok shards 04/05/07/08, assemble and validate the complete
+  second pass, reconcile source-backed disagreements, bind whole-digest owner
+  adoption, and run Stage F twice with byte-identical logical outputs. Do not
+  inspect or tune the historical chi/RHF 32 cases.
 
 Existing phase completion rows and implementation are historical work produced against earlier design revisions. They must not be read as proof that the current code satisfies Revision 4; the implementation remains a prototype until it is explicitly reconciled and revalidated against the final target contract.
 

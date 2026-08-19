@@ -584,8 +584,12 @@ The new 40-query Stage E review is in progress over the predeclared 1,000
 closure/hint cell emissions. Its blinded source universe contains 616 parent
 attachments and 1,115 relation attachments. The first independent ChatGPT
 pass is complete and validates from clean commit
-`978fe1b0541c47160472dae0aad9887dffae88d0`; the second Grok pass has nine of
-eleven shards and is waiting on its account-level 2026-08-20 weekly reset.
+`978fe1b0541c47160472dae0aad9887dffae88d0`. The second Grok pass has all
+eleven source judgments: replacement-account Expert chats completed shard 10
+at 65 parents/121 relations and shard 11 at 31 parents/43 relations, with exact
+ID, schema, topology, hard-negative, relation-target ceiling, and target-group
+subset validation. Four earlier shards still require explicit confirmation of
+their omitted hard-negative fields before the complete pass can validate.
 The validator correction at that commit treats the immutable query topology,
 not the hidden unadopted draft candidate mapping, as the authority for
 associating a source-verified grade-2 attachment with an existing requirement
