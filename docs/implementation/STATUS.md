@@ -81,6 +81,22 @@ This ledger is the authoritative resumable state for implementation work. Update
   is `CLEAR`; the main offline full/race/vet/build/module/format/dependency/
   diff boundary passed. Exact evidence is [relation Stage A
   evidence](evidence/phase-07/relation-evidence-completion-stage-a-r4.md).
+- Active Stage E review boundary: the provider/query and provider-free
+  completion artifacts for the owner-selected go-git, Zustand, and Memos
+  calibration unit are immutable. Label-blind emissions contain 1,000 fixed
+  query/cell rows; the source-complete review universe contains 616 parent
+  attachments and 1,115 relation attachments over 40 queries. The complete
+  ChatGPT pass is locally checksum-bound and validates under clean commit
+  `978fe1b0541c47160472dae0aad9887dffae88d0`. That commit records the
+  review-authority correction: fixed query-topology group IDs are the grade-2
+  authority, while hidden draft candidate-to-group mappings remain advisory
+  provenance. Invented groups and relation grades above their target parent
+  still fail closed. Independent Terra review reported `CLEAR`; the full
+  normal test/build/module/format checks and focused race/vet checks passed.
+  Grok has completed nine
+  of eleven blinded shards; the remaining shards and explicit HN fields wait
+  for its account-level weekly limit to reset on 2026-08-20. No reconciliation,
+  owner adoption, Stage F scoring, or policy selection has occurred.
 - Completed offline readiness checkpoint: the full normal/race/vet/build/
   module/format/schema/script/dependency boundary passed, 64 retained artifact
   manifests covering 727 files match their recorded bytes and SHA-256 values,
@@ -171,12 +187,11 @@ This ledger is the authoritative resumable state for implementation work. Update
   found 57 such production functions: 51 in previously parentless files and six
   in files with an existing type parent.
 - Next eligible phase: use the closed Phase 07 calibration checkpoint for bounded Phase 12 calibration analysis while Phase 07 prepares a separate unexposed confirmation set.
-- Exact next action: commit the Stage B document-capture evidence, rebuild the
-  clean executable, and dry-plan the 12/12/16 query artifacts as one exact
-  40-operation `RELATION_CALIBRATION_POOL_BUILDING` series. Apply under the
-  same owner-confirmed USD 0.12/M price and USD 5 ceiling, then run the
-  provider-free relation completion consumer. Do not reopen or inspect
-  semantic scores for the historical chi/RHF 32 cases.
+- Exact next action: after the Grok weekly limit resets, finish its two missing
+  blinded shards and the four explicit hard-negative field confirmations,
+  validate both complete passes, reconcile source-backed disagreements, bind
+  whole-digest owner adoption, and run Stage F twice with byte-identical
+  logical outputs. Do not inspect or tune the historical chi/RHF 32 cases.
 
 Existing phase completion rows and implementation are historical work produced against earlier design revisions. They must not be read as proof that the current code satisfies Revision 4; the implementation remains a prototype until it is explicitly reconciled and revalidated against the final target contract.
 

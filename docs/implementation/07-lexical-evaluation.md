@@ -580,6 +580,20 @@ provider call or vector persistence. Terra's final review is `CLEAR`; the main
 one-time offline boundary passed. No corpus or score was run. See
 [`relation-evidence-completion-stage-a-r4.md`](evidence/phase-07/relation-evidence-completion-stage-a-r4.md).
 
+The new 40-query Stage E review is in progress over the predeclared 1,000
+closure/hint cell emissions. Its blinded source universe contains 616 parent
+attachments and 1,115 relation attachments. The first independent ChatGPT
+pass is complete and validates from clean commit
+`978fe1b0541c47160472dae0aad9887dffae88d0`; the second Grok pass has nine of
+eleven shards and is waiting on its account-level 2026-08-20 weekly reset.
+The validator correction at that commit treats the immutable query topology,
+not the hidden unadopted draft candidate mapping, as the authority for
+associating a source-verified grade-2 attachment with an existing requirement
+group. It still rejects invented groups and keeps every relation grade at or
+below its target parent with grade-2 groups restricted to the target parent's
+grade-2 groups. No reconciliation, owner adoption, Stage F result, or policy
+selection is claimed at this checkpoint.
+
 Completion reports must not use the metric value itself as a success declaration. They should demonstrate that the evaluation is reproducible and that failures are traceable.
 
 ## 12. Follow-up Handoff
@@ -610,6 +624,7 @@ Phase 12 extends the shared Phase 07 `internal/eval` dataset, ground-truth, metr
 | Never select, download, or embed a corpus in Phase 07 without explicit user authorization. | This phase is a free, local lexical evaluator and a manifest alone is not authorization for external actions or paid work. | A separate user-authorized acquisition or embedding workflow is designed. |
 | Observe hit@k/MRR without a numeric gate. | The corpus and product usage pattern are not yet sufficiently settled. | Representative corpora and product requirements accumulate. |
 | Use `OWNER_ADOPTED_DUAL_AI_REVIEW` as the solo-project frozen relevance authority. | The sole owner cannot produce an independent human pass. ChatGPT and Grok independently accepted a strict source-backed, rank/score/arm-hidden two-system protocol with whole-digest owner adoption and permanent `NO_INDEPENDENT_HUMAN_REVIEW`. | An independent human review program becomes available or the authority contract is explicitly versioned again. |
+| Treat fixed query-topology group IDs, not hidden draft candidate mappings, as the Stage E grade-2 authority. | A source-complete blinded reviewer can verify that another pooled parent directly satisfies an existing requirement, but intentionally cannot see or reproduce the machine-prepared draft candidate-to-group map. Review may associate evidence only with an existing query group; it cannot create, rename, or remove groups. Relation grade and target-group subset gates remain unchanged. | The review packet deliberately exposes and freezes a different candidate-level authority before either pass begins. |
 | Use the accepted deterministic simple-search policy as an evaluation-only control. | On 2026-08-16 the user accepted a corpus-independent `ANY` normalized-token admission rule over the authoritative semantic-parent snapshot, followed by exact qualified/symbol, path, matched-token, and stable identity ordering. It adds no alias, BM25, embedding, boost, public wire, or production-ranking change. | A later evaluation-contract revision explicitly replaces the control. |
 | Stop FTS micro-tuning and carry safe OR 5:1 only as a provenance-bound development comparator. | Repeated AND/OR, minimum-two-token, and 5:1/5:5 experiments showed that aggregate gains can conceal lost required Go/TSX parents. One coherent 32-query Voyage run now provides the missing f32, binary, fusion, and body evidence while production remains AND. | The blinded two-pass pool review is complete and a measured structural change is justified without cross-slice correctness regression. |
 | Reject OR fusion as a serving candidate under the current draft evidence. | The coherent Voyage run showed lower complete-required@5 than pure dense for both corpora, with no chi rescue and concrete chi/RHF required-parent regressions despite isolated RHF rescues. Aggregate RHF also concealed a TypeScript decline and TSX rise. | Authority-compliant frozen labels plus a new structural fusion design show no required-group regression in every protected slice. |
