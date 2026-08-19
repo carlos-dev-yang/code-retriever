@@ -93,6 +93,7 @@ func TestReviewPassRejectsUngradedAndInvalidHardNegative(t *testing.T) {
 		query := reviewQueryRecord{Packet: ReviewPacketQuery{QueryID: queryID, Text: "q", Language: "go", AnswerMode: "SINGLE"}, CorpusID: "test-corpus"}
 		if i == 0 {
 			query.RequiredGroups = []ReviewRequiredGroup{{ID: "g-1", SourceParentIDs: []string{"p0"}}}
+			query.Packet.UnadoptedRequiredGroupIDs = []string{"g-1"}
 		}
 		prepared.Queries = append(prepared.Queries, query)
 		for primary := 0; primary < ProtectedPrimaryK; primary++ {
@@ -413,7 +414,7 @@ func TestReviewParentHardNegativeIsNotNoise(t *testing.T) {
 	}
 }
 
-func TestReviewHardNegativeUsesBoundQueryGroupsNotCandidateTruth(t *testing.T) {
+func TestReviewGradesUseFrozenQueryTopologyNotDraftCandidateTruth(t *testing.T) {
 	prepared := reviewPrepared{
 		Queries: []reviewQueryRecord{{
 			Packet:         ReviewPacketQuery{QueryID: "q", Text: "question", Language: "go", AnswerMode: "SINGLE", UnadoptedRequiredGroupIDs: []string{"g-required"}},
@@ -448,14 +449,32 @@ func TestReviewHardNegativeUsesBoundQueryGroupsNotCandidateTruth(t *testing.T) {
 	if validReviewGradeFor(prepared, invented.AttachmentID, invented) {
 		t.Fatal("accepted invented hard-negative group")
 	}
-	gradeTwo := hn
-	gradeTwo.Grade = 2
-	gradeTwo.HardNegative = false
-	gradeTwo.HardNegativeGroupIDs = nil
-	gradeTwo.HardNegativeReason = ""
-	gradeTwo.RequiredGroupIDs = []string{"g-required"}
+	gradeTwo := ReviewGrade{
+		AttachmentID:     "nontruth",
+		Grade:            2,
+		RequiredGroupIDs: []string{"g-required"},
+		Rationale:        "source directly satisfies the frozen requirement",
+	}
+	if !validReviewGradeFor(prepared, gradeTwo.AttachmentID, gradeTwo) {
+		t.Fatal("rejected source-verified grade-2 for a non-draft candidate")
+	}
+	if !validFrozenReviewLabel(prepared, reviewLabel{AttachmentID: gradeTwo.AttachmentID, Grade: 2, GroupIDs: []string{"g-required"}}) {
+		t.Fatal("rejected frozen source-verified grade-2 for a non-draft candidate")
+	}
+	supportWithGroup := gradeTwo
+	supportWithGroup.Grade = 1
+	if validReviewGradeFor(prepared, supportWithGroup.AttachmentID, supportWithGroup) {
+		t.Fatal("accepted grade-1 with a required group")
+	}
+	if validFrozenReviewLabel(prepared, reviewLabel{AttachmentID: supportWithGroup.AttachmentID, Grade: 1, GroupIDs: []string{"g-required"}}) {
+		t.Fatal("accepted frozen grade-1 with a required group")
+	}
+	gradeTwo.RequiredGroupIDs = []string{"invented"}
 	if validReviewGradeFor(prepared, gradeTwo.AttachmentID, gradeTwo) {
-		t.Fatal("accepted grade-2 on non-truth candidate")
+		t.Fatal("accepted invented grade-2 group")
+	}
+	if validFrozenReviewLabel(prepared, reviewLabel{AttachmentID: gradeTwo.AttachmentID, Grade: 2, GroupIDs: []string{"invented"}}) {
+		t.Fatal("accepted invented frozen grade-2 group")
 	}
 }
 

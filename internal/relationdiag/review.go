@@ -947,7 +947,12 @@ func validReviewGradeFor(prepared reviewPrepared, id string, grade ReviewGrade) 
 	if strings.TrimSpace(grade.Rationale) == "" || (grade.Grade != 0 && grade.Grade != 1 && grade.Grade != 2) || !reviewGroupIDs(grade.RequiredGroupIDs) || !reviewGroupIDs(grade.HardNegativeGroupIDs) {
 		return false
 	}
-	allowed := reviewAllowedGroupIDs(prepared, id)
+	// Review passes inspect a source-complete packet but deliberately do not
+	// receive the draft candidate-to-group mapping. The frozen query topology is
+	// therefore the only stable authority for a grade-2 group assignment; the
+	// draft mapping remains provenance for later reconciliation, not an
+	// allowlist that can reject a source-verified alternative.
+	allowed := reviewQueryTopologyGroupIDs(prepared, id)
 	if grade.Grade == 2 {
 		if len(grade.RequiredGroupIDs) == 0 || !reviewGroupSubset(grade.RequiredGroupIDs, allowed) {
 			return false
@@ -960,24 +965,11 @@ func validReviewGradeFor(prepared reviewPrepared, id string, grade ReviewGrade) 
 	}
 	return grade.HardNegativeReason == "" && len(grade.HardNegativeGroupIDs) == 0
 }
-func reviewAllowedGroupIDs(prepared reviewPrepared, id string) []string {
-	for _, candidate := range prepared.Candidates {
-		if candidate.AttachmentID == id {
-			return candidate.RequiredGroupIDs
-		}
-	}
-	for _, relation := range prepared.Relations {
-		if relation.AttachmentID == id {
-			return reviewAllowedGroupIDs(prepared, relation.TargetAttachmentID)
-		}
-	}
-	return nil
-}
 
-// reviewQueryTopologyGroupIDs deliberately differs from reviewAllowedGroupIDs.
-// Grade-2 evidence must remain tied to a direct candidate/target truth group,
-// while a grade-0 hard negative may be a non-truth attachment that is still
-// misleading for one of the query's known required groups.
+// reviewQueryTopologyGroupIDs is the immutable group authority for both
+// grade-2 and grade-0 hard-negative assignments. A reviewer may associate a
+// source-verified attachment with an existing query group, but cannot create,
+// rename, or remove query groups.
 func reviewQueryTopologyGroupIDs(prepared reviewPrepared, id string) []string {
 	queryID, ok := reviewAttachmentQueryID(prepared, id)
 	if !ok {
@@ -1595,7 +1587,7 @@ func validFrozenReviewLabel(prepared reviewPrepared, label reviewLabel) bool {
 	if (label.Grade != 0 && label.Grade != 1 && label.Grade != 2) || !reviewGroupIDs(label.GroupIDs) || !reviewGroupIDs(label.HardNegativeGroupIDs) {
 		return false
 	}
-	allowed := reviewAllowedGroupIDs(prepared, label.AttachmentID)
+	allowed := reviewQueryTopologyGroupIDs(prepared, label.AttachmentID)
 	if label.Grade == 2 {
 		if len(label.GroupIDs) == 0 || !reviewGroupSubset(label.GroupIDs, allowed) {
 			return false
