@@ -412,3 +412,49 @@ func TestReviewParentHardNegativeIsNotNoise(t *testing.T) {
 		}
 	}
 }
+
+func TestReviewHardNegativeUsesBoundQueryGroupsNotCandidateTruth(t *testing.T) {
+	prepared := reviewPrepared{
+		Queries: []reviewQueryRecord{{
+			Packet:         ReviewPacketQuery{QueryID: "q", Text: "question", Language: "go", AnswerMode: "SINGLE", UnadoptedRequiredGroupIDs: []string{"g-required"}},
+			RequiredGroups: []ReviewRequiredGroup{{ID: "g-required", SourceParentIDs: []string{"truth"}}},
+		}},
+		Universe: []ReviewAttachment{{AttachmentID: "nontruth", QueryID: "q"}},
+		Candidates: []reviewCandidate{{
+			AttachmentID: "nontruth",
+			QueryID:      "q",
+		}},
+		Relations: []ReviewRelationEvidence{{
+			AttachmentID:       "relation-nontruth",
+			QueryID:            "q",
+			SourceAttachmentID: "nontruth",
+			TargetAttachmentID: "nontruth",
+		}},
+	}
+	hn := ReviewGrade{AttachmentID: "nontruth", Grade: 0, HardNegative: true, HardNegativeGroupIDs: []string{"g-required"}, HardNegativeReason: "misleading alternative", Rationale: "same concept, wrong implementation"}
+	if !validReviewGradeFor(prepared, hn.AttachmentID, hn) {
+		t.Fatal("rejected hard negative for non-truth candidate bound to query group")
+	}
+	relationHN := hn
+	relationHN.AttachmentID = "relation-nontruth"
+	if !validReviewGradeFor(prepared, relationHN.AttachmentID, relationHN) {
+		t.Fatal("rejected hard negative for relation bound to query group")
+	}
+	if !validFrozenReviewLabel(prepared, reviewLabel{AttachmentID: hn.AttachmentID, Grade: 0, HardNegative: true, HardNegativeGroupIDs: []string{"g-required"}}) {
+		t.Fatal("rejected frozen hard negative for non-truth candidate")
+	}
+	invented := hn
+	invented.HardNegativeGroupIDs = []string{"invented"}
+	if validReviewGradeFor(prepared, invented.AttachmentID, invented) {
+		t.Fatal("accepted invented hard-negative group")
+	}
+	gradeTwo := hn
+	gradeTwo.Grade = 2
+	gradeTwo.HardNegative = false
+	gradeTwo.HardNegativeGroupIDs = nil
+	gradeTwo.HardNegativeReason = ""
+	gradeTwo.RequiredGroupIDs = []string{"g-required"}
+	if validReviewGradeFor(prepared, gradeTwo.AttachmentID, gradeTwo) {
+		t.Fatal("accepted grade-2 on non-truth candidate")
+	}
+}

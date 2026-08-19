@@ -925,7 +925,7 @@ func validReviewGradeFor(prepared reviewPrepared, id string, grade ReviewGrade) 
 		return false
 	}
 	if grade.HardNegative {
-		return grade.Grade == 0 && grade.HardNegativeReason != "" && len(grade.HardNegativeGroupIDs) > 0 && reviewGroupSubset(grade.HardNegativeGroupIDs, allowed)
+		return grade.Grade == 0 && strings.TrimSpace(grade.HardNegativeReason) != "" && len(grade.HardNegativeGroupIDs) > 0 && reviewGroupSubset(grade.HardNegativeGroupIDs, reviewQueryTopologyGroupIDs(prepared, id))
 	}
 	return grade.HardNegativeReason == "" && len(grade.HardNegativeGroupIDs) == 0
 }
@@ -941,6 +941,88 @@ func reviewAllowedGroupIDs(prepared reviewPrepared, id string) []string {
 		}
 	}
 	return nil
+}
+
+// reviewQueryTopologyGroupIDs deliberately differs from reviewAllowedGroupIDs.
+// Grade-2 evidence must remain tied to a direct candidate/target truth group,
+// while a grade-0 hard negative may be a non-truth attachment that is still
+// misleading for one of the query's known required groups.
+func reviewQueryTopologyGroupIDs(prepared reviewPrepared, id string) []string {
+	queryID, ok := reviewAttachmentQueryID(prepared, id)
+	if !ok {
+		return nil
+	}
+	matchedQuery := false
+	var allowed []string
+	for _, query := range prepared.Queries {
+		if query.Packet.QueryID != queryID {
+			continue
+		}
+		if matchedQuery {
+			return nil
+		}
+		matchedQuery = true
+		groups := make([]string, 0, len(query.RequiredGroups))
+		for _, group := range query.RequiredGroups {
+			groups = append(groups, group.ID)
+		}
+		groups = uniqueSortedReviewIDs(groups)
+		if !reviewGroupIDs(groups) || !sameReviewGroups(groups, query.Packet.UnadoptedRequiredGroupIDs) {
+			return nil
+		}
+		allowed = groups
+	}
+	return allowed
+}
+
+// reviewAttachmentQueryID proves the candidate/relation is attached to the
+// exact prepared query topology before an HN group can be accepted.
+func reviewAttachmentQueryID(prepared reviewPrepared, id string) (string, bool) {
+	attachments := map[string]ReviewAttachment{}
+	for _, attachment := range prepared.Universe {
+		if attachment.AttachmentID == "" || attachments[attachment.AttachmentID].AttachmentID != "" {
+			return "", false
+		}
+		attachments[attachment.AttachmentID] = attachment
+	}
+	candidateQuery, matchedCandidate := "", false
+	for _, candidate := range prepared.Candidates {
+		if candidate.AttachmentID != id {
+			continue
+		}
+		if matchedCandidate {
+			return "", false
+		}
+		matchedCandidate = true
+		attachment, ok := attachments[id]
+		if !ok || attachment.QueryID != candidate.QueryID {
+			return "", false
+		}
+		candidateQuery = candidate.QueryID
+	}
+	relationQuery, matchedRelation := "", false
+	for _, relation := range prepared.Relations {
+		if relation.AttachmentID != id {
+			continue
+		}
+		if matchedRelation {
+			return "", false
+		}
+		matchedRelation = true
+		source, sourceOK := attachments[relation.SourceAttachmentID]
+		target, targetOK := attachments[relation.TargetAttachmentID]
+		if !sourceOK || !targetOK || source.QueryID != relation.QueryID || target.QueryID != relation.QueryID {
+			return "", false
+		}
+		relationQuery = relation.QueryID
+	}
+	if matchedCandidate == matchedRelation {
+		return "", false
+	}
+	if matchedCandidate {
+		return candidateQuery, true
+	}
+	return relationQuery, true
 }
 func reviewGroupSubset(values, allowed []string) bool {
 	set := map[string]bool{}
@@ -1463,7 +1545,7 @@ func validFrozenReviewLabel(prepared reviewPrepared, label reviewLabel) bool {
 		return false
 	}
 	if label.HardNegative {
-		return label.Grade == 0 && len(label.HardNegativeGroupIDs) > 0 && reviewGroupSubset(label.HardNegativeGroupIDs, allowed)
+		return label.Grade == 0 && len(label.HardNegativeGroupIDs) > 0 && reviewGroupSubset(label.HardNegativeGroupIDs, reviewQueryTopologyGroupIDs(prepared, label.AttachmentID))
 	}
 	return len(label.HardNegativeGroupIDs) == 0
 }
