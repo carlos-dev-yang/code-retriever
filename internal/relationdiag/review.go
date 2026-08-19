@@ -1944,9 +1944,6 @@ func loadReviewCompletion(input ReviewCompletionInput) ([]semanticEndpointFeatur
 	features := []semanticEndpointFeature{}
 	hints := []relationHint{}
 	closures := []closureCandidate{}
-	traces := []struct {
-		QueryID string `json:"query_id"`
-	}{}
 	if err := readReviewJSONL(filepath.Join(input.Directory, "relation-endpoint-features.jsonl"), &features); err != nil {
 		return nil, nil, nil, nil, reviewCompletionManifestProjection{}, err
 	}
@@ -1956,15 +1953,13 @@ func loadReviewCompletion(input ReviewCompletionInput) ([]semanticEndpointFeatur
 	if err := readReviewJSONL(filepath.Join(input.Directory, "contract-closure-candidates.jsonl"), &closures); err != nil {
 		return nil, nil, nil, nil, reviewCompletionManifestProjection{}, err
 	}
-	if err := readReviewJSONL(filepath.Join(input.Directory, "per-query-relation-trace.jsonl"), &traces); err != nil {
+	traceIDs, err := readChecksumVerifiedCompletionTraceIDs(input.Directory)
+	if err != nil {
 		return nil, nil, nil, nil, reviewCompletionManifestProjection{}, err
 	}
-	ids := map[string]bool{}
-	for _, trace := range traces {
-		if trace.QueryID == "" || ids[trace.QueryID] {
-			return nil, nil, nil, nil, reviewCompletionManifestProjection{}, fmt.Errorf("invalid completion query trace")
-		}
-		ids[trace.QueryID] = true
+	ids := make(map[string]bool, len(traceIDs))
+	for _, id := range traceIDs {
+		ids[id] = true
 	}
 	for _, v := range features {
 		if !ids[v.QueryID] {
@@ -1981,11 +1976,7 @@ func loadReviewCompletion(input ReviewCompletionInput) ([]semanticEndpointFeatur
 			return nil, nil, nil, nil, reviewCompletionManifestProjection{}, fmt.Errorf("closure candidate lacks completion query trace")
 		}
 	}
-	result := make([]string, 0, len(ids))
-	for id := range ids {
-		result = append(result, id)
-	}
-	return features, hints, closures, result, manifest, nil
+	return features, hints, closures, traceIDs, manifest, nil
 }
 func readChecksumVerifiedCompletionManifestProjection(fileRoot string) (reviewCompletionManifestProjection, error) {
 	data, err := os.ReadFile(filepath.Join(fileRoot, "run-manifest.json"))
@@ -2000,6 +1991,42 @@ func readChecksumVerifiedCompletionManifestProjection(fileRoot string) (reviewCo
 		return reviewCompletionManifestProjection{}, err
 	}
 	return manifest, nil
+}
+
+// readChecksumVerifiedCompletionTraceIDs projects only the stable trace
+// identity. As with the manifest projection, it is called only after the
+// enclosing loader has verified the complete immutable Stage-A artifact.
+// Per-query trace rows contain producer-owned diagnostic detail (including
+// anchor_group) that Stage E neither consumes nor reinterprets.
+func readChecksumVerifiedCompletionTraceIDs(fileRoot string) ([]string, error) {
+	data, err := os.ReadFile(filepath.Join(fileRoot, "per-query-relation-trace.jsonl"))
+	if err != nil {
+		return nil, err
+	}
+	type traceProjection struct {
+		QueryID string `json:"query_id"`
+	}
+	seen := map[string]bool{}
+	ids := []string{}
+	for _, line := range strings.Split(strings.TrimSpace(string(data)), "\n") {
+		if line == "" {
+			continue
+		}
+		var trace traceProjection
+		if err := json.Unmarshal([]byte(line), &trace); err != nil {
+			return nil, err
+		}
+		if trace.QueryID == "" || seen[trace.QueryID] {
+			return nil, fmt.Errorf("invalid completion query trace")
+		}
+		seen[trace.QueryID] = true
+		ids = append(ids, trace.QueryID)
+	}
+	if len(ids) == 0 {
+		return nil, fmt.Errorf("completion query trace is empty")
+	}
+	sort.Strings(ids)
+	return ids, nil
 }
 func validateReviewContract(c ReviewSeriesContract) error {
 	if !exactReviewSeriesContract(c) {

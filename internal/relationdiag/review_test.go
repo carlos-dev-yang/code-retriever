@@ -40,6 +40,35 @@ func TestChecksumVerifiedCompletionManifestProjectionAllowsProducerBuildInfo(t *
 	}
 }
 
+func TestChecksumVerifiedCompletionTraceProjectionAllowsProducerAnchorGroup(t *testing.T) {
+	root := t.TempDir()
+	trace := []byte(`{"query_id":"q-2","anchor_group":{"query_id":"q-2","anchors":[]},"frontier_final_edges":3}` + "\n" +
+		`{"query_id":"q-1","anchor_group":{"query_id":"q-1","anchors":[]},"frontier_final_edges":1}` + "\n")
+	path := filepath.Join(root, "per-query-relation-trace.jsonl")
+	if err := os.WriteFile(path, trace, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	var strict []struct {
+		QueryID string `json:"query_id"`
+	}
+	if err := readReviewJSONL(path, &strict); err == nil {
+		t.Fatal("ordinary strict JSONL reader accepted producer-only anchor_group")
+	}
+	ids, err := readChecksumVerifiedCompletionTraceIDs(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !sameReviewStringList(ids, []string{"q-1", "q-2"}) {
+		t.Fatalf("unexpected trace IDs: %v", ids)
+	}
+	if err := os.WriteFile(path, append(trace, []byte(`{"query_id":"q-1"}`+"\n")...), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := readChecksumVerifiedCompletionTraceIDs(root); err == nil {
+		t.Fatal("accepted duplicate completion trace query ID")
+	}
+}
+
 func TestReviewPolicyFreezesCellsAndEmissionsBeforeLabels(t *testing.T) {
 	if got := len(reviewClosureCells()); got != 9 {
 		t.Fatalf("closure cells=%d", got)
