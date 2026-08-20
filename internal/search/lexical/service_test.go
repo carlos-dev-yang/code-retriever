@@ -38,7 +38,7 @@ func TestSearcherFindsLiveIndexedLanguagesAndRanksDeterministically(t *testing.T
 			t.Fatalf("%q result=%#v", check.query, result)
 		}
 		for ordinal, hit := range result.Hits {
-			if hit.LexicalRank != ordinal+1 {
+			if hit.LexicalRank != ordinal+1 || len(hit.IndexedSHA256) != 64 {
 				t.Fatalf("%q ranks=%#v", check.query, result.Hits)
 			}
 		}

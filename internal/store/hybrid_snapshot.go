@@ -353,6 +353,7 @@ func loadFTSCandidates(ctx context.Context, tx *sql.Tx, request FTSSearchRequest
 			rows.Close()
 			return nil, nil, fmt.Errorf("%w: FTS row %d has no authoritative chunk", ErrIndexCorrupt, item.ChunkID)
 		}
+		item.IndexedSHA256 = sha
 		item.ExactQualifiedSymbol = exact != 0
 		chunk := HybridChunk{ID: item.ChunkID, Path: item.Path, Language: item.Language, Kind: item.Kind, Symbol: item.Symbol, QualifiedSymbol: item.QualifiedSymbol, Signature: item.Signature, StartByte: item.StartByte, EndByte: item.EndByte, StartLine: item.StartLine, EndLine: item.EndLine, SourceBody: append([]byte(nil), body...), IndexedSHA256: sha}
 		if err := validateChunk(chunk); err != nil {
