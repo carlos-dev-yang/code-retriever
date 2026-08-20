@@ -336,27 +336,28 @@ func providerUsageMatchesRun(operation retrievalProviderQueryOperation, evidence
 }
 
 type retrievalArtifactManifest struct {
-	SchemaVersion          int                             `json:"schema_version"`
-	RunID                  string                          `json:"run_id"`
-	CreatedAt              string                          `json:"created_at"`
-	CorpusID               string                          `json:"corpus_id"`
-	CorpusManifestSHA256   string                          `json:"corpus_manifest_sha256"`
-	PinnedCommit           string                          `json:"pinned_commit"`
-	ContentSHA256          string                          `json:"content_sha256"`
-	IndexGeneration        int64                           `json:"index_generation"`
-	IndexManifestSHA256    string                          `json:"index_manifest_sha256"`
-	DatasetSHA256          string                          `json:"dataset_sha256"`
-	DatasetSourceSHA256    string                          `json:"dataset_source_sha256"`
-	QueryIDs               []string                        `json:"query_ids"`
-	ServingProfile         string                          `json:"serving_profile"`
-	SourceProfile          string                          `json:"source_profile"`
-	VectorSpaceProfile     string                          `json:"vector_space_profile"`
-	RawDocumentInputs      int                             `json:"raw_document_inputs"`
-	CandidatePolicy        string                          `json:"candidate_policy"`
-	BodyBudget             int                             `json:"body_budget"`
-	PromotionEvidenceState string                          `json:"promotion_evidence_state"`
-	ProviderUsage          retrievalProviderUsageAggregate `json:"provider_usage"`
-	Experiment             *retrievalExperimentManifest    `json:"experiment,omitempty"`
+	SchemaVersion          int                               `json:"schema_version"`
+	RunID                  string                            `json:"run_id"`
+	CreatedAt              string                            `json:"created_at"`
+	CorpusID               string                            `json:"corpus_id"`
+	CorpusManifestSHA256   string                            `json:"corpus_manifest_sha256"`
+	PinnedCommit           string                            `json:"pinned_commit"`
+	ContentSHA256          string                            `json:"content_sha256"`
+	IndexGeneration        int64                             `json:"index_generation"`
+	IndexManifestSHA256    string                            `json:"index_manifest_sha256"`
+	DatasetSHA256          string                            `json:"dataset_sha256"`
+	DatasetSourceSHA256    string                            `json:"dataset_source_sha256"`
+	QuestionSet            *evalcontract.QuestionSetIdentity `json:"question_set,omitempty"`
+	QueryIDs               []string                          `json:"query_ids"`
+	ServingProfile         string                            `json:"serving_profile"`
+	SourceProfile          string                            `json:"source_profile"`
+	VectorSpaceProfile     string                            `json:"vector_space_profile"`
+	RawDocumentInputs      int                               `json:"raw_document_inputs"`
+	CandidatePolicy        string                            `json:"candidate_policy"`
+	BodyBudget             int                               `json:"body_budget"`
+	PromotionEvidenceState string                            `json:"promotion_evidence_state"`
+	ProviderUsage          retrievalProviderUsageAggregate   `json:"provider_usage"`
+	Experiment             *retrievalExperimentManifest      `json:"experiment,omitempty"`
 }
 
 type retrievalExperimentManifest struct {
@@ -656,6 +657,7 @@ func publishRetrievalArtifact(ctx context.Context, prepared retrievalPrepared, r
 		IndexManifestSHA256:    prepared.plan.IndexManifestSHA256,
 		DatasetSHA256:          prepared.plan.DatasetSHA256,
 		DatasetSourceSHA256:    prepared.plan.DatasetSourceSHA256,
+		QuestionSet:            prepared.plan.QuestionSet,
 		QueryIDs:               queryIDs,
 		ServingProfile:         prepared.plan.ServingProfile,
 		SourceProfile:          string(prepared.application.Resolved.Profiles.Fingerprints.Source),

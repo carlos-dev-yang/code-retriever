@@ -1,5 +1,22 @@
 # Provider-free lexical smoke inputs
 
+## Question-set versioning
+
+Question sets and run results are append-only. Keep every earlier file, create
+a new `version` when query text, membership, ground truth, required groups, or
+cohort assignments change, and record all source versions in `supersedes` plus
+a concise `change_summary`. Every version binds a tracked taxonomy version and
+SHA-256. Every execution uses a new run ID whose manifest records the exact
+question-set ID, version, canonical SHA-256, taxonomy version, and taxonomy
+SHA-256.
+
+The current taxonomy is
+`cohort-taxonomy-critical-general-v1.json`. The current existing-repository
+revisions are `question-set-go-chi-v5.3.1-critical-general-v2.json` and
+`question-set-react-hook-form-v7.85.0-critical-general-v2.json`. They combine
+the preserved behavior and exact-identifier source versions into new draft
+question sets; they do not overwrite or reinterpret prior run artifacts.
+
 These portable manifests name the two public repositories explicitly selected
 and authorized by the user. They contain no checkout path or source body.
 
@@ -46,6 +63,11 @@ Go, 12 TypeScript, and 8 TSX cases, respectively, and are bound to
 `reviews/owner-adoption-chi-rhf-calibration-v1.json`. These 32 cases are frozen
 calibration evidence only: they are not human-reviewed, confirmation, or
 promotion-capable and must not be edited after the exposed replay.
+
+`relation-packaging-experiment-contract-v1.json` is the frozen packaging
+experiment grid. `relation-sibling-packaging-adopted-v1.json` is the
+evaluation-only adopted cell (sibling count 4 / 4096 bytes). Neither file
+authorizes a production MCP change, a graph product path, or confirmation.
 
 The seven earlier datasets remain deliberately `review.state=draft` as
 historical smoke and authoring inputs. Neither the draft nor frozen files

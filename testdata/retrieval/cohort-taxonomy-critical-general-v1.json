@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "taxonomy_version": "critical-general-v1",
+  "critical": {
+    "signal_cohorts": [
+      "critical:lexical_anchor",
+      "critical:semantic_only",
+      "critical:mixed_signal"
+    ],
+    "signal_rule": "Every answerable query belongs to exactly one signal cohort.",
+    "risk_cohorts": [
+      "critical:multi_requirement",
+      "critical:contract_disambiguation",
+      "critical:known_hard_negative"
+    ],
+    "risk_rule": "A query belongs to every applicable risk cohort.",
+    "gate_rule": "A release candidate must satisfy every predeclared critical-cohort threshold independently; an aggregate average cannot compensate for a failed critical cohort. This taxonomy version does not itself choose numeric thresholds."
+  },
+  "general": {
+    "task_prefix": "general:task:",
+    "task_rule": "Every query belongs to exactly one primary task cohort.",
+    "diagnostic_prefix": "general:diag:",
+    "diagnostic_rule": "A query may belong to any number of diagnostic cohorts. General cohorts are reported and compared but do not independently block a release."
+  },
+  "language_rule": "Language is reported independently as go, typescript, tsx, or mixed and is not encoded as a critical/general cohort.",
+  "operational_rule": "Freshness, stale-row, generation, and atomic-publication checks are separate 100-percent operational gates rather than static retrieval-question cohorts.",
+  "scoring_rule": "Report stage-separated metrics and exact denominators. Do not compute a weighted total score. Multi-requirement uses CompleteRequirementHit@k; known-hard-negative uses KnownHardNegativeHit@k."
+}

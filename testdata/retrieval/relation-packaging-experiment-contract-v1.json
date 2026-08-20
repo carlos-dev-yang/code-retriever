@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "kind": "cidx.relation_packaging.experiment_contract.v1",
+  "experiment_id": "relation-packaging-v1",
+  "protocol_version": "cidx.relation-packaging.v1",
+  "accepted_implementation_boundary": "ba44fabac49d257323909ea118c66b9d8a053b9a",
+  "frozen_digest": "002a30b08e137467896df63f2e5da8bf176c965f06c6a164aee7fd4db565a19b",
+  "overlap_diagnostic_sha256": "33a91723549c12486da93c07a638907537ff5065ad7375432109cbb19939656d",
+  "arm_d_authorized": false,
+  "arms": [
+    "A",
+    "B",
+    "C"
+  ],
+  "primary_identity_policy": "protected-dense-top5-identity-order-v1",
+  "sibling": {
+    "eligibility": "same-path-current-semantic-parent-complete-body-absent-from-primary-v1",
+    "byte_policy": "greedy-skip-oversize-v1",
+    "count_grid": [
+      2,
+      4,
+      8
+    ],
+    "byte_grid": [
+      2048,
+      4096,
+      8192
+    ],
+    "decision_cell": {
+      "count": 4,
+      "bytes": 4096
+    }
+  },
+  "one_hop": {
+    "frontier_policy": "anchor-frontier-cap-only-v1",
+    "keep_proxy": "target-file-is-primary-file-or-source-parent-is-primary-parent-v1",
+    "file_grid": [
+      2,
+      4,
+      8
+    ],
+    "byte_grid": [
+      2048,
+      4096,
+      8192
+    ],
+    "decision_cell": {
+      "files": 4,
+      "bytes": 4096
+    }
+  },
+  "gates": {
+    "sibling_miss_query_ids": [
+      "me-x02-memo-editor",
+      "gg-g06-commit-object",
+      "me-x05-ai-provider-contract",
+      "zu-t08-create-bound-contract",
+      "me-x06-navigation-item",
+      "me-g06-schedule-matchers"
+    ],
+    "nearby_cross_file_query_ids": [
+      "gg-g07-diff-header-contract",
+      "gg-g08-topological-node"
+    ],
+    "limitation_query_ids": [
+      "gg-g09-rename-change"
+    ],
+    "min_sibling_recovered": 4,
+    "min_nearby_recovered": 1
+  },
+  "inputs": {
+    "series_contract": "testdata/retrieval/relation-calibration-review-series-v1.json",
+    "prepared_dir": ".cidx/test/experiments/relation-calibration-review-v1/prepared",
+    "frozen_dir": ".cidx/test/experiments/relation-calibration-review-v1/frozen-ba44",
+    "completions": [
+      {
+        "corpus_id": "go-git-go-git-v5.19.1",
+        "directory": ".cidx/test/states/go-git-1024-int8/evaluations/relation-completion-stage-b-go-git-v2"
+      },
+      {
+        "corpus_id": "pmndrs-zustand-v5.0.14",
+        "directory": ".cidx/test/states/zustand-1024-int8/evaluations/relation-completion-stage-b-zustand-v2"
+      },
+      {
+        "corpus_id": "usememos-memos-v0.30.0",
+        "directory": ".cidx/test/states/memos-1024-int8/evaluations/relation-completion-stage-b-memos-v2"
+      }
+    ]
+  },
+  "digest": "cb726ace5f81d980260a8111520d5b2f00f9318f128682f3ddc6cc8ff7a54c28"
+}

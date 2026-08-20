@@ -39,6 +39,8 @@ unverified. It does not establish `release_candidate` status.
 2. Read the [implementation execution guide](docs/implementation/EXECUTION-GUIDE.md).
 3. Check the [persistent phase status](docs/implementation/STATUS.md).
 4. Open the active phase from the [implementation plan index](docs/implementation/README.md).
+5. For the 2026-08 packaging freeze and remaining gated work, start at the
+   [owner review index](docs/implementation/OWNER-REVIEW-INDEX.md).
 
 The canonical product design is [Revision 4](local-code-search-mcp-v1-design-r4.md), and evaluation behavior is governed by the [evaluation and promotion contract](docs/implementation/EVALUATION-CONTRACT.md).
 

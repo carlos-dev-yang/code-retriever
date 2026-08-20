@@ -28,40 +28,41 @@ import (
 // preflight. It intentionally contains no checkout path, source text, raw
 // vector, query vector, credential, or provider usage.
 type RetrievalEvaluationPlan struct {
-	CorpusID                      string                      `json:"corpus_id"`
-	CorpusManifestSHA256          string                      `json:"corpus_manifest_sha256"`
-	DatasetSHA256                 string                      `json:"dataset_sha256"`
-	DatasetSourceSHA256           string                      `json:"dataset_source_sha256"`
-	PinnedCommit                  string                      `json:"pinned_commit"`
-	ContentSHA256                 string                      `json:"content_sha256"`
-	IndexGeneration               int64                       `json:"index_generation"`
-	IndexManifestSHA256           string                      `json:"index_manifest_sha256"`
-	RawDocumentInputs             int                         `json:"raw_document_inputs"`
-	QueryCount                    int                         `json:"query_count"`
-	EstimatedQueryTokens          int                         `json:"estimated_query_tokens"`
-	ServingProfile                string                      `json:"serving_profile"`
-	LogicalQueryOperationsPlanned int                         `json:"logical_query_operations_planned"`
-	CostEstimateAvailable         bool                        `json:"cost_estimate_available"`
-	CostEstimateReason            string                      `json:"cost_estimate_reason"`
-	FTSPolicy                     *search.EvaluationFTSPolicy `json:"fts_policy,omitempty"`
-	ExperimentSeriesID            string                      `json:"experiment_series_id,omitempty"`
-	EvidenceClass                 string                      `json:"evidence_class,omitempty"`
-	PromotionEligible             bool                        `json:"promotion_eligible"`
-	LabelState                    string                      `json:"label_state,omitempty"`
-	QueryExecutionMode            string                      `json:"query_execution_mode,omitempty"`
-	SeriesQueryOperationsPlanned  int                         `json:"series_query_operations_planned,omitempty"`
-	DocumentProviderOperations    int                         `json:"document_provider_operations_planned"`
-	ReusedQueryVectors            int                         `json:"reused_query_vectors"`
-	ReusedDenseRankings           int                         `json:"reused_dense_rankings"`
-	QueryVectorPersisted          bool                        `json:"query_vector_persisted"`
-	AuthorizationReference        string                      `json:"authorization_reference,omitempty"`
-	USDCap                        float64                     `json:"usd_cap,omitempty"`
-	PricingTableIdentity          string                      `json:"pricing_table_identity,omitempty"`
-	USDPerMillionTokens           float64                     `json:"usd_per_million_tokens,omitempty"`
-	PlannedMaximumCostUSD         float64                     `json:"planned_maximum_cost_usd,omitempty"`
-	CodeCommit                    string                      `json:"code_commit,omitempty"`
-	SourceModified                string                      `json:"source_modified,omitempty"`
-	EvaluationExecutableSHA256    string                      `json:"evaluation_executable_sha256,omitempty"`
+	CorpusID                      string                            `json:"corpus_id"`
+	CorpusManifestSHA256          string                            `json:"corpus_manifest_sha256"`
+	QuestionSet                   *evalcontract.QuestionSetIdentity `json:"question_set,omitempty"`
+	DatasetSHA256                 string                            `json:"dataset_sha256"`
+	DatasetSourceSHA256           string                            `json:"dataset_source_sha256"`
+	PinnedCommit                  string                            `json:"pinned_commit"`
+	ContentSHA256                 string                            `json:"content_sha256"`
+	IndexGeneration               int64                             `json:"index_generation"`
+	IndexManifestSHA256           string                            `json:"index_manifest_sha256"`
+	RawDocumentInputs             int                               `json:"raw_document_inputs"`
+	QueryCount                    int                               `json:"query_count"`
+	EstimatedQueryTokens          int                               `json:"estimated_query_tokens"`
+	ServingProfile                string                            `json:"serving_profile"`
+	LogicalQueryOperationsPlanned int                               `json:"logical_query_operations_planned"`
+	CostEstimateAvailable         bool                              `json:"cost_estimate_available"`
+	CostEstimateReason            string                            `json:"cost_estimate_reason"`
+	FTSPolicy                     *search.EvaluationFTSPolicy       `json:"fts_policy,omitempty"`
+	ExperimentSeriesID            string                            `json:"experiment_series_id,omitempty"`
+	EvidenceClass                 string                            `json:"evidence_class,omitempty"`
+	PromotionEligible             bool                              `json:"promotion_eligible"`
+	LabelState                    string                            `json:"label_state,omitempty"`
+	QueryExecutionMode            string                            `json:"query_execution_mode,omitempty"`
+	SeriesQueryOperationsPlanned  int                               `json:"series_query_operations_planned,omitempty"`
+	DocumentProviderOperations    int                               `json:"document_provider_operations_planned"`
+	ReusedQueryVectors            int                               `json:"reused_query_vectors"`
+	ReusedDenseRankings           int                               `json:"reused_dense_rankings"`
+	QueryVectorPersisted          bool                              `json:"query_vector_persisted"`
+	AuthorizationReference        string                            `json:"authorization_reference,omitempty"`
+	USDCap                        float64                           `json:"usd_cap,omitempty"`
+	PricingTableIdentity          string                            `json:"pricing_table_identity,omitempty"`
+	USDPerMillionTokens           float64                           `json:"usd_per_million_tokens,omitempty"`
+	PlannedMaximumCostUSD         float64                           `json:"planned_maximum_cost_usd,omitempty"`
+	CodeCommit                    string                            `json:"code_commit,omitempty"`
+	SourceModified                string                            `json:"source_modified,omitempty"`
+	EvaluationExecutableSHA256    string                            `json:"evaluation_executable_sha256,omitempty"`
 }
 
 type RetrievalExperimentOptions struct {
@@ -209,6 +210,10 @@ func PrepareRetrievalEvaluationExperimentAt(ctx context.Context, application *ap
 	if err != nil {
 		return retrievalPrepared{}, err
 	}
+	questionSet, err := dataset.QuestionSetIdentity(datasetFingerprint)
+	if err != nil {
+		return retrievalPrepared{}, err
+	}
 	estimatedTokens := 0
 	for _, item := range dataset.Cases {
 		if err := application.Search.ValidateEvaluationQuery(item.Text); err != nil {
@@ -233,7 +238,7 @@ func PrepareRetrievalEvaluationExperimentAt(ctx context.Context, application *ap
 	if err := preflightSession.ValidateSnapshot(inventory.Generation, inventory.ManifestSHA256); err != nil {
 		return retrievalPrepared{}, err
 	}
-	plan := RetrievalEvaluationPlan{CorpusID: manifest.CorpusID, CorpusManifestSHA256: manifestFingerprint, DatasetSHA256: datasetFingerprint, DatasetSourceSHA256: inputs.datasetSourceSHA256, PinnedCommit: verified.PinnedCommit, ContentSHA256: verified.ContentSHA256, IndexGeneration: inventory.Generation, IndexManifestSHA256: inventory.ManifestSHA256, RawDocumentInputs: len(required), QueryCount: len(dataset.Cases), EstimatedQueryTokens: estimatedTokens, ServingProfile: string(application.Resolved.Profiles.Fingerprints.VectorStorage), LogicalQueryOperationsPlanned: len(dataset.Cases), CostEstimateAvailable: false, CostEstimateReason: "no dated provider price has been frozen for this run"}
+	plan := RetrievalEvaluationPlan{CorpusID: manifest.CorpusID, CorpusManifestSHA256: manifestFingerprint, QuestionSet: questionSet, DatasetSHA256: datasetFingerprint, DatasetSourceSHA256: inputs.datasetSourceSHA256, PinnedCommit: verified.PinnedCommit, ContentSHA256: verified.ContentSHA256, IndexGeneration: inventory.Generation, IndexManifestSHA256: inventory.ManifestSHA256, RawDocumentInputs: len(required), QueryCount: len(dataset.Cases), EstimatedQueryTokens: estimatedTokens, ServingProfile: string(application.Resolved.Profiles.Fingerprints.VectorStorage), LogicalQueryOperationsPlanned: len(dataset.Cases), CostEstimateAvailable: false, CostEstimateReason: "no dated provider price has been frozen for this run"}
 	if experiment.EvidenceClass != "" || experiment.FTSPolicy != nil {
 		info := buildinfo.Current()
 		if err := validateLexicalCodeProvenance(info); err != nil {

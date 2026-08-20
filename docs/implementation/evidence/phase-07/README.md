@@ -1,12 +1,10 @@
 # Phase 07 Lexical Evaluation Evidence
 
 - Phase: `07-lexical-evaluation`
-- State: `in_progress` — the default `1024/int8` and compact `512/int8`
-  product boundary is reconciled; the 32-case chi/RHF calibration set is
-  frozen, adopted, and replayed; the separate 40-query relation Stage E/F
-  calibration is also closed with no selected policy; assistant A/B is
-  deferred; current follow-up is selection rate and noise organization; an
-  unexposed promotion-capable confirmation set remains outstanding.
+- State: `in_progress` — prior calibration and packaging results remain
+  preserved; current work adds explicit question-set/taxonomy provenance,
+  creates new chi/RHF critical/general v2 question sets, and runs provider-free
+  FTS/simple baselines before the separately controlled assistant A/B.
 - Date: 2026-08-19
 
 Current product authority: [Retired Vector Profiles and Evidence Boundary](../../RETIRED-VECTOR-PROFILES.md).
@@ -98,6 +96,14 @@ Assistant A/B is deferred. Six of nine baseline misses are sibling symbols
 in already-retrieved files; topology-only dense top-10 recovers 3/9.
 Current experiment authority is
 [RELATION-PACKAGING-NEXT.md](../../RELATION-PACKAGING-NEXT.md).
+The packaging contract is frozen and the live closed-unit replay returned
+`CONTINUE_SIBLING_PACKAGING`. Sibling 4/4096 is adopted evaluation-only;
+one-hop default push is rejected. Phase 07 is blocked on owner-selected
+confirmation. Evidence:
+[packaging experiment](relation-packaging-experiment-r4.md),
+[adopted contract](../../../testdata/retrieval/relation-sibling-packaging-adopted-v1.json),
+[remaining-work handoff](../revision-4/remaining-work-review-handoff-r4.md).
+Owner entry: [OWNER-REVIEW-INDEX.md](../../OWNER-REVIEW-INDEX.md).
 
 ### 2026-08-17 solo-project relevance-authority revision
 
@@ -124,8 +130,9 @@ This authority may support internal calibration, confirmation, and later
 `core_retrieval` evidence when every other frozen gate passes. It must never be
 called `HUMAN_REVIEWED`, and every derived artifact carries
 `NO_INDEPENDENT_HUMAN_REVIEW`. A label correction after confirmation exposure
-permits provider-free diagnostic rescoring but cannot restore that confirmation
-set's promotion authority; a new unexposed confirmation unit is required.
+permits a new provider-free diagnostic run when query text and retrieval
+controls are unchanged, but cannot alter the earlier result or restore that
+question-set version's promotion authority.
 
 All older sections below remain accurate historical provenance. Their
 statements that AI work was advisory or that human passes were pending describe

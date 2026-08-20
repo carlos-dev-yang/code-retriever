@@ -1,10 +1,9 @@
 # 07. Lexical Chunking and Search Evaluation
 
-- Status: `in_progress` — the chi/RHF 32-case calibration set is frozen under
-  `owner-adopted-dual-ai-v1`, its provider-free replay is accepted, the
-  40-query relation Stage E/F unit is closed, assistant A/B is deferred, and
-  the current test is search selection plus residual isolated noise. A
-  separate unexposed promotion-capable confirmation set remains outstanding
+- Status: `in_progress` — create a new versioned critical/general question set
+  over the existing chi and React Hook Form repositories, preserve every
+  earlier question/run version, and execute new provider-free baselines.
+  Assistant A/B starts only after this bounded cohort report is complete.
 - Prerequisite phase: `06-fts-search`
 - Follow-up phase: `12-retrieval-evaluation`
 - Design basis: `local-code-search-mcp-v1-design-r4.md` §13, §14
@@ -147,7 +146,8 @@ CorpusLocalBinding
   CheckoutPath
 
 EvaluationDataset
-  Version
+  QuestionSetID / Version / Supersedes[]
+  TaxonomyVersion / TaxonomySHA256 / ChangeSummary[]
   CorpusID
   Cases[]
 
@@ -173,7 +173,9 @@ ExpectedAlternative
   RelevanceGrade(0|1|2)
 
 EvaluationRunManifest
-  DatasetVersion / CorpusID / CorpusCommit / CorpusContentHash / CleanWorktree
+  QuestionSetID / QuestionSetVersion / QuestionSetSHA256
+  TaxonomyVersion / TaxonomySHA256
+  CorpusID / CorpusCommit / CorpusContentHash / CleanWorktree
   BinaryVersion
   SchemaVersion
   IndexProfileFingerprint
@@ -274,10 +276,10 @@ the case is removed. Mark it `KEEP`, `RESERVE`, or `REJECT` with reviewer/pass
 identity. Difficulty or a poor score alone is not sufficient to keep a case.
 
 One case contributes once to the global query denominator, once to its language
-slice, once to its single `task:*` cohort, once to its single `signal:*` cohort,
-and to every genuinely applicable `diag:*` projection. Overlapping cohort
-denominators are reported separately and are never summed to reconstruct the
-global denominator.
+slice, once to its single `general:task:*` cohort, once to its single critical
+signal cohort, and to every genuinely applicable critical risk and
+`general:diag:*` projection. Overlapping cohort denominators are reported
+separately and are never summed to reconstruct the global denominator.
 
 Every pooled `(query_id, semantic_parent_id)` relation must receive two final
 independent AI judgments. Both initial passes remain blind to machine labels,
@@ -485,13 +487,12 @@ The fresh current-profile chi/RHF calibration packets, two independent AI
 source passes, deterministic reconciliation, whole-digest owner adoption, and
 provider-free replay are complete. The accepted checkpoint is recorded in
 [`dual-ai-calibration-freeze-r4.md`](evidence/phase-07/dual-ai-calibration-freeze-r4.md).
-It closes these 32 exposed calibration questions but does not satisfy the
-promotion-capable confirmation floor. Formal Phase 07 completion still needs a
-separate unexposed confirmation set reviewed under the same authority. If only
-calibration labels change, rescore immutable rankings provider-free; do not
-call Voyage again. If confirmation labels change after results were exposed,
-that rescore is diagnostic/regression only and a new unexposed confirmation
-unit is required for promotion.
+It preserves the results for that exact 32-question version. Later changes to
+questions, cohort assignments, or ground truth create a new question-set
+version and a new immutable run; they do not alter this checkpoint. When query
+text and retrieval controls are unchanged, preserved rankings may be analyzed
+provider-free. Changed query text requires a new execution under the normal
+paid/free boundary.
 
 On 2026-08-18 the clean relation-metadata v2 sidecars and two predeclared
 provider-free policies completed at commit
@@ -608,8 +609,10 @@ neighborhood overlap and showed six of nine baseline misses are sibling
 symbols in already-retrieved files. That replay and the current packaging
 plan are
 [`relation-overlap-noise-diagnostic-r4.md`](evidence/phase-07/relation-overlap-noise-diagnostic-r4.md)
-and [`RELATION-PACKAGING-NEXT.md`](RELATION-PACKAGING-NEXT.md). Assistant A/B
-is deferred.
+and [`RELATION-PACKAGING-NEXT.md`](RELATION-PACKAGING-NEXT.md). The packaging
+contract and evaluation-only emitter are recorded in
+[`relation-packaging-experiment-r4.md`](evidence/phase-07/relation-packaging-experiment-r4.md).
+Assistant A/B is deferred.
 
 Completion reports must not use the metric value itself as a success declaration. They should demonstrate that the evaluation is reproducible and that failures are traceable.
 
@@ -646,7 +649,7 @@ Phase 12 extends the shared Phase 07 `internal/eval` dataset, ground-truth, metr
 | Stop FTS micro-tuning and carry safe OR 5:1 only as a provenance-bound development comparator. | Repeated AND/OR, minimum-two-token, and 5:1/5:5 experiments showed that aggregate gains can conceal lost required Go/TSX parents. One coherent 32-query Voyage run now provides the missing f32, binary, fusion, and body evidence while production remains AND. | The blinded two-pass pool review is complete and a measured structural change is justified without cross-slice correctness regression. |
 | Reject OR fusion as a serving candidate under the current draft evidence. | The coherent Voyage run showed lower complete-required@5 than pure dense for both corpora, with no chi rescue and concrete chi/RHF required-parent regressions despite isolated RHF rescues. Aggregate RHF also concealed a TypeScript decline and TSX rise. | Authority-compliant frozen labels plus a new structural fusion design show no required-group regression in every protected slice. |
 | Report the historical RHF support relevance as a two-endpoint NDCG sensitivity range. | The old blind AI passes agree on direct truth but differ on 101 subjective grade-0/grade-1 relations. They predate the current authority, pool, and profile boundary, so a forced midpoint would manufacture precision. | The fresh dual-AI review freezes the current support map; grade 1 requires dual agreement. |
-| Do not repeat Voyage when only labels change. | The corpus, query texts, profiles, document bank, query vectors' resulting immutable ranks, and retrieval policies are already bound and complete; rescoring new labels is provider-free. | Any bound corpus, question, embedding, or retrieval-policy identity changes. |
+| Do not repeat Voyage when only cohort projections or labels change. | The corpus, query texts, profiles, document bank, query vectors' resulting immutable ranks, and retrieval policies are already bound and complete; a new question-set version may analyze those preserved ranks provider-free. | Any bound corpus, question text, embedding, or retrieval-policy identity changes. |
 | Open one paired f32/binary/int8 top-20 diagnostic before human freeze. | The user explicitly requested an int8 comparison and wider candidate review. One Voyage query vector per case is reused across all three isolated dense arms; candidate int8 documents are locally derived once from the existing raw bank, production remains binary, and no RRF enters the codec comparison. | The corpus, questions, serving dimension, transform, document bank, or codec implementation changes. |
 | Measure one isolated 512-dimension int8 follow-up. | The user considers 1,024-dimensional int8 too large for the intended local footprint. Reuse the approved 1,024-f32 raw document bank and shared prefix-L2 transform in separate development state; request fresh query embeddings once because query vectors are not persisted. Compare 512-int8 only to same-run 512-f32 for codec fidelity, and report 512 versus 1,024 as separate checkpoints. | The bound corpus, questions, source model/dimension, transform, raw bank, or codec implementation changes. |
 | Carry 512/int8 as the compact candidate without changing the working baseline. | The completed follow-up halved int8 vector payload, reduced the two complete SQLite files by `26.48%`, retained every direct answer by top 20, and preserved `1.0000` chi / `.9950` RHF same-run f32 top-20 membership. The 32 draft questions are not sufficient for production promotion. | Authority-compliant frozen review or confirmation evidence contradicts the result, or the bound model/transform/codec/profile changes. |
@@ -672,9 +675,11 @@ Phase 12 extends the shared Phase 07 `internal/eval` dataset, ground-truth, metr
 | Reject direct-bridge, unique graph-only Pareto, and their combined admission rule for product use; close all policy tuning on the exposed 32 cases. | The final arm recovered G09 and X08 and reached `32/32` without primary or hard-negative regression, but only `7/17` emitted bundles were useful. The new Pareto branch supplied the missing G09 evidence yet was useful in only `1/7` emissions. The measured graph features remain useful diagnostics, not a sufficient relevance decision. | A separately frozen new development unit specifies another admission design before exposure, followed by the existing unexposed confirmation requirement. |
 | Freeze the next relation series around existing semantic scores, interpretive contract closure, and body-free assistant hints. | The previous selectors used lexical and ordinal query features but never the continuous dense score of graph endpoints. Existing retrieval artifacts already contain every active-int8 segment score from one request, so a provider-free relation pass can derive global parent rank/percentile and ambiguity without persisting vectors or repeating queries. Contract closure and assistant pull answer separate questions and keep dual count/byte budgets. | After corpus-independent evaluator review, the user approves new calibration repositories. A distinct confirmation unit validates the frozen policy, and assistant A/B independently decides push versus pull before any product wire change. |
 | Accept the corpus-independent relation-completion Stage A boundary without claiming a result. | Clean commit `c863c04` binds producer/consumer evidence, label-free candidate construction, active-int8 completeness, closure/hint budget grids, and final reproof. It performs no corpus or provider operation and leaves product search/MCP unchanged. | The owner selects every new calibration repository; only then may the new unit be prepared and separately approved for document/query operations. |
-| Close the 40-query relation Stage E/F calibration without selecting a policy. | Two complete blinded AI passes, source-only conflict adjudication, whole-digest owner adoption, and deterministic evaluation of all 25 frozen cells prove that graph-derived closure/hints make additional required source evidence available while protecting dense top five. Closure count 2/2,048 bytes moves complete queries `31 -> 36`; hint count 4/4,096 bytes moves `31 -> 37`, but both expose noise, no semantic family was opened, and the 38/40 upper envelope is not a combinable policy. | Never reopen, rescore, add cells, or tune this unit. |
+| Close the 40-query relation Stage E/F calibration without selecting a policy. | Two complete blinded AI passes, source-only conflict adjudication, whole-digest owner adoption, and deterministic evaluation of all 25 frozen cells prove that graph-derived closure/hints make additional required source evidence available while protecting dense top five. Closure count 2/2,048 bytes moves complete queries `31 -> 36`; hint count 4/4,096 bytes moves `31 -> 37`, but both expose noise, no semantic family was opened, and the 38/40 upper envelope is not a combinable policy. | Preserve this version and its results. Any changed questions, cohorts, or cells belong to a new version and new run. |
 | Defer assistant final-answer A/B; measure search selection and residual isolated noise only. | The owner rejected host/model-dependent agent-answer gates as the current product test. cidx remains a lightweight retrieval MCP: embeddings plus local graph, no in-process LLM, explicit limitation reporting. | Resume assistant-use only on explicit later host-integration direction. |
 | Treat overlapping graph neighborhood as payload to organize, not as dump-or-hide noise. | Provider-free v2 replay of the frozen 40-query unit showed six of nine baseline misses are sibling symbols in files already returned by dense top five. Hint-cell isolated parents are 13/133; file collapse leaves zero noise-only queries. Three remaining misses are cross-file at ranks 14, 40, and 134. Topology-only dense top-10 recovers 3/9; the earlier 5/9 draft is withdrawn. | Follow [RELATION-PACKAGING-NEXT.md](RELATION-PACKAGING-NEXT.md). Do not change questions, labels, ranking, or the four-tool MCP surface. |
+| Freeze the packaging contract before the first scored output and keep Arm D unauthorized. | Suggested sibling grid `{2,4,8}×{2048,4096,8192}` and one-hop `{2,4,8} files × {2048,4096,8192}` bytes, with decision cells count 4 / 4096 and 4 files / 4096. A fixture of the diagnosed 9-miss topology returns `CONTINUE_BOTH_FOR_ONE_COMBINED_TEST` at those cells; live closed-unit replay remains blocked until ignored Stage E/F artifacts are restored. | Run the frozen contract once on the closed 40-query unit without adding arms. |
+| Adopt evaluation-only sibling 4/4096 and reject default one-hop push from the live 40-query replay. | Live decision `CONTINUE_SIBLING_PACKAGING` recovered 5/6 named sibling misses at the frozen cell; the one-hop proxy completed `gg-g09` on every grid cell. Production MCP, Arm D, and closed-set retuning stay unauthorized. | Owner-selected unexposed confirmation, or an explicit later product-wire design for siblings. |
 | Do not edit the exposed 32-case calibration set to improve its scores. | The questions, labels, and immutable ranks have now influenced a retrieval-policy decision. Further tuning on them would invalidate their role as an unbiased confirmation unit. | Never for this dataset version; create a new versioned calibration or an unexposed confirmation unit. |
 | Preserve failure taxonomy alongside metrics. | It identifies which implementation layer should change next. | Never. |
 | Call production services directly. | This prevents divergence between evaluation and actual behavior. | Never. |

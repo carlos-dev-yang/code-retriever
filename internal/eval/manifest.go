@@ -21,6 +21,7 @@ import (
 )
 
 const CorpusManifestVersion = 1
+const CriticalGeneralTaxonomyV1 = "critical-general-v1"
 
 const (
 	maxManifestPatterns = 256
@@ -94,10 +95,15 @@ func (value CorpusManifest) Fingerprint() (string, error) {
 }
 
 type EvaluationDataset struct {
-	SchemaVersion int                           `json:"schema_version"`
-	Version       string                        `json:"version"`
-	CorpusID      string                        `json:"corpus_id"`
-	Cases         []evalcontract.EvaluationCase `json:"cases"`
+	SchemaVersion   int                           `json:"schema_version"`
+	QuestionSetID   string                        `json:"question_set_id,omitempty"`
+	Version         string                        `json:"version"`
+	Supersedes      []string                      `json:"supersedes,omitempty"`
+	TaxonomyVersion string                        `json:"taxonomy_version,omitempty"`
+	TaxonomySHA256  string                        `json:"taxonomy_sha256,omitempty"`
+	ChangeSummary   []string                      `json:"change_summary,omitempty"`
+	CorpusID        string                        `json:"corpus_id"`
+	Cases           []evalcontract.EvaluationCase `json:"cases"`
 }
 
 func LoadDataset(data []byte) (EvaluationDataset, error) {
@@ -115,6 +121,27 @@ func (value EvaluationDataset) Validate() error {
 	if value.SchemaVersion != evalcontract.SchemaVersion || !validID(value.Version) || !validID(value.CorpusID) || len(value.Cases) == 0 {
 		return fmt.Errorf("invalid evaluation dataset")
 	}
+	versioned := value.QuestionSetID != "" || len(value.Supersedes) != 0 || value.TaxonomyVersion != "" || value.TaxonomySHA256 != "" || len(value.ChangeSummary) != 0
+	if versioned {
+		if !validID(value.QuestionSetID) || !validID(value.TaxonomyVersion) || !validSHA256(value.TaxonomySHA256) || len(value.ChangeSummary) == 0 {
+			return fmt.Errorf("invalid versioned question set metadata")
+		}
+		seenSuperseded := map[string]struct{}{}
+		for _, superseded := range value.Supersedes {
+			if !validID(superseded) || superseded == value.Version {
+				return fmt.Errorf("invalid superseded question set version")
+			}
+			if _, exists := seenSuperseded[superseded]; exists {
+				return fmt.Errorf("duplicate superseded question set version")
+			}
+			seenSuperseded[superseded] = struct{}{}
+		}
+		for _, summary := range value.ChangeSummary {
+			if strings.TrimSpace(summary) == "" {
+				return fmt.Errorf("empty question set change summary")
+			}
+		}
+	}
 	seen := map[string]struct{}{}
 	for _, c := range value.Cases {
 		if err := c.Validate(); err != nil {
@@ -125,7 +152,72 @@ func (value EvaluationDataset) Validate() error {
 		}
 		seen[c.ID] = struct{}{}
 	}
+	if value.TaxonomyVersion == CriticalGeneralTaxonomyV1 {
+		if err := validateCriticalGeneralCohorts(value.Cases); err != nil {
+			return err
+		}
+	}
 	return nil
+}
+
+func validateCriticalGeneralCohorts(cases []evalcontract.EvaluationCase) error {
+	signals := map[string]struct{}{
+		"critical:lexical_anchor": {},
+		"critical:semantic_only":  {},
+		"critical:mixed_signal":   {},
+	}
+	risks := map[string]struct{}{
+		"critical:multi_requirement":       {},
+		"critical:contract_disambiguation": {},
+		"critical:known_hard_negative":     {},
+	}
+	for _, item := range cases {
+		signalCount, taskCount := 0, 0
+		cohorts := make(map[string]struct{}, len(item.Cohorts))
+		for _, cohort := range item.Cohorts {
+			cohorts[cohort] = struct{}{}
+			if _, ok := signals[cohort]; ok {
+				signalCount++
+				continue
+			}
+			if _, ok := risks[cohort]; ok {
+				continue
+			}
+			if strings.HasPrefix(cohort, "general:task:") && len(cohort) > len("general:task:") {
+				taskCount++
+				continue
+			}
+			if strings.HasPrefix(cohort, "general:diag:") && len(cohort) > len("general:diag:") {
+				continue
+			}
+			return fmt.Errorf("case %q has cohort outside %s", item.ID, CriticalGeneralTaxonomyV1)
+		}
+		if signalCount != 1 || taskCount != 1 {
+			return fmt.Errorf("case %q must have one critical signal and one general task cohort", item.ID)
+		}
+		_, multi := cohorts["critical:multi_requirement"]
+		if multi != (len(item.RequiredGroups) > 1) {
+			return fmt.Errorf("case %q has inconsistent multi-requirement cohort", item.ID)
+		}
+		_, hardNegative := cohorts["critical:known_hard_negative"]
+		if hardNegative != (len(item.HardNegatives) > 0) {
+			return fmt.Errorf("case %q has inconsistent hard-negative cohort", item.ID)
+		}
+	}
+	return nil
+}
+
+func (value EvaluationDataset) QuestionSetIdentity(fingerprint string) (*evalcontract.QuestionSetIdentity, error) {
+	if err := value.Validate(); err != nil {
+		return nil, err
+	}
+	if value.QuestionSetID == "" {
+		return nil, nil
+	}
+	if !validSHA256(fingerprint) {
+		return nil, fmt.Errorf("invalid question set fingerprint")
+	}
+	return &evalcontract.QuestionSetIdentity{ID: value.QuestionSetID, Version: value.Version, SHA256: fingerprint, TaxonomyVersion: value.TaxonomyVersion, TaxonomySHA256: value.TaxonomySHA256}, nil
 }
 
 func (value EvaluationDataset) Fingerprint() (string, error) {

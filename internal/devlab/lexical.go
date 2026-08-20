@@ -173,6 +173,10 @@ func lexicalEvaluation(ctx context.Context, options lexicalEvaluationOptions, st
 	if err != nil {
 		return err
 	}
+	questionSet, err := inputs.dataset.QuestionSetIdentity(datasetFingerprint)
+	if err != nil {
+		return err
+	}
 	if err := validateDraftCaseDigests(inputs.dataset); err != nil {
 		return err
 	}
@@ -200,7 +204,7 @@ func lexicalEvaluation(ctx context.Context, options lexicalEvaluationOptions, st
 		SchemaVersion:             evalcontract.SchemaVersion,
 		RunID:                     runID,
 		CreatedAt:                 time.Now().UTC().Format(time.RFC3339Nano),
-		Manifest:                  lexicalRunManifest(application, manifestFingerprint, datasetFingerprint, inputs.verified, run),
+		Manifest:                  lexicalRunManifest(application, manifestFingerprint, datasetFingerprint, questionSet, inputs.verified, run),
 		Corpus:                    inputs.verified,
 		CorpusManifestFingerprint: manifestFingerprint,
 		DatasetFingerprint:        datasetFingerprint,
@@ -276,6 +280,10 @@ func simpleEvaluation(ctx context.Context, options lexicalEvaluationOptions, std
 	if err != nil {
 		return err
 	}
+	questionSet, err := inputs.dataset.QuestionSetIdentity(datasetFingerprint)
+	if err != nil {
+		return err
+	}
 	artifactRoot, err := lexicalArtifactRoot(application.StateRoot)
 	if err != nil {
 		return err
@@ -305,7 +313,7 @@ func simpleEvaluation(ctx context.Context, options lexicalEvaluationOptions, std
 		CreatedAt:                 time.Now().UTC().Format(time.RFC3339Nano),
 		ControlAlgorithm:          eval.SimpleControlAlgorithm,
 		AlgorithmFingerprint:      run.AlgorithmFingerprint,
-		Manifest:                  simpleRunManifest(application, manifestFingerprint, datasetFingerprint, inputs.verified, run),
+		Manifest:                  simpleRunManifest(application, manifestFingerprint, datasetFingerprint, questionSet, inputs.verified, run),
 		Corpus:                    inputs.verified,
 		CorpusManifestFingerprint: manifestFingerprint,
 		DatasetFingerprint:        datasetFingerprint,
@@ -599,14 +607,14 @@ func writeLexicalReviewPacket(root string, corpus eval.VerifiedCorpus, corpusFin
 	return lexicalInventoryReference{Reference: reference, SHA256: hex.EncodeToString(sum[:])}, nil
 }
 
-func lexicalRunManifest(application *app.Application, corpusFingerprint, datasetFingerprint string, corpus eval.VerifiedCorpus, run eval.LexicalRun) evalcontract.EvaluationRunManifest {
+func lexicalRunManifest(application *app.Application, corpusFingerprint, datasetFingerprint string, questionSet *evalcontract.QuestionSetIdentity, corpus eval.VerifiedCorpus, run eval.LexicalRun) evalcontract.EvaluationRunManifest {
 	candidatePolicy := fmt.Sprintf("mode=lexical;candidate_k=%d;return_k=%d;fts_symbol_weight=%g;fts_body_weight=%g", application.Resolved.Search.CandidateK, application.Resolved.Search.ReturnK, application.Resolved.Search.FTSSymbolWeight, application.Resolved.Search.FTSBodyWeight)
-	return evalcontract.EvaluationRunManifest{SchemaVersion: evalcontract.SchemaVersion, CorpusManifestSHA256: corpusFingerprint, QueryManifestSHA256: datasetFingerprint, CodeCommit: buildinfo.Current().Commit, ProfileFingerprint: string(application.Resolved.Profiles.Fingerprints.Index), Generation: run.Generation, CandidatePolicy: candidatePolicy, Platform: runtime.GOOS + "/" + runtime.GOARCH, PairedControls: evalcontract.PairedRunControls{CorpusStateSHA256: corpus.ContentSHA256, LabelDigestSHA256: datasetFingerprint, ParserVersion: fmt.Sprintf("index-chunker-v%d", config.IndexChunkerVersion), ChunkerVersion: fmt.Sprintf("index-chunker-v%d", config.IndexChunkerVersion), FTSSchemaVersion: fmt.Sprintf("fts-v%d", config.FTSSchemaVersion), SourceModel: "not-used-lexical", SourceDimensions: 1, ReducerID: "not-used-lexical", ServingDimensions: 1, CandidatePolicy: candidatePolicy, BodyBudget: "not-used-lexical", MCPVersion: "not-used-lexical"}}
+	return evalcontract.EvaluationRunManifest{SchemaVersion: evalcontract.SchemaVersion, CorpusManifestSHA256: corpusFingerprint, QueryManifestSHA256: datasetFingerprint, CodeCommit: buildinfo.Current().Commit, ProfileFingerprint: string(application.Resolved.Profiles.Fingerprints.Index), Generation: run.Generation, CandidatePolicy: candidatePolicy, Platform: runtime.GOOS + "/" + runtime.GOARCH, QuestionSet: questionSet, PairedControls: evalcontract.PairedRunControls{CorpusStateSHA256: corpus.ContentSHA256, LabelDigestSHA256: datasetFingerprint, ParserVersion: fmt.Sprintf("index-chunker-v%d", config.IndexChunkerVersion), ChunkerVersion: fmt.Sprintf("index-chunker-v%d", config.IndexChunkerVersion), FTSSchemaVersion: fmt.Sprintf("fts-v%d", config.FTSSchemaVersion), SourceModel: application.Resolved.Embedding.Model.Model, SourceDimensions: application.Resolved.Embedding.Model.SourceDimensions, ReducerID: application.Resolved.Embedding.ReducerID, ServingDimensions: application.Resolved.Embedding.ServingDimensions, CandidatePolicy: candidatePolicy, BodyBudget: "not-observed-lexical", MCPVersion: "not-observed-lexical"}}
 }
 
-func simpleRunManifest(application *app.Application, corpusFingerprint, datasetFingerprint string, corpus eval.VerifiedCorpus, run eval.SimpleRun) evalcontract.EvaluationRunManifest {
+func simpleRunManifest(application *app.Application, corpusFingerprint, datasetFingerprint string, questionSet *evalcontract.QuestionSetIdentity, corpus eval.VerifiedCorpus, run eval.SimpleRun) evalcontract.EvaluationRunManifest {
 	candidatePolicy := eval.SimpleCandidatePolicy(run.AlgorithmFingerprint, application.Resolved.Search.CandidateK, application.Resolved.Search.ReturnK)
-	return evalcontract.EvaluationRunManifest{SchemaVersion: evalcontract.SchemaVersion, CorpusManifestSHA256: corpusFingerprint, QueryManifestSHA256: datasetFingerprint, CodeCommit: buildinfo.Current().Commit, ProfileFingerprint: string(application.Resolved.Profiles.Fingerprints.Index), Generation: run.Generation, CandidatePolicy: candidatePolicy, Platform: runtime.GOOS + "/" + runtime.GOARCH, PairedControls: evalcontract.PairedRunControls{CorpusStateSHA256: corpus.ContentSHA256, LabelDigestSHA256: datasetFingerprint, ParserVersion: fmt.Sprintf("index-chunker-v%d", config.IndexChunkerVersion), ChunkerVersion: fmt.Sprintf("index-chunker-v%d", config.IndexChunkerVersion), FTSSchemaVersion: fmt.Sprintf("fts-v%d", config.FTSSchemaVersion), SourceModel: "not-used-simple-control", SourceDimensions: 1, ReducerID: "not-used-simple-control", ServingDimensions: 1, CandidatePolicy: candidatePolicy, BodyBudget: "not-used-simple-control", MCPVersion: "not-used-simple-control"}}
+	return evalcontract.EvaluationRunManifest{SchemaVersion: evalcontract.SchemaVersion, CorpusManifestSHA256: corpusFingerprint, QueryManifestSHA256: datasetFingerprint, CodeCommit: buildinfo.Current().Commit, ProfileFingerprint: string(application.Resolved.Profiles.Fingerprints.Index), Generation: run.Generation, CandidatePolicy: candidatePolicy, Platform: runtime.GOOS + "/" + runtime.GOARCH, QuestionSet: questionSet, PairedControls: evalcontract.PairedRunControls{CorpusStateSHA256: corpus.ContentSHA256, LabelDigestSHA256: datasetFingerprint, ParserVersion: fmt.Sprintf("index-chunker-v%d", config.IndexChunkerVersion), ChunkerVersion: fmt.Sprintf("index-chunker-v%d", config.IndexChunkerVersion), FTSSchemaVersion: fmt.Sprintf("fts-v%d", config.FTSSchemaVersion), SourceModel: application.Resolved.Embedding.Model.Model, SourceDimensions: application.Resolved.Embedding.Model.SourceDimensions, ReducerID: application.Resolved.Embedding.ReducerID, ServingDimensions: application.Resolved.Embedding.ServingDimensions, CandidatePolicy: candidatePolicy, BodyBudget: "not-observed-simple-control", MCPVersion: "not-observed-simple-control"}}
 }
 
 func lexicalQueryIDs(dataset eval.EvaluationDataset) []string {

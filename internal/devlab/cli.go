@@ -28,7 +28,7 @@ type CLI struct{}
 
 func (CLI) Run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	if len(args) < 2 {
-		return fmt.Errorf("usage: cidx dev embeddings <capture|materialize> ... or cidx dev retrieval evaluate ... or cidx dev relations <build|evaluate|complete|review> ...")
+		return fmt.Errorf("usage: cidx dev embeddings <capture|materialize> ... or cidx dev retrieval evaluate ... or cidx dev relations <build|evaluate|complete|review|packaging> ...")
 	}
 	switch args[0] {
 	case "workspace":

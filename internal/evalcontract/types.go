@@ -208,19 +208,31 @@ type StageTrace struct {
 	TerminalState    TerminalState      `json:"terminal_state"`
 }
 
+// QuestionSetIdentity makes the exact question and cohort-taxonomy revision
+// visible in every run without requiring a reader to reverse-map a digest to
+// a repository filename. SHA256 is still authoritative for byte identity.
+type QuestionSetIdentity struct {
+	ID              string `json:"id"`
+	Version         string `json:"version"`
+	SHA256          string `json:"sha256"`
+	TaxonomyVersion string `json:"taxonomy_version"`
+	TaxonomySHA256  string `json:"taxonomy_sha256"`
+}
+
 type EvaluationRunManifest struct {
-	SchemaVersion         int                `json:"schema_version"`
-	CorpusManifestSHA256  string             `json:"corpus_manifest_sha256"`
-	QueryManifestSHA256   string             `json:"query_manifest_sha256"`
-	CodeCommit            string             `json:"code_commit"`
-	ProfileFingerprint    string             `json:"profile_fingerprint"`
-	Generation            int64              `json:"generation"`
-	CandidatePolicy       string             `json:"candidate_policy"`
-	Platform              string             `json:"platform"`
-	PairedControls        PairedRunControls  `json:"paired_controls"`
-	ReviewProtocolVersion string             `json:"review_protocol_version,omitempty"`
-	RelevanceAuthority    RelevanceAuthority `json:"relevance_authority,omitempty"`
-	ReviewValidation      ReviewValidation   `json:"review_validation,omitempty"`
+	SchemaVersion         int                  `json:"schema_version"`
+	CorpusManifestSHA256  string               `json:"corpus_manifest_sha256"`
+	QueryManifestSHA256   string               `json:"query_manifest_sha256"`
+	CodeCommit            string               `json:"code_commit"`
+	ProfileFingerprint    string               `json:"profile_fingerprint"`
+	Generation            int64                `json:"generation"`
+	CandidatePolicy       string               `json:"candidate_policy"`
+	Platform              string               `json:"platform"`
+	PairedControls        PairedRunControls    `json:"paired_controls"`
+	ReviewProtocolVersion string               `json:"review_protocol_version,omitempty"`
+	RelevanceAuthority    RelevanceAuthority   `json:"relevance_authority,omitempty"`
+	ReviewValidation      ReviewValidation     `json:"review_validation,omitempty"`
+	QuestionSet           *QuestionSetIdentity `json:"question_set,omitempty"`
 }
 type PairedRunControls struct {
 	CorpusStateSHA256 string `json:"corpus_state_sha256"`

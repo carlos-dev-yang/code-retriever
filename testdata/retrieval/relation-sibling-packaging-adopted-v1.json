@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "kind": "cidx.relation_packaging.adopted_evaluation_contract.v1",
+  "protocol_version": "cidx.relation-packaging.v1",
+  "source_experiment_id": "relation-packaging-v1",
+  "source_contract_digest": "cb726ace5f81d980260a8111520d5b2f00f9318f128682f3ddc6cc8ff7a54c28",
+  "live_decision": "CONTINUE_SIBLING_PACKAGING",
+  "live_decision_sha256": "49f2d483fb5d75a18854c36de33cf583d2b7c62f648737112faff33b59b3b5ae",
+  "live_artifact_checksums_sha256": "3d01aec4fff3967aa9a0c0409a60ed206f30df5cc20235f20fa08b5e8fc14288",
+  "frozen_digest": "002a30b08e137467896df63f2e5da8bf176c965f06c6a164aee7fd4db565a19b",
+  "sibling_status": "ADOPTED_EVALUATION_ONLY",
+  "sibling_count": 4,
+  "sibling_bytes": 4096,
+  "sibling_eligibility": "same-path-current-semantic-parent-complete-body-absent-from-primary-v1",
+  "sibling_byte_policy": "greedy-skip-oversize-v1",
+  "one_hop_status": "REJECTED_DEFAULT_PUSH",
+  "one_hop_keep_proxy": "target-file-is-primary-file-or-source-parent-is-primary-parent-v1",
+  "one_hop_rejection_reason": "label-free one-hop proxy completes gg-g09-rename-change on every predeclared grid cell",
+  "arm_d_authorized": false,
+  "graph_product_path": "NO_PRODUCT_GRAPH_PATH",
+  "production_mcp": false,
+  "assistant_ab": "DEFERRED_NOT_A_GATE",
+  "confirmation": "REQUIRES_OWNER_SELECTED_UNEXPOSED_UNIT",
+  "closed_calibration_units": [
+    "chi-rhf-32-owner-adopted-dual-ai-v1",
+    "relation-calibration-go-git-zustand-memos-40-stage-ef"
+  ],
+  "digest": "d0b288b321cee2b60a794a0a38d7134395381491c9ede8b02d1af09ff2d65250"
+}

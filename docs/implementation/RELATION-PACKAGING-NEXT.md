@@ -1,6 +1,6 @@
 # Relation Selection and Packaging Plan
 
-- Status: current experiment authority
+- Status: closed experiment; adopted evaluation-only sibling 4/4096; one-hop default push rejected; confirmation not authorized from this unit
 - Date: 2026-08-19
 - Owning phase: 07
 - Product baseline: exhaustive `1024/int8` retrieval, four MCP tools, no
@@ -218,22 +218,30 @@ caps fail. An inconclusive run requires a newly frozen repeat contract.
 
 ## 7. After this experiment
 
-If sibling packaging passes, freeze that exact cap pair as an evaluation
-contract and keep it off the production MCP wire until a separate product
-design is approved.
+Live closed-unit result: `CONTINUE_SIBLING_PACKAGING`. One-hop failed.
 
-If one-hop clusters pass, freeze the label-free proxy and caps the same way.
+Adopted evaluation contract:
+[`relation-sibling-packaging-adopted-v1.json`](../../testdata/retrieval/relation-sibling-packaging-adopted-v1.json)
+(digest `d0b288b321cee2b60a794a0a38d7134395381491c9ede8b02d1af09ff2d65250`).
 
-If both pass, run arm D once under a separately frozen contract. Adopt the
-combination only when it improves complete queries over both isolated arms.
+Sibling count 4 / 4096 bytes is evaluation-only and stays off the production
+MCP wire until a separate product design is approved. Default one-hop push is
+rejected. Arm D is not authorized. Confirmation still requires owner-selected
+repositories and a new unexposed unit; this document does not select them.
 
-Then, and only then, a distinct unexposed confirmation unit may test the
-frozen packaging contract. Confirmation still requires owner-selected
-repositories and is not this document.
+Do not start assistant A/B as a consequence of these results.
 
-Do not start assistant A/B as a consequence of any of these results.
+Owner review record:
+[`OWNER-REVIEW-INDEX.md`](OWNER-REVIEW-INDEX.md),
+[`remaining-work-review-handoff-r4.md`](evidence/revision-4/remaining-work-review-handoff-r4.md).
 
 ## 8. Artifact layout
+
+The frozen tracked contract is
+[`testdata/retrieval/relation-packaging-experiment-contract-v1.json`](../../testdata/retrieval/relation-packaging-experiment-contract-v1.json)
+(digest `cb726ace5f81d980260a8111520d5b2f00f9318f128682f3ddc6cc8ff7a54c28`).
+Implementation evidence:
+[packaging experiment](evidence/phase-07/relation-packaging-experiment-r4.md).
 
 Keep generated state ignored:
 

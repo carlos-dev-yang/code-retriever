@@ -1,6 +1,7 @@
 # Revision 4 Reconciliation and Evidence Supersession
 
-- State: the current int8-only corpus-independent implementation and local darwin/arm64 package/operational checkpoint are accepted through Phase 14; Phase 07's 32-case chi/RHF calibration and separate 40-query relation Stage E/F calibration are closed under `OWNER_ADOPTED_DUAL_AI_REVIEW` with permanent `NO_INDEPENDENT_HUMAN_REVIEW`; no relation policy was selected; assistant A/B is deferred; current relation follow-up is mechanical packaging; unexposed confirmation, official Phase 12, and release-candidate evidence remain gated
+- State: the current int8-only corpus-independent implementation and local darwin/arm64 package/operational checkpoint are accepted through Phase 14; Phase 07's 32-case chi/RHF calibration and separate 40-query relation Stage E/F calibration are closed under `OWNER_ADOPTED_DUAL_AI_REVIEW` with permanent `NO_INDEPENDENT_HUMAN_REVIEW`; packaging live replay adopted evaluation-only sibling 4/4096 and rejected default one-hop push; assistant A/B is deferred; Phase 07/12/14 remain gated on owner-selected unexposed confirmation. Review: [owner review index](../../OWNER-REVIEW-INDEX.md),
+[remaining-work handoff](remaining-work-review-handoff-r4.md)
 - Date: 2026-08-19
 - Canonical authority: [`local-code-search-mcp-v1-design-r4.md`](../../../../local-code-search-mcp-v1-design-r4.md)
 - Historical checkpoint: `b3a6cb1`

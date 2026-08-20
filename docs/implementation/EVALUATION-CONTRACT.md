@@ -125,20 +125,51 @@ Primary strict Hit/Recall/MRR use direct grade `2` or satisfied requirement grou
 
 ### 4.4 Required cohorts
 
-At minimum include:
+Versioned question sets use the tracked `critical-general-v1` taxonomy.
 
-- exact symbol/identifier;
-- path/package/module-qualified lookup;
-- error string, literal, or configuration key;
-- natural-language behavior;
-- mixed identifier plus semantic intent;
-- declaration versus implementation versus incidental mention;
-- multiple implementations or exhaustive lookup;
-- ambiguous/common names;
-- verified hard negative and no valid answer;
-- newly added, modified, renamed, deleted, and stale code;
-- small and large constructs;
-- Go-specific, TypeScript-specific, TSX-specific, and genuine mixed-language cases.
+Every answerable query has exactly one critical signal cohort:
+
+- `critical:lexical_anchor` for identifier/path/literal-led lookup;
+- `critical:semantic_only` for behavior described without a useful code anchor;
+- `critical:mixed_signal` for a code anchor plus semantic intent.
+
+Add every applicable critical risk cohort:
+
+- `critical:multi_requirement` when separate AND groups must all be found;
+- `critical:contract_disambiguation` when a declaration, implementation,
+  wrapper, or similarly named contract must be distinguished;
+- `critical:known_hard_negative` when a reviewed misleading parent is part of
+  the case.
+
+Every query also has exactly one `general:task:*` cohort and any applicable
+`general:diag:*` cohorts. General cohorts explain results and guide later
+question revisions; they do not independently block a release. Go,
+TypeScript, TSX, and mixed are reported as independent language slices rather
+than encoded as critical/general cohorts.
+
+Critical does not mean that every individual retrieval question must score
+100%. It means a release candidate must satisfy the separately predeclared
+threshold for every critical cohort; a global average cannot compensate for a
+failed critical cohort. Operational freshness, stale-row, and generation
+invariants remain separate 100% gates. This taxonomy does not create a
+weighted score or choose numeric thresholds.
+
+### 4.4.1 Question-set versions and run provenance
+
+- A question set has a stable `question_set_id`, a distinct `version`, a
+  `taxonomy_version`, the taxonomy SHA-256, and its own canonical SHA-256.
+- Changing query text, membership, required groups, judgments, or cohort
+  assignments creates a new question-set version. Previous files and results
+  remain unchanged.
+- A new version records every predecessor in `supersedes` and a concise
+  `change_summary`. Reusing a query ID means the query represents the same
+  code-search intent; a materially different intent receives a new query ID.
+- Every plan and run manifest records the exact question-set identity and
+  taxonomy identity in addition to the canonical digest. A run ID is never
+  reused and an earlier run directory is never overwritten.
+- Existing results remain authoritative only for their recorded question-set
+  version. A revised version is executed as a new run; it does not modify or
+  replace the earlier result.
 
 ### 4.5 Dataset size and review floor
 
@@ -202,11 +233,14 @@ Pool unique top results from FTS, serving f32, active int8, and RRF for relevanc
 - Calibration data selects serving dimension, codec, RRF parameters, candidate limits, body budgets, and noninferiority margins.
 - Confirmation data is independently frozen and cannot tune any of those values.
 - Only a complete confirmation run may vote for promotion.
-- A later label correction creates a new dataset version and invalidates direct delta claims against the old digest.
-- If a label changes after confirmation results were exposed, provider-free
-  rescoring is diagnostic/regression evidence only. It cannot restore that
-  confirmation set's promotion authority. A new promotion claim requires a
-  newly frozen, previously unexposed confirmation unit.
+- A later question, label, ground-truth, or cohort correction creates a new
+  question-set version. The old question set and its run results remain
+  preserved under their original digests.
+- If a confirmation question set is revised after its results were exposed,
+  a new run of that revision is diagnostic/regression evidence. It does not
+  retroactively change the earlier run or restore that set's promotion
+  authority. A later promotion claim uses a separately frozen question-set
+  version whose promotion controls were fixed before its results were viewed.
 
 ### 4.7 Paired-run compatibility
 
@@ -438,6 +472,12 @@ promotion-result.json
 report.md
 artifact-checksums.json
 ```
+
+`run-manifest.json` records `question_set.id`, `question_set.version`,
+`question_set.sha256`, `question_set.taxonomy_version`, and
+`question_set.taxonomy_sha256`. The explicit names make a run understandable
+without reverse-mapping a digest to a filename; the digests remain the exact
+identity authority.
 
 A per-query trace records:
 

@@ -15,6 +15,7 @@ func TestDevelopmentCommandsRejectPositionalArguments(t *testing.T) {
 		{"embeddings", "capture", "extra"},
 		{"embeddings", "materialize", "extra"},
 		{"retrieval", "evaluate", "extra"},
+		{"relations", "packaging", "extra"},
 	} {
 		err := (CLI{}).Run(context.Background(), command, &bytes.Buffer{}, &bytes.Buffer{})
 		if err == nil || !strings.Contains(err.Error(), "positional") {

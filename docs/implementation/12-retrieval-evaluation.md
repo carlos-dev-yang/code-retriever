@@ -1,7 +1,8 @@
 # 12. Retrieval Evaluation
 
 - Status: `blocked` — the corpus-independent int8-only adapter is accepted;
-  official corpus evaluation and promotion remain externally blocked.
+  packaging/no-policy authority is frozen evaluation-only; official corpus
+  evaluation and promotion remain blocked on owner-selected confirmation.
 - Prerequisites: `07-lexical-evaluation`, `08-raw-embedding-lab`, `09-vector-materialization`, `11-vector-and-hybrid-search`
 - Followed by: `13-cli-and-mcp`, `14-packaging-and-host-integration`
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 5, 6, and 9

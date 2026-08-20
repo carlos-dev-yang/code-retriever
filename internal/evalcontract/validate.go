@@ -141,7 +141,14 @@ func (value EvaluationRunManifest) Validate() error {
 	if (value.ReviewProtocolVersion != "" || value.RelevanceAuthority != "" || value.ReviewValidation != "") && !validFrozenReviewAuthority(value.ReviewProtocolVersion, value.RelevanceAuthority, value.ReviewValidation) {
 		return fmt.Errorf("invalid evaluation review authority")
 	}
+	if value.QuestionSet != nil && (!value.QuestionSet.valid() || value.QuestionSet.SHA256 != value.QueryManifestSHA256) {
+		return fmt.Errorf("invalid question set identity")
+	}
 	return nil
+}
+
+func (value QuestionSetIdentity) valid() bool {
+	return value.ID != "" && value.Version != "" && validSHA256(value.SHA256) && value.TaxonomyVersion != "" && validSHA256(value.TaxonomySHA256)
 }
 func (value PromotionContract) Validate() error {
 	if value.SchemaVersion != SchemaVersion || !validScope(value.Scope) || len(value.CalibrationEvidenceSHA256) == 0 || len(value.FrozenGates) == 0 || !validSHA256(value.ConfirmationDatasetSHA256) || !value.PairedControls.valid() || !validFrozenReviewAuthority(value.ReviewProtocolVersion, value.RelevanceAuthority, value.ReviewValidation) {
