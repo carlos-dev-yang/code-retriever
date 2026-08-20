@@ -284,7 +284,7 @@ func WriteRunArtifact(root string, artifact PortableRunArtifact) (evalcontract.A
 		}
 		for index, hit := range result.Hits {
 			if !validRelative(hit.Path, false) || !validSHA256(hit.IndexedSHA256) || hit.Kind == "" || hit.QualifiedSymbol == "" || hit.StartByte < 0 || hit.EndByte <= hit.StartByte || hit.Rank != index+1 {
-				return evalcontract.ArtifactManifest{}, fmt.Errorf("invalid portable hit")
+				return evalcontract.ArtifactManifest{}, fmt.Errorf("invalid portable hit for query %q at position %d: path_valid=%t sha_valid=%t kind_present=%t qualified_symbol_present=%t range_valid=%t rank=%d", result.QueryID, index+1, validRelative(hit.Path, false), validSHA256(hit.IndexedSHA256), hit.Kind != "", hit.QualifiedSymbol != "", hit.StartByte >= 0 && hit.EndByte > hit.StartByte, hit.Rank)
 			}
 		}
 		metrics = append(metrics, result.CaseResult)
