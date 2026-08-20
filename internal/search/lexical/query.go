@@ -6,6 +6,7 @@ import (
 	"unicode/utf8"
 
 	"cidx/internal/config"
+	"cidx/internal/store"
 	"cidx/internal/symbol"
 )
 
@@ -85,7 +86,7 @@ func BuildQuery(value string, normalizer symbol.IdentifierNormalizer, limits con
 	shape := QueryShapeDescriptive
 	symbolCandidates := stableDeduplicateAnchors(classified.IdentifierCandidates)
 	pathCandidates := stableDeduplicateAnchors(classified.PathCandidates)
-	anchors := normalizedAnchors(symbolCandidates)
+	anchors := highConfidenceAnchors(symbolCandidates)
 	paths := normalizedAnchors(pathCandidates)
 	if len(anchors)+len(paths) > 0 {
 		shape = QueryShapeAnchor
@@ -110,20 +111,53 @@ func BuildQuery(value string, normalizer symbol.IdentifierNormalizer, limits con
 }
 
 func stableDeduplicateAnchors(values []symbol.QueryAnchor) []symbol.QueryAnchor {
-	seen := make(map[string]struct{}, len(values))
+	seen := make(map[string]int, len(values))
 	result := make([]symbol.QueryAnchor, 0, len(values))
 	for _, value := range values {
 		key := value.Raw + "\x00" + value.Normalized
 		if value.Raw == "" || value.Normalized == "" {
 			continue
 		}
-		if _, exists := seen[key]; exists {
+		if index, exists := seen[key]; exists {
+			result[index].HighConfidence = result[index].HighConfidence || value.HighConfidence
 			continue
 		}
-		seen[key] = struct{}{}
+		seen[key] = len(result)
 		result = append(result, value)
 	}
 	return result
+}
+
+func highConfidenceAnchors(values []symbol.QueryAnchor) []string {
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		if value.HighConfidence {
+			result = append(result, value.Normalized)
+		}
+	}
+	return stableDeduplicate(result)
+}
+
+// EffectiveShape upgrades a weak PascalCase candidate only after the pinned
+// index snapshot proves that it names an indexed symbol or path. This keeps
+// sentence-initial words such as "How" descriptive while admitting
+// "Router interface" through the exact symbol lane.
+func EffectiveShape(query NormalizedQuery, symbolCandidates, pathCandidates int) QueryShape {
+	if query.Shape != QueryShapeDescriptive || symbolCandidates+pathCandidates == 0 {
+		return query.Shape
+	}
+	if len(query.TextTokens) > 0 || len(query.SelectedDescriptiveTokens) > 1 {
+		return QueryShapeMixed
+	}
+	return QueryShapeAnchor
+}
+
+func EffectiveAnchors(query NormalizedQuery, symbols []store.HybridSymbolCandidate) []string {
+	anchors := append([]string(nil), query.ExplicitAnchors...)
+	for _, candidate := range symbols {
+		anchors = append(anchors, candidate.MatchedAnchor)
+	}
+	return stableDeduplicate(anchors)
 }
 
 func normalizedAnchors(values []symbol.QueryAnchor) []string {

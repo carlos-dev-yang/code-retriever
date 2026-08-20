@@ -77,6 +77,8 @@ func (service *Service) Search(ctx context.Context, request Request) (Response, 
 	response.SymbolCandidateCount = len(snapshot.SymbolCandidates)
 	response.PathCandidateCount = len(snapshot.PathCandidates)
 	response.DescriptiveCandidateCount = len(snapshot.FTSCandidates)
+	response.QueryShape = string(lexical.EffectiveShape(normalized, response.SymbolCandidateCount, response.PathCandidateCount))
+	response.ExplicitAnchors = lexical.EffectiveAnchors(normalized, snapshot.SymbolCandidates)
 	snapshot.FTSCandidates = lexical.FuseLanes(snapshot.FTSCandidates, snapshot.SymbolCandidates, snapshot.PathCandidates, snapshot.Chunks, service.resolved.Search.RRFK, service.resolved.Search.CandidateK)
 	response.LexicalCandidateCount = len(snapshot.FTSCandidates)
 	response.LexicalCandidateZero = len(snapshot.FTSCandidates) == 0

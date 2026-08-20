@@ -42,7 +42,7 @@ func TestBuildQueryUsesSharedIdentifierNormalizerAndQuotedGrammar(t *testing.T) 
 		t.Fatalf("lowercase anchor=%#v err=%v", lowercaseAnchor, err)
 	}
 	mixedPascal, err := BuildQuery("Router interface", symbol.IdentifierNormalizer{}, queryLimits)
-	if err != nil || mixedPascal.Shape != QueryShapeMixed || len(mixedPascal.SymbolAnchorCandidates) != 1 || mixedPascal.SymbolAnchorCandidates[0].Raw != "Router" {
+	if err != nil || mixedPascal.Shape != QueryShapeDescriptive || len(mixedPascal.SymbolAnchorCandidates) != 1 || mixedPascal.SymbolAnchorCandidates[0].Raw != "Router" || mixedPascal.SymbolAnchorCandidates[0].HighConfidence {
 		t.Fatalf("PascalCase mixed query=%#v err=%v", mixedPascal, err)
 	}
 }

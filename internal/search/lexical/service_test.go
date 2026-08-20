@@ -29,6 +29,8 @@ func TestSearcherFindsLiveIndexedLanguagesAndRanksDeterministically(t *testing.T
 		{"validate user input", "validateUserInput"},
 		{"render user panel tokenabsentfromcorpus", "UserPanel"},
 		{"special_location.go", "LocateByFile"},
+		{"Router interface", "Router"},
+		{"How render user panel", "UserPanel"},
 	} {
 		result, err := searcher.Search(ctx, Request{Query: check.query})
 		if err != nil {
@@ -50,6 +52,14 @@ func TestSearcherFindsLiveIndexedLanguagesAndRanksDeterministically(t *testing.T
 	pathLed, err := searcher.Search(ctx, Request{Query: "special_location.go"})
 	if err != nil || pathLed.Diagnostics.PathCandidateCount == 0 || pathLed.Hits[0].PathRank == 0 || pathLed.Hits[0].Path != "special_location.go" {
 		t.Fatalf("path lane=%#v err=%v", pathLed, err)
+	}
+	resolvedPascal, err := searcher.Search(ctx, Request{Query: "Router interface"})
+	if err != nil || resolvedPascal.Diagnostics.QueryShape != QueryShapeMixed || len(resolvedPascal.Diagnostics.ExplicitAnchors) != 1 || resolvedPascal.Diagnostics.ExplicitAnchors[0] != "router" {
+		t.Fatalf("resolved PascalCase anchor=%#v err=%v", resolvedPascal.Diagnostics, err)
+	}
+	sentence, err := searcher.Search(ctx, Request{Query: "How render user panel"})
+	if err != nil || sentence.Diagnostics.QueryShape != QueryShapeDescriptive || sentence.Diagnostics.SymbolCandidateCount != 0 {
+		t.Fatalf("sentence-initial capitalization=%#v err=%v", sentence.Diagnostics, err)
 	}
 	first, err := searcher.Search(ctx, Request{Query: "GetUserByID"})
 	if err != nil {
@@ -106,7 +116,7 @@ func lexicalFixture(t *testing.T) (context.Context, string, *store.ProductionSto
 	root := t.TempDir()
 	runGit(t, root, "init")
 	mustWrite(t, filepath.Join(root, ".cidx", "config.json"), "{}")
-	mustWrite(t, filepath.Join(root, "user.go"), "package sample\n\nfunc GetUserByID() error {\n\treturn nil\n}\n")
+	mustWrite(t, filepath.Join(root, "user.go"), "package sample\n\ntype Router interface {\n\tServe() error\n}\n\nfunc GetUserByID() error {\n\treturn nil\n}\n")
 	mustWrite(t, filepath.Join(root, "input.ts"), "export function validateUserInput(value: string): boolean { return value.length > 0 }\n")
 	mustWrite(t, filepath.Join(root, "panel.tsx"), "export function UserPanel() { return <section>render user panel</section> }\n")
 	mustWrite(t, filepath.Join(root, "special_location.go"), "package sample\n\nfunc LocateByFile() error { return nil }\n")

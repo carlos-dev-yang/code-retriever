@@ -21,8 +21,9 @@ type QueryTokens struct {
 // keeping the shared normalized form for case/separator-insensitive lookup.
 // Both values are data-only SQL parameters, never query grammar.
 type QueryAnchor struct {
-	Raw        string
-	Normalized string
+	Raw            string
+	Normalized     string
+	HighConfidence bool
 }
 
 // ClassifyQuery accepts UTF-8 text and extracts only Unicode letter/digit
@@ -45,11 +46,11 @@ func ClassifyQuery(value string, normalizer IdentifierNormalizer) QueryTokens {
 		if candidate != "" {
 			result.Fragments = append(result.Fragments, QueryAnchor{Raw: raw, Normalized: candidate})
 		}
-		identifierStyle, pathStyle := queryFragmentStyle(raw)
+		identifierStyle, pathStyle, highConfidence := queryFragmentStyle(raw)
 		if identifierStyle {
 			result.IdentifierTokens = append(result.IdentifierTokens, normalized...)
 			if candidate != "" {
-				anchor := QueryAnchor{Raw: raw, Normalized: candidate}
+				anchor := QueryAnchor{Raw: raw, Normalized: candidate, HighConfidence: highConfidence}
 				if pathStyle {
 					result.PathCandidates = append(result.PathCandidates, anchor)
 				} else {
@@ -82,29 +83,30 @@ func ClassifyQuery(value string, normalizer IdentifierNormalizer) QueryTokens {
 		fragment := result.Fragments[0]
 		result.ExactSymbolCandidate = fragment.Normalized
 		if identifierCount == 0 && textCount == 1 {
+			fragment.HighConfidence = true
 			result.IdentifierCandidates = append(result.IdentifierCandidates, fragment)
 		}
 	}
 	return result
 }
 
-func queryFragmentStyle(raw string) (identifier, path bool) {
+func queryFragmentStyle(raw string) (identifier, path, highConfidence bool) {
 	lower := strings.ToLower(raw)
 	path = strings.ContainsRune(raw, '/') || strings.HasSuffix(lower, ".go") || strings.HasSuffix(lower, ".ts") || strings.HasSuffix(lower, ".tsx")
 	if path || strings.ContainsAny(raw, "_.-") {
-		return true, path
+		return true, path, true
 	}
 	runes := []rune(raw)
-	if len(runes) > 1 && unicode.IsUpper(runes[0]) {
-		return true, false
-	}
 	for index, r := range runes {
 		if unicode.IsDigit(r) {
-			return true, false
+			return true, false, true
 		}
 		if unicode.IsUpper(r) && index > 0 {
-			return true, false
+			return true, false, true
 		}
 	}
-	return false, false
+	if len(runes) > 1 && unicode.IsUpper(runes[0]) {
+		return true, false, false
+	}
+	return false, false, false
 }
