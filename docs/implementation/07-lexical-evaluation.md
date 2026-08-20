@@ -1,9 +1,10 @@
 # 07. Lexical Chunking and Search Evaluation
 
-- Status: `in_progress` — the versioned critical/general v2 baseline is
-  preserved and Phase 06 remediation is complete. Rerun the unchanged v2
-  questions under new immutable run IDs and compare candidate admission,
-  lane contribution, and top-five ranking before assistant A/B.
+- Status: `done` — the versioned critical/general v2 baseline and every
+  intermediate run remain preserved. Phase 06 remediation and the unchanged-v2
+  provider-free rerun are complete with candidate admission, lane contribution,
+  and top-five ranking reported separately. Assistant A/B is a separate next
+  evaluation unit.
 - Prerequisite phase: `06-fts-search`
 - Follow-up phase: `12-retrieval-evaluation`
 - Design basis: `local-code-search-mcp-v1-design-r4.md` §13, §14
@@ -27,11 +28,13 @@ v2 question. The adopted diagnosis, external advisory review, target lane
 architecture, and revised metrics are recorded in
 [`natural-language-fts-query-planner-review-r4.md`](evidence/phase-07/natural-language-fts-query-planner-review-r4.md).
 
-The existing v2 questions and runs remain unchanged. Phase 06 is now fixed, so
-Phase 07 creates new immutable run IDs against the same v2 question version.
+The existing v2 questions and runs remain unchanged. Phase 06 is fixed, and
+Phase 07 created new immutable run IDs against the same v2 question version.
 Any change to question text, truth, requirements, or cohort assignments creates
-a new question-set version and preserves v2. Assistant A/B follows this rerun;
-it is not the next executable step.
+a new question-set version and preserves v2. The final lexical result and
+sequential corrections are recorded in
+[`natural-language-lexical-rerun-v2.md`](evidence/phase-07/natural-language-lexical-rerun-v2.md).
+Assistant A/B now follows as a separate executable unit.
 
 ## 2026-08-17 product-profile supersession
 
@@ -648,6 +651,12 @@ Embedding phases must not silently modify dataset answers. If a correction is re
 
 Phase 12 extends the shared Phase 07 `internal/eval` dataset, ground-truth, metric, and report types. It must not create a second incompatible dataset schema or duplicate those types without an adapter.
 
+The immediate owner-directed follow-up is paired assistant A/B over the same
+existing chi/RHF repositories. It compares a fixed assistant task with and
+without cidx and records correctness, inspected-source behavior, token use,
+and false leads. It does not reopen planner tuning or turn the exposed v2
+calibration result into promotion evidence.
+
 ## 13. Decision Log
 
 | Decision | Reason | Revisit when |
@@ -705,3 +714,4 @@ Phase 12 extends the shared Phase 07 `internal/eval` dataset, ground-truth, metr
 | Acquire only the two explicitly user-authorized public checkouts for this resume. | The user named commits, versions, licenses, and allowed local acquisition; this is a narrowly recorded exception to the default no-download rule. | Any corpus identity, commit, or authorization changes. |
 | Resume Phase 07 with real-data structural audit and behavior-cohort authoring before paid work. | The user prioritized measured corpus behavior over additional test scaffolding and fixed the first working profile to 1,024-byte segments, 1,024 serving dimensions, and binary storage. | The structural audit finds a canonical-input defect or the exact document-capture plan reaches its explicit approval gate. |
 | Reopen Phase 06 before interpreting the v2 FTS score or starting assistant A/B. | All 32 semantic/mixed v2 questions returned zero FTS candidates under global all-token `AND`; candidate admission failed before BM25 ranking. The owner directed independent symbol, path, descriptive FTS, and dense lanes with `AND` only for explicit same-result constraints. | The new planner is implemented, focused hybrid/MCP integration is revalidated, and new immutable provider-free v2 runs are recorded. |
+| Close the natural-language lexical remediation after the final planner-v2 rerun. | Against unchanged v2 questions, candidate-zero fell `32/44 -> 0/44`, CompleteRequirementHit@5 rose `10/44 -> 30/44`, all ten historical passes remained, and the run separated six candidate-depth losses from eight top-five displacements. Intermediate PascalCase strategies and artifacts remain recorded rather than overwritten. | A new versioned calibration or assistant-use result exposes a concrete planner defect; do not tune this exposed v2 set further. |

@@ -14,6 +14,16 @@
 > [Natural-Language FTS Query-Planner Review — Revision 4](natural-language-fts-query-planner-review-r4.md).
 > All question and run results below remain unchanged.
 
+> **2026-08-20 rerun outcome:** planner v2 was executed as new immutable runs
+> against these unchanged questions. CompleteRequirementHit@5 improved from
+> `10/44` to `30/44`, all 32 prior semantic/mixed candidate-zero outcomes were
+> eliminated, and no historical FTS pass regressed. At candidate depth 20,
+> `38/44` queries contain every required group; eight of those are displaced
+> beyond the returned top five. Exact lineage and stage diagnostics are in
+> [the planner v2 rerun report](natural-language-lexical-rerun-v2.md). The
+> historical tables below remain the retained baseline rather than being
+> rewritten.
+
 ## 1. Version and provenance contract
 
 The earlier behavior and exact-identifier question files remain unchanged.
@@ -128,9 +138,9 @@ thresholds or prove the MCP's assistant usefulness.
 
 ## 6. Handoff
 
-Phase 06 natural-language lexical remediation is complete. The next
-owner-directed step is new provider-free runs over this unchanged v2 question
-set. Each run binds planner v2 and its serving-policy identity and records
-symbol, path, descriptive FTS, and local-union admission before final rank.
-Paired assistant A/B over the same repositories follows that rerun and must
-create new immutable artifacts rather than modify these results.
+Phase 06 natural-language lexical remediation and the owner-directed
+provider-free rerun are complete. The final run binds planner version 2 and its
+serving-policy identity and records symbol, path, descriptive FTS, local-union
+admission, and final rank. Paired assistant A/B over the same repositories is
+the next separate evaluation. It must create new immutable artifacts rather
+than modify these questions or any prior result.

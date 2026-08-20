@@ -11,6 +11,13 @@ keeps FTS separate, and rejects the tested `1:1` and `FTS1:dense2` RRF arms.
 The labels are explicitly `NO_INDEPENDENT_HUMAN_REVIEW`; a separate unexposed
 confirmation set is still required for promotion.
 
+The separate critical/general v2 lexical checkpoint corrected the baseline
+all-token-`AND` admission defect. On the unchanged chi/RHF questions, final
+planner v2 reduced candidate-zero from `32/44` to `0/44` and improved
+CompleteRequirementHit@5 from `10/44` to `30/44` without losing a historical
+pass. This is provider-free calibration evidence, not assistant-use or release
+evidence; paired assistant A/B is the next evaluation unit.
+
 ## Product boundary
 
 - Local indexing and FTS search never require an API key or network access.

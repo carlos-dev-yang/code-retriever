@@ -17,9 +17,10 @@ Do not treat this index as promotion evidence. If it disagrees with
 검색 순위와 MCP는 그대로 두고, **이미 찾은 파일의 형제 심볼을 평가용으로
 4개/4096바이트까지 붙이는 계약**만 채택했다. 그래프 한 홉을 기본 결과에
 넣는 것은 기각했다. 기존 chi/RHF critical/general v2 결과는 고정했다.
-다음 순서는 새 저장소나 어시스턴트 A/B가 아니라, 자연어 질문을 모두
-`AND`로 묶어 후보를 0개로 만든 Phase 06 lexical planner를 고치고 같은 v2를
-새 run으로 다시 실행하는 것이다.
+자연어 질문을 모두 `AND`로 묶어 후보를 0개로 만들던 Phase 06 lexical
+planner 교정과 동일 v2 재실행도 끝났다. 후보 0건은 `32/44 -> 0/44`, 완전
+정답@5는 `10/44 -> 30/44`가 됐다. 다음 순서는 새 저장소가 아니라 동일
+chi/RHF에서 paired assistant A/B를 별도 평가 단위로 준비하는 것이다.
 
 ---
 
@@ -31,7 +32,7 @@ Do not treat this index as promotion evidence. If it disagrees with
 | 서빙 | 기본 `1024/int8`, 옵션 `512/int8`. 소스 뱅크는 1024-f32 |
 | Phase 00–05, 08–11, 13 | `done` |
 | Phase 06 | `done` — natural-language planner와 독립 lexical lane 교정 완료 |
-| Phase 07 | `in_progress` — 동일 v2를 새 run ID로 재실행 |
+| Phase 07 | `done` — 동일 v2 새 run과 단계별 진입/순위 진단 완료 |
 | Phase 12 `core_retrieval` | `blocked` |
 | Phase 14 `release_candidate` | `blocked` (로컬 darwin/arm64 패키지는 있음) |
 | 라이브 패키징 판정 | `CONTINUE_SIBLING_PACKAGING` |
@@ -48,11 +49,19 @@ taxonomy 버전/digest를 직접 기록한다.
 - 해석: semantic-only 24개와 mixed 8개는 전부 FTS 후보가 0개였다. 따라서
   이 결과는 BM25 순위가 낮다는 뜻이 아니라, 모든 정규화 토큰을 `AND`로
   묶은 후보 진입 방식이 자연어를 배제했다는 뜻이다.
-- 다음 순서: 같은 저장소와 질문 버전을 유지한 채 교정된 Phase 06으로 새
-  run ID를 만든다. assistant A/B는 그 다음이다.
+- 교정 후 최종: 전체 `30/44`, lexical anchor `12/12`, semantic-only
+  `15/24`, mixed `3/8`. 후보 0건은 `0/44`다.
+- candidate depth 20에서 필요한 그룹을 모두 가진 질문은 `38/44`다. 그중
+  8개는 최종 top 5에서 밀렸고, 6개는 후보 단계부터 불완전하다.
+- 기존 FTS가 맞힌 10개는 하나도 잃지 않았고 20개를 추가 회복했다.
+- 다음 순서: 같은 저장소에서 assistant A/B를 별도 artifact로 실행한다.
 
 정확한 실행 ID와 artifact digest는
 [critical/general v2 report](evidence/phase-07/critical-general-question-set-v2.md)에
+있다.
+
+교정 과정, 중간 run, 최종 digest와 잔여 한계는
+[planner v2 rerun report](evidence/phase-07/natural-language-lexical-rerun-v2.md)에
 있다.
 
 개선 계약과 ChatGPT/Grok의 동일-맥락 검토 결과는
@@ -198,9 +207,10 @@ env -u VOYAGE_API_KEY go run ./cmd/cidx dev relations packaging \
 | [implementation plan index](README.md) | 페이즈 00–14 |
 | [EVALUATION-CONTRACT.md](EVALUATION-CONTRACT.md) | 스테이지별 분모, 프로모션 게이트 |
 | [EVALUATION-EMBEDDING-EXECUTION-PLAN.md](EVALUATION-EMBEDDING-EXECUTION-PLAN.md) | 유료 임베딩 순서 |
-| [06 FTS search](06-fts-search.md) | 활성 페이즈 — 자연어 후보 진입 개선 |
+| [06 FTS search](06-fts-search.md) | 완료 — 자연어 후보 진입 개선 |
 | [lexical planner review](evidence/phase-07/natural-language-fts-query-planner-review-r4.md) | 현재 구현·평가 목표와 ChatGPT/Grok 검토 |
-| [07 lexical evaluation](07-lexical-evaluation.md) | 06 수정 후 동일 v2 재실행 대기 |
+| [lexical planner v2 rerun](evidence/phase-07/natural-language-lexical-rerun-v2.md) | 단계별 교정, 실행 lineage, 최종 `30/44`, 남은 6+8 실패 분리 |
+| [07 lexical evaluation](07-lexical-evaluation.md) | 동일 v2 재실행 완료; assistant A/B handoff |
 | [12 retrieval evaluation](12-retrieval-evaluation.md) | `core_retrieval` — confirmation 대기 |
 | [14 packaging/hosts](14-packaging-and-host-integration.md) | `release_candidate` — 12 + 호스트 대기 |
 | [chi/RHF freeze](evidence/phase-07/dual-ai-calibration-freeze-r4.md) | 32케이스 닫힘 |
@@ -224,12 +234,12 @@ env -u VOYAGE_API_KEY go run ./cmd/cidx dev relations packaging \
 
 | 작업 | 이유 |
 | --- | --- |
-| 새 confirmation 코퍼스 | 오너가 저장소를 고름. 닫힌 32·40 재사용 불가 |
+| 새 confirmation 코퍼스 | 현재 순서에서는 하지 않음. Phase 12 promotion 확인은 별도 후속 |
 | Phase 12 공식 프로모션 | confirmation 없이 `core_retrieval` 불가 |
 | Phase 14 출시 후보 | 12 + 호스트/어시스턴트 증거 필요 |
 | 형제를 MCP에 올리기 | 별도 제품 설계 전까지 평가 계약만 |
 | 한 홉을 순위/role로 다시 맞추기 | 닫힌 세트 튜닝 |
-| 어시스턴트 A/B | 현재 게이트 아님 |
+| 어시스턴트 A/B | lexical 교정 완료 뒤의 다음 별도 평가 단위 |
 
 ---
 
@@ -237,12 +247,20 @@ env -u VOYAGE_API_KEY go run ./cmd/cidx dev relations packaging \
 
 핸드오프 [§5](evidence/revision-4/remaining-work-review-handoff-r4.md#5-owner-decisions-required-before-work-resumes)와 같다.
 
+현재 lexical 교정에는 남은 오너 결정이 없다. 다음 assistant A/B는 이미
+기존 chi/RHF로 진행하도록 방향이 정해졌다. 실행 전에 모델/버전, 동일
+프롬프트, 작업 정답, 도구 정책, 순서, 예산을 하나의 paired contract로
+고정하면 된다.
+
+아래 결정은 assistant A/B 이후의 별도 Phase 12/14 범위로 남는다.
+
 1. confirmation 저장소, 핀된 커밋, 라이선스
 2. 90쿼리 플로어(Go/TS/TSX 각 30 + hard-negative 18) 유지 여부
 3. 형제 4/4096을 나중에 MCP에 넣을지 (기본: 아니오)
-4. 어시스턴트 A/B를 Phase 14에서 다시 열지 (기본: 아니오)
 
-답이 오기 전에는 질문 작성, 코퍼스 클론, Voyage, 검색 코드 변경을 하지 않는다.
+위 Phase 12/14 결정은 assistant A/B의 선행조건이 아니다. 다만 그 결정을
+받기 전에는 새 confirmation 질문 작성, 코퍼스 클론, Voyage 실행, 추가
+검색 정책 튜닝을 시작하지 않는다.
 
 Confirmation을 돌리게 되면 절차는 핸드오프
 [§6](evidence/revision-4/remaining-work-review-handoff-r4.md#6-confirmation-intake-do-not-execute-yet).

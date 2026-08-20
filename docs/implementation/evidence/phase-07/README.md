@@ -1,10 +1,9 @@
 # Phase 07 Lexical Evaluation Evidence
 
 - Phase: `07-lexical-evaluation`
-- State: `in_progress` — prior calibration and packaging results remain
-  preserved; Phase 06 natural-language lexical remediation is complete and the
-  unchanged critical/general v2 questions now require new immutable runs before
-  assistant A/B.
+- State: `done` — prior calibration and packaging results remain preserved;
+  Phase 06 natural-language lexical remediation and the unchanged-v2
+  provider-free rerun are complete. Assistant A/B is a separate next unit.
 - Date: 2026-08-19
 
 Current product authority: [Retired Vector Profiles and Evidence Boundary](../../RETIRED-VECTOR-PROFILES.md).
@@ -22,6 +21,13 @@ all-token `AND`, separates symbol/path/descriptive FTS/dense lanes, records the
 ChatGPT/Grok advisory review, and defines candidate-admission metrics before
 ranking. Its Phase 06 implementation checkpoint is complete; it changes no
 previous run artifact.
+
+Current lexical rerun result: [planner v2 sequential correction and unchanged
+v2 rerun](natural-language-lexical-rerun-v2.md). The final clean run improves
+CompleteRequirementHit@5 from `10/44` to `30/44`, removes all 32 prior
+semantic/mixed candidate-zero outcomes, preserves every historical pass, and
+separates six candidate-depth losses from eight top-five displacements. It is
+calibration evidence, not assistant-use or promotion evidence.
 
 Current frozen calibration checkpoint: [dual-AI calibration freeze and
 provider-free replay — Revision 4](dual-ai-calibration-freeze-r4.md).
@@ -580,12 +586,11 @@ The focused tests cover portable/duplicate-field manifest rejection, local Git b
 
 ## Next action
 
-Preserve the existing v2 questions and all prior runs. Build the committed
-Phase 06 planner with clean VCS provenance, then rerun the same v2 questions
-under new immutable run IDs and report admission separately from ranking.
-Revalidate the changed lexical input at the Phase 11/13 integration boundary
-before assistant A/B. No Voyage call, new repository, question edit, or
-prior-result overwrite is authorized by this step.
+Preserve the existing v2 questions and all prior runs. The lexical remediation,
+clean-provenance rerun, and focused Phase 11/13 integration checks are complete.
+Prepare paired assistant A/B as a new immutable evaluation unit over the same
+existing repositories. No new repository, question edit, prior-result
+overwrite, or provider action is implied by this handoff.
 
 The ignored source-link review views are
 `.cidx/test/states/chi/evaluations/review/pass1-v2-chi-review.md` and

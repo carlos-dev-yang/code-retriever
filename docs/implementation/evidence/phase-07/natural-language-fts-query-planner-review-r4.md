@@ -8,11 +8,11 @@
 
 ## 1. Outcome
 
-The measured FTS failure is primarily a **candidate-admission defect** in the
-current query planner. It is not evidence that SQLite FTS5, lexical retrieval,
+The measured baseline FTS failure was primarily a **candidate-admission
+defect** in planner version 1. It is not evidence that SQLite FTS5, lexical retrieval,
 or the cidx MCP is generally useless.
 
-The current planner normalizes every query token and joins all tokens with
+The baseline planner normalized every query token and joined all tokens with
 `AND`. On the versioned 44-question calibration set, this admitted and completed
 10 of 12 lexical-anchor questions, but all 24 semantic-only questions and all 8
 mixed-signal questions returned zero FTS candidates. BM25 cannot rank a parent
@@ -52,8 +52,11 @@ The target is now implemented as lexical planner version 2:
   diagnostics.
 
 Focused normal/race tests, vet, CLI build, formatting, and diff validation
-passed. No real-corpus rerun or provider action is part of this implementation
-checkpoint; those remain Phase 07 work.
+passed. The subsequent unchanged-v2 real-corpus rerun is complete: candidate
+zero fell from `32/44` to `0/44`, CompleteRequirementHit@5 rose from `10/44`
+to `30/44`, and no historical pass regressed. See
+[the sequential rerun report](natural-language-lexical-rerun-v2.md). No
+provider action was used.
 
 ## 2. Evidence behind the diagnosis
 
@@ -84,7 +87,7 @@ problems:
 
 Those failures must no longer be interpreted through one FTS score.
 
-## 3. Current implementation and concrete defects
+## 3. Baseline implementation and concrete defects
 
 ### 3.1 One boolean shape for every query
 
@@ -421,19 +424,11 @@ safe default for unanalyzed agent prose.
 
 ## 12. Ordered next work
 
-1. Commit the completed Phase 06 planner and diagnostics so evaluation build
-   provenance records `vcs.modified=false`.
-2. Rerun the same chi/RHF v2 questions as new provider-free immutable runs.
-3. Compare old AND, new symbol/path/descriptive lanes, and their local union at
-   the admission and ranking stages. The old run is a historical baseline, not
-   overwritten output.
-4. Revalidate the Phase 11 RRF integration with the real run evidence; make no
-   paid query call without separate approval.
-5. Update the critical/general report using the new run IDs and the revised
-   stage scorecard.
-6. Prepare assistant A/B only after the new lexical behavior and limitations
-   are explicit. Assistant A/B remains the later test of marginal MCP
-   usefulness, source-reading reduction, answer correctness, and false leads.
+Steps 1–5 are complete. The final clean run and every intermediate diagnostic
+are preserved under distinct IDs and registered artifact hashes. The remaining
+next step is paired assistant A/B. It is a separate test of marginal MCP
+usefulness, source-reading reduction, answer correctness, and false leads; it
+must not be inferred from the lexical score alone.
 
 No new repository is required for this remediation. The existing approved chi
 and React Hook Form repositories are the calibration inputs requested by the

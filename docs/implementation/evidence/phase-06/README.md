@@ -60,9 +60,16 @@ also owns vector snapshot types for the already-existing hybrid path, so a
 transitive package listing includes `internal/vector`; this is not evidence of
 a vector scan or provider operation in FTS mode.
 
-The real chi/RHF result is deliberately not claimed here. Phase 07 must build
-this committed source with `vcs.modified=false` and create new immutable runs
-against the unchanged v2 questions.
+Phase 07 subsequently built the committed source with `vcs.modified=false` and
+created three preserved run pairs against the unchanged v2 questions. The
+first real preflight caught and rejected a missing indexed-source hash in the
+lexical artifact path; commit `dcdfd78` fixed that integration defect before
+any artifact was published. The next pair exposed missing PascalCase anchor
+recognition, and the final index-resolved weak-anchor correction at `2e1a270`
+avoided treating ordinary sentence-initial words as anchors. Final planner v2
+CompleteRequirementHit@5 is `30/44` versus the historical `10/44`, with zero
+candidate-zero queries and no prior-pass regression. Exact evidence is in
+[the sequential rerun report](../phase-07/natural-language-lexical-rerun-v2.md).
 
 ## Historical 2026-08-15 implementation contract
 

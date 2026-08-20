@@ -33,6 +33,30 @@
           "generation": 2,
           "artifact": ".cidx/test/states/chi-1024-int8/evaluations/chi-critical-general-v2-simple-2/simple-run.json",
           "artifact_sha256": "23b926b58f300d7f44b27eaa7a1cf777ce27bbc350d3aa7f367c397ae3cdbf43"
+        },
+        {
+          "run_id": "chi-critical-general-v2-lexical-planner-v2-1",
+          "arm": "lexical_planner_v2_pre_pascal_anchor",
+          "code_commit": "dcdfd7825978b73f60b7c59c74ad6b67ce8bb077",
+          "generation": 2,
+          "artifact": ".cidx/test/states/chi-1024-int8/evaluations/chi-critical-general-v2-lexical-planner-v2-1/run.json",
+          "artifact_sha256": "ac87741c73f864c49aa507e1d3c524b557cf1a3ccec5f269b7df5ca41ca0073b"
+        },
+        {
+          "run_id": "chi-critical-general-v2-lexical-planner-v2-2",
+          "arm": "lexical_planner_v2_eager_pascal_anchor",
+          "code_commit": "d352015eed3c2f5930719b20371b53cae591d6cd",
+          "generation": 2,
+          "artifact": ".cidx/test/states/chi-1024-int8/evaluations/chi-critical-general-v2-lexical-planner-v2-2/run.json",
+          "artifact_sha256": "b5b9295317f593fa4836466d0448e10a1d76cc9e8b500d8c10ce3decaa4b1aac"
+        },
+        {
+          "run_id": "chi-critical-general-v2-lexical-planner-v2-3",
+          "arm": "lexical_planner_v2",
+          "code_commit": "2e1a270631286015c768fda379c23924fea8a5a0",
+          "generation": 2,
+          "artifact": ".cidx/test/states/chi-1024-int8/evaluations/chi-critical-general-v2-lexical-planner-v2-3/run.json",
+          "artifact_sha256": "c4724b6b753538623005bbdb3e8a65deb233a05220e356ac34d8cc65a75f56ae"
         }
       ]
     },
@@ -63,6 +87,30 @@
           "generation": 2,
           "artifact": ".cidx/test/states/react-hook-form-1024-int8/evaluations/rhf-critical-general-v2-simple-2/simple-run.json",
           "artifact_sha256": "756ff026457d7ba6bfb0fc55409832f7e6cca4bd3a2c74842c316265ac419bdd"
+        },
+        {
+          "run_id": "rhf-critical-general-v2-lexical-planner-v2-1",
+          "arm": "lexical_planner_v2_pre_pascal_anchor",
+          "code_commit": "dcdfd7825978b73f60b7c59c74ad6b67ce8bb077",
+          "generation": 2,
+          "artifact": ".cidx/test/states/react-hook-form-1024-int8/evaluations/rhf-critical-general-v2-lexical-planner-v2-1/run.json",
+          "artifact_sha256": "4564ab63d915a79f3dc60375f12ded49b646207331e0379dae3e88f5d686f60d"
+        },
+        {
+          "run_id": "rhf-critical-general-v2-lexical-planner-v2-2",
+          "arm": "lexical_planner_v2_eager_pascal_anchor",
+          "code_commit": "d352015eed3c2f5930719b20371b53cae591d6cd",
+          "generation": 2,
+          "artifact": ".cidx/test/states/react-hook-form-1024-int8/evaluations/rhf-critical-general-v2-lexical-planner-v2-2/run.json",
+          "artifact_sha256": "61a1bef0534bbbd523c45c4a4b7a85677b94caf9ae6eb574e38d0ff050e2e8df"
+        },
+        {
+          "run_id": "rhf-critical-general-v2-lexical-planner-v2-3",
+          "arm": "lexical_planner_v2",
+          "code_commit": "2e1a270631286015c768fda379c23924fea8a5a0",
+          "generation": 2,
+          "artifact": ".cidx/test/states/react-hook-form-1024-int8/evaluations/rhf-critical-general-v2-lexical-planner-v2-3/run.json",
+          "artifact_sha256": "61eb323dfd3fbcaf6ce1871fbb414dc8c80178d967882d45ab9151a252481a28"
         }
       ]
     }
