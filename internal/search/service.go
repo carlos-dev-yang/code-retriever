@@ -32,7 +32,14 @@ func (service *Service) Search(ctx context.Context, request Request) (Response, 
 	if err != nil {
 		return Response{}, err
 	}
-	response := Response{RequestedMode: mode, EffectiveMode: mode, QueryTextFormatVersion: service.resolved.Search.QueryTextFormatVersion}
+	response := Response{
+		RequestedMode: mode, EffectiveMode: mode,
+		LexicalQueryPlannerVersion: service.resolved.Search.LexicalQueryPlannerVersion,
+		QueryTextFormatVersion:     service.resolved.Search.QueryTextFormatVersion,
+		QueryShape:                 string(normalized.Shape), LexicalBooleanForm: normalized.BooleanForm,
+		ExplicitAnchors: append([]string(nil), normalized.ExplicitAnchors...), PathAnchors: append([]string(nil), normalized.PathAnchors...),
+		SelectedDescriptiveTerms: append([]string(nil), normalized.SelectedDescriptiveTokens...), DroppedDescriptiveTerms: append([]string(nil), normalized.DroppedDescriptiveTokens...),
+	}
 	var query []float32
 	var queryPreflight HybridPreflight
 	if mode == ModeHybrid {
@@ -53,20 +60,26 @@ func (service *Service) Search(ctx context.Context, request Request) (Response, 
 			}
 		}
 	}
-	snapshotRequest := store.HybridSnapshotRequest{FTS: store.FTSSearchRequest{MatchExpression: normalized.MatchExpression, CandidateK: service.resolved.Search.CandidateK, SymbolWeight: service.resolved.Search.FTSSymbolWeight, BodyWeight: service.resolved.Search.FTSBodyWeight, ExactNormalizedSymbol: normalized.ExactSymbolCandidate}}
+	snapshotRequest := lexical.SnapshotRequest(normalized, service.resolved.Search, service.resolved.Search.CandidateK)
 	var snapshot store.HybridSearchSnapshot
 	if response.EffectiveMode == ModeFTS {
 		lexicalSnapshot, err := service.store.LexicalSearchSnapshot(ctx, snapshotRequest)
 		if err != nil {
 			return Response{}, err
 		}
-		snapshot = store.HybridSearchSnapshot{Applied: lexicalSnapshot.Applied, FTSCandidates: lexicalSnapshot.FTSCandidates, Chunks: lexicalSnapshot.Chunks}
+		snapshot = store.HybridSearchSnapshot{Applied: lexicalSnapshot.Applied, FTSCandidates: lexicalSnapshot.FTSCandidates, SymbolCandidates: lexicalSnapshot.SymbolCandidates, PathCandidates: lexicalSnapshot.PathCandidates, Chunks: lexicalSnapshot.Chunks}
 	} else {
 		snapshot, err = service.store.HybridSearchSnapshot(ctx, service.resolved, snapshotRequest)
 	}
 	if err != nil {
 		return Response{}, err
 	}
+	response.SymbolCandidateCount = len(snapshot.SymbolCandidates)
+	response.PathCandidateCount = len(snapshot.PathCandidates)
+	response.DescriptiveCandidateCount = len(snapshot.FTSCandidates)
+	snapshot.FTSCandidates = lexical.FuseLanes(snapshot.FTSCandidates, snapshot.SymbolCandidates, snapshot.PathCandidates, snapshot.Chunks, service.resolved.Search.RRFK, service.resolved.Search.CandidateK)
+	response.LexicalCandidateCount = len(snapshot.FTSCandidates)
+	response.LexicalCandidateZero = len(snapshot.FTSCandidates) == 0
 	populateSnapshot(&response, snapshot)
 	var vectors map[int64]vectorChunk
 	if response.EffectiveMode == ModeHybrid && query != nil {

@@ -1,9 +1,9 @@
 # 07. Lexical Chunking and Search Evaluation
 
-- Status: `in_progress` — create a new versioned critical/general question set
-  over the existing chi and React Hook Form repositories, preserve every
-  earlier question/run version, and execute new provider-free baselines.
-  Assistant A/B starts only after this bounded cohort report is complete.
+- Status: `in_progress` — the versioned critical/general v2 baseline is
+  preserved and Phase 06 remediation is complete. Rerun the unchanged v2
+  questions under new immutable run IDs and compare candidate admission,
+  lane contribution, and top-five ranking before assistant A/B.
 - Prerequisite phase: `06-fts-search`
 - Follow-up phase: `12-retrieval-evaluation`
 - Design basis: `local-code-search-mcp-v1-design-r4.md` §13, §14
@@ -17,6 +17,21 @@
 - Re-check these invariants after any context compaction: the user selects every open-source corpus; the tracked manifest pins identity, provenance, license, language slice, filters, and expected content; an ignored local binding or explicit CLI input alone supplies the checkout path; this phase never selects, downloads, or embeds a corpus absent exact user authorization; all compared runs record the same reproducibility inputs and report Go, TypeScript, TSX, and mixed denominators separately.
 - Stop if a required corpus manifest or local binding is missing, the checkout is dirty or differs from its pinned commit/hash, license or redistribution scope is unclear, an expected target is absent, or generation/config changes would make the run non-reproducible.
 - Before pausing, record executed evidence in §11, capture new architectural choices in §13, and update [STATUS.md](STATUS.md) with the exact next checklist item and unresolved stop condition.
+
+## 2026-08-20 lexical-admission remediation gate
+
+The current evidence does not establish that FTS cannot contribute to
+natural-language search. It establishes that the existing global all-token
+`AND` plan admitted zero candidates for every semantic-only and mixed-signal
+v2 question. The adopted diagnosis, external advisory review, target lane
+architecture, and revised metrics are recorded in
+[`natural-language-fts-query-planner-review-r4.md`](evidence/phase-07/natural-language-fts-query-planner-review-r4.md).
+
+The existing v2 questions and runs remain unchanged. Phase 06 is now fixed, so
+Phase 07 creates new immutable run IDs against the same v2 question version.
+Any change to question text, truth, requirements, or cohort assignments creates
+a new question-set version and preserves v2. Assistant A/B follows this rerun;
+it is not the next executable step.
 
 ## 2026-08-17 product-profile supersession
 
@@ -689,3 +704,4 @@ Phase 12 extends the shared Phase 07 `internal/eval` dataset, ground-truth, metr
 | Keep required failures in denominators. | Dropping failed observations inflates retrieval and operational metrics. | Never. |
 | Acquire only the two explicitly user-authorized public checkouts for this resume. | The user named commits, versions, licenses, and allowed local acquisition; this is a narrowly recorded exception to the default no-download rule. | Any corpus identity, commit, or authorization changes. |
 | Resume Phase 07 with real-data structural audit and behavior-cohort authoring before paid work. | The user prioritized measured corpus behavior over additional test scaffolding and fixed the first working profile to 1,024-byte segments, 1,024 serving dimensions, and binary storage. | The structural audit finds a canonical-input defect or the exact document-capture plan reaches its explicit approval gate. |
+| Reopen Phase 06 before interpreting the v2 FTS score or starting assistant A/B. | All 32 semantic/mixed v2 questions returned zero FTS candidates under global all-token `AND`; candidate admission failed before BM25 ranking. The owner directed independent symbol, path, descriptive FTS, and dense lanes with `AND` only for explicit same-result constraints. | The new planner is implemented, focused hybrid/MCP integration is revalidated, and new immutable provider-free v2 runs are recorded. |

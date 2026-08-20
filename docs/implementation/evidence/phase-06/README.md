@@ -1,8 +1,70 @@
 # Phase 06 Free FTS5 Search Evidence
 
 - Phase: `06-fts-search`
-- State: `complete; main-agent commit-boundary validation accepted`
-- Date: 2026-08-15
+- State: `done`
+- Original evidence date: 2026-08-15
+- Natural-language remediation date: 2026-08-20
+
+The checks below still prove safe MATCH construction, snapshot integrity,
+deterministic BM25, and provider-free execution. They do not prove a suitable
+natural-language query policy. The 44-question v2 diagnostic later showed that
+global all-token `AND` returned zero candidates for every semantic/mixed query.
+Current authority:
+[`natural-language-fts-query-planner-review-r4.md`](../phase-07/natural-language-fts-query-planner-review-r4.md).
+
+## 2026-08-20 remediation completion
+
+- `LexicalQueryPlannerVersion=2` is code-owned, validated in the immutable
+  resolved serving policy, and included in its semantic fingerprint. Changing
+  the planner changes serving identity but does not reindex or rematerialize.
+- The query planner infers `anchor`, `descriptive`, or `mixed`, deduplicates
+  normalized safe tokens, and emits only double-quoted letter/digit terms
+  joined by bounded `OR`. Raw text is never executable FTS grammar. No public
+  expert MATCH syntax or structured MUST field was added.
+- Exact/normalized qualified and short symbols, repository-relative paths,
+  and descriptive FTS now produce independent candidate orders inside the same
+  pinned SQLite read transaction. Each lane copies authoritative parent
+  metadata before the transaction closes.
+- Local lanes deduplicate by canonical chunk ID and fuse ordinal ranks using
+  the resolved RRF constant. BM25 remains descriptive-lane diagnostics only;
+  raw BM25 and vector similarity are never compared.
+- Hybrid retrieval consumes the same locally fused lexical order while dense
+  remains an independent exhaustive provider. FTS zero candidates therefore
+  do not cap dense recall.
+- The lexical evaluator records the planner version, inferred shape, safe
+  boolean form, selected terms, per-lane candidates and ranks, term coverage,
+  candidate-zero state, and local union size. MCP keeps exactly four tools and
+  exposes the same bounded diagnostics in `search` responses.
+
+Focused checks actually run from the working tree:
+
+```text
+gofmt -w <all directly changed Go paths>
+go test -count=1 ./internal/config ./internal/profile ./internal/symbol ./internal/store ./internal/search/lexical ./internal/search ./internal/eval ./internal/devlab ./internal/mcp
+go test -count=1 -race ./internal/config ./internal/symbol ./internal/store ./internal/search/lexical ./internal/search ./internal/eval ./internal/devlab ./internal/mcp
+go vet ./internal/config ./internal/profile ./internal/symbol ./internal/store ./internal/search/lexical ./internal/search ./internal/eval ./internal/devlab ./internal/mcp
+go build -o /tmp/cidx-phase06-review ./cmd/cidx
+gofmt -l internal/config internal/profile internal/symbol internal/store internal/search/lexical internal/search internal/eval internal/devlab internal/mcp
+git diff --check
+```
+
+All commands passed. Existing tests cover safe OR grammar, single lowercase
+and code-shaped symbol anchors, a path-only hit, absent-term tolerance,
+matched-term coverage, deterministic ordering, FTS corruption, the shared
+hybrid RRF input, inline-body rank invariance, evaluator diagnostics, and MCP
+serialization. No corpus evaluation, Voyage request, API-key access, paid
+operation, new repository, or broad full-project suite ran at this boundary.
+
+The lexical package has no direct provider or lab import. Its store dependency
+also owns vector snapshot types for the already-existing hybrid path, so a
+transitive package listing includes `internal/vector`; this is not evidence of
+a vector scan or provider operation in FTS mode.
+
+The real chi/RHF result is deliberately not claimed here. Phase 07 must build
+this committed source with `vcs.modified=false` and create new immutable runs
+against the unchanged v2 questions.
+
+## Historical 2026-08-15 implementation contract
 
 ## Implemented contract
 

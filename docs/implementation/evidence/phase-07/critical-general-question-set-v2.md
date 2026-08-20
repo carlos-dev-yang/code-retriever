@@ -6,6 +6,14 @@
 - Provider operations: zero
 - Evidence class: provider-free calibration diagnostic; not promotion evidence
 
+> **2026-08-20 interpretation update:** the 32 semantic/mixed zero-candidate
+> outcomes diagnose the planner used by these retained runs: global
+> all-token-`AND`. They do
+> not prove that FTS cannot contribute to natural-language retrieval. The
+> adopted remediation and revised scorecard are in
+> [Natural-Language FTS Query-Planner Review — Revision 4](natural-language-fts-query-planner-review-r4.md).
+> All question and run results below remain unchanged.
+
 ## 1. Version and provenance contract
 
 The earlier behavior and exact-identifier question files remain unchanged.
@@ -97,17 +105,20 @@ General task cohorts remain report-only:
 ## 5. Interpretation
 
 The taxonomy is useful. The global FTS result alone looks uniformly weak, but
-the critical split shows that FTS is effective for direct code anchors and is
-not a semantic retriever. The simple control recovers many semantic and mixed
+the critical split shows that the current planner works for many direct code
+anchors and fails to admit every semantic and mixed question. Because those 32
+queries returned zero candidates, this run cannot measure attainable BM25
+ranking quality for them. The simple control recovers many semantic and mixed
 questions, yet remains weak on contract disambiguation and only partially
 covers multi-requirement work. These are materially different failure modes
 that a single aggregate would hide.
 
 This is not a search-quality improvement claim: no retrieval algorithm or
 ranking policy changed. The improvement is in evaluation coverage and
-diagnostic precision. The result supports keeping FTS as a lexical lane and
-evaluating dense/hybrid contribution separately rather than expecting FTS to
-answer semantic questions.
+diagnostic precision. The result requires candidate admission and ranking to
+be measured separately. It supports keeping FTS as an independent lexical lane
+beside symbol, path, and dense candidates, not using it as a mandatory dense
+prefilter or expecting the current all-token query to answer agent prose.
 
 The question set is still a draft calibration diagnostic. Critical cohort
 sizes are uneven, the hard-negative denominator is one, and no new current-v2
@@ -117,9 +128,9 @@ thresholds or prove the MCP's assistant usefulness.
 
 ## 6. Handoff
 
-The next owner-directed step is the paired assistant A/B over the same existing
-Go and TypeScript/TSX repositories. It must pin the assistant model, prompt,
-tool set, question-set version, budgets, and run IDs, and compare existing
-tools versus existing tools plus cidx. This report and registry are inputs; the
-assistant experiment must create new immutable artifacts rather than modify
-these runs.
+Phase 06 natural-language lexical remediation is complete. The next
+owner-directed step is new provider-free runs over this unchanged v2 question
+set. Each run binds planner v2 and its serving-policy identity and records
+symbol, path, descriptive FTS, and local-union admission before final rank.
+Paired assistant A/B over the same repositories follows that rerun and must
+create new immutable artifacts rather than modify these results.

@@ -1,6 +1,6 @@
 # cidx v1 Evaluation and Promotion Contract
 
-- Status: normative; solo-project relevance authority revised 2026-08-17
+- Status: normative; natural-language lexical admission revised 2026-08-20
 - Applies to: Phases 00 through 14 wherever evidence, comparison, or promotion is required
 - Canonical product design: [Revision 4](../../local-code-search-mcp-v1-design-r4.md)
 - Phase index: [README](README.md)
@@ -67,7 +67,7 @@ The portable trace wire records one ordered observation for every planned stage.
 | Stage | Truth unit | Exact denominator | Required measurements |
 | --- | --- | --- | --- |
 | Source discovery and parser/chunker | Frozen eligible files and labeled eligible functions, methods, and types; exact source spans and bodies | File success: all eligible files. Construct recall: all labeled eligible constructs. Emission precision and fidelity: all emitted chunks in the reviewed slice | File success, construct recall, chunk precision, kind/symbol accuracy, byte/span/body fidelity, duplicate/overlap rate, unsupported-syntax classes, stale-row violations, clean-rebuild versus incremental equivalence |
-| FTS candidate retrieval | Gold parent chunks and requirement groups mapped to parent chunks | Hit/MRR: all required answerable queries. Recall/coverage: all gold parents or requirement groups. Known-hard-negative rate: all verified abstainable/hard-negative queries with reviewed misleading targets | Parent Hit@1/5, Recall@k, MRR, NDCG@k, requirement coverage, exact-identifier Hit@1, duplicate rate, known-hard-negative Hit@k, returned candidate count |
+| Local lexical candidate retrieval | Gold parent chunks and requirement groups mapped to parent chunks | Admission: every required query for each planned symbol, path, and descriptive-FTS lane. Hit/MRR: all required answerable queries. Recall/coverage: all gold parents or requirement groups. Known-hard-negative rate: all verified abstainable/hard-negative queries with reviewed misleading targets | Inferred query shape, selected/dropped terms, per-lane candidate count and zero rate, GoldParentCandidateRecall@k, RequiredGroupCandidateCoverage@k, exact-symbol/path Hit@1/@k, unique lane contribution, parent Hit@1/5, Recall@k, MRR, NDCG@k, requirement coverage, duplicate rate, known-hard-negative Hit@k |
 | Dense segment retrieval | Gold source spans mapped to acceptable dense segments and parents | Relevance metrics: all required dense-relevant queries/groups. Codec fidelity: serving-f32 top-k and fixed-depth ranked pairs | Segment and parent-availability Hit/Recall/MRR/NDCG, serving-f32 top-k retention, missing candidates, rank displacement, pairwise inversion, ties, relevance-gold retention, vector coverage |
 | Segment-to-parent collapse | Gold parents represented by pre-collapse dense segments | Survival: gold parents available before collapse. Alignment: all collapsed candidates. Parent retrieval: all query gold parents/groups | Parent Hit/Recall/MRR/NDCG, gold survival, segment-parent alignment, compression/dedup ratio, parent rank movement, relevant suppression, parent dominance |
 | RRF fusion | Gold parents in the FTS/dense candidate union | Survival: gold parents available in the union. Final retrieval: all required query groups. Contribution: all candidates and gold from each lane | Fused Hit/Recall/MRR/NDCG, per-lane survival, unique-gold contribution, overlap/disagreement, rescue/harm, lane-to-fused rank movement, tie rate, deterministic order |
@@ -283,6 +283,31 @@ NDCG@k = macro mean over the declared denominator
 ```
 
 Use unique parent IDs for parent metrics. Multiple matching segments from one parent do not earn additional gain.
+
+For a planned candidate lane `p`, let `Cp,q@k` be its unique parent candidates
+and `Gq` the frozen gold parents for query `q`:
+
+```text
+CandidateZero(p, q) = 1 when |Cp,q@k| = 0, else 0
+CandidateZeroRate(p) = sum_q(CandidateZero(p, q)) / all required queries planned for p
+
+GoldParentCandidateRecall@k(p, q) = |Gq intersect Cp,q@k| / |Gq|
+RequiredGroupCandidateCoverage@k(p, q) = satisfied requirement groups in Cp,q@k / all required groups
+```
+
+Record these before final top-k ranking. If no gold parent enters the frozen
+candidate depth, classify the lexical loss as candidate admission. If a gold
+parent is present at candidate depth but absent at `return_k`, classify it as
+rank/depth displacement. Do not merge both outcomes into an undifferentiated
+FTS miss.
+
+Runtime query planning derives `anchor | descriptive | mixed | empty` from
+safe syntax/token evidence; it never reads evaluation cohort labels. Global
+inferred-term `AND` is not the natural-language default. `AND` is reserved for
+explicit same-result constraints. Symbol, path, and descriptive FTS are
+independent local candidate lanes; dense remains a parallel provider and must
+not be gated by any lexical lane. The detailed remediation contract is
+[`natural-language-fts-query-planner-review-r4.md`](evidence/phase-07/natural-language-fts-query-planner-review-r4.md).
 
 For requirement groups:
 
@@ -527,7 +552,13 @@ Required evidence:
 Required evidence:
 
 - frozen calibration and confirmation datasets;
+- query-shape and selected-term diagnostics, with explicit anchor versus
+  descriptive treatment;
+- independent symbol, path, and descriptive-FTS candidate lists, zero rates,
+  gold-parent candidate recall, and required-group candidate coverage;
 - FTS-only per-language/cohort metrics and hard-negative behavior;
+- admission-conditional ranking metrics and distinct admission versus
+  rank/depth failure causes;
 - parent survival and indexed chunk/body fidelity before packaging;
 - first-loss report;
 - simple baseline versus FTS comparison;

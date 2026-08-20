@@ -40,7 +40,17 @@ func packageBodies(ctxDone func() error, ranked []rankedChunk, chunks map[int64]
 
 func hitFromRanked(item rankedChunk, chunk store.HybridChunk) Hit {
 	if item.fts != nil {
-		hit := Hit{ChunkID: item.chunkID, Path: chunk.Path, Language: chunk.Language, Kind: chunk.Kind, Symbol: chunk.Symbol, QualifiedSymbol: chunk.QualifiedSymbol, Signature: chunk.Signature, ParentRange: ByteLineRange{StartByte: chunk.StartByte, EndByte: chunk.EndByte, StartLine: chunk.StartLine, EndLine: chunk.EndLine}, IndexedSHA256: chunk.IndexedSHA256, LexicalRank: item.lexicalRank, VectorRank: item.vectorRank, FusedScore: item.fusedScore, ScoreSource: scoreSource(item)}
+		lexicalSources := make([]string, 0, 3)
+		if item.fts.SymbolRank > 0 {
+			lexicalSources = append(lexicalSources, "symbol")
+		}
+		if item.fts.PathRank > 0 {
+			lexicalSources = append(lexicalSources, "path")
+		}
+		if item.fts.DescriptiveRank > 0 {
+			lexicalSources = append(lexicalSources, "descriptive_fts")
+		}
+		hit := Hit{ChunkID: item.chunkID, Path: chunk.Path, Language: chunk.Language, Kind: chunk.Kind, Symbol: chunk.Symbol, QualifiedSymbol: chunk.QualifiedSymbol, Signature: chunk.Signature, ParentRange: ByteLineRange{StartByte: chunk.StartByte, EndByte: chunk.EndByte, StartLine: chunk.StartLine, EndLine: chunk.EndLine}, IndexedSHA256: chunk.IndexedSHA256, LexicalRank: item.lexicalRank, VectorRank: item.vectorRank, SymbolRank: item.fts.SymbolRank, PathRank: item.fts.PathRank, DescriptiveRank: item.fts.DescriptiveRank, SymbolMatchTier: item.fts.SymbolMatchTier, PathMatchTier: item.fts.PathMatchTier, MatchedTerms: item.fts.MatchedTerms, SelectedTerms: item.fts.SelectedTerms, LexicalScore: item.fts.LexicalScore, LexicalSources: lexicalSources, FusedScore: item.fusedScore, ScoreSource: scoreSource(item)}
 		if item.segment != nil {
 			value := segmentRange(chunk, *item.segment)
 			hit.MatchedSegment = &value

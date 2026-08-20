@@ -38,6 +38,10 @@ const (
 	DefaultMaxQueryBytes              = 8 << 10
 	DefaultMaxQueryTokens             = 64
 	DefaultMaxQueryTokenRunes         = 128
+	// LexicalQueryPlannerVersion identifies the deterministic natural-language
+	// lexical planning policy. It is runtime-only serving policy and never
+	// invalidates the local index or vectors.
+	LexicalQueryPlannerVersion = 2
 	// QueryTextFormatVersion is code-owned runtime policy. It identifies the
 	// deterministic bytes sent to the query embedding provider.
 	QueryTextFormatVersion = 1

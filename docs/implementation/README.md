@@ -10,8 +10,10 @@
   graph/search test is required-parent selection plus residual isolated noise
   with organized neighborhood packaging. Live packaging replay adopted
   evaluation-only sibling 4/4096 and rejected default one-hop push. Current
-  Phase 07 work versions a new critical/general question set over the existing
-  chi/RHF repositories and runs provider-free baselines before assistant A/B.
+  The Phase 07 critical/general v2 baseline is preserved. Its 32/32
+  semantic/mixed zero-candidate result reopened Phase 06; the all-token-AND
+  planner has now been replaced by independent symbol/path/descriptive lexical
+  lanes. The same v2 questions are the active rerun before assistant A/B.
   Official Phase 12 and release-candidate evidence remain separately gated
 - Canonical design: [Local Code Search MCP v1 Final Target Contract — Revision 4](../../local-code-search-mcp-v1-design-r4.md)
 - Earlier designs: [original](../../local-code-search-mcp-v1-design.md), [r1](../../local-code-search-mcp-v1-design-r1.md), [r2](../../local-code-search-mcp-v1-design-r2.md), [r3](../../local-code-search-mcp-v1-design-r3.md)
@@ -25,6 +27,7 @@
 - Persistent state: [Phase Status Ledger](STATUS.md)
 - Owner review index (packaging freeze + remaining work): [OWNER-REVIEW-INDEX.md](OWNER-REVIEW-INDEX.md)
 - Critical/general question-set v2 diagnostic: [critical-general-question-set-v2.md](evidence/phase-07/critical-general-question-set-v2.md)
+- Current lexical remediation: [natural-language FTS query-planner review](evidence/phase-07/natural-language-fts-query-planner-review-r4.md)
 - Remaining-work handoff: [remaining-work-review-handoff-r4.md](evidence/revision-4/remaining-work-review-handoff-r4.md)
 - Final corpus-independent review: [int8/source-profile implementation-to-design review](evidence/revision-4/int8-source-profile-final-review.md)
 - Last updated: 2026-08-20
@@ -96,8 +99,8 @@ Allowed states are `planned | in_progress | blocked | done`. A phase becomes `do
 | 03 | done | [Go chunker](03-go-chunker.md) | 02 | Go function, method, and type chunks/projections | [Evidence](03-go-chunker.md#11-completion-evidence) |
 | 04 | done | [TypeScript and TSX chunker](04-typescript-tsx-chunker.md) | 02 | Accepted path-derived retrieval labels and real-corpus overload correction; versioned full reindex handoff | [Evidence](evidence/phase-04/README.md) |
 | 05 | done | [Worktree indexing pipeline](05-worktree-index-pipeline.md) | 03, 04, reconciled 02 | Remove the chunk-cap contract, inject `target_segment_bytes`, preserve atomic local reindex, and safely rekey only current int8-equivalent legacy vectors | [Current int8 reproof](evidence/phase-05/int8-serving-key-reproof.md) and [historical R4 evidence](evidence/phase-05/revision-4.md) |
-| 06 | done | [FTS search](06-fts-search.md) | 05 | Contentless FTS, safe queries, BM25 chunk candidates | [Evidence](06-fts-search.md#11-completion-evidence) |
-| 07 | in_progress | [Lexical evaluation](07-lexical-evaluation.md) | 06, corrected 04 inventory, reconciled 02/08/09/11 | Preserve prior versions/runs; apply `critical-general-v1` to chi/RHF question-set v2; run new provider-free FTS/simple baselines before assistant A/B | [Phase 07 evidence](evidence/phase-07/README.md), [Packaging experiment](evidence/phase-07/relation-packaging-experiment-r4.md), and [frozen checkpoint](evidence/phase-07/dual-ai-calibration-freeze-r4.md) |
+| 06 | done | [FTS search](06-fts-search.md) | 05 | Safe OR planner plus independent symbol/path/descriptive candidate lanes, deterministic local parent fusion, and shared hybrid/MCP diagnostics | [Current and historical evidence](evidence/phase-06/README.md) and [remediation contract](evidence/phase-07/natural-language-fts-query-planner-review-r4.md) |
+| 07 | in_progress | [Lexical evaluation](07-lexical-evaluation.md) | revised 06, corrected 04 inventory, reconciled 02/08/09/11 | Preserve question/run versions; rerun unchanged chi/RHF v2 under the revised lexical planner with admission and ranking reported separately before assistant A/B | [Phase 07 evidence](evidence/phase-07/README.md), [v2 diagnostic](evidence/phase-07/critical-general-question-set-v2.md), and [planner review](evidence/phase-07/natural-language-fts-query-planner-review-r4.md) |
 | 08 | done | [Document source-vector bank](08-raw-embedding-lab.md) | reconciled 02, 05 | Split durable product 1024-f32 source storage from vector-free evaluation run/artifact state while retaining the shared synchronous executor | [Current source-bank evidence](evidence/phase-08/int8-source-bank-reconciliation.md) and [historical R4 evidence](evidence/phase-08/revision-4.md) |
 | 09 | done | [Vector materialization](09-vector-materialization.md) | reconciled 02, existing 01/05/08 | Int8-only 1024-default/512-optional transform, production v5 cache, atomic materialization, and direct scan boundary | [Current evidence](evidence/phase-09/int8-only-materialization-reconciliation.md) and [historical evidence](evidence/phase-09/README.md) |
 | 10 | done | [Embedding orchestration and reconciliation](10-embedding-orchestration-and-reconciliation.md) | reconciled 02/09, existing 05/08 | Source-bank-first Voyage document publication, provider-free source reuse, and provider-only request accounting | [Current evidence](evidence/phase-10/source-bank-first-document-publication.md) and [historical R4 evidence](evidence/phase-10/revision-4.md) |

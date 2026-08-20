@@ -180,7 +180,7 @@ func (searcher *SimpleSearcher) Search(ctx context.Context, request lexical.Requ
 			break
 		}
 		parent := candidate.parent
-		result.Hits = append(result.Hits, lexical.Hit{Path: parent.Path, IndexedSHA256: parent.IndexedSHA256, Language: parent.Language, Kind: parent.Kind, Symbol: parent.Symbol, QualifiedSymbol: parent.QualifiedSymbol, Signature: parent.Signature, StartByte: parent.StartByte, EndByte: parent.EndByte, StartLine: parent.StartLine, EndLine: parent.EndLine, BM25Rank: index + 1, ExactSymbolMatched: candidate.normalizedQualified == exact})
+		result.Hits = append(result.Hits, lexical.Hit{Path: parent.Path, IndexedSHA256: parent.IndexedSHA256, Language: parent.Language, Kind: parent.Kind, Symbol: parent.Symbol, QualifiedSymbol: parent.QualifiedSymbol, Signature: parent.Signature, StartByte: parent.StartByte, EndByte: parent.EndByte, StartLine: parent.StartLine, EndLine: parent.EndLine, LexicalRank: index + 1, ExactSymbolMatched: candidate.normalizedQualified == exact})
 	}
 	return result, nil
 }
@@ -311,7 +311,7 @@ func (runner SimpleRunner) Run(ctx context.Context, dataset EvaluationDataset) (
 		}
 		row := SimpleRankedCase{Metrics: simpleMetrics(metrics), CandidateCount: found.CandidateCount}
 		for _, hit := range found.Hits {
-			row.Hits = append(row.Hits, RankedHit{Path: hit.Path, IndexedSHA256: hit.IndexedSHA256, Kind: hit.Kind, QualifiedSymbol: hit.QualifiedSymbol, StartByte: hit.StartByte, EndByte: hit.EndByte, Rank: hit.BM25Rank})
+			row.Hits = append(row.Hits, RankedHit{Path: hit.Path, IndexedSHA256: hit.IndexedSHA256, Kind: hit.Kind, QualifiedSymbol: hit.QualifiedSymbol, StartByte: hit.StartByte, EndByte: hit.EndByte, Rank: hit.LexicalRank})
 		}
 		results = append(results, row)
 	}

@@ -18,6 +18,14 @@ type FTSSearchRequest struct {
 	SymbolWeight          float64
 	BodyWeight            float64
 	ExactNormalizedSymbol string
+	SelectedTokens        []string
+}
+
+// LexicalAnchor is an internal, data-only equality/normalization probe. Raw
+// and Normalized are always bound SQL values; neither is executable grammar.
+type LexicalAnchor struct {
+	Raw        string
+	Normalized string
 }
 
 type FTSSnapshot struct {
@@ -142,6 +150,7 @@ type FTSCandidate struct {
 	Signature                                                    string
 	StartByte, EndByte, StartLine, EndLine                       int
 	BM25Score                                                    float64
+	MatchedTerms, SelectedTerms                                  int
 	ExactQualifiedSymbol                                         bool
 }
 

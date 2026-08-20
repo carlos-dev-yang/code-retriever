@@ -219,7 +219,7 @@ func retrieval(ctx context.Context, args []string, stdout, stderr io.Writer) err
 	inventoryOnly := flags.Bool("inventory-only", false, "write a source-body-free lexical truth-inventory packet without executing a dataset")
 	runID := flags.String("run-id", "", "fresh lexical artifact identifier")
 	apply := flags.Bool("apply", false, "perform authorized Voyage query embedding search")
-	ftsPolicyID := flags.String("fts-policy", "production", "production or safe-token-or-v1 (development retrieval evaluation only)")
+	ftsPolicyID := flags.String("fts-policy", "production", "production or safe-token-or-v2 (development retrieval evaluation only)")
 	evidenceClass := flags.String("evidence-class", "", "CALIBRATION_POOL_BUILDING or RELATION_CALIBRATION_POOL_BUILDING")
 	experimentSeriesID := flags.String("experiment-series", "", "immutable experiment-series identity")
 	seriesQueryOperations := flags.Int("series-query-operations", 0, "total logical query operations across the experiment series")
@@ -249,14 +249,14 @@ func retrieval(ctx context.Context, args []string, stdout, stderr io.Writer) err
 	if (*mode == "lexical" || *mode == "simple") && experimentalFlagsSet {
 		return fmt.Errorf("experiment flags require --mode retrieval")
 	}
-	if *ftsPolicyID != "production" && *ftsPolicyID != "safe-token-or-v1" {
-		return fmt.Errorf("--fts-policy must be production or safe-token-or-v1")
+	if *ftsPolicyID != "production" && *ftsPolicyID != "safe-token-or-v2" {
+		return fmt.Errorf("--fts-policy must be production or safe-token-or-v2")
 	}
 	if *evidenceClass != "" && *evidenceClass != "CALIBRATION_POOL_BUILDING" && *evidenceClass != "RELATION_CALIBRATION_POOL_BUILDING" {
 		return fmt.Errorf("--evidence-class must be CALIBRATION_POOL_BUILDING or RELATION_CALIBRATION_POOL_BUILDING")
 	}
 	if *mode == "retrieval" && *ftsPolicyID == "production" && experimentalFlagsSet && *evidenceClass != "RELATION_CALIBRATION_POOL_BUILDING" {
-		return fmt.Errorf("experiment metadata requires --fts-policy safe-token-or-v1")
+		return fmt.Errorf("experiment metadata requires --fts-policy safe-token-or-v2")
 	}
 	var sourceRoot, stateRoot, controllerRoot string
 	customWorkspace := *sourceDir != "" || *stateDir != ""
@@ -311,7 +311,7 @@ func retrieval(ctx context.Context, args []string, stdout, stderr io.Writer) err
 	}
 	defer raw.Close()
 	experiment := RetrievalExperimentOptions{}
-	if *ftsPolicyID == "safe-token-or-v1" {
+	if *ftsPolicyID == "safe-token-or-v2" {
 		policy, err := search.SafeTokenOREvaluationPolicy(application.Resolved)
 		if err != nil {
 			return err

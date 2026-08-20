@@ -29,8 +29,24 @@ type LexicalRunner struct {
 }
 type RankedCase struct {
 	CaseResult
-	Hits  []RankedHit             `json:"hits"`
-	Trace evalcontract.StageTrace `json:"trace"`
+	Hits           []RankedHit             `json:"hits"`
+	Diagnostics    LexicalDiagnostics      `json:"lexical_diagnostics"`
+	CandidateLanes lexical.CandidateLanes  `json:"candidate_lanes"`
+	Trace          evalcontract.StageTrace `json:"trace"`
+}
+
+type LexicalDiagnostics struct {
+	QueryShape                string   `json:"query_shape"`
+	ExplicitAnchors           []string `json:"explicit_anchors"`
+	PathAnchors               []string `json:"path_anchors"`
+	SelectedDescriptiveTerms  []string `json:"selected_descriptive_terms"`
+	DroppedDescriptiveTerms   []string `json:"dropped_descriptive_terms"`
+	BooleanForm               string   `json:"boolean_form"`
+	SymbolCandidateCount      int      `json:"symbol_candidate_count"`
+	PathCandidateCount        int      `json:"path_candidate_count"`
+	DescriptiveCandidateCount int      `json:"descriptive_candidate_count"`
+	UnionCandidateCount       int      `json:"union_candidate_count"`
+	CandidateZero             bool     `json:"candidate_zero"`
 }
 
 type LexicalRun struct {
@@ -62,6 +78,11 @@ type RankedHit struct {
 	StartByte       int    `json:"start_byte"`
 	EndByte         int    `json:"end_byte"`
 	Rank            int    `json:"rank"`
+	SymbolRank      int    `json:"symbol_rank"`
+	PathRank        int    `json:"path_rank"`
+	DescriptiveRank int    `json:"descriptive_rank"`
+	MatchedTerms    int    `json:"matched_terms"`
+	SelectedTerms   int    `json:"selected_terms"`
 }
 
 // Run calls the production lexical API only. It retains execution failures as
@@ -107,12 +128,12 @@ func (runner LexicalRunner) Run(ctx context.Context, dataset EvaluationDataset) 
 		if metricErr != nil {
 			return LexicalRun{}, metricErr
 		}
-		row := RankedCase{CaseResult: result, Trace: lexicalTrace(query, found, searchErr)}
+		row := RankedCase{CaseResult: result, Diagnostics: copyLexicalDiagnostics(found.Diagnostics), CandidateLanes: found.CandidateLanes, Trace: lexicalTrace(query, found, searchErr)}
 		if err := row.Trace.Validate(); err != nil {
 			return LexicalRun{}, fmt.Errorf("build stage trace: %w", err)
 		}
 		for _, hit := range found.Hits {
-			row.Hits = append(row.Hits, RankedHit{Path: hit.Path, IndexedSHA256: hit.IndexedSHA256, Kind: hit.Kind, QualifiedSymbol: hit.QualifiedSymbol, StartByte: hit.StartByte, EndByte: hit.EndByte, Rank: hit.BM25Rank})
+			row.Hits = append(row.Hits, RankedHit{Path: hit.Path, IndexedSHA256: hit.IndexedSHA256, Kind: hit.Kind, QualifiedSymbol: hit.QualifiedSymbol, StartByte: hit.StartByte, EndByte: hit.EndByte, Rank: hit.LexicalRank, SymbolRank: hit.SymbolRank, PathRank: hit.PathRank, DescriptiveRank: hit.DescriptiveRank, MatchedTerms: hit.MatchedTerms, SelectedTerms: hit.SelectedTerms})
 		}
 		results = append(results, row)
 	}
@@ -122,6 +143,15 @@ func (runner LexicalRunner) Run(ctx context.Context, dataset EvaluationDataset) 
 		metrics[i] = results[i].CaseResult
 	}
 	return LexicalRun{Generation: inventory.Generation, ManifestSHA256: inventory.ManifestSHA256, Results: results, Summary: Summarize(metrics, runner.Ks), Ks: norm(runner.Ks)}, nil
+}
+
+func copyLexicalDiagnostics(value lexical.Diagnostics) LexicalDiagnostics {
+	return LexicalDiagnostics{
+		QueryShape: string(value.QueryShape), ExplicitAnchors: append([]string(nil), value.ExplicitAnchors...), PathAnchors: append([]string(nil), value.PathAnchors...),
+		SelectedDescriptiveTerms: append([]string(nil), value.SelectedDescriptiveTokens...), DroppedDescriptiveTerms: append([]string(nil), value.DroppedDescriptiveTokens...),
+		BooleanForm: value.BooleanForm, SymbolCandidateCount: value.SymbolCandidateCount, PathCandidateCount: value.PathCandidateCount,
+		DescriptiveCandidateCount: value.DescriptiveCandidateCount, UnionCandidateCount: value.UnionCandidateCount, CandidateZero: value.CandidateZero,
+	}
 }
 
 func lexicalTrace(evaluationCase evalcontract.EvaluationCase, found lexical.Result, searchErr error) evalcontract.StageTrace {
@@ -346,10 +376,32 @@ func validateRankedCase(result RankedCase, ks []int) error {
 	if !failed && result.Trace.TerminalState != evalcontract.TerminalComplete {
 		return fmt.Errorf("inconsistent complete case")
 	}
+	if result.Diagnostics.QueryShape != "" {
+		if result.Diagnostics.QueryShape != "anchor" && result.Diagnostics.QueryShape != "descriptive" && result.Diagnostics.QueryShape != "mixed" {
+			return fmt.Errorf("invalid lexical query shape")
+		}
+		if result.Diagnostics.BooleanForm != "OR" || result.Diagnostics.SymbolCandidateCount != len(result.CandidateLanes.Symbol) || result.Diagnostics.PathCandidateCount != len(result.CandidateLanes.Path) || result.Diagnostics.DescriptiveCandidateCount != len(result.CandidateLanes.Descriptive) || result.Diagnostics.UnionCandidateCount < 0 || result.Diagnostics.CandidateZero != (result.Diagnostics.UnionCandidateCount == 0) {
+			return fmt.Errorf("inconsistent lexical diagnostics")
+		}
+		for _, lane := range [][]lexical.LaneCandidate{result.CandidateLanes.Symbol, result.CandidateLanes.Path, result.CandidateLanes.Descriptive} {
+			if err := validateLaneCandidates(lane); err != nil {
+				return err
+			}
+		}
+	}
 	fts := result.Trace.Observations[2]
 	for _, group := range fts.GroupObservations {
 		if !group.Present && group.FirstLoss != result.FirstLoss {
 			return fmt.Errorf("first loss disagrees with trace")
+		}
+	}
+	return nil
+}
+
+func validateLaneCandidates(values []lexical.LaneCandidate) error {
+	for index, value := range values {
+		if !validRelative(value.Path, false) || !validSHA256(value.IndexedSHA256) || value.Kind == "" || value.QualifiedSymbol == "" || value.StartByte < 0 || value.EndByte <= value.StartByte || value.Rank != index+1 || value.MatchTier < 0 || value.MatchedTerms < 0 || value.SelectedTerms < value.MatchedTerms {
+			return fmt.Errorf("invalid lexical lane candidate")
 		}
 	}
 	return nil

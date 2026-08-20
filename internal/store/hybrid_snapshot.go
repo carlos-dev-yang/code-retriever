@@ -4,7 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"sort"
+	"strings"
 	"time"
+	"unicode"
 
 	"cidx/internal/config"
 	"cidx/internal/vector"
@@ -13,9 +16,11 @@ import (
 // LexicalSearchSnapshot is intentionally light: it neither reads active
 // segments nor vector rows, so malformed vector state cannot alter FTS.
 type LexicalSearchSnapshot struct {
-	Applied       config.AppliedProfiles
-	FTSCandidates []HybridFTSCandidate
-	Chunks        map[int64]HybridChunk
+	Applied          config.AppliedProfiles
+	FTSCandidates    []HybridFTSCandidate
+	SymbolCandidates []HybridSymbolCandidate
+	PathCandidates   []HybridPathCandidate
+	Chunks           map[int64]HybridChunk
 }
 
 // HybridPreflightSnapshot validates active referenced vector rows before a
@@ -78,7 +83,11 @@ func (store *ProductionStore) HybridPreflightSnapshot(ctx context.Context, resol
 	return out, nil
 }
 
-type HybridSnapshotRequest struct{ FTS FTSSearchRequest }
+type HybridSnapshotRequest struct {
+	FTS           FTSSearchRequest
+	SymbolAnchors []LexicalAnchor
+	PathAnchors   []LexicalAnchor
+}
 
 // HybridSearchSnapshot is one immutable pinned view. Chunks and vector keys
 // are copied once; segments only point to those two maps.
@@ -86,6 +95,8 @@ type HybridSearchSnapshot struct {
 	Applied             config.AppliedProfiles
 	ProfileMatches      bool
 	FTSCandidates       []HybridFTSCandidate
+	SymbolCandidates    []HybridSymbolCandidate
+	PathCandidates      []HybridPathCandidate
 	Chunks              map[int64]HybridChunk
 	Segments            []HybridSegment
 	Vectors             map[string]vector.StoredVector
@@ -94,7 +105,29 @@ type HybridSearchSnapshot struct {
 	InvalidVectorRows   bool
 }
 
-type HybridFTSCandidate struct{ FTSCandidate }
+// HybridFTSCandidate is the canonical lexical-parent record consumed by the
+// existing lexical-vs-dense RRF stage. Before local fusion it represents the
+// descriptive lane; after fusion the rank fields record every contributing
+// local lane while FTSCandidate retains descriptive BM25 diagnostics.
+type HybridFTSCandidate struct {
+	FTSCandidate
+	LexicalScore                           float64
+	SymbolRank, PathRank, DescriptiveRank  int
+	SymbolMatchTier, PathMatchTier         int
+	SymbolAnchorMatched, PathAnchorMatched string
+}
+
+type HybridSymbolCandidate struct {
+	ChunkID       int64
+	MatchTier     int
+	MatchedAnchor string
+}
+
+type HybridPathCandidate struct {
+	ChunkID       int64
+	MatchTier     int
+	MatchedAnchor string
+}
 
 type HybridChunk struct {
 	ID                                                       int64
@@ -127,17 +160,25 @@ func (store *ProductionStore) LexicalSearchSnapshot(ctx context.Context, request
 	if err != nil {
 		return LexicalSearchSnapshot{}, err
 	}
+	symbols, err := loadSymbolCandidates(ctx, tx, request.SymbolAnchors, request.FTS.CandidateK, chunks)
+	if err != nil {
+		return LexicalSearchSnapshot{}, err
+	}
+	paths, err := loadPathCandidates(ctx, tx, request.PathAnchors, request.FTS.CandidateK, chunks)
+	if err != nil {
+		return LexicalSearchSnapshot{}, err
+	}
 	if err := tx.Commit(); err != nil {
 		return LexicalSearchSnapshot{}, err
 	}
-	return LexicalSearchSnapshot{Applied: applied, FTSCandidates: candidates, Chunks: chunks}, nil
+	return LexicalSearchSnapshot{Applied: applied, FTSCandidates: candidates, SymbolCandidates: symbols, PathCandidates: paths, Chunks: chunks}, nil
 }
 
 func (store *ProductionStore) HybridSearchSnapshot(ctx context.Context, resolved config.ResolvedConfig, request HybridSnapshotRequest) (HybridSearchSnapshot, error) {
 	if err := validateSnapshotRequest(request); err != nil {
 		return HybridSearchSnapshot{}, err
 	}
-	return store.vectorSnapshot(ctx, resolved, &request.FTS)
+	return store.vectorSnapshot(ctx, resolved, &request)
 }
 
 // VectorSearchSnapshot loads the authoritative active vector/segment/parent
@@ -147,7 +188,7 @@ func (store *ProductionStore) VectorSearchSnapshot(ctx context.Context, resolved
 	return store.vectorSnapshot(ctx, resolved, nil)
 }
 
-func (store *ProductionStore) vectorSnapshot(ctx context.Context, resolved config.ResolvedConfig, ftsRequest *FTSSearchRequest) (HybridSearchSnapshot, error) {
+func (store *ProductionStore) vectorSnapshot(ctx context.Context, resolved config.ResolvedConfig, lexicalRequest *HybridSnapshotRequest) (HybridSearchSnapshot, error) {
 	tx, err := store.Read.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
 		return HybridSearchSnapshot{}, err
@@ -158,14 +199,22 @@ func (store *ProductionStore) vectorSnapshot(ctx context.Context, resolved confi
 		return HybridSearchSnapshot{}, err
 	}
 	out := HybridSearchSnapshot{Applied: applied, ProfileMatches: profilesMatch(resolved, applied), Chunks: map[int64]HybridChunk{}, Vectors: map[string]vector.StoredVector{}}
-	if ftsRequest != nil {
-		fts, chunks, err := loadFTSCandidates(ctx, tx, *ftsRequest, out.Chunks)
+	if lexicalRequest != nil {
+		fts, chunks, err := loadFTSCandidates(ctx, tx, lexicalRequest.FTS, out.Chunks)
 		if err != nil {
 			return HybridSearchSnapshot{}, err
 		}
 		out.FTSCandidates = fts
 		for id, chunk := range chunks {
 			out.Chunks[id] = chunk
+		}
+		out.SymbolCandidates, err = loadSymbolCandidates(ctx, tx, lexicalRequest.SymbolAnchors, lexicalRequest.FTS.CandidateK, out.Chunks)
+		if err != nil {
+			return HybridSearchSnapshot{}, err
+		}
+		out.PathCandidates, err = loadPathCandidates(ctx, tx, lexicalRequest.PathAnchors, lexicalRequest.FTS.CandidateK, out.Chunks)
+		if err != nil {
+			return HybridSearchSnapshot{}, err
 		}
 	}
 	rows, err := tx.QueryContext(ctx, `SELECT s.id,s.chunk_id,s.canonical_input_sha256,s.display_start_byte,s.display_end_byte FROM embedding_segments s JOIN meta m ON m.id=1 WHERE s.serving_profile=m.active_serving_profile ORDER BY s.id`)
@@ -270,6 +319,18 @@ func validateSnapshotRequest(request HybridSnapshotRequest) error {
 	if request.FTS.MatchExpression == "" || request.FTS.CandidateK <= 0 || !finitePositive(request.FTS.SymbolWeight) || !finitePositive(request.FTS.BodyWeight) {
 		return fmt.Errorf("invalid hybrid snapshot request")
 	}
+	for _, token := range request.FTS.SelectedTokens {
+		if !safeLexicalToken(token) {
+			return fmt.Errorf("invalid descriptive token")
+		}
+	}
+	for _, anchors := range [][]LexicalAnchor{request.SymbolAnchors, request.PathAnchors} {
+		for _, anchor := range anchors {
+			if anchor.Raw == "" || anchor.Normalized == "" {
+				return fmt.Errorf("invalid lexical anchor")
+			}
+		}
+	}
 	return nil
 }
 
@@ -278,7 +339,6 @@ func loadFTSCandidates(ctx context.Context, tx *sql.Tx, request FTSSearchRequest
 	if err != nil {
 		return nil, nil, fmt.Errorf("FTS query failed: %w", err)
 	}
-	defer rows.Close()
 	chunks, result := map[int64]HybridChunk{}, []HybridFTSCandidate{}
 	for rows.Next() {
 		var item HybridFTSCandidate
@@ -286,14 +346,17 @@ func loadFTSCandidates(ctx context.Context, tx *sql.Tx, request FTSSearchRequest
 		var body []byte
 		var sha string
 		if err := rows.Scan(&item.ChunkID, &item.BM25Score, &orphaned, &item.Path, &item.Language, &item.Kind, &item.Symbol, &item.QualifiedSymbol, &item.Signature, &item.StartByte, &item.EndByte, &item.StartLine, &item.EndLine, &body, &sha, &exact); err != nil {
+			rows.Close()
 			return nil, nil, err
 		}
 		if orphaned != 0 {
+			rows.Close()
 			return nil, nil, fmt.Errorf("%w: FTS row %d has no authoritative chunk", ErrIndexCorrupt, item.ChunkID)
 		}
 		item.ExactQualifiedSymbol = exact != 0
 		chunk := HybridChunk{ID: item.ChunkID, Path: item.Path, Language: item.Language, Kind: item.Kind, Symbol: item.Symbol, QualifiedSymbol: item.QualifiedSymbol, Signature: item.Signature, StartByte: item.StartByte, EndByte: item.EndByte, StartLine: item.StartLine, EndLine: item.EndLine, SourceBody: append([]byte(nil), body...), IndexedSHA256: sha}
 		if err := validateChunk(chunk); err != nil {
+			rows.Close()
 			return nil, nil, err
 		}
 		if known, ok := existing[item.ChunkID]; ok {
@@ -303,9 +366,243 @@ func loadFTSCandidates(ctx context.Context, tx *sql.Tx, request FTSSearchRequest
 		result = append(result, item)
 	}
 	if err := rows.Err(); err != nil {
+		rows.Close()
+		return nil, nil, err
+	}
+	if err := rows.Close(); err != nil {
+		return nil, nil, err
+	}
+	if err := loadMatchedTermCounts(ctx, tx, request.SelectedTokens, result); err != nil {
 		return nil, nil, err
 	}
 	return result, chunks, nil
+}
+
+func loadMatchedTermCounts(ctx context.Context, tx *sql.Tx, tokens []string, candidates []HybridFTSCandidate) error {
+	if len(tokens) == 0 || len(candidates) == 0 {
+		return nil
+	}
+	byID := make(map[int64]int, len(candidates))
+	placeholders := make([]string, len(candidates))
+	for index := range candidates {
+		byID[candidates[index].ChunkID] = index
+		placeholders[index] = "?"
+		candidates[index].SelectedTerms = len(tokens)
+	}
+	query := `SELECT rowid FROM chunk_fts WHERE chunk_fts MATCH ? AND rowid IN (` + strings.Join(placeholders, ",") + `)`
+	for _, token := range tokens {
+		arguments := make([]any, 0, len(candidates)+1)
+		arguments = append(arguments, `"`+token+`"`)
+		for _, candidate := range candidates {
+			arguments = append(arguments, candidate.ChunkID)
+		}
+		rows, err := tx.QueryContext(ctx, query, arguments...)
+		if err != nil {
+			return err
+		}
+		for rows.Next() {
+			var chunkID int64
+			if err := rows.Scan(&chunkID); err != nil {
+				rows.Close()
+				return err
+			}
+			candidateIndex, exists := byID[chunkID]
+			if !exists {
+				rows.Close()
+				return fmt.Errorf("unexpected FTS coverage row")
+			}
+			candidates[candidateIndex].MatchedTerms++
+		}
+		if err := rows.Err(); err != nil {
+			rows.Close()
+			return err
+		}
+		if err := rows.Close(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func safeLexicalToken(token string) bool {
+	if token == "" {
+		return false
+	}
+	for _, r := range token {
+		if !unicode.IsLetter(r) && !unicode.IsDigit(r) {
+			return false
+		}
+	}
+	return true
+}
+
+type orderedSymbolCandidate struct {
+	HybridSymbolCandidate
+	anchorOrder int
+}
+
+func loadSymbolCandidates(ctx context.Context, tx *sql.Tx, anchors []LexicalAnchor, candidateK int, chunks map[int64]HybridChunk) ([]HybridSymbolCandidate, error) {
+	best := make(map[int64]orderedSymbolCandidate)
+	for anchorIndex, anchor := range anchors {
+		rows, err := tx.QueryContext(ctx, `
+			SELECT CASE
+			         WHEN s.original_name=? AND s.original_name=c.qualified_symbol THEN 1
+			         WHEN s.original_name=? AND s.original_name=c.symbol THEN 2
+			         WHEN s.normalized_name=? AND s.original_name=c.qualified_symbol THEN 3
+			         WHEN s.normalized_name=? AND s.original_name=c.symbol THEN 4
+			         ELSE 5
+			       END AS match_tier,
+			       c.id,f.path,f.language,c.kind,c.symbol,c.qualified_symbol,c.signature,
+			       c.start_byte,c.end_byte,c.start_line,c.end_line,c.source_body,f.indexed_sha256
+			FROM symbols s JOIN chunks c ON c.id=s.chunk_id JOIN files f ON f.id=c.file_id
+			WHERE s.original_name=? OR s.normalized_name=?
+			ORDER BY match_tier,f.path,c.qualified_symbol,c.start_byte,c.id
+			LIMIT ?`, anchor.Raw, anchor.Raw, anchor.Normalized, anchor.Normalized, anchor.Raw, anchor.Normalized, candidateK)
+		if err != nil {
+			return nil, err
+		}
+		for rows.Next() {
+			var tier int
+			var chunk HybridChunk
+			if err := rows.Scan(&tier, &chunk.ID, &chunk.Path, &chunk.Language, &chunk.Kind, &chunk.Symbol, &chunk.QualifiedSymbol, &chunk.Signature, &chunk.StartByte, &chunk.EndByte, &chunk.StartLine, &chunk.EndLine, &chunk.SourceBody, &chunk.IndexedSHA256); err != nil {
+				rows.Close()
+				return nil, err
+			}
+			if err := validateChunk(chunk); err != nil {
+				rows.Close()
+				return nil, err
+			}
+			chunk.SourceBody = append([]byte(nil), chunk.SourceBody...)
+			chunks[chunk.ID] = chunk
+			candidate := orderedSymbolCandidate{HybridSymbolCandidate: HybridSymbolCandidate{ChunkID: chunk.ID, MatchTier: tier, MatchedAnchor: anchor.Normalized}, anchorOrder: anchorIndex}
+			known, exists := best[chunk.ID]
+			if !exists || symbolCandidateBefore(candidate, known, chunks) {
+				best[chunk.ID] = candidate
+			}
+		}
+		if err := rows.Err(); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		if err := rows.Close(); err != nil {
+			return nil, err
+		}
+	}
+	ordered := make([]orderedSymbolCandidate, 0, len(best))
+	for _, candidate := range best {
+		ordered = append(ordered, candidate)
+	}
+	sort.Slice(ordered, func(i, j int) bool { return symbolCandidateBefore(ordered[i], ordered[j], chunks) })
+	if len(ordered) > candidateK {
+		ordered = ordered[:candidateK]
+	}
+	result := make([]HybridSymbolCandidate, len(ordered))
+	for index := range ordered {
+		result[index] = ordered[index].HybridSymbolCandidate
+	}
+	return result, nil
+}
+
+func symbolCandidateBefore(left, right orderedSymbolCandidate, chunks map[int64]HybridChunk) bool {
+	if left.MatchTier != right.MatchTier {
+		return left.MatchTier < right.MatchTier
+	}
+	if left.anchorOrder != right.anchorOrder {
+		return left.anchorOrder < right.anchorOrder
+	}
+	return chunkBefore(chunks[left.ChunkID], chunks[right.ChunkID])
+}
+
+type orderedPathCandidate struct {
+	HybridPathCandidate
+	anchorOrder int
+}
+
+func loadPathCandidates(ctx context.Context, tx *sql.Tx, anchors []LexicalAnchor, candidateK int, chunks map[int64]HybridChunk) ([]HybridPathCandidate, error) {
+	best := make(map[int64]orderedPathCandidate)
+	for anchorIndex, anchor := range anchors {
+		suffixPattern := "%/" + escapeLike(anchor.Raw)
+		normalizedPattern := "%" + strings.Join(strings.Fields(anchor.Normalized), "%") + "%"
+		rows, err := tx.QueryContext(ctx, `
+			SELECT CASE WHEN f.path=? THEN 1 WHEN f.path LIKE ? ESCAPE '!' THEN 2 ELSE 3 END AS match_tier,
+			       c.id,f.path,f.language,c.kind,c.symbol,c.qualified_symbol,c.signature,
+			       c.start_byte,c.end_byte,c.start_line,c.end_line,c.source_body,f.indexed_sha256
+			FROM files f JOIN chunks c ON c.file_id=f.id
+			WHERE f.path=? OR f.path LIKE ? ESCAPE '!' OR LOWER(f.path) LIKE ? ESCAPE '!'
+			ORDER BY match_tier,f.path,c.start_byte,c.qualified_symbol,c.id
+			LIMIT ?`, anchor.Raw, suffixPattern, anchor.Raw, suffixPattern, normalizedPattern, candidateK)
+		if err != nil {
+			return nil, err
+		}
+		for rows.Next() {
+			var tier int
+			var chunk HybridChunk
+			if err := rows.Scan(&tier, &chunk.ID, &chunk.Path, &chunk.Language, &chunk.Kind, &chunk.Symbol, &chunk.QualifiedSymbol, &chunk.Signature, &chunk.StartByte, &chunk.EndByte, &chunk.StartLine, &chunk.EndLine, &chunk.SourceBody, &chunk.IndexedSHA256); err != nil {
+				rows.Close()
+				return nil, err
+			}
+			if err := validateChunk(chunk); err != nil {
+				rows.Close()
+				return nil, err
+			}
+			chunk.SourceBody = append([]byte(nil), chunk.SourceBody...)
+			chunks[chunk.ID] = chunk
+			candidate := orderedPathCandidate{HybridPathCandidate: HybridPathCandidate{ChunkID: chunk.ID, MatchTier: tier, MatchedAnchor: anchor.Normalized}, anchorOrder: anchorIndex}
+			known, exists := best[chunk.ID]
+			if !exists || pathCandidateBefore(candidate, known, chunks) {
+				best[chunk.ID] = candidate
+			}
+		}
+		if err := rows.Err(); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		if err := rows.Close(); err != nil {
+			return nil, err
+		}
+	}
+	ordered := make([]orderedPathCandidate, 0, len(best))
+	for _, candidate := range best {
+		ordered = append(ordered, candidate)
+	}
+	sort.Slice(ordered, func(i, j int) bool { return pathCandidateBefore(ordered[i], ordered[j], chunks) })
+	if len(ordered) > candidateK {
+		ordered = ordered[:candidateK]
+	}
+	result := make([]HybridPathCandidate, len(ordered))
+	for index := range ordered {
+		result[index] = ordered[index].HybridPathCandidate
+	}
+	return result, nil
+}
+
+func pathCandidateBefore(left, right orderedPathCandidate, chunks map[int64]HybridChunk) bool {
+	if left.MatchTier != right.MatchTier {
+		return left.MatchTier < right.MatchTier
+	}
+	if left.anchorOrder != right.anchorOrder {
+		return left.anchorOrder < right.anchorOrder
+	}
+	return chunkBefore(chunks[left.ChunkID], chunks[right.ChunkID])
+}
+
+func chunkBefore(left, right HybridChunk) bool {
+	if left.Path != right.Path {
+		return left.Path < right.Path
+	}
+	if left.QualifiedSymbol != right.QualifiedSymbol {
+		return left.QualifiedSymbol < right.QualifiedSymbol
+	}
+	if left.StartByte != right.StartByte {
+		return left.StartByte < right.StartByte
+	}
+	return left.ID < right.ID
+}
+
+func escapeLike(value string) string {
+	value = strings.ReplaceAll(value, "!", "!!")
+	value = strings.ReplaceAll(value, "%", "!%")
+	return strings.ReplaceAll(value, "_", "!_")
 }
 
 func scanChunk(rows *sql.Rows) (HybridChunk, error) {

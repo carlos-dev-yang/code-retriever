@@ -1,6 +1,8 @@
 # 06. Free FTS5 Search
 
-- Status: `done`
+- Status: `done` — the safe FTS5/storage implementation now uses the versioned
+  natural-language query planner and independent symbol, path, and descriptive
+  candidate lanes; Phase 07 owns real-corpus measurement
 - Prerequisite phase: `05-worktree-index-pipeline`
 - Follow-up phases: `07-lexical-evaluation`, `11-vector-and-hybrid-search`
 - Design basis: `local-code-search-mcp-v1-design-r4.md` §5, §8
@@ -13,9 +15,36 @@
 - Stop if SQLite lacks the selected FTS5 tokenizer, the Phase 05 FTS/chunk relationship is ambiguous or corrupt, safe query construction cannot represent an input, or a single-generation read cannot be guaranteed.
 - Before pausing, record executed evidence in §11, capture new architectural choices in §13, and update [STATUS.md](STATUS.md) with the exact next checklist item and unresolved stop condition.
 
+## 2026-08-20 natural-language query-planner supersession
+
+The 44-question chi/RHF diagnostic showed that the current all-normalized-token
+`AND` builder returned zero FTS candidates for all 24 semantic-only and all 8
+mixed-signal questions. The prior Phase 06 completion evidence still proves
+safe MATCH construction, FTS/chunk snapshot integrity, deterministic BM25, and
+provider-free execution. It does not prove an adequate natural-language query
+policy.
+
+The current implementation target is
+[`natural-language-fts-query-planner-review-r4.md`](evidence/phase-07/natural-language-fts-query-planner-review-r4.md).
+It supersedes the all-token-`AND`, exact-symbol-as-tie-break-only, and
+two-lane-implicit assumptions below wherever they conflict. The revision must:
+
+- infer `anchor | descriptive | mixed | empty` without runtime cohort labels;
+- reserve `AND` for explicit same-result constraints;
+- provide independent symbol, path, and descriptive FTS candidates;
+- use OR admission for inferred descriptive terms and report term coverage;
+- keep dense independent rather than using FTS as a required prefilter; and
+- expose admission diagnostics separately from final ranking.
+
+Phase 07 reruns the same versioned questions only after this implementation is
+complete. Phase 11 and Phase 13 require focused integration revalidation after
+the lexical ordinal input changes.
+
 ## 1. Goal
 
-Implement a fully local lexical path that searches the functions, methods, and types in the Phase 05 active generation with SQLite FTS5 and BM25.
+Implement a fully local lexical stack that searches the functions, methods,
+and types in the Phase 05 active generation through independent symbol, path,
+and SQLite FTS5 descriptive candidates.
 
 The result is the default search engine that works without an API key or network access. Later hybrid search combines this output with vector rankings rather than replacing it, so FTS must be a useful first-class retrieval layer rather than merely a fallback.
 
@@ -23,11 +52,13 @@ The result is the default search engine that works without an API key or network
 
 ### Included
 
-- Normalize identifier and general-text queries.
+- Infer anchor, descriptive, and mixed query shapes from safe token evidence.
 - Split camelCase, PascalCase, and snake_case identifiers.
-- Convert user input into a safe FTS `MATCH` expression.
+- Convert descriptive input into a safe OR-admission FTS `MATCH` expression.
+- Generate exact/normalized symbol candidates independently of BM25.
+- Generate path candidates independently of BM25.
 - Search the `symbols` and `body` fields with BM25.
-- Apply a small qualified-symbol exact-match tie-break.
+- Union local lanes by canonical source parent before ordinal fusion.
 - Enforce deterministic ranking and candidate limits.
 - Read candidates and chunk metadata from the same snapshot as the active generation.
 - Provide an FTS-only application search API.
@@ -65,6 +96,8 @@ The result is the default search engine that works without an API key or network
 8. Absolute BM25 values are not an external compatibility contract. Stable rank and score source are the supported outputs.
 9. Ties use stable keys such as path, qualified symbol, and chunk ID so result order is reproducible.
 10. An empty query, or a query with no tokens after normalization, returns an explicit input error rather than becoming a full-table scan.
+11. Inferred descriptive terms are not globally joined by `AND`; `AND` is reserved for explicit same-result requirements.
+12. Dense search never consumes only lexical candidates. Local lexical lanes and dense are independent provider inputs.
 
 ## 5. Packages, Files, and Types to Implement
 
@@ -75,8 +108,9 @@ internal/
   search/
     lexical/
       service.go             # LexicalSearcher implementation
-      query.go               # safe MATCH-expression builder
-      rank.go                # BM25 plus exact-symbol tie-break
+      planner.go             # anchor/descriptive/mixed internal query plan
+      query.go               # safe descriptive MATCH-expression builder
+      rank.go                # lane-local ranking and parent union
       result.go              # LexicalHit and diagnostics
   store/
     search_snapshot.go       # generation-pinned read scope
@@ -88,8 +122,12 @@ Recommended core types:
 ```text
 NormalizedQuery
   Original
+  Shape(anchor|descriptive|mixed|empty)
+  ExplicitAnchors
   IdentifierTokens
   TextTokens
+  SelectedDescriptiveTokens
+  DroppedDescriptiveTokens
   ExactSymbolCandidate(optional)
   MatchExpression
 
@@ -102,8 +140,10 @@ LexicalHit
   ChunkID
   Path / Kind / Symbol / QualifiedSymbol / Signature
   Parent line/byte range
-  BM25Rank
-  ExactSymbolMatched
+  LexicalRank
+  SymbolRank / PathRank / DescriptiveRank
+  SymbolMatchTier / PathMatchTier
+  MatchedTerms / SelectedTerms
 
 LexicalSearchResult
   IndexGeneration
@@ -143,13 +183,24 @@ Process a query in this order:
 6. Build the phrase/token combination under internal policy and pass it as one bound MATCH parameter.
 7. Use the exact-symbol candidate only in a separate normalized-equality comparison.
 
-Do not convert unsupported syntax automatically into a broad OR query. Diagnostics may retain normalized tokens and the selected internal query shape, but logs must not contain source bodies or secrets.
+Do not interpret unsupported syntax as raw FTS grammar. For inferred
+descriptive terms, construct a bounded quoted-token OR expression. Preserve
+explicit same-result constraints separately rather than turning every token
+into a MUST clause. Diagnostics retain the inferred shape, selected/dropped
+terms, and internal boolean form, but logs must not contain source bodies or
+secrets.
 
 ### 6.3 SQL and ranking
 
 - Call FTS5 `bm25()` with the resolved field weights.
 - Normalize BM25 direction and the SQLite return representation once in the store adapter.
-- Apply only the small deterministic qualified-symbol exact-match tie-break allowed by config.
+- Rank symbol candidates by exact qualified, exact short, normalized qualified,
+  and normalized short match tiers before stable keys; do not require an FTS
+  candidate for symbol admission.
+- Rank path candidates independently by exact path, basename/segment, and
+  normalized path evidence.
+- Keep descriptive BM25 ordinal and matched-term coverage visible separately.
+- Deduplicate the local lane union by canonical source parent before fusion.
 - Produce an ordinal lexical rank for later RRF consumption.
 - Return each source chunk at most once.
 - Include fixed stable sort keys in the final SQL.
@@ -168,6 +219,7 @@ Pass every value through a `LexicalSearchConfig` derived from the Phase 02 immut
 | --- | --- | --- |
 | FTS schema/tokenizer implementation ID | index profile | requires a full local reindex |
 | symbol-normalization implementation ID | index profile | requires a full local reindex |
+| query-planner implementation ID | serving policy fingerprint | applies on the next search; no reindex |
 | `search.candidate_k` | serving policy | applies on the next search; no reindex |
 | `search.return_k` | serving policy | upper application default; no reindex |
 | BM25 symbol/body weights | serving policy | apply on the next search; no reindex |
@@ -183,10 +235,10 @@ Implementation packages must not define arbitrary default numbers. Use only name
 3. Connect the Phase 02 shared identifier normalizer to query-token classification and verify it produces the same fixture results as the Phase 05 index input.
 4. Consume the shared normalizer contract for identifiers containing Unicode, acronyms, numbers, and separators; do not create another implementation here.
 5. Implement query-length, UTF-8, and empty-query validation.
-6. Implement a safe query builder that does not expose raw FTS syntax.
-7. Implement the FTS candidate query inside the store's generation-pinned read scope.
-8. Inject BM25 field weights and the exact-qualified-symbol tie-break from resolved config.
-9. Implement stable secondary sorting and deduplication.
+6. Implement a safe query-shape planner and descriptive OR builder that do not expose raw FTS syntax.
+7. Implement independent symbol, path, and descriptive FTS candidate queries inside the store's generation-pinned read scope.
+8. Inject BM25 field weights from resolved config and keep exact/normalized symbol/path tiers code-owned and versioned.
+9. Implement stable lane ranking, canonical-parent union, and deduplication.
 10. Copy `LexicalHit` and authoritative chunk metadata into memory within the same read transaction.
 11. Close the transaction before returning the immutable result to external callers.
 12. Define the error taxonomy for empty input, no hits, and malformed internal state.
@@ -232,14 +284,20 @@ Implementation packages must not define arbitrary default numbers. Use only name
 8. Reproduce the same rank order for identical DB, config, and query inputs using stable tie-breaks.
 9. Ensure concurrent searches before and after active-generation publish never observe mixed FTS/chunk state.
 10. Complete search without an API key or network access.
-11. Confirm the exact-symbol tie-break is not an arbitrary multiplicative boost that overwhelms ordinary BM25 results.
+11. Confirm exact and normalized symbol/path lookup admits candidates independently and does not become an arbitrary BM25 multiplier.
 12. Fail closed when an intentionally corrupted diagnostic database breaks FTS-row-to-chunk linkage.
+13. Confirm semantic and mixed queries record query shape, selected terms,
+    candidate-zero state, and candidate-depth gold survival before top-k rank.
+14. Confirm hybrid dense candidates are unchanged when the lexical lane returns
+    zero candidates.
 
 ## 11. Completion Evidence
 
 - Representative identifier-normalization table.
 - Safe-query-builder input-to-internal-MATCH transformation table.
 - Lexical results and ranking diagnostics for Go, TypeScript, and TSX corpora.
+- Query-shape, selected-term, per-lane candidate-zero, gold candidate-recall,
+  and admission-versus-ranking diagnostics.
 - Stable-ordering record from repeated identical queries.
 - Dependency and execution evidence that no API client was loaded or called by FTS-only search.
 - Generation-consistency record from concurrent publish and search.
@@ -268,9 +326,9 @@ Provide Phase 11 with `LexicalSearcher` and the ordinal lexical rank for each so
 | Use source chunks as FTS units. | This matches the product unit returned to users: function, method, or type source. | Evaluation demonstrates a need for a smaller lexical unit. |
 | Do not expose raw MATCH syntax. | This reduces injection, syntax errors, and host-specific query behavior. | A separately designed expert API is requested. |
 | Use separate `symbols` and `body` fields. | This permits distinct weights for name and implementation-body search. | Corpus evaluation shows that the field design is insufficient. |
-| Use exact symbol only as a small tie-break. | This avoids evaluation-set overfitting and distortion of general natural-language results. | A change is supported by measurements and documented evidence. |
+| Generate exact/normalized symbol and path candidates independently from descriptive BM25. | The measured implementation could not admit these candidates reliably when global AND failed, and path was not searchable at all. Candidate generation is distinct from ranking. | A later measured schema removes a lane without reducing protected admission evidence. |
 | Do not make absolute BM25 score an external contract. | It is fragile across tokenizer, config, and SQLite changes. | Score calibration is designed separately. |
 | Define no numeric SLA in this phase. | The current goal is correctness and baseline collection. | Product requirements and representative corpora are settled. |
-| Build `MATCH` only from normalized, double-quoted Unicode letter/digit tokens joined by `AND`. | This preserves the Phase 02 normalizer while preventing user punctuation, operators, prefixes, columns, or quotes from becoming FTS grammar. | An explicitly designed expert query language is requested. |
-| Use the qualified-symbol normalized equality only after BM25 score comparison. | It is a deterministic tie-break, not a multiplicative score boost or corpus-tuned ranking rule. | Evaluation supports a separately designed and documented ranking change. |
+| Build descriptive `MATCH` only from normalized, double-quoted Unicode letter/digit tokens joined by bounded `OR`; reserve `AND` for explicit same-result constraints. | All-token `AND` caused zero candidates for all 32 semantic/mixed v2 questions. OR restores candidate admission without exposing raw FTS grammar; its noise is measured separately. | A frozen calibration arm supports a different bounded matching strategy. |
+| Keep symbol, path, descriptive FTS, and dense as independent candidate lanes and fuse ordinal ranks only. | Lexical failure must not cap dense recall, and BM25/cosine raw scores are incomparable. | A separately approved retrieval architecture replaces rank fusion. |
 | Resolve query byte, token, and token-rune caps through `ServingPolicy` below code-owned absolute ceilings. | They are adjustable local operational limits, but must remain bounded and must not alter index/vector identity. | A request needs a new query-language or resource-limit dimension. |

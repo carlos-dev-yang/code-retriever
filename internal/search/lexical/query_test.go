@@ -22,7 +22,7 @@ func TestBuildQueryUsesSharedIdentifierNormalizerAndQuotedGrammar(t *testing.T) 
 	if query.ExactSymbolCandidate != "get user by id" {
 		t.Fatalf("exact candidate=%q", query.ExactSymbolCandidate)
 	}
-	if query.MatchExpression != `"get" AND "user" AND "by" AND "id"` {
+	if query.Shape != QueryShapeAnchor || query.MatchExpression != `"get" OR "user" OR "by" OR "id"` {
 		t.Fatalf("MATCH=%q", query.MatchExpression)
 	}
 
@@ -30,8 +30,16 @@ func TestBuildQueryUsesSharedIdentifierNormalizerAndQuotedGrammar(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if injection.MatchExpression != `"or" AND "near" AND "alpha" AND "body"` {
+	if injection.MatchExpression != `"or" OR "near" OR "alpha" OR "body"` {
 		t.Fatalf("unsafe input expression=%q", injection.MatchExpression)
+	}
+	descriptive, err := BuildQuery("how does routing choose a fallback", symbol.IdentifierNormalizer{}, queryLimits)
+	if err != nil || descriptive.Shape != QueryShapeDescriptive || descriptive.BooleanForm != "OR" {
+		t.Fatalf("descriptive=%#v err=%v", descriptive, err)
+	}
+	lowercaseAnchor, err := BuildQuery("chain", symbol.IdentifierNormalizer{}, queryLimits)
+	if err != nil || lowercaseAnchor.Shape != QueryShapeAnchor || lowercaseAnchor.ExactSymbolCandidate != "chain" || len(lowercaseAnchor.SymbolAnchorCandidates) != 1 {
+		t.Fatalf("lowercase anchor=%#v err=%v", lowercaseAnchor, err)
 	}
 }
 

@@ -400,7 +400,7 @@ func TestBodyBudgetDoesNotChangeRankingOrInventFTSExcerpt(t *testing.T) {
 	}
 }
 
-func TestEvaluationOnlySafeTokenORLeavesProductionANDUnchanged(t *testing.T) {
+func TestProductionAndEvaluationUseSafeTokenOR(t *testing.T) {
 	ctx := context.Background()
 	resolved := searchConfig(t, false)
 	production, _ := indexedSearchFixture(t, resolved)
@@ -435,7 +435,7 @@ func TestEvaluationOnlySafeTokenORLeavesProductionANDUnchanged(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(productionHits) != 0 || len(publicResult.Hits) != 0 || len(evaluationHits) == 0 || evaluationHits[0].QualifiedSymbol != "sample.FindThing" {
+	if len(productionHits) == 0 || len(publicResult.Hits) == 0 || len(evaluationHits) == 0 || productionHits[0].QualifiedSymbol != "sample.FindThing" || publicResult.Hits[0].QualifiedSymbol != "sample.FindThing" || evaluationHits[0].QualifiedSymbol != "sample.FindThing" {
 		t.Fatalf("production=%+v public=%+v evaluation=%+v", productionHits, publicResult.Hits, evaluationHits)
 	}
 	mutated := policy

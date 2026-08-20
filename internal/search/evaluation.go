@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
-	"strings"
 
 	"cidx/internal/config"
 	"cidx/internal/embedclient"
+	"cidx/internal/search/lexical"
 	"cidx/internal/store"
 	"cidx/internal/vector"
 )
 
-const evaluationFTSPolicyDomain = "cidx/evaluation-fts-policy/v1"
+const evaluationFTSPolicyDomain = "cidx/evaluation-fts-policy/v2"
 
 // EvaluationFTSPolicy is a development-only, fully fingerprinted lexical
 // policy. Public Search never accepts this type; production continues to use
@@ -61,23 +61,23 @@ type evaluationFTSPolicyPayload struct {
 	ProductionPolicyUnchanged bool     `json:"production_policy_unchanged"`
 }
 
-// SafeTokenOREvaluationPolicy returns the one admitted Revision-4 calibration
-// candidate. Its weights and depths are taken from the validated resolved
-// policy so the experiment cannot silently diverge on any second axis.
+// SafeTokenOREvaluationPolicy retains the historical explicit calibration
+// identity while binding it to the current production planner. It no longer
+// creates a production-vs-evaluation boolean-policy split.
 func SafeTokenOREvaluationPolicy(resolved config.ResolvedConfig) (EvaluationFTSPolicy, error) {
 	if err := resolved.ValidateIntegrity(); err != nil {
 		return EvaluationFTSPolicy{}, err
 	}
 	payload := evaluationFTSPolicyPayload{
-		Scope: "evaluation_only", PolicyID: "safe-token-or-v1", MatchOperator: "OR",
-		QueryBuilderID: "cidx-safe-quoted-normalized-query", QueryBuilderVersion: 1,
+		Scope: "evaluation_only", PolicyID: "safe-token-or-v2", MatchOperator: "OR",
+		QueryBuilderID: "cidx-natural-language-lexical-planner", QueryBuilderVersion: config.LexicalQueryPlannerVersion,
 		NormalizerID: config.SymbolNormalizerID, NormalizerVersion: 1,
 		FTSTokenizerID: config.FTSTokenizerID, FTSTokenizerOptions: "sqlite-fts5-default-unicode61",
 		FTSSchemaVersion: config.FTSSchemaVersion, Fields: []string{"symbols", "body"},
 		SymbolWeight: resolved.Search.FTSSymbolWeight, BodyWeight: resolved.Search.FTSBodyWeight,
 		CandidateK: resolved.Search.CandidateK, ReturnK: resolved.Search.ReturnK,
-		ExactSymbolPolicyID: "original-qualified-symbol-exact-v1",
-		TiePolicyID:         "bm25-exact-path-qualified-symbol-chunk-v1", ProductionPolicyUnchanged: true,
+		ExactSymbolPolicyID: "independent-original-normalized-symbol-tier-v2",
+		TiePolicyID:         "local-symbol-path-descriptive-rrf-v2", ProductionPolicyUnchanged: true,
 	}
 	fingerprint, err := config.Fingerprint(payload, evaluationFTSPolicyDomain)
 	if err != nil {
@@ -212,10 +212,12 @@ func (service *Service) startEvaluationSession(ctx context.Context, query string
 	symbolWeight := service.resolved.Search.FTSSymbolWeight
 	bodyWeight := service.resolved.Search.FTSBodyWeight
 	if policy != nil {
-		matchExpression = strings.ReplaceAll(matchExpression, " AND ", " OR ")
 		candidateK, symbolWeight, bodyWeight = policy.CandidateK, policy.SymbolWeight, policy.BodyWeight
 	}
-	request := store.HybridSnapshotRequest{FTS: store.FTSSearchRequest{MatchExpression: matchExpression, CandidateK: candidateK, SymbolWeight: symbolWeight, BodyWeight: bodyWeight, ExactNormalizedSymbol: normalized.ExactSymbolCandidate}}
+	request := lexical.SnapshotRequest(normalized, service.resolved.Search, candidateK)
+	request.FTS.MatchExpression = matchExpression
+	request.FTS.SymbolWeight = symbolWeight
+	request.FTS.BodyWeight = bodyWeight
 	snapshot, err := service.store.HybridSearchSnapshot(ctx, service.resolved, request)
 	if err != nil {
 		return EvaluationSession{}, err
@@ -229,6 +231,7 @@ func (service *Service) startEvaluationSession(ctx context.Context, query string
 	if len(snapshot.Vectors) == 0 || snapshot.CoverageNumerator != snapshot.CoverageDenominator {
 		return EvaluationSession{}, fmt.Errorf("MATERIALIZATION_REQUIRED")
 	}
+	snapshot.FTSCandidates = lexical.FuseLanes(snapshot.FTSCandidates, snapshot.SymbolCandidates, snapshot.PathCandidates, snapshot.Chunks, service.resolved.Search.RRFK, candidateK)
 	return EvaluationSession{snapshot: snapshot, resolved: service.resolved, candidateK: candidateK}, nil
 }
 

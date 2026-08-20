@@ -62,18 +62,19 @@ type ServingVectorProfile struct {
 // ServingPolicyProfile is runtime-only policy. It deliberately is not an
 // index or vector identity and therefore never causes materialization.
 type ServingPolicyProfile struct {
-	DefaultMode             string  `json:"default_mode"`
-	AllowPaidQueryEmbedding bool    `json:"allow_paid_query_embedding"`
-	ReturnK                 int     `json:"return_k"`
-	CandidateK              int     `json:"candidate_k"`
-	RRFK                    int     `json:"rrf_k"`
-	QueryTextFormatVersion  int     `json:"query_text_format_version"`
-	MaxQueryBytes           int     `json:"max_query_bytes"`
-	MaxQueryTokens          int     `json:"max_query_tokens"`
-	MaxQueryTokenRunes      int     `json:"max_query_token_runes"`
-	FTSSymbolWeight         float64 `json:"fts_symbol_weight"`
-	FTSBodyWeight           float64 `json:"fts_body_weight"`
-	HardMaxInlineBytes      int     `json:"hard_max_inline_bytes"`
+	DefaultMode                string  `json:"default_mode"`
+	AllowPaidQueryEmbedding    bool    `json:"allow_paid_query_embedding"`
+	ReturnK                    int     `json:"return_k"`
+	CandidateK                 int     `json:"candidate_k"`
+	RRFK                       int     `json:"rrf_k"`
+	LexicalQueryPlannerVersion int     `json:"lexical_query_planner_version"`
+	QueryTextFormatVersion     int     `json:"query_text_format_version"`
+	MaxQueryBytes              int     `json:"max_query_bytes"`
+	MaxQueryTokens             int     `json:"max_query_tokens"`
+	MaxQueryTokenRunes         int     `json:"max_query_token_runes"`
+	FTSSymbolWeight            float64 `json:"fts_symbol_weight"`
+	FTSBodyWeight              float64 `json:"fts_body_weight"`
+	HardMaxInlineBytes         int     `json:"hard_max_inline_bytes"`
 }
 
 type ProfileFingerprints struct {

@@ -2,9 +2,9 @@
 
 - Phase: `07-lexical-evaluation`
 - State: `in_progress` — prior calibration and packaging results remain
-  preserved; current work adds explicit question-set/taxonomy provenance,
-  creates new chi/RHF critical/general v2 question sets, and runs provider-free
-  FTS/simple baselines before the separately controlled assistant A/B.
+  preserved; Phase 06 natural-language lexical remediation is complete and the
+  unchanged critical/general v2 questions now require new immutable runs before
+  assistant A/B.
 - Date: 2026-08-19
 
 Current product authority: [Retired Vector Profiles and Evidence Boundary](../../RETIRED-VECTOR-PROFILES.md).
@@ -14,6 +14,14 @@ provider-free FTS/simple diagnostic](critical-general-question-set-v2.md).
 Every run carries the exact question-set and taxonomy identity; prior versions
 and runs remain unchanged. The result validates the cohort split as a useful
 diagnostic but makes no ranking-improvement or assistant-use claim.
+
+Current lexical remediation authority: [natural-language FTS query-planner
+review — Revision 4](natural-language-fts-query-planner-review-r4.md). The
+report attributes the 32 semantic/mixed zero-candidate outcomes to global
+all-token `AND`, separates symbol/path/descriptive FTS/dense lanes, records the
+ChatGPT/Grok advisory review, and defines candidate-admission metrics before
+ranking. Its Phase 06 implementation checkpoint is complete; it changes no
+previous run artifact.
 
 Current frozen calibration checkpoint: [dual-AI calibration freeze and
 provider-free replay — Revision 4](dual-ai-calibration-freeze-r4.md).
@@ -104,10 +112,10 @@ Current experiment authority is
 [RELATION-PACKAGING-NEXT.md](../../RELATION-PACKAGING-NEXT.md).
 The packaging contract is frozen and the live closed-unit replay returned
 `CONTINUE_SIBLING_PACKAGING`. Sibling 4/4096 is adopted evaluation-only;
-one-hop default push is rejected. Phase 07 is blocked on owner-selected
-confirmation. Evidence:
+one-hop default push is rejected. Official confirmation remains separately
+blocked on owner-selected inputs. Evidence:
 [packaging experiment](relation-packaging-experiment-r4.md),
-[adopted contract](../../../testdata/retrieval/relation-sibling-packaging-adopted-v1.json),
+[adopted contract](../../../../testdata/retrieval/relation-sibling-packaging-adopted-v1.json),
 [remaining-work handoff](../revision-4/remaining-work-review-handoff-r4.md).
 Owner entry: [OWNER-REVIEW-INDEX.md](../../OWNER-REVIEW-INDEX.md).
 
@@ -572,14 +580,12 @@ The focused tests cover portable/duplicate-field manifest rejection, local Git b
 
 ## Next action
 
-Keep both the exposed 32-case calibration and the closed 40-query relation
-calibration immutable. Select nothing by taking a per-query upper envelope.
-Follow [RELATION-PACKAGING-NEXT.md](../../RELATION-PACKAGING-NEXT.md): freeze
-the mechanical same-file sibling and organized one-hop packaging contract,
-then run that evaluation-only pass with limitation reporting. Do not start
-assistant A/B. Only a distinct unexposed unit may later provide confirmation
-evidence. Do not call Voyage again for either closed calibration while its
-corpus, questions, policies, and embeddings are unchanged.
+Preserve the existing v2 questions and all prior runs. Build the committed
+Phase 06 planner with clean VCS provenance, then rerun the same v2 questions
+under new immutable run IDs and report admission separately from ranking.
+Revalidate the changed lexical input at the Phase 11/13 integration boundary
+before assistant A/B. No Voyage call, new repository, question edit, or
+prior-result overwrite is authorized by this step.
 
 The ignored source-link review views are
 `.cidx/test/states/chi/evaluations/review/pass1-v2-chi-review.md` and

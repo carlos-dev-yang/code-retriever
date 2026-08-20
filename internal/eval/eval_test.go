@@ -199,7 +199,7 @@ func TestRunnerPreflightTraceDriftAndCancellation(t *testing.T) {
 	caseValue := fixtureCase("q", evalcontract.Go, []evalcontract.RequiredGroup{{ID: "g", Alternatives: []evalcontract.ExpectedAlternative{{Spans: []evalcontract.SourceSpan{span}}}}}, []evalcontract.RelevanceJudgment{{Span: span, Grade: 2, Rationale: "direct"}})
 	dataset := EvaluationDataset{SchemaVersion: 1, Version: "v1", CorpusID: "sample", Cases: []evalcontract.EvaluationCase{caseValue}}
 	inventory := fakeInventory{snapshot: TruthInventorySnapshot{Generation: 7, ManifestSHA256: strings.Repeat("a", 64), Chunks: []IndexedTruth{{Path: span.Path, IndexedSHA256: span.ContentSHA256, QualifiedSymbol: span.QualifiedSymbol, Kind: "function", StartByte: 0, EndByte: 5}}}}
-	runner := LexicalRunner{Inventory: inventory, Searcher: fakeSearch{result: lexical.Result{IndexGeneration: 7, ManifestSHA256: strings.Repeat("a", 64), CandidateCount: 1, Hits: []lexical.Hit{{Path: span.Path, IndexedSHA256: span.ContentSHA256, QualifiedSymbol: span.QualifiedSymbol, Kind: "function", StartByte: 0, EndByte: 5, BM25Rank: 1}}}}, CandidateK: 1, Ks: []int{1}}
+	runner := LexicalRunner{Inventory: inventory, Searcher: fakeSearch{result: lexical.Result{IndexGeneration: 7, ManifestSHA256: strings.Repeat("a", 64), CandidateCount: 1, Hits: []lexical.Hit{{Path: span.Path, IndexedSHA256: span.ContentSHA256, QualifiedSymbol: span.QualifiedSymbol, Kind: "function", StartByte: 0, EndByte: 5, LexicalRank: 1}}}}, CandidateK: 1, Ks: []int{1}}
 	run, err := runner.Run(context.Background(), dataset)
 	if err != nil || run.Results[0].Trace.TerminalState != evalcontract.TerminalComplete || run.Generation != 7 {
 		t.Fatalf("run=%+v err=%v", run, err)

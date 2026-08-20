@@ -16,9 +16,10 @@ Do not treat this index as promotion evidence. If it disagrees with
 
 검색 순위와 MCP는 그대로 두고, **이미 찾은 파일의 형제 심볼을 평가용으로
 4개/4096바이트까지 붙이는 계약**만 채택했다. 그래프 한 홉을 기본 결과에
-넣는 것은 기각했다. 다음 순서는 새 저장소가 아니라 기존 chi/RHF에서
-버전된 critical/general 질문 세트를 먼저 검증하고, 그 결과를 고정한 뒤
-어시스턴트 A/B를 진행하는 것이다.
+넣는 것은 기각했다. 기존 chi/RHF critical/general v2 결과는 고정했다.
+다음 순서는 새 저장소나 어시스턴트 A/B가 아니라, 자연어 질문을 모두
+`AND`로 묶어 후보를 0개로 만든 Phase 06 lexical planner를 고치고 같은 v2를
+새 run으로 다시 실행하는 것이다.
 
 ---
 
@@ -28,8 +29,9 @@ Do not treat this index as promotion evidence. If it disagrees with
 | --- | --- |
 | 제품 | 로컬 코드 검색 MCP. 도구 4개: `status`, `search`, `read_span`, `reindex` |
 | 서빙 | 기본 `1024/int8`, 옵션 `512/int8`. 소스 뱅크는 1024-f32 |
-| Phase 00–06, 08–11, 13 | `done` |
-| Phase 07 | `in_progress` — 기존 chi/RHF critical/general 질문 세트 v2 평가 |
+| Phase 00–05, 08–11, 13 | `done` |
+| Phase 06 | `done` — natural-language planner와 독립 lexical lane 교정 완료 |
+| Phase 07 | `in_progress` — 동일 v2를 새 run ID로 재실행 |
 | Phase 12 `core_retrieval` | `blocked` |
 | Phase 14 `release_candidate` | `blocked` (로컬 darwin/arm64 패키지는 있음) |
 | 라이브 패키징 판정 | `CONTINUE_SIBLING_PACKAGING` |
@@ -43,13 +45,22 @@ taxonomy 버전/digest를 직접 기록한다.
 
 - FTS: lexical anchor `10/12`, semantic-only `0/24`, mixed `0/8`
 - simple control: 전체 `28/44`, semantic-only `13/24`, mixed `5/8`
-- 해석: 분류는 FTS의 역할과 semantic/contract 취약점을 실제로 분리한다.
-  검색 알고리즘을 바꾼 실험은 아니므로 성능 향상 주장은 하지 않는다.
-- 다음 순서: 같은 저장소와 질문 버전을 고정한 assistant A/B 계약 준비
+- 해석: semantic-only 24개와 mixed 8개는 전부 FTS 후보가 0개였다. 따라서
+  이 결과는 BM25 순위가 낮다는 뜻이 아니라, 모든 정규화 토큰을 `AND`로
+  묶은 후보 진입 방식이 자연어를 배제했다는 뜻이다.
+- 다음 순서: 같은 저장소와 질문 버전을 유지한 채 교정된 Phase 06으로 새
+  run ID를 만든다. assistant A/B는 그 다음이다.
 
 정확한 실행 ID와 artifact digest는
 [critical/general v2 report](evidence/phase-07/critical-general-question-set-v2.md)에
 있다.
+
+개선 계약과 ChatGPT/Grok의 동일-맥락 검토 결과는
+[natural-language FTS query-planner review](evidence/phase-07/natural-language-fts-query-planner-review-r4.md)에
+있다. 핵심은 `symbol`, `path`, `descriptive FTS`, `dense`를 독립 후보 lane으로
+두고, dense를 FTS 후보로 제한하지 않는 것이다. 명시된 동일-result 필수
+조건만 `AND`로 유지하며, 자연어 설명은 OR 기반 후보 진입 후 별도 순위를
+측정한다.
 
 ---
 
@@ -187,7 +198,9 @@ env -u VOYAGE_API_KEY go run ./cmd/cidx dev relations packaging \
 | [implementation plan index](README.md) | 페이즈 00–14 |
 | [EVALUATION-CONTRACT.md](EVALUATION-CONTRACT.md) | 스테이지별 분모, 프로모션 게이트 |
 | [EVALUATION-EMBEDDING-EXECUTION-PLAN.md](EVALUATION-EMBEDDING-EXECUTION-PLAN.md) | 유료 임베딩 순서 |
-| [07 lexical evaluation](07-lexical-evaluation.md) | 활성(blocked) 페이즈 |
+| [06 FTS search](06-fts-search.md) | 활성 페이즈 — 자연어 후보 진입 개선 |
+| [lexical planner review](evidence/phase-07/natural-language-fts-query-planner-review-r4.md) | 현재 구현·평가 목표와 ChatGPT/Grok 검토 |
+| [07 lexical evaluation](07-lexical-evaluation.md) | 06 수정 후 동일 v2 재실행 대기 |
 | [12 retrieval evaluation](12-retrieval-evaluation.md) | `core_retrieval` — confirmation 대기 |
 | [14 packaging/hosts](14-packaging-and-host-integration.md) | `release_candidate` — 12 + 호스트 대기 |
 | [chi/RHF freeze](evidence/phase-07/dual-ai-calibration-freeze-r4.md) | 32케이스 닫힘 |

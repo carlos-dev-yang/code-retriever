@@ -60,6 +60,11 @@ type Hit struct {
 	ParentRange                                   ByteLineRange
 	IndexedSHA256                                 string
 	LexicalRank, VectorRank                       int
+	SymbolRank, PathRank, DescriptiveRank         int
+	SymbolMatchTier, PathMatchTier                int
+	MatchedTerms, SelectedTerms                   int
+	LexicalScore                                  float64
+	LexicalSources                                []string
 	FusedScore                                    float64
 	ScoreSource                                   ScoreSource
 	MatchedSegment                                *ByteLineRange
@@ -72,22 +77,30 @@ type Hit struct {
 }
 
 type Response struct {
-	RequestedMaxInlineBytes, EffectiveMaxInlineBytes int
-	MaxInlineBytesClamped                            bool
-	RequestedMode, EffectiveMode                     SearchMode
-	QueryEmbeddingUsed                               bool
-	QueryTextFormatVersion                           int
-	FallbackReason                                   FallbackReason
-	Generation                                       int64
-	ManifestSHA256                                   string
-	SourceProfile                                    profile.Fingerprint
-	VectorSpaceProfile                               profile.Fingerprint
-	VectorStorageProfile                             profile.Fingerprint
-	CoverageNumerator                                int
-	CoverageDenominator                              int
-	PartialVectorCoverage                            bool
-	VectorCoverageObserved                           bool
-	InlineBytesUsed                                  int
-	InlineLimited                                    bool
-	Hits                                             []Hit
+	RequestedMaxInlineBytes, EffectiveMaxInlineBytes  int
+	MaxInlineBytesClamped                             bool
+	RequestedMode, EffectiveMode                      SearchMode
+	QueryEmbeddingUsed                                bool
+	LexicalQueryPlannerVersion                        int
+	QueryTextFormatVersion                            int
+	QueryShape                                        string
+	LexicalBooleanForm                                string
+	ExplicitAnchors, PathAnchors                      []string
+	SelectedDescriptiveTerms, DroppedDescriptiveTerms []string
+	SymbolCandidateCount, PathCandidateCount          int
+	DescriptiveCandidateCount, LexicalCandidateCount  int
+	LexicalCandidateZero                              bool
+	FallbackReason                                    FallbackReason
+	Generation                                        int64
+	ManifestSHA256                                    string
+	SourceProfile                                     profile.Fingerprint
+	VectorSpaceProfile                                profile.Fingerprint
+	VectorStorageProfile                              profile.Fingerprint
+	CoverageNumerator                                 int
+	CoverageDenominator                               int
+	PartialVectorCoverage                             bool
+	VectorCoverageObserved                            bool
+	InlineBytesUsed                                   int
+	InlineLimited                                     bool
+	Hits                                              []Hit
 }

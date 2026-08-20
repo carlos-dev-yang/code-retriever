@@ -21,6 +21,14 @@ type QueryError struct {
 	Detail string
 }
 
+type QueryShape string
+
+const (
+	QueryShapeAnchor      QueryShape = "anchor"
+	QueryShapeDescriptive QueryShape = "descriptive"
+	QueryShapeMixed       QueryShape = "mixed"
+)
+
 func (err *QueryError) Error() string {
 	if err.Detail == "" {
 		return string(err.Code)
@@ -31,11 +39,19 @@ func (err *QueryError) Error() string {
 // NormalizedQuery is safe diagnostic data and the only source of FTS MATCH
 // grammar. MatchExpression contains quoted allowlisted tokens only.
 type NormalizedQuery struct {
-	Original             string
-	IdentifierTokens     []string
-	TextTokens           []string
-	ExactSymbolCandidate string
-	MatchExpression      string
+	Original                  string
+	Shape                     QueryShape
+	ExplicitAnchors           []string
+	PathAnchors               []string
+	SymbolAnchorCandidates    []symbol.QueryAnchor
+	PathAnchorCandidates      []symbol.QueryAnchor
+	IdentifierTokens          []string
+	TextTokens                []string
+	SelectedDescriptiveTokens []string
+	DroppedDescriptiveTokens  []string
+	ExactSymbolCandidate      string
+	MatchExpression           string
+	BooleanForm               string
 }
 
 func BuildQuery(value string, normalizer symbol.IdentifierNormalizer, limits config.QueryLimits) (NormalizedQuery, error) {
@@ -61,15 +77,75 @@ func BuildQuery(value string, normalizer symbol.IdentifierNormalizer, limits con
 			return NormalizedQuery{}, &QueryError{Code: InvalidQuery, Detail: "query token exceeds length limit"}
 		}
 	}
-	quoted := make([]string, 0, len(all))
-	for _, token := range all {
+	selected := stableDeduplicate(all)
+	quoted := make([]string, 0, len(selected))
+	for _, token := range selected {
 		quoted = append(quoted, `"`+token+`"`)
 	}
+	shape := QueryShapeDescriptive
+	symbolCandidates := stableDeduplicateAnchors(classified.IdentifierCandidates)
+	pathCandidates := stableDeduplicateAnchors(classified.PathCandidates)
+	anchors := normalizedAnchors(symbolCandidates)
+	paths := normalizedAnchors(pathCandidates)
+	if len(anchors)+len(paths) > 0 {
+		shape = QueryShapeAnchor
+		if len(classified.TextTokens) > 0 && len(classified.Fragments) > 1 {
+			shape = QueryShapeMixed
+		}
+	}
 	return NormalizedQuery{
-		Original:             value,
-		IdentifierTokens:     append([]string(nil), classified.IdentifierTokens...),
-		TextTokens:           append([]string(nil), classified.TextTokens...),
-		ExactSymbolCandidate: classified.ExactSymbolCandidate,
-		MatchExpression:      strings.Join(quoted, " AND "),
+		Original:                  value,
+		Shape:                     shape,
+		ExplicitAnchors:           anchors,
+		PathAnchors:               paths,
+		SymbolAnchorCandidates:    symbolCandidates,
+		PathAnchorCandidates:      pathCandidates,
+		IdentifierTokens:          append([]string(nil), classified.IdentifierTokens...),
+		TextTokens:                append([]string(nil), classified.TextTokens...),
+		SelectedDescriptiveTokens: selected,
+		ExactSymbolCandidate:      classified.ExactSymbolCandidate,
+		MatchExpression:           strings.Join(quoted, " OR "),
+		BooleanForm:               "OR",
 	}, nil
+}
+
+func stableDeduplicateAnchors(values []symbol.QueryAnchor) []symbol.QueryAnchor {
+	seen := make(map[string]struct{}, len(values))
+	result := make([]symbol.QueryAnchor, 0, len(values))
+	for _, value := range values {
+		key := value.Raw + "\x00" + value.Normalized
+		if value.Raw == "" || value.Normalized == "" {
+			continue
+		}
+		if _, exists := seen[key]; exists {
+			continue
+		}
+		seen[key] = struct{}{}
+		result = append(result, value)
+	}
+	return result
+}
+
+func normalizedAnchors(values []symbol.QueryAnchor) []string {
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		result = append(result, value.Normalized)
+	}
+	return stableDeduplicate(result)
+}
+
+func stableDeduplicate(values []string) []string {
+	seen := make(map[string]struct{}, len(values))
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		if value == "" {
+			continue
+		}
+		if _, exists := seen[value]; exists {
+			continue
+		}
+		seen[value] = struct{}{}
+		result = append(result, value)
+	}
+	return result
 }

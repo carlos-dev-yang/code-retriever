@@ -193,6 +193,14 @@ func wireSearch(value any) any {
 		IndexedSHA256      string                `json:"indexed_sha256"`
 		LexicalRank        int                   `json:"lexical_rank"`
 		VectorRank         int                   `json:"vector_rank"`
+		SymbolRank         int                   `json:"symbol_rank"`
+		PathRank           int                   `json:"path_rank"`
+		DescriptiveRank    int                   `json:"descriptive_rank"`
+		SymbolMatchTier    int                   `json:"symbol_match_tier"`
+		PathMatchTier      int                   `json:"path_match_tier"`
+		MatchedTerms       int                   `json:"matched_terms"`
+		SelectedTerms      int                   `json:"selected_terms"`
+		LexicalSources     []string              `json:"lexical_sources"`
 		FusedScore         float64               `json:"fused_score"`
 		ScoreSource        search.ScoreSource    `json:"score_source"`
 		MatchedSegment     *search.ByteLineRange `json:"matched_segment,omitempty"`
@@ -206,14 +214,14 @@ func wireSearch(value any) any {
 	}
 	hits := make([]hit, 0, len(response.Hits))
 	for _, source := range response.Hits {
-		value := hit{ChunkID: source.ChunkID, Path: source.Path, Language: source.Language, Kind: source.Kind, Symbol: source.Symbol, QualifiedSymbol: source.QualifiedSymbol, Signature: source.Signature, ParentRange: source.ParentRange, IndexedSHA256: source.IndexedSHA256, LexicalRank: source.LexicalRank, VectorRank: source.VectorRank, FusedScore: source.FusedScore, ScoreSource: source.ScoreSource, MatchedSegment: source.MatchedSegment, BodyRange: source.BodyRange, BodyComplete: source.BodyComplete, BodyBytes: source.BodyBytes, BodyOmissionReason: source.BodyOmissionReason, SourceState: source.SourceState, ContentSource: "indexed_snapshot"}
+		value := hit{ChunkID: source.ChunkID, Path: source.Path, Language: source.Language, Kind: source.Kind, Symbol: source.Symbol, QualifiedSymbol: source.QualifiedSymbol, Signature: source.Signature, ParentRange: source.ParentRange, IndexedSHA256: source.IndexedSHA256, LexicalRank: source.LexicalRank, VectorRank: source.VectorRank, SymbolRank: source.SymbolRank, PathRank: source.PathRank, DescriptiveRank: source.DescriptiveRank, SymbolMatchTier: source.SymbolMatchTier, PathMatchTier: source.PathMatchTier, MatchedTerms: source.MatchedTerms, SelectedTerms: source.SelectedTerms, LexicalSources: append([]string(nil), source.LexicalSources...), FusedScore: source.FusedScore, ScoreSource: source.ScoreSource, MatchedSegment: source.MatchedSegment, BodyRange: source.BodyRange, BodyComplete: source.BodyComplete, BodyBytes: source.BodyBytes, BodyOmissionReason: source.BodyOmissionReason, SourceState: source.SourceState, ContentSource: "indexed_snapshot"}
 		if source.Body != nil {
 			body := string(source.Body)
 			value.Body = &body
 		}
 		hits = append(hits, value)
 	}
-	return map[string]any{"index_generation": response.Generation, "manifest_sha256": response.ManifestSHA256, "source_profile": response.SourceProfile, "vector_space_profile": response.VectorSpaceProfile, "vector_storage_profile": response.VectorStorageProfile, "vector_coverage_observed": response.VectorCoverageObserved, "requested_max_inline_bytes": response.RequestedMaxInlineBytes, "effective_max_inline_bytes": response.EffectiveMaxInlineBytes, "max_inline_bytes_clamped": response.MaxInlineBytesClamped, "requested_mode": response.RequestedMode, "effective_mode": response.EffectiveMode, "query_text_format_version": response.QueryTextFormatVersion, "query_embedding_used": response.QueryEmbeddingUsed, "fallback_reason": response.FallbackReason, "vector_coverage_numerator": response.CoverageNumerator, "vector_coverage_denominator": response.CoverageDenominator, "partial_vector_coverage": response.PartialVectorCoverage, "inline_bytes_used": response.InlineBytesUsed, "inline_limited": response.InlineLimited, "results": hits}
+	return map[string]any{"index_generation": response.Generation, "manifest_sha256": response.ManifestSHA256, "source_profile": response.SourceProfile, "vector_space_profile": response.VectorSpaceProfile, "vector_storage_profile": response.VectorStorageProfile, "vector_coverage_observed": response.VectorCoverageObserved, "requested_max_inline_bytes": response.RequestedMaxInlineBytes, "effective_max_inline_bytes": response.EffectiveMaxInlineBytes, "max_inline_bytes_clamped": response.MaxInlineBytesClamped, "requested_mode": response.RequestedMode, "effective_mode": response.EffectiveMode, "lexical_query_planner_version": response.LexicalQueryPlannerVersion, "query_text_format_version": response.QueryTextFormatVersion, "query_shape": response.QueryShape, "lexical_boolean_form": response.LexicalBooleanForm, "explicit_anchors": response.ExplicitAnchors, "path_anchors": response.PathAnchors, "selected_descriptive_terms": response.SelectedDescriptiveTerms, "dropped_descriptive_terms": response.DroppedDescriptiveTerms, "symbol_candidate_count": response.SymbolCandidateCount, "path_candidate_count": response.PathCandidateCount, "descriptive_candidate_count": response.DescriptiveCandidateCount, "lexical_candidate_count": response.LexicalCandidateCount, "lexical_candidate_zero": response.LexicalCandidateZero, "query_embedding_used": response.QueryEmbeddingUsed, "fallback_reason": response.FallbackReason, "vector_coverage_numerator": response.CoverageNumerator, "vector_coverage_denominator": response.CoverageDenominator, "partial_vector_coverage": response.PartialVectorCoverage, "inline_bytes_used": response.InlineBytesUsed, "inline_limited": response.InlineLimited, "results": hits}
 }
 func requiredString(value map[string]json.RawMessage, key string, target *string) bool {
 	input, ok := value[key]

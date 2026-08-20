@@ -4,7 +4,8 @@ This ledger is the authoritative resumable state for implementation work. Update
 
 ## Current state
 
-- Active phase: 07 — versioned critical/general question-set evaluation on the existing chi and React Hook Form repositories
+- Active phase: 07 — provider-free rerun of the unchanged chi/RHF
+  critical/general v2 questions under lexical planner v2
 - Active owner: `/root`
 - Completed bounded work: the final provider-free graph-only Pareto admission
   diagnostic is complete at clean commit
@@ -54,10 +55,9 @@ This ledger is the authoritative resumable state for implementation work. Update
   One-hop recovers both nearby misses but also completes `gg-g09` in every grid
   cell, so the one-hop gate fails and Arm D stays unauthorized. Do not retune
   this closed unit or start assistant A/B.
-- Latest owner direction: assistant final-answer A/B is not a current
-  goal. Graph/search follow-up measures only required-parent selection and
-  residual isolated noise, and organizes overlapping neighborhood as the
-  result rather than dumping it or hiding it.
+- Latest owner direction: do not add a repository. Fix the natural-language
+  lexical candidate-admission strategy, rerun the same versioned chi/RHF
+  questions, and only then prepare assistant A/B.
 - Canonical target: [`local-code-search-mcp-v1-design-r4.md`](../../local-code-search-mcp-v1-design-r4.md)
 - Completed critical/general checkpoint: every prior question-set file and run
   remains preserved; `critical-general-v1`, chi/RHF question-set v2, explicit
@@ -66,6 +66,15 @@ This ledger is the authoritative resumable state for implementation work. Update
   FTS completes 10/12 lexical-anchor questions but 0/24 semantic-only and 0/8
   mixed-signal questions; simple control completes 28/44 overall. This proves
   the taxonomy separates material lane behavior, not that ranking improved.
+  All 32 semantic/mixed FTS cases returned zero candidates, so the immediate
+  cause is the global all-token-AND admission plan rather than measured BM25
+  rank quality. Current remediation:
+  [natural-language FTS query-planner review](evidence/phase-07/natural-language-fts-query-planner-review-r4.md).
+- Phase 06 remediation completed: planner v2 uses safe descriptive OR admission,
+  independent symbol/path/descriptive lanes, deterministic local parent RRF,
+  shared hybrid input, and MCP/evaluation diagnostics. Focused normal/race,
+  vet, build, format, and diff checks passed. Phase 07 real-corpus reruns remain
+  required; prior artifacts are not overwritten.
 - Latest contract change: source and state roots are now distinct runtime inputs. Normal state is `<source>/.cidx` with production DB `.cidx/db/index.db`; cidx development evaluation uses disposable sources under `.cidx/test/corpora/` and preserved named states under `.cidx/test/states/`. Absolute source/state paths are removed from SQLite metadata.
 - Latest evaluation change: the 40-query relation Stage E/F unit completed two
   blinded reviews, source-only adjudication, whole-digest adoption, and two
@@ -212,11 +221,12 @@ This ledger is the authoritative resumable state for implementation work. Update
   in the same chunker-version/reindex boundary. The accepted implementation
   found 57 such production functions: 51 in previously parentless files and six
   in files with an existing type parent.
-- Next eligible work: prepare the separately controlled assistant A/B over the
-  same existing repositories and this exact question-set version.
-- Exact next action: freeze assistant model, prompt, tool budgets, task subset,
-  and A/B artifact contract before running either arm. Do not acquire a new
-  repository or alter the v2 cohort results.
+- Next eligible work: rerun the unchanged chi/RHF v2 questions with lexical
+  planner v2 and record admission, lane, and ranking evidence.
+- Exact next action: commit the clean Phase 06 implementation boundary, build
+  it with unmodified VCS provenance, then create two new immutable provider-free
+  Phase 07 run IDs. Do not acquire a new repository, call Voyage, alter v2, or
+  start assistant A/B first.
 
 Existing phase completion rows and implementation are historical work produced against earlier design revisions. They must not be read as proof that the current code satisfies Revision 4; the implementation remains a prototype until it is explicitly reconciled and revalidated against the final target contract.
 
@@ -230,8 +240,8 @@ Existing phase completion rows and implementation are historical work produced a
 | 03 | done | terra/high implementation agent; Codex validation | Yes — [Phase 02 evidence](evidence/phase-02/README.md) and `internal/chunk` shared contracts | Go Tree-sitter adapter, exact chunk/projection/segment fixtures, decision log, and [Phase 03 evidence](evidence/phase-03/README.md) accepted | Main focused test, race, vet, build, format, and diff checks passed | Enter Phase 04 |
 | 04 | done | `/root`; main-agent validation | Yes — original Phase 04 document/evidence, Phase 02/03 contracts, real chi/RHF structural audit, accepted user decision, and current workspace inspected | Revision 4 path-derived existing-field labels, overload correction, version bump, focused boundary validation, and full provider-free generation-3 handoff accepted | [Phase 04 evidence](evidence/phase-04/README.md) | Resume Phase 07 against corrected inventory |
 | 05 | done | `/root` | Yes — current int8/source contract, Phase 02 reconciliation, full Phase 05 document, historical evidence, strict legacy equivalence code, publication reproof, and existing core fixtures inspected | Exact int8-equivalent legacy rows can be atomically rekeyed; canonical retired 256/Binary profiles and every unproven row remain pending; focused test/race/vet/build/format boundary passed with no source-bank/lab/provider action | [Current int8 reproof](evidence/phase-05/int8-serving-key-reproof.md) and historical [R4 evidence](evidence/phase-05/revision-4.md) | Hand active canonical inputs and current-profile pending keys to Phase 08/10 |
-| 06 | done | terra/high implementation agent; Codex validation | Yes — [Phase 05 evidence](evidence/phase-05/README.md) and the store/config/symbol handoff inspected | Safe query construction, central resolved query policy/fingerprint, generation-pinned FTS/BM25 materialization with full pre-limit ordering, and [Phase 06 evidence](evidence/phase-06/README.md) accepted | Main focused race, vet, build, format, dependency-boundary, and diff checks passed | Enter Phase 07 or the unpaid implementation portion of Phase 08 |
-| 07 | in_progress | `/root` | Yes — execution/index/evaluation/Phase 07 documents; Phase 06 evidence; existing chi/RHF manifests, checkouts, states, question versions, and retained run artifacts | `critical-general-v1`, explicit question-set/run provenance, generation-2 reindex, and four provider-free chi/RHF FTS/simple runs completed; prior versions and runs remain immutable | [Critical/general v2 report](evidence/phase-07/critical-general-question-set-v2.md), [Phase 07 evidence](evidence/phase-07/README.md), and [frozen chi/RHF checkpoint](evidence/phase-07/dual-ai-calibration-freeze-r4.md) | Freeze and prepare the assistant A/B contract over the same repositories; do not run it until its controls are explicit |
+| 06 | done | `/root` | Yes — Phase 05/06 evidence, current lexical/index/store code, v2 run diagnostics, evaluation contract, and dual side-panel review inspected | Planner v2, safe descriptive OR, independent symbol/path/descriptive lanes, deterministic local parent RRF, serving-policy fingerprint, and shared hybrid/MCP/evaluation diagnostics passed focused normal/race/vet/build/format checks | [Current and historical Phase 06 evidence](evidence/phase-06/README.md) and [planner review](evidence/phase-07/natural-language-fts-query-planner-review-r4.md) | Hand unchanged v2 inputs and lane diagnostics to Phase 07 |
+| 07 | in_progress | `/root` | Yes — execution/index/evaluation/Phase 07 documents; completed revised Phase 06 evidence; existing chi/RHF manifests, checkouts, states, question versions, and retained run artifacts | `critical-general-v1`, explicit question-set/run provenance, generation-2 reindex, and four provider-free chi/RHF FTS/simple runs completed; prior versions and runs remain immutable | [Critical/general v2 report](evidence/phase-07/critical-general-question-set-v2.md), [Phase 07 evidence](evidence/phase-07/README.md), and [planner review](evidence/phase-07/natural-language-fts-query-planner-review-r4.md) | Commit Phase 06, then rerun unchanged v2 with new IDs and admission/ranking metrics; assistant A/B follows |
 | 08 | done | `/root` | Yes — full Phase 08 document, historical R4 evidence, accepted source-bank decision, Phase 05 handoff, live lab/embedclient wiring, and current state layout inspected | Product `db/embeddings.db` owns immutable document 1024-f32; `lab/evaluation.db` contains metadata only; compatible legacy rows copy read-only; focused test/race/vet/build/format/import/schema boundary passed | [Current source-bank evidence](evidence/phase-08/int8-source-bank-reconciliation.md), historical [R4 evidence](evidence/phase-08/revision-4.md), and [source-bank decision](SOURCE-VECTOR-BANK-DECISION.md) | Hand compatible sources and missing keys to Phase 09/10 |
 | 09 | done | `/root` | Yes — prior Phase 09 evidence, live vector/materialization code, Phase 08 source-bank boundary, five-profile evidence, and retired-profile contract inspected | Int8-only transform/materialization/search contract, production v5 cache, retired runtime removal, and one final offline boundary accepted | [Current evidence](evidence/phase-09/int8-only-materialization-reconciliation.md), historical [Phase 09 evidence](evidence/phase-09/README.md), and [retired-profile contract](RETIRED-VECTOR-PROFILES.md) | Hand direct int8 transform/scorer and source-bank rematerialization to Phase 10/11 |
 | 10 | done | `/root` | Yes — accepted Phase 09 boundary, prior Phase 10 R4 evidence, active embedding path, source-bank decision, and retired-profile contract inspected | Source-bank-first provider success handling, compatible local reuse, public source/Voyage plan split, provider-only request accounting, and final offline boundary accepted | [Current evidence](evidence/phase-10/source-bank-first-document-publication.md), historical [R4 evidence](evidence/phase-10/revision-4.md), and [source-bank decision](SOURCE-VECTOR-BANK-DECISION.md) | Hand current int8 coverage/profile state to Phase 11 |

@@ -27,6 +27,8 @@ func TestSearcherFindsLiveIndexedLanguagesAndRanksDeterministically(t *testing.T
 		{"GetUserByID", "GetUserByID"},
 		{"render user panel", "UserPanel"},
 		{"validate user input", "validateUserInput"},
+		{"render user panel tokenabsentfromcorpus", "UserPanel"},
+		{"special_location.go", "LocateByFile"},
 	} {
 		result, err := searcher.Search(ctx, Request{Query: check.query})
 		if err != nil {
@@ -36,10 +38,18 @@ func TestSearcherFindsLiveIndexedLanguagesAndRanksDeterministically(t *testing.T
 			t.Fatalf("%q result=%#v", check.query, result)
 		}
 		for ordinal, hit := range result.Hits {
-			if hit.BM25Rank != ordinal+1 {
+			if hit.LexicalRank != ordinal+1 {
 				t.Fatalf("%q ranks=%#v", check.query, result.Hits)
 			}
 		}
+	}
+	anchored, err := searcher.Search(ctx, Request{Query: "GetUserByID"})
+	if err != nil || anchored.Diagnostics.SymbolCandidateCount == 0 || anchored.Hits[0].SymbolRank == 0 || anchored.Hits[0].MatchedTerms != anchored.Hits[0].SelectedTerms {
+		t.Fatalf("symbol lane=%#v err=%v", anchored, err)
+	}
+	pathLed, err := searcher.Search(ctx, Request{Query: "special_location.go"})
+	if err != nil || pathLed.Diagnostics.PathCandidateCount == 0 || pathLed.Hits[0].PathRank == 0 || pathLed.Hits[0].Path != "special_location.go" {
+		t.Fatalf("path lane=%#v err=%v", pathLed, err)
 	}
 	first, err := searcher.Search(ctx, Request{Query: "GetUserByID"})
 	if err != nil {
@@ -53,7 +63,7 @@ func TestSearcherFindsLiveIndexedLanguagesAndRanksDeterministically(t *testing.T
 		t.Fatalf("result count changed: %d/%d", len(first.Hits), len(second.Hits))
 	}
 	for i := range first.Hits {
-		if first.Hits[i].ChunkID != second.Hits[i].ChunkID || first.Hits[i].BM25Rank != second.Hits[i].BM25Rank {
+		if first.Hits[i].ChunkID != second.Hits[i].ChunkID || first.Hits[i].LexicalRank != second.Hits[i].LexicalRank {
 			t.Fatalf("non-deterministic result: %#v / %#v", first.Hits, second.Hits)
 		}
 	}
@@ -99,6 +109,7 @@ func lexicalFixture(t *testing.T) (context.Context, string, *store.ProductionSto
 	mustWrite(t, filepath.Join(root, "user.go"), "package sample\n\nfunc GetUserByID() error {\n\treturn nil\n}\n")
 	mustWrite(t, filepath.Join(root, "input.ts"), "export function validateUserInput(value: string): boolean { return value.length > 0 }\n")
 	mustWrite(t, filepath.Join(root, "panel.tsx"), "export function UserPanel() { return <section>render user panel</section> }\n")
+	mustWrite(t, filepath.Join(root, "special_location.go"), "package sample\n\nfunc LocateByFile() error { return nil }\n")
 	runGit(t, root, "add", "user.go")
 	resolved := testConfig(t)
 	production, err := store.OpenProduction(ctx, root, resolved)

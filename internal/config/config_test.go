@@ -57,7 +57,7 @@ func TestRFC8785ProfileFixturesAndStrictResolvedDefaults(t *testing.T) {
 }
 
 func TestServingPolicyFingerprintIncludesQueryTextFormatVersion(t *testing.T) {
-	base := profile.ServingPolicyProfile{DefaultMode: "fts", QueryTextFormatVersion: QueryTextFormatVersion}
+	base := profile.ServingPolicyProfile{DefaultMode: "fts", LexicalQueryPlannerVersion: LexicalQueryPlannerVersion, QueryTextFormatVersion: QueryTextFormatVersion}
 	changed := base
 	changed.QueryTextFormatVersion++
 	left, err := Fingerprint(base, ServingPolicyDomain)
@@ -67,6 +67,12 @@ func TestServingPolicyFingerprintIncludesQueryTextFormatVersion(t *testing.T) {
 	right, err := Fingerprint(changed, ServingPolicyDomain)
 	if err != nil || left == right {
 		t.Fatalf("query format version is absent from policy fingerprint: %q %q %v", left, right, err)
+	}
+	changed = base
+	changed.LexicalQueryPlannerVersion++
+	right, err = Fingerprint(changed, ServingPolicyDomain)
+	if err != nil || left == right {
+		t.Fatalf("lexical planner version is absent from policy fingerprint: %q %q %v", left, right, err)
 	}
 }
 
