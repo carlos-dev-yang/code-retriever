@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "taxonomy": {
+    "version": "critical-general-v1",
+    "path": "testdata/retrieval/cohort-taxonomy-critical-general-v1.json",
+    "sha256": "2615321154a791a1db16245a80dff1a5ca39214b8586aae72119e1c112a71918"
+  },
+  "question_sets": [
+    {
+      "id": "go-chi-v5.3.1-retrieval",
+      "version": "go-chi-v5.3.1-critical-general-v2",
+      "path": "testdata/retrieval/question-set-go-chi-v5.3.1-critical-general-v2.json",
+      "file_sha256": "9160e2cbb72771e109c65e0f06fdc9b91c22ec9b9132d1a5ce5ca0e062ea7e58",
+      "canonical_sha256": "b0818e5b52f036ecb9bf1b71e88e9f057b54ac6c55280da6079ee8650a89fee4",
+      "supersedes": [
+        "go-chi-v5.3.1-behavior-calibration-frozen-v1",
+        "go-chi-v5.3.1-draft-smoke-1"
+      ],
+      "case_count": 18,
+      "runs": [
+        {
+          "run_id": "chi-critical-general-v2-fts-2",
+          "arm": "fts",
+          "code_commit": "252c168b1385357fe106b1589bdd3e5a8428d98a",
+          "generation": 2,
+          "artifact": ".cidx/test/states/chi-1024-int8/evaluations/chi-critical-general-v2-fts-2/run.json",
+          "artifact_sha256": "baa471dd809641180b29be55fc5fee2f502fc5e6489d7e1183481f63936ac883"
+        },
+        {
+          "run_id": "chi-critical-general-v2-simple-2",
+          "arm": "simple_control",
+          "code_commit": "252c168b1385357fe106b1589bdd3e5a8428d98a",
+          "generation": 2,
+          "artifact": ".cidx/test/states/chi-1024-int8/evaluations/chi-critical-general-v2-simple-2/simple-run.json",
+          "artifact_sha256": "23b926b58f300d7f44b27eaa7a1cf777ce27bbc350d3aa7f367c397ae3cdbf43"
+        }
+      ]
+    },
+    {
+      "id": "react-hook-form-v7.85.0-retrieval",
+      "version": "react-hook-form-v7.85.0-critical-general-v2",
+      "path": "testdata/retrieval/question-set-react-hook-form-v7.85.0-critical-general-v2.json",
+      "file_sha256": "312af61e665f7e9a5d879affc5b5bc3eb030870ae8b52e0e90a8d10a05102d29",
+      "canonical_sha256": "e43aba2a6f5453757d271f87a121835aec83c02b7429c7bf864c81a1a9ad1d1b",
+      "supersedes": [
+        "react-hook-form-v7.85.0-behavior-calibration-frozen-v1",
+        "react-hook-form-v7.85.0-draft-smoke-1"
+      ],
+      "case_count": 26,
+      "runs": [
+        {
+          "run_id": "rhf-critical-general-v2-fts-2",
+          "arm": "fts",
+          "code_commit": "252c168b1385357fe106b1589bdd3e5a8428d98a",
+          "generation": 2,
+          "artifact": ".cidx/test/states/react-hook-form-1024-int8/evaluations/rhf-critical-general-v2-fts-2/run.json",
+          "artifact_sha256": "3dfebf26e676498485bd0853e553713db66b207e3f16ad0d5fb681ec8dbecbc7"
+        },
+        {
+          "run_id": "rhf-critical-general-v2-simple-2",
+          "arm": "simple_control",
+          "code_commit": "252c168b1385357fe106b1589bdd3e5a8428d98a",
+          "generation": 2,
+          "artifact": ".cidx/test/states/react-hook-form-1024-int8/evaluations/rhf-critical-general-v2-simple-2/simple-run.json",
+          "artifact_sha256": "756ff026457d7ba6bfb0fc55409832f7e6cca4bd3a2c74842c316265ac419bdd"
+        }
+      ]
+    }
+  ]
+}

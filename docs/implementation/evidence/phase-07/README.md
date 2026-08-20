@@ -9,6 +9,12 @@
 
 Current product authority: [Retired Vector Profiles and Evidence Boundary](../../RETIRED-VECTOR-PROFILES.md).
 
+Current critical/general checkpoint: [versioned chi/RHF question-set v2 and
+provider-free FTS/simple diagnostic](critical-general-question-set-v2.md).
+Every run carries the exact question-set and taxonomy identity; prior versions
+and runs remain unchanged. The result validates the cohort split as a useful
+diagnostic but makes no ranking-improvement or assistant-use claim.
+
 Current frozen calibration checkpoint: [dual-AI calibration freeze and
 provider-free replay — Revision 4](dual-ai-calibration-freeze-r4.md).
 

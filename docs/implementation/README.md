@@ -24,6 +24,7 @@
 - Historical relation completion plan: [semantic admission, contract closure, and assistant-pull plan](RELATION-EVIDENCE-COMPLETION-PLAN.md)
 - Persistent state: [Phase Status Ledger](STATUS.md)
 - Owner review index (packaging freeze + remaining work): [OWNER-REVIEW-INDEX.md](OWNER-REVIEW-INDEX.md)
+- Critical/general question-set v2 diagnostic: [critical-general-question-set-v2.md](evidence/phase-07/critical-general-question-set-v2.md)
 - Remaining-work handoff: [remaining-work-review-handoff-r4.md](evidence/revision-4/remaining-work-review-handoff-r4.md)
 - Final corpus-independent review: [int8/source-profile implementation-to-design review](evidence/revision-4/int8-source-profile-final-review.md)
 - Last updated: 2026-08-20

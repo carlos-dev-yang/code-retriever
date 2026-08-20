@@ -35,6 +35,22 @@ Do not treat this index as promotion evidence. If it disagrees with
 | 라이브 패키징 판정 | `CONTINUE_SIBLING_PACKAGING` |
 | Voyage | 이번 작업에서 0회 |
 
+### 2.1 최신 critical/general 질문 세트 결과
+
+기존 chi/RHF 질문과 exact-identifier 질문을 새 v2로 합쳤고, 이전 파일과
+run은 그대로 보관했다. 각 새 run은 질문 세트 버전·canonical digest·cohort
+taxonomy 버전/digest를 직접 기록한다.
+
+- FTS: lexical anchor `10/12`, semantic-only `0/24`, mixed `0/8`
+- simple control: 전체 `28/44`, semantic-only `13/24`, mixed `5/8`
+- 해석: 분류는 FTS의 역할과 semantic/contract 취약점을 실제로 분리한다.
+  검색 알고리즘을 바꾼 실험은 아니므로 성능 향상 주장은 하지 않는다.
+- 다음 순서: 같은 저장소와 질문 버전을 고정한 assistant A/B 계약 준비
+
+정확한 실행 ID와 artifact digest는
+[critical/general v2 report](evidence/phase-07/critical-general-question-set-v2.md)에
+있다.
+
 ---
 
 ## 3. 이 작업이 무엇을 한 건지

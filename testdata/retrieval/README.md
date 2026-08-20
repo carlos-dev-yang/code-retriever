@@ -16,6 +16,8 @@ revisions are `question-set-go-chi-v5.3.1-critical-general-v2.json` and
 `question-set-react-hook-form-v7.85.0-critical-general-v2.json`. They combine
 the preserved behavior and exact-identifier source versions into new draft
 question sets; they do not overwrite or reinterpret prior run artifacts.
+`question-set-run-registry-v1.json` records which immutable run used each
+question-set/taxonomy version and the exact artifact digest.
 
 These portable manifests name the two public repositories explicitly selected
 and authorized by the user. They contain no checkout path or source body.
