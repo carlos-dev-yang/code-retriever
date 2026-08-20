@@ -95,17 +95,16 @@ func queryFragmentStyle(raw string) (identifier, path bool) {
 		return true, path
 	}
 	runes := []rune(raw)
-	upper := 0
+	if len(runes) > 1 && unicode.IsUpper(runes[0]) {
+		return true, false
+	}
 	for index, r := range runes {
 		if unicode.IsDigit(r) {
 			return true, false
 		}
-		if unicode.IsUpper(r) {
-			upper++
-			if index > 0 {
-				return true, false
-			}
+		if unicode.IsUpper(r) && index > 0 {
+			return true, false
 		}
 	}
-	return upper > 1, false
+	return false, false
 }

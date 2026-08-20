@@ -41,6 +41,10 @@ func TestBuildQueryUsesSharedIdentifierNormalizerAndQuotedGrammar(t *testing.T) 
 	if err != nil || lowercaseAnchor.Shape != QueryShapeAnchor || lowercaseAnchor.ExactSymbolCandidate != "chain" || len(lowercaseAnchor.SymbolAnchorCandidates) != 1 {
 		t.Fatalf("lowercase anchor=%#v err=%v", lowercaseAnchor, err)
 	}
+	mixedPascal, err := BuildQuery("Router interface", symbol.IdentifierNormalizer{}, queryLimits)
+	if err != nil || mixedPascal.Shape != QueryShapeMixed || len(mixedPascal.SymbolAnchorCandidates) != 1 || mixedPascal.SymbolAnchorCandidates[0].Raw != "Router" {
+		t.Fatalf("PascalCase mixed query=%#v err=%v", mixedPascal, err)
+	}
 }
 
 func TestBuildQueryRejectsEmptyAndInvalidUTF8(t *testing.T) {
