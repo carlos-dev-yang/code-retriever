@@ -1,8 +1,14 @@
 # 14. Packaging and MCP Host Integration
 
 - Status: `blocked` — the current default-1024/int8 and provider-free
-  compact-512 local package checkpoint is accepted; official Phase 07/12,
-  assistant-use, and release-candidate gates remain externally blocked
+  compact-512 local package checkpoint is accepted. The owner-directed paired
+  Codex CLI diagnostic is complete under the
+  [Version 3 result](evidence/phase-14/assistant-ab-v3-result.md): correctness
+  was preserved, but the current FTS-first integration increased tokens and
+  must be compacted before another A/B. The chronological handoff and exact
+  next action are in the
+  [FTS/assistant work journal](FTS-REMEDIATION-AND-ASSISTANT-AB-JOURNAL.md).
+  Official Phase 12 and release-candidate promotion remain blocked.
 - Prerequisite: `13-cli-and-mcp`
 - Followed by: v1 release-candidate validation
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 1–3 and 7–10
@@ -17,6 +23,9 @@ Read the [implementation index](README.md), [execution guide](EXECUTION-GUIDE.md
 - Re-check project-scoped host setup, stdout protocol purity, stderr diagnostics, the 64 KiB default / 1 MiB absolute `max_inline_bytes` ceiling, no read-span line cap, and environment-only `VOYAGE_API_KEY` forwarding.
 - Re-check that serving/package smoke does not open the source bank or lab DB, mutate host config or hooks, promise unverified platforms, or invent fixed-model/external-vector policy.
 - Re-check the frozen assistant-task controls and three product arms: existing tools only, existing tools plus lexical cidx, and existing tools plus hybrid cidx. Never force a cidx call.
+- Treat the forced first cidx call in diagnostic V3 as a bounded causal
+  intervention only. It does not override the non-forced release-candidate
+  assistant protocol above.
 - If the relation completion series reaches assistant evaluation, add the
   separately frozen closure, body-free hints plus existing `read_span`, and
   closure-plus-hints development arms from

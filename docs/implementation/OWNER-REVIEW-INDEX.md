@@ -1,11 +1,11 @@
-# Owner Review Index — Packaging Freeze and Remaining Work
+# Owner Review Index — Packaging, FTS, Assistant Evaluation, and Remaining Work
 
-- Date: 2026-08-20
+- Date: 2026-08-21
 - Language: Korean (owner review). File names and identifiers stay English.
 - Status: evaluation-only freeze; not `core_retrieval`, not `release_candidate`
 - Authoritative ledger: [`STATUS.md`](STATUS.md)
-- This file is the single entry point for the 2026-08-19 packaging work and
-  what remains after it.
+- This file is the owner entry point for the packaging work, natural-language
+  FTS correction, paired assistant diagnostic, and remaining work.
 
 Do not treat this index as promotion evidence. If it disagrees with
 `STATUS.md` or a named evidence file, those files win.
@@ -19,8 +19,10 @@ Do not treat this index as promotion evidence. If it disagrees with
 넣는 것은 기각했다. 기존 chi/RHF critical/general v2 결과는 고정했다.
 자연어 질문을 모두 `AND`로 묶어 후보를 0개로 만들던 Phase 06 lexical
 planner 교정과 동일 v2 재실행도 끝났다. 후보 0건은 `32/44 -> 0/44`, 완전
-정답@5는 `10/44 -> 30/44`가 됐다. 다음 순서는 새 저장소가 아니라 동일
-chi/RHF에서 paired assistant A/B를 별도 평가 단위로 준비하는 것이다.
+정답@5는 `10/44 -> 30/44`가 됐다. 동일 chi/RHF paired assistant A/B V3도
+완료했다. 정확도는 baseline `11 complete + 1 partial`에서 cidx `12 complete`로
+유지·개선됐지만 모델 토큰은 `37.2%` 늘었다. 다음 순서는 새 저장소나 동일
+A/B 반복이 아니라 MCP 검색 응답량을 계측하고 줄이는 것이다.
 
 ---
 
@@ -35,6 +37,8 @@ chi/RHF에서 paired assistant A/B를 별도 평가 단위로 준비하는 것�
 | Phase 07 | `done` — 동일 v2 새 run과 단계별 진입/순위 진단 완료 |
 | Phase 12 `core_retrieval` | `blocked` |
 | Phase 14 `release_candidate` | `blocked` (로컬 darwin/arm64 패키지는 있음) |
+| Assistant A/B V3 | 완료 — cidx 12/12 complete, 모델 토큰 +37.2%, unchanged rerun 기각 |
+| 정확한 다음 작업 | MCP search 응답의 text/structured/metadata/body 비용 분리 계측과 compact contract 제안 |
 | 라이브 패키징 판정 | `CONTINUE_SIBLING_PACKAGING` |
 | Voyage | 이번 작업에서 0회 |
 
@@ -54,7 +58,9 @@ taxonomy 버전/digest를 직접 기록한다.
 - candidate depth 20에서 필요한 그룹을 모두 가진 질문은 `38/44`다. 그중
   8개는 최종 top 5에서 밀렸고, 6개는 후보 단계부터 불완전하다.
 - 기존 FTS가 맞힌 10개는 하나도 잃지 않았고 20개를 추가 회복했다.
-- 다음 순서: 같은 저장소에서 assistant A/B를 별도 artifact로 실행한다.
+- 후속 assistant A/B V3는 완료했다. 결과와 다음 교정은
+  [FTS/assistant 작업 일지](FTS-REMEDIATION-AND-ASSISTANT-AB-JOURNAL.md)와
+  [V3 결과](evidence/phase-14/assistant-ab-v3-result.md)에 기록했다.
 
 정확한 실행 ID와 artifact digest는
 [critical/general v2 report](evidence/phase-07/critical-general-question-set-v2.md)에
@@ -70,6 +76,19 @@ taxonomy 버전/digest를 직접 기록한다.
 두고, dense를 FTS 후보로 제한하지 않는 것이다. 명시된 동일-result 필수
 조건만 `AND`로 유지하며, 자연어 설명은 OR 기반 후보 진입 후 별도 순위를
 측정한다.
+
+### 2.2 Assistant A/B V3 결과
+
+- 기존 저장소와 선정된 12질문만 사용했다. 새 저장소와 Voyage 호출은 없다.
+- treatment 12/12가 정확한 cidx MCP를 사용했고 총 48회 호출했다.
+- baseline은 `11 complete + 1 partial`, cidx FTS는 `12 complete`이며 역전 실패는 없다.
+- 전체 모델 토큰은 `1,223,579 -> 1,678,341`로 `37.2%` 증가했다.
+- uncached input은 `241,613 -> 363,843`로 `50.6%` 증가했다.
+- 양쪽 모두 complete인 11쌍의 model-total ratio 중앙값은 `1.378`, 감소/동률은 `3/11`이다.
+- 모든 treatment에서 모델에 노출된 저장소 출력 바이트가 늘었다. 큰 inline 검색
+  결과와 반복 `search/read_span`이 우선 조사 대상이다.
+- ChatGPT와 Grok 모두 unchanged rerun을 기각했다. 응답량 교정이 1순위,
+  도구 가이드가 2순위, lexical/semantic routing은 그 이후다.
 
 ---
 
@@ -205,6 +224,7 @@ env -u VOYAGE_API_KEY go run ./cmd/cidx dev relations packaging \
 | 문서 | 역할 |
 | --- | --- |
 | [implementation plan index](README.md) | 페이즈 00–14 |
+| [FTS/assistant work journal](FTS-REMEDIATION-AND-ASSISTANT-AB-JOURNAL.md) | AND 결함부터 V3 A/B와 다음 작업까지 시간순 재개 지침 |
 | [EVALUATION-CONTRACT.md](EVALUATION-CONTRACT.md) | 스테이지별 분모, 프로모션 게이트 |
 | [EVALUATION-EMBEDDING-EXECUTION-PLAN.md](EVALUATION-EMBEDDING-EXECUTION-PLAN.md) | 유료 임베딩 순서 |
 | [06 FTS search](06-fts-search.md) | 완료 — 자연어 후보 진입 개선 |
@@ -239,7 +259,7 @@ env -u VOYAGE_API_KEY go run ./cmd/cidx dev relations packaging \
 | Phase 14 출시 후보 | 12 + 호스트/어시스턴트 증거 필요 |
 | 형제를 MCP에 올리기 | 별도 제품 설계 전까지 평가 계약만 |
 | 한 홉을 순위/role로 다시 맞추기 | 닫힌 세트 튜닝 |
-| 어시스턴트 A/B | lexical 교정 완료 뒤의 다음 별도 평가 단위 |
+| unchanged 어시스턴트 A/B 반복 | V3에서 정확도 보존과 구조적 응답량 증가가 이미 확인됨. 먼저 응답량을 교정해야 함 |
 
 ---
 
@@ -247,10 +267,15 @@ env -u VOYAGE_API_KEY go run ./cmd/cidx dev relations packaging \
 
 핸드오프 [§5](evidence/revision-4/remaining-work-review-handoff-r4.md#5-owner-decisions-required-before-work-resumes)와 같다.
 
-현재 lexical 교정에는 남은 오너 결정이 없다. 다음 assistant A/B는 이미
-기존 chi/RHF로 진행하도록 방향이 정해졌다. 실행 전에 모델/버전, 동일
-프롬프트, 작업 정답, 도구 정책, 순서, 예산을 하나의 paired contract로
-고정하면 된다.
+현재 lexical 교정과 assistant A/B V3에는 남은 오너 결정이 없다. 다음 작업은
+retrieval 정책을 다시 바꾸거나 새 저장소를 추가하는 것이 아니라, 현재 MCP
+`search` 응답에서 text/structured content/metadata/inline body가 각각 얼마나
+모델 입력을 늘리는지 계측하는 것이다. 공개 MCP 응답 스키마 변경이 필요하면
+설계·Phase 13/14·호환성 계획을 먼저 갱신하고 오너 결정을 받아야 한다.
+
+응답량 교정 후에는 새 V4 manifest로 전체 24-turn paired batch를 실행한다.
+V1–V3 결과는 보존하며 selective rerun을 하지 않는다. 작은 `k`, 작은 inline
+budget, 호출 횟수 제한은 실험 후보이지 아직 제품 기본값이 아니다.
 
 아래 결정은 assistant A/B 이후의 별도 Phase 12/14 범위로 남는다.
 
@@ -274,6 +299,7 @@ Confirmation을 돌리게 되면 절차는 핸드오프
 .cidx/test/experiments/relation-calibration-review-v1/stage-f-ba44-a/
 .cidx/test/experiments/relation-calibration-review-v1/frozen-ba44/
 .cidx/test/states/{go-git,zustand,memos}-1024-int8/evaluations/relation-completion-stage-b-*-v2/
+.cidx/test/assistant-ab/runs/assistant-ab-v3-20260820T143000Z/
 ```
 
 `.cidx/credentials.env`는 읽거나 커밋하지 않는다.

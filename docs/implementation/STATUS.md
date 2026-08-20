@@ -4,8 +4,9 @@ This ledger is the authoritative resumable state for implementation work. Update
 
 ## Current state
 
-- Active phase: none — the owner-directed lexical correction and unchanged-v2
-  rerun are complete. Paired assistant A/B is the next separately scoped work.
+- Active phase: none — paired Codex CLI assistant A/B Version 3 is complete.
+  It preserves correctness but rejects the current FTS-first integration as a
+  token-efficiency improvement. It is diagnostic evidence, not promotion.
 - Active owner: `/root`
 - Completed bounded work: the final provider-free graph-only Pareto admission
   diagnostic is complete at clean commit
@@ -43,7 +44,7 @@ This ledger is the authoritative resumable state for implementation work. Update
   graph-only branch was useful in `1/7`; bridge, Pareto, and their combined
   rule are rejected for product use. The full sidecar remains evaluation-only.
 - Phase 07 simple-control implementation owner: `/root/phase07_simple_control` (store/eval/devlab only; no corpus, provider, or production-ranking mutation)
-- Last updated: 2026-08-20
+- Last updated: 2026-08-21
 - Owner review index: [`OWNER-REVIEW-INDEX.md`](OWNER-REVIEW-INDEX.md) — single
   entry for packaging freeze, live results, adopted contract, and remaining
   gated work
@@ -54,11 +55,14 @@ This ledger is the authoritative resumable state for implementation work. Update
   queries) with unchanged primary top five and zero labeled isolated extras.
   One-hop recovers both nearby misses but also completes `gg-g09` in every grid
   cell, so the one-hop gate fails and Arm D stays unauthorized. Do not retune
-  this closed unit. Assistant A/B was deferred at that checkpoint; the latest
-  owner direction below explicitly reopens it after lexical remediation.
-- Latest owner direction: do not add a repository. The natural-language lexical
-  candidate-admission correction and same-version chi/RHF rerun are complete;
-  prepare paired assistant A/B next over the existing repositories.
+  this closed unit. Assistant A/B was deferred at that checkpoint and later
+  completed as Version 3 after lexical remediation.
+- Latest owner direction: do not add a repository. Natural-language lexical
+  remediation and paired assistant A/B Version 3 are complete. Do not repeat
+  V3 unchanged. Resume with response-contract accounting and a compact-response
+  proposal before changing retrieval or running another paired batch. Durable
+  chronology and stop conditions are in
+  [`FTS-REMEDIATION-AND-ASSISTANT-AB-JOURNAL.md`](FTS-REMEDIATION-AND-ASSISTANT-AB-JOURNAL.md).
 - Canonical target: [`local-code-search-mcp-v1-design-r4.md`](../../local-code-search-mcp-v1-design-r4.md)
 - Completed critical/general checkpoint: every prior question-set file and run
   remains preserved; `critical-general-v1`, chi/RHF question-set v2, explicit
@@ -227,12 +231,15 @@ This ledger is the authoritative resumable state for implementation work. Update
   in the same chunker-version/reindex boundary. The accepted implementation
   found 57 such production functions: 51 in previously parentless files and six
   in files with an existing type parent.
-- Next eligible work: prepare the paired assistant A/B unit over the existing
-  chi/RHF repositories.
-- Exact next action: freeze one assistant model/version, prompt, task truth,
-  tool policy, ordering, and budget; run matched no-MCP and four-tool-MCP arms
-  as new immutable artifacts. Do not acquire a new repository or alter the v2
-  lexical questions/results as part of that work.
+- Completed bounded work: Version 1 preserved zero-adoption optional exposure;
+  Version 2 preserved shell-versus-MCP instruction noncompliance; Version 3 ran
+  all 12 baseline/treatment pairs with 12/12 MCP compliance, blind correctness,
+  and arm-blind machine journey evidence. Treatment was 12/12 complete versus
+  baseline 11 complete + 1 partial, but used 37.2% more model tokens and 50.6%
+  more uncached input. Both reviewers require correction before another A/B.
+- Exact next action: do not repeat unchanged. First reduce and de-duplicate MCP
+  search response volume, then tighten k/inline/call guidance; only after that
+  consider an explicitly approved lexical-versus-hybrid routing experiment.
 
 Existing phase completion rows and implementation are historical work produced against earlier design revisions. They must not be read as proof that the current code satisfies Revision 4; the implementation remains a prototype until it is explicitly reconciled and revalidated against the final target contract.
 
@@ -247,14 +254,14 @@ Existing phase completion rows and implementation are historical work produced a
 | 04 | done | `/root`; main-agent validation | Yes — original Phase 04 document/evidence, Phase 02/03 contracts, real chi/RHF structural audit, accepted user decision, and current workspace inspected | Revision 4 path-derived existing-field labels, overload correction, version bump, focused boundary validation, and full provider-free generation-3 handoff accepted | [Phase 04 evidence](evidence/phase-04/README.md) | Resume Phase 07 against corrected inventory |
 | 05 | done | `/root` | Yes — current int8/source contract, Phase 02 reconciliation, full Phase 05 document, historical evidence, strict legacy equivalence code, publication reproof, and existing core fixtures inspected | Exact int8-equivalent legacy rows can be atomically rekeyed; canonical retired 256/Binary profiles and every unproven row remain pending; focused test/race/vet/build/format boundary passed with no source-bank/lab/provider action | [Current int8 reproof](evidence/phase-05/int8-serving-key-reproof.md) and historical [R4 evidence](evidence/phase-05/revision-4.md) | Hand active canonical inputs and current-profile pending keys to Phase 08/10 |
 | 06 | done | `/root` | Yes — Phase 05/06 evidence, current lexical/index/store code, v2 run diagnostics, evaluation contract, and dual side-panel review inspected | Planner v2, safe descriptive OR, independent symbol/path/descriptive lanes, deterministic local parent RRF, serving-policy fingerprint, and shared hybrid/MCP/evaluation diagnostics passed focused normal/race/vet/build/format checks | [Current and historical Phase 06 evidence](evidence/phase-06/README.md) and [planner review](evidence/phase-07/natural-language-fts-query-planner-review-r4.md) | Hand unchanged v2 inputs and lane diagnostics to Phase 07 |
-| 07 | done | `/root` | Yes — execution/index/evaluation/Phase 07 documents; completed revised Phase 06 evidence; existing chi/RHF manifests, checkouts, states, question versions, and retained run artifacts | Planner v2 completed three preserved run pairs; final clean pair has `0/44` candidate-zero, `38/44` complete admission at depth 20, `30/44` complete top-five, and no historical-pass regression | [Critical/general v2 report](evidence/phase-07/critical-general-question-set-v2.md), [Phase 07 evidence](evidence/phase-07/README.md), [planner review](evidence/phase-07/natural-language-fts-query-planner-review-r4.md), and [final rerun](evidence/phase-07/natural-language-lexical-rerun-v2.md) | Preserve this exposed calibration; prepare paired assistant A/B as a separate immutable unit |
+| 07 | done | `/root` | Yes — execution/index/evaluation/Phase 07 documents; completed revised Phase 06 evidence; existing chi/RHF manifests, checkouts, states, question versions, and retained run artifacts | Planner v2 completed three preserved run pairs; final clean pair has `0/44` candidate-zero, `38/44` complete admission at depth 20, `30/44` complete top-five, and no historical-pass regression | [Critical/general v2 report](evidence/phase-07/critical-general-question-set-v2.md), [Phase 07 evidence](evidence/phase-07/README.md), [planner review](evidence/phase-07/natural-language-fts-query-planner-review-r4.md), and [final rerun](evidence/phase-07/natural-language-lexical-rerun-v2.md) | Preserve this exposed calibration; assistant V3 is complete and response accounting proceeds separately in Phase 14 |
 | 08 | done | `/root` | Yes — full Phase 08 document, historical R4 evidence, accepted source-bank decision, Phase 05 handoff, live lab/embedclient wiring, and current state layout inspected | Product `db/embeddings.db` owns immutable document 1024-f32; `lab/evaluation.db` contains metadata only; compatible legacy rows copy read-only; focused test/race/vet/build/format/import/schema boundary passed | [Current source-bank evidence](evidence/phase-08/int8-source-bank-reconciliation.md), historical [R4 evidence](evidence/phase-08/revision-4.md), and [source-bank decision](SOURCE-VECTOR-BANK-DECISION.md) | Hand compatible sources and missing keys to Phase 09/10 |
 | 09 | done | `/root` | Yes — prior Phase 09 evidence, live vector/materialization code, Phase 08 source-bank boundary, five-profile evidence, and retired-profile contract inspected | Int8-only transform/materialization/search contract, production v5 cache, retired runtime removal, and one final offline boundary accepted | [Current evidence](evidence/phase-09/int8-only-materialization-reconciliation.md), historical [Phase 09 evidence](evidence/phase-09/README.md), and [retired-profile contract](RETIRED-VECTOR-PROFILES.md) | Hand direct int8 transform/scorer and source-bank rematerialization to Phase 10/11 |
 | 10 | done | `/root` | Yes — accepted Phase 09 boundary, prior Phase 10 R4 evidence, active embedding path, source-bank decision, and retired-profile contract inspected | Source-bank-first provider success handling, compatible local reuse, public source/Voyage plan split, provider-only request accounting, and final offline boundary accepted | [Current evidence](evidence/phase-10/source-bank-first-document-publication.md), historical [R4 evidence](evidence/phase-10/revision-4.md), and [source-bank decision](SOURCE-VECTOR-BANK-DECISION.md) | Hand current int8 coverage/profile state to Phase 11 |
 | 11 | done | `/root` | Yes — accepted Phase 09/10 boundaries, prior Phase 11 R4 evidence, live vector scan/evaluation code, five-profile evidence, and retired-profile contract inspected | Current request-local int8 scan, nonpersistent serving-f32 reference, fallback/RRF/body behavior, retired comparison removal, and focused boundary accepted | [Current evidence](evidence/phase-11/int8-only-query-search-reconciliation.md), historical [R4 evidence](evidence/phase-11/revision-4.md), and [retired-profile contract](RETIRED-VECTOR-PROFILES.md) | Hand the current evaluation arms to Phase 12 |
-| 12 | blocked | `/root` | Yes — accepted current Phase 11 boundary, prior Phase 12 R4 evidence, evaluation contract, current schemas/adapters, relation completion authority, retired-profile contract, closed Stage E/F, and adopted packaging contract inspected | Corpus-independent adapter accepted; packaging/no-policy authority is now frozen evaluation-only sibling 4/4096; official `core_retrieval` still lacks independent confirmation | [Remaining-work handoff](evidence/revision-4/remaining-work-review-handoff-r4.md), [adopted sibling contract](../../testdata/retrieval/relation-sibling-packaging-adopted-v1.json), [current evidence](evidence/phase-12/int8-only-evaluation-reconciliation.md), and [R4 accounting evidence](evidence/phase-12/revision-4.md) | After owner-selected unexposed confirmation, seal margins and run official core evaluation; assistant-use stays deferred |
+| 12 | blocked | `/root` | Yes — accepted current Phase 11 boundary, prior Phase 12 R4 evidence, evaluation contract, current schemas/adapters, relation completion authority, retired-profile contract, closed Stage E/F, and adopted packaging contract inspected | Corpus-independent adapter accepted; packaging/no-policy authority is now frozen evaluation-only sibling 4/4096; official `core_retrieval` still lacks independent confirmation | [Remaining-work handoff](evidence/revision-4/remaining-work-review-handoff-r4.md), [adopted sibling contract](../../testdata/retrieval/relation-sibling-packaging-adopted-v1.json), [current evidence](evidence/phase-12/int8-only-evaluation-reconciliation.md), and [R4 accounting evidence](evidence/phase-12/revision-4.md) | After owner-selected unexposed confirmation, seal margins and run official core evaluation; assistant V3 remains separate non-promotion evidence |
 | 13 | done | `/root` | Yes — current Phase 02/08/11/12 boundaries, prior Phase 13 R4 evidence, live init/CLI/MCP code, source-bank decision, and retired-profile contract inspected | Default 1024/optional 512 fixed-int8 CLI, provider-free source reuse, four-tool MCP, and focused offline boundary accepted | [Current evidence](evidence/phase-13/int8-only-cli-mcp-reconciliation.md), historical [R4 evidence](evidence/phase-13/revision-4.md), and [retired-profile contract](RETIRED-VECTOR-PROFILES.md) | Hand the current CLI/MCP surface to Phase 14 |
-| 14 | blocked | `/root` | Yes — accepted current Phase 13 boundary, prior Phase 14 checkpoint, current scripts/docs, source-bank decision, five-profile evidence, and retired-profile contract inspected | Clean-provenance local darwin/arm64 archive proves default 1024/int8, provider-free compact 512/int8, negative-only Binary/256, and source-bank-free four-tool serving; official promotion scope remains externally gated | [Current int8 package evidence](evidence/phase-14/int8-profile-package-reconciliation.md), historical [R4 checkpoint](evidence/phase-14/revision-4.md), [source-bank decision](SOURCE-VECTOR-BANK-DECISION.md), and [retired-profile contract](RETIRED-VECTOR-PROFILES.md) | Resume after official Phase 12 core evidence and frozen assistant/host inputs exist |
+| 14 | blocked | `/root` | Yes — accepted current Phase 13 boundary, prior Phase 14 checkpoint, unchanged critical/general v2 inputs, three versioned assistant protocols, 24 V3 scored task turns, 48 V3 cidx calls, blind grades, machine-frozen journey, and dual pre/post external reviews inspected | Assistant diagnostic complete: cidx preserved/improved correctness but current FTS-first response/orchestration increased model tokens; unchanged rerun rejected and no release-promotion claim made | [Work journal](FTS-REMEDIATION-AND-ASSISTANT-AB-JOURNAL.md), [Assistant A/B V3 result](evidence/phase-14/assistant-ab-v3-result.md), [V3 plan](ASSISTANT-AB-TEST-PLAN-V3.md), [current int8 package evidence](evidence/phase-14/int8-profile-package-reconciliation.md), and [historical R4 checkpoint](evidence/phase-14/revision-4.md) | Measure the response contract, propose compact output, and tighten tool guidance before another paired A/B; official promotion remains externally gated |
 
 ## Resume note template
 

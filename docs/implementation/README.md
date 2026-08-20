@@ -15,7 +15,10 @@
   planner was replaced by independent symbol/path/descriptive lexical lanes.
   The unchanged-v2 rerun is complete: candidate-zero is `0/44` and
   CompleteRequirementHit@5 is `30/44` versus the historical `10/44`, with no
-  historical pass lost. Paired assistant A/B is the next separate unit.
+  historical pass lost. Paired assistant A/B Version 3 is also complete:
+  correctness was preserved, but the current FTS-first integration used 37.2%
+  more model tokens. Response-contract accounting and compaction are the next
+  bounded unit; an unchanged A/B rerun is rejected.
   Official Phase 12 and release-candidate evidence remain separately gated
 - Canonical design: [Local Code Search MCP v1 Final Target Contract — Revision 4](../../local-code-search-mcp-v1-design-r4.md)
 - Earlier designs: [original](../../local-code-search-mcp-v1-design.md), [r1](../../local-code-search-mcp-v1-design-r1.md), [r2](../../local-code-search-mcp-v1-design-r2.md), [r3](../../local-code-search-mcp-v1-design-r3.md)
@@ -31,9 +34,11 @@
 - Critical/general question-set v2 diagnostic: [critical-general-question-set-v2.md](evidence/phase-07/critical-general-question-set-v2.md)
 - Current lexical remediation: [natural-language FTS query-planner review](evidence/phase-07/natural-language-fts-query-planner-review-r4.md)
 - Final lexical rerun: [planner v2 sequential correction and unchanged-v2 result](evidence/phase-07/natural-language-lexical-rerun-v2.md)
+- FTS-to-assistant chronological handoff: [FTS remediation and assistant A/B work journal](FTS-REMEDIATION-AND-ASSISTANT-AB-JOURNAL.md)
+- Completed paired assistant diagnostic: [Version 3 result](evidence/phase-14/assistant-ab-v3-result.md) and [frozen plan](ASSISTANT-AB-TEST-PLAN-V3.md)
 - Remaining-work handoff: [remaining-work-review-handoff-r4.md](evidence/revision-4/remaining-work-review-handoff-r4.md)
 - Final corpus-independent review: [int8/source-profile implementation-to-design review](evidence/revision-4/int8-source-profile-final-review.md)
-- Last updated: 2026-08-20
+- Last updated: 2026-08-21
 
 This directory is the executable implementation plan for cidx v1. It decomposes the canonical product contract into phase-owned packages, schemas, CLIs, validation work, and completion evidence. A design change must update this index, every affected phase, the dependency graph, the change-impact table, and the persistent status ledger together.
 
@@ -110,7 +115,7 @@ Allowed states are `planned | in_progress | blocked | done`. A phase becomes `do
 | 11 | done | [Vector and hybrid search](11-vector-and-hybrid-search.md) | reconciled 02/09/10, existing 06 | Int8-only request-local scan, RRF, fallback, and body packaging | [Current evidence](evidence/phase-11/int8-only-query-search-reconciliation.md) and [historical R4 evidence](evidence/phase-11/revision-4.md) |
 | 12 | blocked | [Retrieval evaluation](12-retrieval-evaluation.md) | 07, reconciled 08, 09, 11 | Accepted int8-only corpus-independent adapter; official corpus evaluation and promotion remain externally gated | [Current evidence](evidence/phase-12/int8-only-evaluation-reconciliation.md) and [accepted R4 accounting evidence](evidence/phase-12/revision-4.md) |
 | 13 | done | [CLI and MCP](13-cli-and-mcp.md) | reconciled 02/08/11 and existing Phase 12 core | Int8-only 1024-default init/help, local 512 rematerialization, and unchanged four-tool MCP | [Current evidence](evidence/phase-13/int8-only-cli-mcp-reconciliation.md) and [historical R4 evidence](evidence/phase-13/revision-4.md) |
-| 14 | blocked | [Packaging and host integration](14-packaging-and-host-integration.md) | 13 | Current local package/verifier checkpoint accepted; official evaluation, assistant-use, and release-candidate evidence remain externally gated | [Current int8 package evidence](evidence/phase-14/int8-profile-package-reconciliation.md) and [historical local checkpoint](evidence/phase-14/revision-4.md) |
+| 14 | blocked | [Packaging and host integration](14-packaging-and-host-integration.md) | 13 | Paired Codex CLI diagnostic complete: correctness preserved but current FTS-first integration increased tokens; response-volume correction is required before another A/B, while official evaluation and release-candidate evidence remain gated | [Assistant A/B V3 result](evidence/phase-14/assistant-ab-v3-result.md), [current int8 package evidence](evidence/phase-14/int8-profile-package-reconciliation.md), and [historical local checkpoint](evidence/phase-14/revision-4.md) |
 
 `STATUS.md` is the operational ledger. Keep this summary table synchronized with it whenever a phase changes state.
 

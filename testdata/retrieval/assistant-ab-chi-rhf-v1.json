@@ -1,0 +1,160 @@
+{
+  "schema_version": 1,
+  "manifest_id": "assistant-ab-chi-rhf-v1",
+  "status": "frozen_for_execution",
+  "purpose": "Paired diagnostic of Codex CLI with ordinary local tools versus the same assistant with optional FTS-default cidx MCP.",
+  "result_scope": "diagnostic_assistant_use",
+  "controls": {
+    "assistant": "codex-cli",
+    "model": "gpt-5.6-sol",
+    "reasoning_effort": "high",
+    "sandbox": "read-only",
+    "ephemeral": true,
+    "ignore_user_config": true,
+    "network": "prohibited",
+    "disabled_features": [
+      "apps",
+      "browser_use",
+      "browser_use_external",
+      "computer_use",
+      "image_generation",
+      "multi_agent",
+      "multi_agent_v2",
+      "standalone_web_search"
+    ],
+    "timeout_seconds": 600,
+    "output_schema": "schemas/evaluation/assistant-answer.schema.json",
+    "baseline_mcp_servers": [],
+    "treatment_mcp_servers": [
+      "cidx"
+    ],
+    "treatment_mcp_approval_mode": "approve",
+    "treatment_cidx_mode": "fts",
+    "paid_query_embedding": false
+  },
+  "question_sources": [
+    {
+      "path": "testdata/retrieval/question-set-go-chi-v5.3.1-critical-general-v2.json",
+      "sha256": "9160e2cbb72771e109c65e0f06fdc9b91c22ec9b9132d1a5ce5ca0e062ea7e58"
+    },
+    {
+      "path": "testdata/retrieval/question-set-react-hook-form-v7.85.0-critical-general-v2.json",
+      "sha256": "312af61e665f7e9a5d879affc5b5bc3eb030870ae8b52e0e90a8d10a05102d29"
+    }
+  ],
+  "corpora": [
+    {
+      "corpus_id": "go-chi-chi-v5.3.1",
+      "manifest": "testdata/retrieval/corpora/go-chi-chi-v5.3.1.json",
+      "upstream_url": "https://github.com/go-chi/chi.git",
+      "pinned_commit": "8b258c7bb28f97a5f2a856ff7ef962578fec9215",
+      "expected_tree_hash": "7ccb2269b57183ac3a741f269c0da31fd03ad035"
+    },
+    {
+      "corpus_id": "react-hook-form-v7.85.0",
+      "manifest": "testdata/retrieval/corpora/react-hook-form-v7.85.0.json",
+      "upstream_url": "https://github.com/react-hook-form/react-hook-form.git",
+      "pinned_commit": "371432c39271aab739358d19c406793771565ab3",
+      "expected_tree_hash": "688906c5842a0d71051154343e993adb525e688f"
+    }
+  ],
+  "prompt_template": "You are investigating the local source repository in the current working directory.\n\nTask ID: {{TASK_ID}}\nQuestion: {{QUESTION}}\n\nFind the source-backed answer. Use any tools available to you, but do not assume that a particular tool is required. Do not modify files, run network requests, or rely on undocumented behavior. Stop once you have enough direct evidence; avoid broad repository tours.\n\nReturn only JSON matching the supplied output schema. Explain the mechanism concisely. Support every material claim with repository-relative file and symbol evidence. If the repository does not establish a claim, state the uncertainty instead of guessing.",
+  "tasks": [
+    {
+      "sequence": 1,
+      "task_id": "chi-new-router",
+      "corpus_id": "go-chi-chi-v5.3.1",
+      "question_source_index": 0,
+      "question_digest": "46c6dbabdee8ef24d974d57b4b82b687a45464aac62126d3004ed54782b1f4b1",
+      "first_arm": "baseline"
+    },
+    {
+      "sequence": 2,
+      "task_id": "rhf-x02-form-context",
+      "corpus_id": "react-hook-form-v7.85.0",
+      "question_source_index": 1,
+      "question_digest": "a48f0f9339e9b137ae1edbc4bac720b17e4554ada063790d89c3a0854d7d6863",
+      "first_arm": "cidx_fts"
+    },
+    {
+      "sequence": 3,
+      "task_id": "rhf-t09-control-contract",
+      "corpus_id": "react-hook-form-v7.85.0",
+      "question_source_index": 1,
+      "question_digest": "14b1b7ce65776da39cb50204227239de825f4632062aed5ae8143e4985b35382",
+      "first_arm": "baseline"
+    },
+    {
+      "sequence": 4,
+      "task_id": "chi-g02-route-outcome",
+      "corpus_id": "go-chi-chi-v5.3.1",
+      "question_source_index": 0,
+      "question_digest": "69b2c7d6e5a4bcf517082b0687130701482618981b04d44f217b1d1a9e3fb81f",
+      "first_arm": "cidx_fts"
+    },
+    {
+      "sequence": 5,
+      "task_id": "rhf-controller-component",
+      "corpus_id": "react-hook-form-v7.85.0",
+      "question_source_index": 1,
+      "question_digest": "6b880437edb0df9b8ba493ef2084ac987d0a8dd565ea4b8a7524e584f565448d",
+      "first_arm": "baseline"
+    },
+    {
+      "sequence": 6,
+      "task_id": "chi-g09-client-ip",
+      "corpus_id": "go-chi-chi-v5.3.1",
+      "question_source_index": 0,
+      "question_digest": "6080d8e73d5496e3f9994836d38e9f887c879fb54f3bb15c6f939ae1a09dbe5c",
+      "first_arm": "cidx_fts"
+    },
+    {
+      "sequence": 7,
+      "task_id": "rhf-t02-controlled-field-lifecycle",
+      "corpus_id": "react-hook-form-v7.85.0",
+      "question_source_index": 1,
+      "question_digest": "72bf0015fd8e1bee17b148524d485f22bfaa316f42c39e7a1082ea52132f73d1",
+      "first_arm": "baseline"
+    },
+    {
+      "sequence": 8,
+      "task_id": "rhf-x08-form-state-props",
+      "corpus_id": "react-hook-form-v7.85.0",
+      "question_source_index": 1,
+      "question_digest": "12fc4dcc52249e1388b988eb25c21d0c360f2de36ece55d3cfa00a74640f9295",
+      "first_arm": "cidx_fts"
+    },
+    {
+      "sequence": 9,
+      "task_id": "chi-g06-basic-auth",
+      "corpus_id": "go-chi-chi-v5.3.1",
+      "question_source_index": 0,
+      "question_digest": "a5ba2733ab4cbb8116e7f02b382f8808adc13a2b5d1eda2649da78a145ae9b9f",
+      "first_arm": "baseline"
+    },
+    {
+      "sequence": 10,
+      "task_id": "rhf-control-type",
+      "corpus_id": "react-hook-form-v7.85.0",
+      "question_source_index": 1,
+      "question_digest": "80b16375d1395b6595ac098212dd5cabec304756816c750f6494865ff0f92f61",
+      "first_arm": "cidx_fts"
+    },
+    {
+      "sequence": 11,
+      "task_id": "rhf-x03-form-submit",
+      "corpus_id": "react-hook-form-v7.85.0",
+      "question_source_index": 1,
+      "question_digest": "c9a824b1bc22c792d1ead8b887bc42697ac84013ee778ff97bd0293eacc42bee",
+      "first_arm": "baseline"
+    },
+    {
+      "sequence": 12,
+      "task_id": "rhf-t10-dotted-path-types",
+      "corpus_id": "react-hook-form-v7.85.0",
+      "question_source_index": 1,
+      "question_digest": "28a48079b44f7d70ba56e1eb6aed6cd00df45ba743593fafaed7d0d0de20e1fe",
+      "first_arm": "cidx_fts"
+    }
+  ]
+}
