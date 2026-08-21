@@ -64,6 +64,22 @@ exactly equal; the sole prompt difference is the reviewed orchestration
 paragraph. Reducer v3, both corpus states, native Codex, cidx/MCP binaries,
 tool schema, and structured representation are frozen. Corpus/tool preflight
 and both unscored schema probes passed. No scored V5 turn has run.
+
+## 2026-08-22 V5 result checkpoint
+
+All 24 V5 turns were valid and both arms blindly graded 12/12 complete with all
+30 required-group records covered. The intervention reduced cidx search/read
+calls from V4's 62 to 38, eliminated invalid ranges, made all 16 first
+path/hash reads use exact locator ranges, and reduced gross read source bytes
+76.7%. Treatment model-total sum fell 6.9% and uncached input fell 34.4%, but
+the paired model-total median was 0.954 with 6/12 non-increasing; the frozen
+0.85 and 8/12 gate therefore remains unmet.
+
+The only failed V5 reads were three requests that copied locator path and lines
+but omitted required `expected_sha256`; the same ranges then succeeded with
+the hash. Exact evidence and the bounded one-field V6 candidate are in the
+[V5 result](evidence/phase-14/assistant-ab-v5-result.md). Do not change
+retrieval, `k`, wire semantics, corpus, or questions before post-result review.
 - Prerequisite: reconciled locator-only `13-cli-and-mcp`
 - Followed by: v1 release-candidate validation
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 1–3 and 7–10

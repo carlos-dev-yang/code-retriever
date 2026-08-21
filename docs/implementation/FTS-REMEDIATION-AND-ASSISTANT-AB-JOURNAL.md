@@ -496,3 +496,30 @@ recorded in [`assistant-ab-v5-freeze.md`](evidence/phase-14/assistant-ab-v5-free
 Next: execute all 24 V5 turns under one new run ID, prepare one arm-blind grade
 packet per corpus, freeze reducer-v3 journeys, aggregate every pair, and review
 the first loss before deciding whether the final permitted V6 is justified.
+
+## 15. 2026-08-22 Version 5 result
+
+V5 completed all 24 turns without timeout or control violation. Both arms
+blindly graded 12/12 complete; all 30 required-group records were covered and
+no unsupported or contradicted claim was recorded.
+
+The prompt intervention changed the mechanism substantially. Relative to V4,
+searches fell 23→17, reads 39→21, total cidx calls 62→38, invalid ranges 6→0,
+and gross read source 77,173→17,967 bytes. All 16 first path/hash reads used
+exact locator ranges. Treatment uncached input fell 34.4% against its paired
+baseline and model-total sum fell 6.9%.
+
+The frozen token gate nevertheless failed: paired model-total median 0.954 and
+6/12 non-increasing versus required 0.85 and 8/12. The mechanism result and
+end-to-end token result remain separate.
+
+Three `read_span` calls failed because the assistant copied exact path and
+lines but omitted the schema-required `expected_sha256`; each then retried the
+same range with the hash. No source was duplicated. The V5 prompt named the
+lines but not the required hash, making one explicit hash-field instruction
+the smallest remaining candidate. Full metrics and artifact digests are in
+[`assistant-ab-v5-result.md`](evidence/phase-14/assistant-ab-v5-result.md).
+
+Next: send this fixed evidence to ChatGPT and Grok. Freeze the final permitted
+V6 only if both independent reviews and the local audit accept that one-field
+prompt addition; otherwise stop the experiment sequence and report why.
