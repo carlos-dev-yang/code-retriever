@@ -54,6 +54,16 @@ freezes the wording and guardrails. Prompt noncompliance is a measured outcome
 of V5 rather than an automatic invalidation. Current caller-selected `k`
 semantics with default 10, retrieval/ranking, wire, read semantics,
 corpus/tasks, and grading remain unchanged.
+
+## 2026-08-22 V5 freeze checkpoint
+
+The [Version 5 plan](ASSISTANT-AB-TEST-PLAN-V5.md), manifest, and
+[freeze evidence](evidence/phase-14/assistant-ab-v5-freeze.md) are complete.
+V4/V5 controls, question sources, corpora, and all ordered task records are
+exactly equal; the sole prompt difference is the reviewed orchestration
+paragraph. Reducer v3, both corpus states, native Codex, cidx/MCP binaries,
+tool schema, and structured representation are frozen. Corpus/tool preflight
+and both unscored schema probes passed. No scored V5 turn has run.
 - Prerequisite: reconciled locator-only `13-cli-and-mcp`
 - Followed by: v1 release-candidate validation
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 1–3 and 7–10

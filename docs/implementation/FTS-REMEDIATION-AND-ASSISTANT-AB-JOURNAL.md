@@ -478,3 +478,21 @@ wording, guardrails, and decision metrics are recorded in
 Next: create a V5 plan and manifest with this paragraph as the sole change,
 freeze exact identities, execute one full contemporaneous 24-turn pair, blind
 grade it, and choose any third experiment only from its measured first loss.
+
+## 14. 2026-08-22 Version 5 freeze
+
+V5 is now frozen. Its controls, question sources, approved corpora, 12 ordered
+tasks, arm order, model, isolation, locator wire, FTS planning/ranking, current
+caller-selected `k` semantics, and `read_span` behavior equal V4. The sole
+prompt difference is the conditional orchestration paragraph accepted by both
+external reviewers.
+
+Reducer v3 was frozen first and observes prompt compliance without converting
+noncompliance into invalid execution. V5 parity validation proved the sole
+prompt insertion, and exact corpus/state/tool/binary preflight plus both
+unscored schema probes passed. Identities and the no-scored-turn boundary are
+recorded in [`assistant-ab-v5-freeze.md`](evidence/phase-14/assistant-ab-v5-freeze.md).
+
+Next: execute all 24 V5 turns under one new run ID, prepare one arm-blind grade
+packet per corpus, freeze reducer-v3 journeys, aggregate every pair, and review
+the first loss before deciding whether the final permitted V6 is justified.
