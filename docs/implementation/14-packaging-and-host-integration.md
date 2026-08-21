@@ -13,7 +13,7 @@
   The chronological handoff and exact next action are in the
   [FTS/assistant work journal](FTS-REMEDIATION-AND-ASSISTANT-AB-JOURNAL.md).
   Official Phase 12 and release-candidate promotion remain blocked.
-- Prerequisite: `13-cli-and-mcp`
+- Prerequisite: reconciled locator-only `13-cli-and-mcp`
 - Followed by: v1 release-candidate validation
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 1–3 and 7–10
 - Evaluation authority: [EVALUATION-CONTRACT.md](EVALUATION-CONTRACT.md)
@@ -24,7 +24,10 @@ Read the [implementation index](README.md), [execution guide](EXECUTION-GUIDE.md
 
 - Confirm Phase 01 recorded the SQLite/Tree-sitter bindings, FTS5/CGO policy, and candidate platforms; Phase 13 must have frozen public CLI, stdio, and exactly four MCP tools.
 - Re-check that the artifact bundles FTS5 and Go/TypeScript/TSX grammars, needs no runtime dependency download for free FTS, and serves one explicit root per process.
-- Re-check project-scoped host setup, stdout protocol purity, stderr diagnostics, the 64 KiB default / 1 MiB absolute `max_inline_bytes` ceiling, no read-span line cap, and environment-only `VOYAGE_API_KEY` forwarding.
+- Re-check project-scoped host setup, stdout protocol purity, stderr diagnostics,
+  locator-only search, the 64 KiB default / 1 MiB absolute `read_span` source
+  ceiling, no read-span line cap, and environment-only `VOYAGE_API_KEY`
+  forwarding.
 - Re-check that serving/package smoke does not open the source bank or lab DB, mutate host config or hooks, promise unverified platforms, or invent fixed-model/external-vector policy.
 - Re-check the frozen assistant-task controls and three product arms: existing tools only, existing tools plus lexical cidx, and existing tools plus hybrid cidx. Never force a cidx call.
 - Treat the forced first cidx call in diagnostic V3 as a bounded causal
@@ -198,7 +201,7 @@ The binary may be on PATH or referenced by an absolute path. Document both, incl
 
 ### 6.3 Project-scoped host configuration
 
-For every actually verified host/version, `docs/hosts.md` records project-scope location, stdio command/args, explicit root, PATH and absolute-binary examples, stdout/stderr rules, lifecycle/restart instructions, discovery of exactly four tools, API-key-free FTS smoke steps, required `max_inline_bytes`, and safe `VOYAGE_API_KEY` forwarding for hybrid.
+For every actually verified host/version, `docs/hosts.md` records project-scope location, stdio command/args, explicit root, PATH and absolute-binary examples, stdout/stderr rules, lifecycle/restart instructions, discovery of exactly four tools, API-key-free FTS smoke steps, the retained v1 `max_inline_bytes` compatibility input, locator-only output, and safe `VOYAGE_API_KEY` forwarding for hybrid.
 
 Do not abstract unrelated JSON/JSONC/YAML host formats behind a generic merger. Record verification date and host version because upstream formats change.
 
@@ -310,7 +313,7 @@ This file defines a plan and creates no test code or release artifact.
 15. Package/API surfaces make no external-vector-import or fixed-model-bundle promise.
 16. The three assistant arms use identical frozen controls except for cidx availability and retain failed/timed-out tasks in denominators.
 17. A task in a cidx arm may complete without calling cidx; the run records no-use rather than forcing or discarding it.
-18. Presented-gold utilization, false leads, correct file/symbol/edit/test outcomes, and first-loss attribution reconcile with the underlying MCP result IDs and body packages.
+18. Presented-gold utilization, false leads, correct file/symbol/edit/test outcomes, and first-loss attribution reconcile with the underlying MCP locators and selected `read_span` evidence.
 19. Confirmation output cannot change dimension, codec, RRF, candidates, body budget, labels, or margins.
 
 ## 11. Completion Evidence

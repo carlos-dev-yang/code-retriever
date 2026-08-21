@@ -86,8 +86,8 @@ These limits have different purposes and must not share one configuration field.
 | Semantic chunk byte cap | none | A named function, method, or type remains one parent chunk |
 | Segment target | 1,024 bytes | Packing target for embedding input units |
 | Segment evaluation candidates | 768, 1,024, 1,536 bytes | Values evaluated before later tuning |
-| MCP inline-body server default | 64 KiB | Aggregate source bytes returned inline by one `search` call |
-| MCP inline-body executable ceiling | 1 MiB | Absolute serving safety ceiling, independent of the source-file ceiling |
+| MCP source-response server default | 64 KiB | Complete source bytes returned by one `read_span` call |
+| MCP source-response executable ceiling | 1 MiB | Absolute serving safety ceiling, independent of the source-file ceiling |
 
 The 1 MiB source-file value is an eligibility ceiling, not an expected allocation per file and not a performance guarantee. Generated, minified, dependency, vendored, and explicitly ignored files remain excluded independently of size.
 
@@ -175,17 +175,33 @@ The retry schedule is staged linear backoff, not mathematical exponential backof
 
 ## 7. Search response and `read_span`
 
-`search.max_inline_bytes` remains a required per-call input. It limits only the aggregate raw UTF-8 source bytes placed in `results[].body`; it never changes candidate selection, scores, rank, or the up-to-`k` result identities.
+`search` is a locator operation. It returns a ranked, canonical, deduplicated
+list containing only the indexed chunk ID, repository-relative path,
+language, kind, qualified symbol, parent line range, indexed SHA-256, and a
+small stable set of match-source enums. Array order is rank. It does not return
+source bodies, signatures, score values, planner diagnostics, profile
+fingerprints, or evaluation metadata. Those diagnostics remain available to
+local traces and evaluation artifacts rather than the assistant wire.
 
-A value of zero requests metadata and ranges without inline source. The initial 64 KiB server value is a serving safety choice—roughly sixty-four 1 KiB target segments—not a host token-budget guarantee. Evaluation records truncation/omission and follow-up reads before any later adjustment.
+The v1 request keeps required `search.max_inline_bytes` temporarily for wire
+compatibility with already-recorded hosts and experiments. Locator search
+accepts and validates the value but returns zero inline source bytes for every
+value; it never changes candidate selection, scores, rank, or the up-to-`k`
+result identities. Removing the field requires a later explicit MCP schema
+revision rather than an implicit compatibility break.
 
-The server calculates:
+The MCP adapter must not duplicate the complete locator JSON into both text
+and structured result channels. A host-conformance probe selects one semantic
+representation supported by the verified host; the other channel is absent or
+contains no duplicate payload. This serialization choice cannot alter locator
+identity or order.
 
-```text
-effective_max_inline_bytes = min(request.max_inline_bytes, 64 KiB)
-```
-
-The configured 64 KiB value may be lowered operationally but never raised above the separate 1 MiB executable ceiling. A request above the server value is explicitly reported as clamped. Metadata remains available when a body is omitted.
+`read_span` is the only cidx MCP operation that returns source text. The
+configured 64 KiB `mcp.hard_max_inline_bytes` value is therefore the default
+complete-source response ceiling for `read_span`; it may be lowered
+operationally but never raised above the separate 1 MiB executable ceiling.
+The name is retained for configuration compatibility in v1 and is not a host
+token-budget guarantee.
 
 The final target has no `max_read_span_lines` and makes no unsupported 400-line claim. Line count is a caller selection, not a reliable payload-size measure. `read_span` validates:
 
@@ -286,7 +302,7 @@ The initial matrix includes:
 - historical Binary/256 evidence: preserved outside the selectable product matrix;
 - FTS, dense, and RRF hybrid lanes;
 - per-language and mixed-corpus slices;
-- inline-body and follow-up `read_span` behavior.
+- locator-only search and selected-source `read_span` behavior.
 
 ## 10. Implementation stop point and resumption rule
 

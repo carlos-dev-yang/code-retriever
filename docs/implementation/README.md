@@ -19,8 +19,9 @@
   correctness was preserved, but the current FTS-first integration used 37.2%
   more model tokens. Response accounting is complete, its baseline-byte
   reducer defect is documented, and dual review adopted a locator-only
-  `search` plus source-only `read_span` direction. Reducer/host-contract
-  implementation is the next bounded unit; an unchanged A/B rerun is rejected.
+  `search` plus source-only `read_span` direction. Phase 13 is reopened only
+  for that result projection, reducer correction, and host conformance; an
+  unchanged A/B rerun is rejected.
   Official Phase 12 and release-candidate evidence remain separately gated
 - Canonical design: [Local Code Search MCP v1 Final Target Contract — Revision 4](../../local-code-search-mcp-v1-design-r4.md)
 - Earlier designs: [original](../../local-code-search-mcp-v1-design.md), [r1](../../local-code-search-mcp-v1-design-r1.md), [r2](../../local-code-search-mcp-v1-design-r2.md), [r3](../../local-code-search-mcp-v1-design-r3.md)
@@ -117,7 +118,7 @@ Allowed states are `planned | in_progress | blocked | done`. A phase becomes `do
 | 10 | done | [Embedding orchestration and reconciliation](10-embedding-orchestration-and-reconciliation.md) | reconciled 02/09, existing 05/08 | Source-bank-first Voyage document publication, provider-free source reuse, and provider-only request accounting | [Current evidence](evidence/phase-10/source-bank-first-document-publication.md) and [historical R4 evidence](evidence/phase-10/revision-4.md) |
 | 11 | done | [Vector and hybrid search](11-vector-and-hybrid-search.md) | reconciled 02/09/10, existing 06 | Int8-only request-local scan, RRF, fallback, and body packaging | [Current evidence](evidence/phase-11/int8-only-query-search-reconciliation.md) and [historical R4 evidence](evidence/phase-11/revision-4.md) |
 | 12 | blocked | [Retrieval evaluation](12-retrieval-evaluation.md) | 07, reconciled 08, 09, 11 | Accepted int8-only corpus-independent adapter; official corpus evaluation and promotion remain externally gated | [Current evidence](evidence/phase-12/int8-only-evaluation-reconciliation.md) and [accepted R4 accounting evidence](evidence/phase-12/revision-4.md) |
-| 13 | done | [CLI and MCP](13-cli-and-mcp.md) | reconciled 02/08/11 and existing Phase 12 core | Int8-only 1024-default init/help, local 512 rematerialization, and unchanged four-tool MCP | [Current evidence](evidence/phase-13/int8-only-cli-mcp-reconciliation.md) and [historical R4 evidence](evidence/phase-13/revision-4.md) |
+| 13 | in_progress | [CLI and MCP](13-cli-and-mcp.md) | reconciled 02/08/11 and existing Phase 12 core | Preserve the four tools while replacing source-bearing search output with the versioned locator-only projection and proving one host-compatible representation | Existing [int8-only evidence](evidence/phase-13/int8-only-cli-mcp-reconciliation.md) remains valid except for the superseded search-result wire; new reconciliation evidence pending |
 | 14 | blocked | [Packaging and host integration](14-packaging-and-host-integration.md) | 13 | Paired diagnostic and response accounting complete; compact locator-only search/source-only read direction accepted, but reducer, host compatibility, implementation, and another A/B remain before usefulness evidence | [Response-contract direction](evidence/phase-14/assistant-response-contract-and-v4-direction.md), [Assistant A/B V3 result](evidence/phase-14/assistant-ab-v3-result.md), [current int8 package evidence](evidence/phase-14/int8-profile-package-reconciliation.md), and [historical local checkpoint](evidence/phase-14/revision-4.md) |
 
 `STATUS.md` is the operational ledger. Keep this summary table synchronized with it whenever a phase changes state.
@@ -263,7 +264,7 @@ The retry schedule is linear/staged, not exponential. Request grouping is not Vo
 7. **Serving/source/lab isolation:** `index.db` stores only the active cidx-owned int8 serving vectors. `embeddings.db` stores immutable document-role 1024-f32 source rows. `serve` and `search` open neither the source bank nor evaluation state.
 8. **Bounded source purpose:** the product-owned 1024-dimensional document f32 bank exists for provider-free document reuse and 1024/512 rematerialization. It is not a query cache, search fallback, or multi-profile runtime authority.
 9. **Derived readiness:** `ready` derives only from a valid vector row joined to an active key; no mutable ready flag is authoritative.
-10. **Source-volume control:** `max_inline_bytes` limits body bytes without changing rank or the identity/order/count of the up-to-k result set.
+10. **Source-volume control:** `search` returns no source body. Its retained v1 `max_inline_bytes` input cannot change rank or the identity/order/count of the up-to-k locator set; `read_span` alone returns complete byte-bounded source.
 11. **Freshness:** search bodies come from the indexed snapshot. Live hashes are separate annotations, and `read_span` refuses a mismatched expected hash.
 12. **Small stable surface:** MCP exposes only `status`, `search`, `read_span`, and `reindex`. Development lab commands are not MCP tools.
 13. **SQLite authority:** the persistent index is authoritative. Go heap caches may be bounded accelerators but never a second source of truth.
@@ -295,7 +296,7 @@ config.json
 - synchronous embedding request grouping, retry, timeout, and concurrency limits;
 - FTS field weights, candidate/return k, and RRF parameters;
 - paid-query permission and default search mode;
-- MCP inline-body safety limit and byte-bounded read-span policy;
+- MCP source-response safety limit and byte-bounded read-span policy;
 - non-profile operational settings such as log level.
 
 A config key does not imply arbitrary algorithm extensibility. Every enum value must map to an implementation owned by the binary.
@@ -325,7 +326,7 @@ users cannot select another codec or invent an implementation version such as
 | reducer/normalizer/metric | vector-space profile | rematerialize from the same compatible product source rows | none when sources exist |
 | fixed int8 implementation/profile version | storage profile | rematerialize from compatible product source rows | none when sources exist |
 | candidate/return k or RRF | none | reload/restart | none |
-| inline-body or read-span byte policy | none | serve reload/restart | none |
+| retained search compatibility input or read-span byte policy | none | serve reload/restart | none |
 | schema version | database | migration | none |
 | pre-Revision-4 config/profile shape | new strict config plus new index/vector profile fingerprints | reject legacy config with a typed mapping; preserve the DB; local reindex and compatible local rematerialization/rekey only when equivalence is proven | conditional only when compatible raw/vector evidence is unavailable |
 

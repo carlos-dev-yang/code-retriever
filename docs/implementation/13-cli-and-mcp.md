@@ -1,7 +1,9 @@
 # 13. CLI and MCP Surface Integration
 
-- Status: `done` — default 1024, explicit compact 512, fixed int8,
-  source-bank reuse, and the four-tool MCP surface are accepted
+- Status: `in_progress` — default 1024, explicit compact 512, fixed int8,
+  source-bank reuse, and exactly four tools remain accepted. The search-result
+  wire alone is reopened for the owner-approved locator-only projection,
+  corrected reducer, and one-representation Codex host proof.
 - Prerequisites: reconciled `05-worktree-index-pipeline`, `10-embedding-orchestration-and-reconciliation`, and `11-vector-and-hybrid-search`; completed `06-fts-search`; Phase 12 corpus-independent core/API
 - Followed by: `14-packaging-and-host-integration`
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 3, 4, 8, and 10
@@ -13,7 +15,9 @@ Read the [implementation index](README.md), [execution guide](EXECUTION-GUIDE.md
 
 - Confirm the Phase 05/06/10/11 application services are stable and the Phase 12 corpus-independent core/API plus synthetic adapter parity are available; this phase adapts them rather than inventing new indexing or ranking logic. An official corpus run is not an entry gate.
 - Re-check the exact MCP registry: `status`, `search`, `read_span`, and `reindex`, with no fifth tool and no lab/config/document-embedding tool.
-- Re-check that caller-required `max_inline_bytes` limits bodies only; it cannot change result rank, IDs, order, or count. This phase validates/clamps the request and passes the effective maximum to the Phase 11 shared packager.
+- Re-check that caller-required `max_inline_bytes` is retained as a validated
+  v1 compatibility input. Locator search returns no body for any value and the
+  value cannot change result rank, IDs, order, or count.
 - Re-check stdio purity, bounded concurrent dispatch, request cancellation, one explicit root per process, and the rule that FTS works without `VOYAGE_API_KEY`.
 - Re-check that MCP/search never opens product source-bank or lab state, query
   f32 is nonpersistent, and production vectors use the fixed cidx-owned int8
@@ -28,6 +32,15 @@ Public `cidx init` defaults to 1024, accepts only explicit 1024 or 512, and
 exposes no codec flag. Config still records fixed int8 identity. Binary/256
 code paths are removed; only historical evidence remains under
 [`RETIRED-VECTOR-PROFILES.md`](RETIRED-VECTOR-PROFILES.md).
+
+## 2026-08-21 locator-result supersession
+
+The owner approved a search/read responsibility split after the paired V3
+assistant diagnostic. `search` now returns only compact, deduplicated candidate
+locators; `read_span` remains the only source-bearing cidx tool. This
+supersedes the source-bearing search-response statements below wherever they
+conflict, without changing the four tool names, search input fields, ranking,
+caller-selected `k`, paid-query guard, or `read_span` safety contract.
 
 ## Revision 4 initialization checkpoint
 
@@ -63,8 +76,11 @@ Completion requires:
 
 - CLI and MCP call the same index/search/status/read services.
 - MCP exposes exactly `status`, `search`, `read_span`, and `reindex`.
-- The caller supplies required `search.max_inline_bytes` on every request.
-- The server hard maximum clamps body transfer only and does not alter ranking or result count.
+- The caller supplies required `search.max_inline_bytes` on every request for
+  v1 wire compatibility; every accepted value produces the same body-free
+  locator projection.
+- The server hard maximum governs complete `read_span` source transfer and does
+  not alter search ranking or result count.
 - Long status/reindex work and search are not serialized by the dispatcher.
 - stdout contains only stdio protocol frames; diagnostics use stderr.
 - Source f32, target materialization, and evaluation remain outside MCP; ordinary CLI embed/rematerialization owns the product source-bank workflow.
@@ -79,7 +95,8 @@ Completion requires:
 - Strict schemas for exactly four MCP tools.
 - Validation and typed application-error mapping.
 - Concurrent dispatch, cancellation, and graceful shutdown.
-- MCP adaptation of Phase 11 body packaging under `max_inline_bytes`.
+- MCP locator projection of the Phase 11 ranked results without exposing its
+  source packaging or diagnostics.
 - Hash-guarded live-file `read_span`.
 - stdout/stderr separation and structured diagnostics.
 - Cost visibility in help and response metadata.
@@ -117,15 +134,17 @@ Completion requires:
 7. MCP and search handlers never open or use the product source bank or lab
    DB. Source-bank mutation remains exclusive to explicit CLI embedding paths.
 
-### Body maximum
+### Search locator and source-response maximum
 
 1. `search.max_inline_bytes` is a required integer at least zero.
-2. `effective_max_inline_bytes = min(request.max_inline_bytes, config.mcp.hard_max_inline_bytes)`.
-3. The measured unit is the sum of actual indexed-source UTF-8 bytes placed in all `results[].body` fields.
-4. JSON metadata, escaping overhead, and token counts are excluded.
-5. The value cannot alter candidate selection, scores, ranks, or the IDs/order/count of up to `k` results.
-6. A body is a complete source chunk, a complete matched segment, or absent; never cut at an arbitrary byte.
-7. If an FTS-only hit's complete chunk does not fit, omit its body.
+2. Search validates the value for compatibility but requests and returns zero
+   inline source bytes.
+3. The value cannot alter candidate selection, scores, ranks, or the
+   IDs/order/count of up to `k` results.
+4. `read_span` is the only source-bearing cidx MCP result and applies
+   `config.mcp.hard_max_inline_bytes` as an all-or-nothing response ceiling.
+5. JSON metadata, escaping overhead, and token counts are excluded from that
+   source-byte ceiling.
 
 ### Transport and concurrency
 
@@ -134,6 +153,9 @@ Completion requires:
 3. One handler's scan, parse, or API wait cannot block dispatch of independent handlers.
 4. Cancellation propagates to the application service.
 5. Short SQLite writer serialization for index/vector publication is allowed; a dispatcher-wide mutex is not.
+6. Search does not duplicate the complete locator JSON across text and
+   structured result channels. The verified Codex-compatible representation is
+   fixed before the scored V4 run.
 
 ## 5. Implementation Packages, Files, and Types
 
@@ -168,15 +190,21 @@ SearchToolRequest
   MaxInlineBytes required nonnegative integer
 
 SearchToolResponse
-  IndexGeneration / ManifestSHA256
-  RequestedMax / EffectiveMax / InlineBytesUsed / Clamped / InlineLimited
-  VectorCoverage / QueryEmbeddingUsed / FallbackReason / Results[]
+  Results[]
+
+SearchLocator
+  ChunkID / Path / Language / Kind / QualifiedSymbol
+  StartLine / EndLine / IndexedSHA256 / MatchSources[]
 
 ReadSpanRequest
   RelativePath / StartLine / EndLine / ExpectedSHA256
 ```
 
-CLI/MCP parsers perform syntax validation, clamp the requested maximum to the configured hard maximum, and convert to shared application request types. Phase 11 applies the effective body budget once. The MCP package owns neither ranking nor body allocation.
+CLI/MCP parsers perform syntax validation and convert to shared application
+request types. MCP invokes the shared search with zero body budget and projects
+the already-ranked results into canonical locators. It owns neither candidate
+selection nor ranking. Match sources are stable enums derived from the shared
+ranked hit; full scores and planner diagnostics stay in local traces.
 
 ## 6. CLI and MCP Contracts
 
@@ -237,11 +265,19 @@ Input fields:
 
 Do not add `detail`, `verbosity`, or `include_body`.
 
-Top-level output includes generation/manifest, requested/effective byte maxima, actual inline bytes and clamp/limit flags, vector and partial coverage, query-embedding use and fallback reason, mismatch/freshness diagnostics, and at most `k` ranked results.
+Top-level output contains only `results`. Each result includes `chunk_id`, path,
+language, kind, qualified symbol, parent `start_line`/`end_line`,
+`indexed_sha256`, and compact `match_sources`. Array order is rank, so there is
+no separate rank field.
 
-Each result includes path, kind, symbol, qualified symbol, signature, parent range, optional matched segment, conditional complete body/range, `content_source=indexed_snapshot`, `indexed_sha256`, `source_state`, and score sources.
-
-Copy rank, metadata, and body from one DB read snapshot and close it. Deduplicate returned paths and check live hashes only after ranking. Freshness annotation neither changes rank nor starts reindexing. A body always comes from the indexed snapshot; never silently substitute live bytes.
+Canonicalize and deduplicate by indexed content identity, path, parent range,
+and qualified symbol while preserving the first ranked occurrence. Merge
+stable match sources for duplicates. Do not expose source bodies, signatures,
+matched snippets, score values, planner diagnostics, profile fingerprints,
+coverage counters, timing, or evaluation metadata. These remain available to
+application/evaluation traces. Search requests zero inline source from the
+shared response model; `read_span` supplies selected current source after its
+hash check.
 
 ### 6.5 MCP `read_span`
 
@@ -268,11 +304,15 @@ Input has one optional `dry_run` boolean. It calls the same Phase 05 `IndexServi
 | `search.allow_paid_query_embedding` | Hybrid paid guard | No document embedding; false means FTS fallback |
 | `search.return_k` | Optional `k` default | No reindex |
 | `search.candidate_k`, RRF | Search service | No reindex |
-| `mcp.hard_max_inline_bytes` | Search/read responses | Applies on next serve; no profile change |
+| `mcp.hard_max_inline_bytes` | `read_span` source responses; retained search input validation | Applies on next serve; no profile change |
 | Active index/serving profile | Status/search validation | Mismatch causes policy-defined fallback/reconciliation |
 | Model/serving-dimension/codec | Embed/search core | Read only through the one Phase 02 profile and `voyage-code-4` spec |
 
-`mcp.hard_max_inline_bytes` defaults to 64 KiB and is a positive server safety ceiling. Reject startup if it is invalid or exceeds the code-owned absolute ceiling of 1 MiB. A request may choose any lower nonnegative maximum. Do not estimate tokenizer counts or host context size to decide bodies.
+`mcp.hard_max_inline_bytes` defaults to 64 KiB and is a positive server
+source-response safety ceiling. Reject startup if it is invalid or exceeds the
+code-owned absolute ceiling of 1 MiB. The retained search input accepts any
+nonnegative integer allowed by the wire but never causes a body to be returned.
+Do not estimate tokenizer counts or host context size to decide source transfer.
 
 Credentials come only from `VOYAGE_API_KEY`. The endpoint `https://api.voyageai.com/v1/embeddings` is code-owned and host config cannot provide a custom `base_url`. FTS-only startup succeeds without a key.
 
@@ -288,13 +328,16 @@ Credentials come only from `VOYAGE_API_KEY`. The endpoint `https://api.voyageai.
 8. Create per-request context and cancellation propagation.
 9. Use bounded concurrent dispatch while preserving response IDs.
 10. Make status copy a DB snapshot before filesystem scanning.
-11. Pass the validated effective maximum into the Phase 11 packager and verify its returned byte accounting before serialization; do not reimplement allocation.
+11. Invoke Phase 11 search with zero inline-body budget, preserve its ranked
+    hit order, and project only canonical locator fields.
 12. Implement root/path/symlink/hash/range/max checks for `read_span`.
 13. Connect `reindex` to the same service as CLI index.
 14. Preserve paid guard, missing-key, profile-mismatch, and fallback metadata on the wire.
 15. Verify `serve` and MCP handlers do not depend on `internal/lab`; only development bootstrap may do so.
 16. On SIGINT/EOF, stop accepting work and cancel in-flight contexts.
 17. Generate help/schema examples from one definition or otherwise keep them verifiably synchronized.
+18. Probe text-only and structured-only search results through Codex CLI and
+    retain exactly one compatible semantic representation.
 
 ## 9. Failure, Rollback, Concurrency, and Security
 
@@ -302,7 +345,7 @@ Credentials come only from `VOYAGE_API_KEY`. The endpoint `https://api.voyageai.
 
 - Config/root/schema mismatch fails before serving requests.
 - CLI index and MCP reindex follow Phase 05 rollback on cancellation/failure.
-- Shared-packager or accounting failure does not rerank; it returns an internal error.
+- Locator projection or accounting failure does not rerank; it returns an internal error.
 - Hybrid API failure degrades to an FTS result with `fallback_reason` when FTS is available.
 - Distinguish JSON parse errors, unknown tools, invalid params, and application failures.
 - After a partial stdio write failure, terminate rather than retransmitting partial JSON and creating duplicate responses.
@@ -332,8 +375,8 @@ This file defines an implementation plan and does not add test code.
 
 1. Without `VOYAGE_API_KEY`, init, status, index, FTS search, read-span, and reindex work.
 2. Tool discovery shows exactly four tools.
-3. Requests with max 0, small, sufficient, or above hard max return the same result IDs/order/count.
-4. Actual inline UTF-8 bytes never exceed effective max and no source is cut arbitrarily.
+3. Requests with max 0, small, sufficient, or above hard max return byte-identical locator IDs/order/count and zero search source bytes.
+4. `read_span` source bytes never exceed the configured hard maximum and no source is cut arbitrarily.
 5. Stale/deleted results are not expanded from a different live range.
 6. Hash mismatch and oversized range return exact typed errors.
 7. Long status/reindex and multiple searches prove dispatch is not serialized.
@@ -361,15 +404,20 @@ Current int8-only CLI/MCP acceptance (2026-08-17):
 - Current evidence, including focused normal/race/vet/build and static checks,
   is recorded in
   [int8-only CLI/MCP evidence](evidence/phase-13/int8-only-cli-mcp-reconciliation.md).
-  No provider, key, network, corpus, or metric action was performed.
+  No provider, key, network, corpus, or metric action was performed. That
+  evidence remains valid for CLI behavior, tool count, isolation, and
+  transport, but its source-bearing search-result wire is superseded and must
+  be revalidated before this phase returns to `done`.
 
 Official Phase 12 corpus/usefulness or `core_retrieval` promotion evidence is not a Phase 13 completion condition. Phase 13 must prove adapter/core parity with the corpus-independent core; Phase 14 later references official core and assistant/host evidence for `release_candidate` scope.
 
 - Public and development CLI help snapshots.
 - Versioned schemas for exactly four tools.
 - Request, response, and typed-error examples.
-- Same-rank comparison across `max_inline_bytes` boundaries and actual UTF-8 byte recalculation.
-- Adapter/core parity evidence proving MCP serialization preserves Phase 12's evaluated package IDs, ranges, omission reasons, and bytes.
+- Byte-identical locator comparison across `max_inline_bytes` values and zero search source-byte evidence.
+- Adapter/core parity evidence proving MCP serialization preserves ranked
+  chunk identity and parent ranges while deliberately omitting evaluated body
+  packages and diagnostics.
 - Concurrent status/reindex/search dispatch trace.
 - Cancellation and graceful-shutdown trace.
 - stdout protocol-purity capture and stderr-log sample.
@@ -388,12 +436,13 @@ Phase 14 receives one `cidx` binary and public help, the `cidx serve --root <rep
 | Decision | Rationale | Revisit when |
 | --- | --- | --- |
 | Exactly four MCP tools | Keep this auxiliary tool and host context surface small | A measured independent use case exists |
-| Accept only a maximum; no detail enum | Caller controls data volume without option explosion | Another stable budget contract is required |
-| Body bytes cannot affect rank | Smaller context requests must not change retrieval quality or result count | Core v1 invariant; no planned revisit |
-| Reuse Phase 11 body packager | Offline evaluation and MCP must exercise one result-shaping policy | A new transport requires different serialization only |
+| Retain the required maximum temporarily; no detail enum | Preserve the v1 request wire while the response becomes locator-only | A later explicit MCP schema revision removes the compatibility field |
+| Search body removal cannot affect rank | Response compaction must preserve retrieval identity and result order | Core v1 invariant; no planned revisit |
+| Project the Phase 11 ranked hits rather than its body package | Offline retrieval retains full diagnostics while the assistant sees only navigation fields | Evaluation proves another locator field is required |
 | Separate product source bank from evaluation state | Public embedding retains reusable document f32 without making lab metadata or raw vectors a search dependency | The product source-retention contract changes |
 | Expose no source-bank MCP tool | Dimension changes use explicit CLI plan/apply and preserve the four-tool MCP surface | A measured MCP mutation use case is accepted |
 | Concurrent dispatcher | Long management calls must not block search at application level | Core concurrency invariant |
 | stdout is protocol-only | Prevent stdio frame corruption | Transport changes |
 | Do not estimate token budgets | Caller owns tokenizer and host-context composition | Host provides a standard token contract |
 | Init discovers Git before config | A new repository has no config yet, while normal serving still needs a configured worktree root | Repository ownership becomes multi-root |
+| Search is locator-only; read_span owns source | V3 preserved correctness but expanded 176 source-bearing candidates before 29 selected reads; compact navigation isolates recall from evidence volume | A measured compact assistant run shows source-bearing search is necessary |
