@@ -21,9 +21,18 @@ The sole treatment change is `locator_only_structured_search_result`:
 - search returns zero source bytes and no signatures/scores/diagnostics; and
 - selected source enters through `read_span` only.
 
-The runner now compares its result-representation CLI option with the frozen
+The runner compares its result-representation CLI option with the frozen
 manifest. An intentional `dual` invocation exited 2 before creating a run and
-reported `got dual, want structured`.
+reported `got dual, want structured`. It also resolves the selected Codex
+binary before entering per-turn temporary working directories.
+
+One attempted full-run directory reached preflight and then stopped at the
+first unscored baseline schema probe because the runner had forwarded the
+caller's relative Codex path into the temporary working directory. It created
+no schema observation and ran zero scored tasks. The path was resolved at the
+runner boundary before any V4 observation existed; the manifest, prompt,
+schedule, model, and treatment remained unchanged. A new run ID is required
+for the complete execution.
 
 ## Passed preflight
 
@@ -50,12 +59,12 @@ preflight and all future V4 turns use the native binary directly.
 | --- | --- |
 | V4 plan | `e23b1edda115b12c760ab95d54c8c0a02cd7a1d3125a1dcef4facaa2f860d716` |
 | V4 manifest | `728549057cb7da6c1a8e22c0a074652810b40f518f9582d0a0c0f7ffd7a1a9a0` |
-| runner | `0f6dcf93385381d3904c3a231df40ff381eff8078e521c323fc2f94ee038dd8f` |
+| runner | `dfe931e02e467556d479d6268398f6f353912722a3f41dc52c6f24e7596b56b3` |
 | native Codex CLI | `b0308517b20543012fa2171aa3d46ce455a7456c4eb2a552ab9468ba4eeb1e50` |
 | cidx | `7ef69d1cc3b04007a3460625333281a437f188b279bc2688b743cb95ebf5c419` |
 | MCP launcher | `d4494bc0d0a22d2be7f99e784b63340380b551588d3f75bc8fc7b3822fb0729b` |
 | discovered tool schema | `663a2918088b0393d0a26204ac41981935f9a160db65032dd7e764c40eab1fa2` |
-| accepted preflight run manifest | `207bd3e74923d9e27546857c5e5dff41997a9ccd63909f2f1975b2a34b3849c9` |
+| accepted path-fix/schema-probe run manifest | `a203fbcf48613b3a24be8cdcb202d225e04ee664e9a6dc64ae8ee0b2f4282262` |
 | accepted preflight tool-schema artifact | `703ed38327258872522ca74ee73f340bf538dc78e9315c2e43015f038689daec` |
 
 The retained chi state database is
@@ -64,6 +73,14 @@ the retained React Hook Form state database is
 `196dd590396a1f123304e8dc399b4f6d21fd02d4ad65e20b7dc09ab7ef78a43d`.
 No provider key, Voyage call, hybrid search, corpus change, or source mutation
 occurred.
+
+The post-fix check used the same relative CLI argument that had failed before.
+The runner resolved it to the frozen native executable, then both baseline and
+treatment schema probes completed with valid schema output, zero repository
+commands, zero MCP calls, and no control violation. The treatment receives MCP
+schema context in this probe but the fixed probe prompt intentionally invokes
+no tool. Probe token counts are unscored and are not subtracted from task
+usage.
 
 ## Next action
 

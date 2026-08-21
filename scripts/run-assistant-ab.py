@@ -809,12 +809,15 @@ def main() -> int:
     parser.add_argument("--run-id")
     parser.add_argument("--only-task", action="append", default=[])
     parser.add_argument("--preflight-only", action="store_true")
+    parser.add_argument("--schema-probes-only", action="store_true")
     parser.add_argument(
         "--mcp-result-representation",
         choices=("dual", "text", "structured"),
         default="structured",
     )
     args = parser.parse_args()
+    if args.preflight_only and args.schema_probes_only:
+        parser.error("--preflight-only and --schema-probes-only are mutually exclusive")
 
     project_root = Path(__file__).resolve().parent.parent
     manifest_path = resolve_project_path(project_root, args.manifest)
@@ -945,7 +948,7 @@ def main() -> int:
     for arm in (BASELINE_ARM, CIDX_ARM):
         print(f"schema probe: {arm}", flush=True)
         probe = execute_isolated(
-            codex_binary=args.codex_binary,
+            codex_binary=str(codex_path),
             mcp_binary=mcp_binary,
             cidx_binary=cidx_binary,
             controls=controls,
@@ -981,6 +984,12 @@ def main() -> int:
         ):
             raise ExperimentError(f"invalid schema probe: {arm}")
 
+    if args.schema_probes_only:
+        run_manifest["finished_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
+        write_json(run_root / "run-manifest.json", run_manifest)
+        print(f"schema probes complete: {run_root}", flush=True)
+        return 0
+
     selected = set(args.only_task)
     for task in manifest["tasks"]:
         task_id = task["task_id"]
@@ -994,7 +1003,7 @@ def main() -> int:
         for arm in (task["first_arm"], second_arm):
             print(f"task {task['sequence']:02d}/12 {task_id}: {arm}", flush=True)
             observation = execute_isolated(
-                codex_binary=args.codex_binary,
+                codex_binary=str(codex_path),
                 mcp_binary=mcp_binary,
                 cidx_binary=cidx_binary,
                 controls=controls,
