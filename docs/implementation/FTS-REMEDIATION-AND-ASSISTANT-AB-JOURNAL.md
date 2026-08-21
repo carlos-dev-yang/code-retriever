@@ -546,3 +546,23 @@ review evidence is in
 Next: freeze V6 inputs and identities, run all 24 turns once, blind grade both
 corpus packets, aggregate, obtain final side-panel interpretation, and close
 the experiment sequence.
+
+## 17. 2026-08-22 Version 6 freeze
+
+V6 is frozen as the third and final post-V3 experiment. Its controls, question
+sources, approved corpora, 12 ordered tasks, arm order, model, isolation,
+locator wire, FTS planning/ranking, caller-selected `k`, runner, reducer v3,
+grading, and token rules equal V5. Exact comparison proves that its prompt is
+V5 plus only the externally approved sentence requiring `path`, `start_line`,
+`end_line`, and `expected_sha256` from the chosen locator.
+
+The retained native Codex 0.148.0 and frozen cidx/MCP binaries passed complete
+corpus, state, configuration, four-tool, structured-output, and identity
+preflight. Both unscored baseline/treatment schema probes returned valid JSON
+with zero repository commands, zero MCP calls, and no control violation. No
+scored V6 turn has run. Full identities and the final-run boundary are in
+[`assistant-ab-v6-freeze.md`](evidence/phase-14/assistant-ab-v6-freeze.md).
+
+Next: execute the complete new 24-turn paired run exactly once, blind grade
+one packet per corpus, aggregate with unchanged reducer v3, obtain final
+ChatGPT/Grok interpretation, then stop the V4–V6 sequence without V7.

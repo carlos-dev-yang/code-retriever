@@ -89,6 +89,14 @@ one exact `expected_sha256` prompt sentence and no other change. V6 retains all
 V5 product, corpus, model, order, reducer, grading, and token controls. It is
 the final permitted run in this corrective sequence; no V7 follows regardless
 of its outcome.
+
+## 2026-08-22 V6 freeze checkpoint
+
+The [V6 plan](ASSISTANT-AB-TEST-PLAN-V6.md), manifest, and
+[freeze evidence](evidence/phase-14/assistant-ab-v6-freeze.md) are complete.
+Exact comparison proves one prompt-sentence insertion and equality of every
+V5 control, question source, corpus, and ordered task record. Corpus/state/tool
+preflight and both unscored schema probes passed. No scored V6 turn has run.
 - Prerequisite: reconciled locator-only `13-cli-and-mcp`
 - Followed by: v1 release-candidate validation
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 1–3 and 7–10
