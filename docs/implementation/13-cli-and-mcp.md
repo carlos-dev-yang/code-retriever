@@ -1,9 +1,10 @@
 # 13. CLI and MCP Surface Integration
 
-- Status: `in_progress` — default 1024, explicit compact 512, fixed int8,
-  source-bank reuse, and exactly four tools remain accepted. The search-result
-  wire alone is reopened for the owner-approved locator-only projection,
-  corrected reducer, and one-representation Codex host proof.
+- Status: `done` — default 1024, explicit compact 512, fixed int8,
+  source-bank reuse, and exactly four tools remain accepted. The revised
+  search-result wire is locator-only and structured-only by default; its
+  corrected reducer, budget invariance, adapter projection, and real Codex
+  search-to-read journey are recorded.
 - Prerequisites: reconciled `05-worktree-index-pipeline`, `10-embedding-orchestration-and-reconciliation`, and `11-vector-and-hybrid-search`; completed `06-fts-search`; Phase 12 corpus-independent core/API
 - Followed by: `14-packaging-and-host-integration`
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 3, 4, 8, and 10
@@ -413,6 +414,22 @@ Codex result-representation checkpoint (2026-08-22):
 
 Exact evidence:
 [Codex result representation probe](evidence/phase-13/codex-result-representation-probe.md).
+
+Locator-only MCP completion checkpoint (2026-08-22):
+
+- `search` requests zero source bytes from the shared core and emits only nine
+  canonical locator fields in one structured representation;
+- the adapter preserves ranked identity/parent ranges, deduplicates canonical
+  locators, and merges compact match-source labels without exposing ranking or
+  planner diagnostics;
+- `max_inline_bytes` values 0, 12000, and 65537 produced byte-identical
+  10-locator responses with zero source bytes; and
+- one real Codex turn used the compact search result, selected two
+  `read_span` calls, made no repository shell search, and completed without a
+  control violation.
+
+Exact evidence:
+[locator-only MCP reconciliation](evidence/phase-13/locator-only-mcp-reconciliation.md).
 
 Current int8-only CLI/MCP acceptance (2026-08-17):
 

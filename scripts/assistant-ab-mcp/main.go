@@ -28,7 +28,7 @@ func run() error {
 	flags.SetOutput(os.Stderr)
 	flags.StringVar(&sourceRoot, "source-root", "", "isolated source worktree root")
 	flags.StringVar(&stateRoot, "state-root", "", "isolated cidx state root")
-	flags.StringVar(&resultRepresentation, "result-representation", "dual", "development probe: dual, text, or structured")
+	flags.StringVar(&resultRepresentation, "result-representation", "structured", "development probe: dual, text, or structured")
 	if err := flags.Parse(os.Args[1:]); err != nil {
 		return err
 	}

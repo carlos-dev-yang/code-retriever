@@ -1,5 +1,14 @@
 # Phase 13 CLI and MCP Evidence
 
+The revised Phase 13 search-result wire is accepted in
+[`locator-only-mcp-reconciliation.md`](locator-only-mcp-reconciliation.md).
+It records the structured-only default, nine-field locator projection,
+byte-identical results across retained compatibility-budget values, focused
+normal/race/static checks, and a real Codex search-to-`read_span` journey.
+This supersedes only the historical source-bearing search wire; the current
+int8-only CLI/MCP evidence below remains authoritative for the rest of the
+phase.
+
 The current 2026-08-17 int8-only acceptance is recorded in
 [`int8-only-cli-mcp-reconciliation.md`](int8-only-cli-mcp-reconciliation.md).
 The records below remain historical evidence and do not restore their retired

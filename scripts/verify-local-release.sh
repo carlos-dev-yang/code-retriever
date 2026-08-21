@@ -349,16 +349,15 @@ assert [x["name"] for x in tools] == ["status","search","read_span","reindex"]
 for i in range(3,7):
   r=by_id[i]["result"]
   assert not r.get("isError",False), f"application error {i}"
+  assert r.get("content") == [], f"duplicate/nonempty text result {i}"
 search=by_id[4]["result"]["structuredContent"]
-assert search["requested_mode"] == search["effective_mode"] == "fts"
-assert search["requested_max_inline_bytes"] == search["effective_max_inline_bytes"] == 0
-assert search["query_embedding_used"] is False
+assert set(search) == {"results"}, search
 results=search["results"]
-hello=next((x for x in results if x["path"] == "main.go" and x["symbol"] == "Hello"), None)
+hello=next((x for x in results if x["path"] == "main.go" and x["qualified_symbol"].endswith(".Hello")), None)
 assert hello is not None, "FTS result did not contain main.go Hello"
-assert hello["score_source"] == "fts" and hello["content_source"] == "indexed_snapshot"
-assert hello["body"] is None and hello["body_complete"] is False and hello["body_bytes"] == 0
-assert hello["body_omission_reason"] == "NO_FITTING_INDEXED_BODY"
+assert set(hello) == {"chunk_id","path","language","kind","qualified_symbol","start_line","end_line","indexed_sha256","match_sources"}, hello
+assert hello["kind"] == "function" and hello["start_line"] <= hello["end_line"]
+assert hello["match_sources"] and "body" not in hello and "signature" not in hello
 span=by_id[5]["result"]["structuredContent"]
 assert span["body"] == 'package sample\nfunc Hello() string { return "hello" }\n'
 assert by_id[6]["result"]["structuredContent"]["dry_run"] is True

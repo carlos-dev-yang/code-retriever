@@ -20,8 +20,9 @@
   more model tokens. Response accounting is complete, its baseline-byte
   reducer defect is documented, and dual review adopted a locator-only
   `search` plus source-only `read_span` direction. Phase 13 reducer v2 and
-  Codex structured-only conformance are complete; the locator projection
-  remains. An unchanged A/B rerun is rejected.
+  Codex structured-only conformance and locator projection are complete.
+  Phase 14 now owns a frozen controlled V4 A/B; an unchanged V3 rerun is
+  rejected.
   Official Phase 12 and release-candidate evidence remain separately gated
 - Canonical design: [Local Code Search MCP v1 Final Target Contract — Revision 4](../../local-code-search-mcp-v1-design-r4.md)
 - Earlier designs: [original](../../local-code-search-mcp-v1-design.md), [r1](../../local-code-search-mcp-v1-design-r1.md), [r2](../../local-code-search-mcp-v1-design-r2.md), [r3](../../local-code-search-mcp-v1-design-r3.md)
@@ -40,9 +41,10 @@
 - FTS-to-assistant chronological handoff: [FTS remediation and assistant A/B work journal](FTS-REMEDIATION-AND-ASSISTANT-AB-JOURNAL.md)
 - Completed paired assistant diagnostic: [Version 3 result](evidence/phase-14/assistant-ab-v3-result.md) and [frozen plan](ASSISTANT-AB-TEST-PLAN-V3.md)
 - Accepted assistant response direction: [locator/evidence contract review and V4 direction](evidence/phase-14/assistant-response-contract-and-v4-direction.md)
+- Completed locator wire: [Phase 13 locator-only MCP reconciliation](evidence/phase-13/locator-only-mcp-reconciliation.md)
 - Remaining-work handoff: [remaining-work-review-handoff-r4.md](evidence/revision-4/remaining-work-review-handoff-r4.md)
 - Final corpus-independent review: [int8/source-profile implementation-to-design review](evidence/revision-4/int8-source-profile-final-review.md)
-- Last updated: 2026-08-21
+- Last updated: 2026-08-22
 
 This directory is the executable implementation plan for cidx v1. It decomposes the canonical product contract into phase-owned packages, schemas, CLIs, validation work, and completion evidence. A design change must update this index, every affected phase, the dependency graph, the change-impact table, and the persistent status ledger together.
 
@@ -118,8 +120,8 @@ Allowed states are `planned | in_progress | blocked | done`. A phase becomes `do
 | 10 | done | [Embedding orchestration and reconciliation](10-embedding-orchestration-and-reconciliation.md) | reconciled 02/09, existing 05/08 | Source-bank-first Voyage document publication, provider-free source reuse, and provider-only request accounting | [Current evidence](evidence/phase-10/source-bank-first-document-publication.md) and [historical R4 evidence](evidence/phase-10/revision-4.md) |
 | 11 | done | [Vector and hybrid search](11-vector-and-hybrid-search.md) | reconciled 02/09/10, existing 06 | Int8-only request-local scan, RRF, fallback, and body packaging | [Current evidence](evidence/phase-11/int8-only-query-search-reconciliation.md) and [historical R4 evidence](evidence/phase-11/revision-4.md) |
 | 12 | blocked | [Retrieval evaluation](12-retrieval-evaluation.md) | 07, reconciled 08, 09, 11 | Accepted int8-only corpus-independent adapter; official corpus evaluation and promotion remain externally gated | [Current evidence](evidence/phase-12/int8-only-evaluation-reconciliation.md) and [accepted R4 accounting evidence](evidence/phase-12/revision-4.md) |
-| 13 | in_progress | [CLI and MCP](13-cli-and-mcp.md) | reconciled 02/08/11 and existing Phase 12 core | Preserve the four tools while replacing source-bearing search output with the versioned locator-only projection and one Codex-compatible structured representation | [Reducer v2 checkpoint](evidence/phase-13/assistant-reducer-v2.md), [Codex representation probe](evidence/phase-13/codex-result-representation-probe.md); existing [int8-only evidence](evidence/phase-13/int8-only-cli-mcp-reconciliation.md) remains valid except for the superseded search-result wire |
-| 14 | blocked | [Packaging and host integration](14-packaging-and-host-integration.md) | 13 | Paired diagnostic and response accounting complete; compact locator-only search/source-only read direction accepted, but reducer, host compatibility, implementation, and another A/B remain before usefulness evidence | [Response-contract direction](evidence/phase-14/assistant-response-contract-and-v4-direction.md), [Assistant A/B V3 result](evidence/phase-14/assistant-ab-v3-result.md), [current int8 package evidence](evidence/phase-14/int8-profile-package-reconciliation.md), and [historical local checkpoint](evidence/phase-14/revision-4.md) |
+| 13 | done | [CLI and MCP](13-cli-and-mcp.md) | reconciled 02/08/11 and existing Phase 12 core | Four-tool structured-only MCP with locator-only search, source-only `read_span`, and retained compatibility input independent of result identity | [Locator-only completion](evidence/phase-13/locator-only-mcp-reconciliation.md), [reducer v2](evidence/phase-13/assistant-reducer-v2.md), [Codex representation probe](evidence/phase-13/codex-result-representation-probe.md), and existing [int8-only evidence](evidence/phase-13/int8-only-cli-mcp-reconciliation.md) |
+| 14 | in_progress | [Packaging and host integration](14-packaging-and-host-integration.md) | 13 | Freeze and run the controlled paired V4 diagnostic for the compact locator/source-read contract, then select at most one measured change per subsequent version | [Response-contract direction](evidence/phase-14/assistant-response-contract-and-v4-direction.md), [Assistant A/B V3 result](evidence/phase-14/assistant-ab-v3-result.md), and completed [Phase 13 locator wire](evidence/phase-13/locator-only-mcp-reconciliation.md) |
 
 `STATUS.md` is the operational ledger. Keep this summary table synchronized with it whenever a phase changes state.
 

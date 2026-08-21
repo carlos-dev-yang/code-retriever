@@ -812,7 +812,7 @@ def main() -> int:
     parser.add_argument(
         "--mcp-result-representation",
         choices=("dual", "text", "structured"),
-        default="dual",
+        default="structured",
     )
     args = parser.parse_args()
 

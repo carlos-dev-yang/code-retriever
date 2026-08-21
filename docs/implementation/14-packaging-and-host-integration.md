@@ -1,18 +1,23 @@
 # 14. Packaging and MCP Host Integration
 
-- Status: `blocked` — the current default-1024/int8 and provider-free
-  compact-512 local package checkpoint is accepted. The owner-directed paired
-  Codex CLI diagnostic is complete under the
+- Status: `in_progress` — the current default-1024/int8 and provider-free
+  compact-512 local package checkpoint is accepted. Phase 13 now provides the
+  structured-only locator search and source-only `read_span` contract. The
+  owner-directed paired Codex CLI diagnostic is complete under the
   [Version 3 result](evidence/phase-14/assistant-ab-v3-result.md): correctness
   was preserved, but the current FTS-first integration increased tokens and
-  must be compacted before another A/B. Response accounting subsequently found
+  required compaction before another A/B. Response accounting subsequently found
   a frozen baseline-byte reducer defect and dual review accepted a
   locator-only `search` plus source-only `read_span` diagnostic direction in
   the
   [response-contract review](evidence/phase-14/assistant-response-contract-and-v4-direction.md).
+  That contract is implemented and accepted in the
+  [Phase 13 locator evidence](evidence/phase-13/locator-only-mcp-reconciliation.md).
   The chronological handoff and exact next action are in the
   [FTS/assistant work journal](FTS-REMEDIATION-AND-ASSISTANT-AB-JOURNAL.md).
-  Official Phase 12 and release-candidate promotion remain blocked.
+  The active work is to freeze and execute paired V4 with no simultaneous
+  ranking, query, `k`, corpus, or prompt change. Official Phase 12 and
+  release-candidate promotion remain blocked.
 - Prerequisite: reconciled locator-only `13-cli-and-mcp`
 - Followed by: v1 release-candidate validation
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 1–3 and 7–10

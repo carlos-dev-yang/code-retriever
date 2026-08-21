@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"cidx/internal/app"
 	"cidx/internal/index"
+	"cidx/internal/search"
 	"context"
 	"encoding/json"
 	"io"
@@ -302,7 +303,7 @@ func TestToolErrorPreservesReadSpanTypedData(t *testing.T) {
 	}
 	tool := result.(callToolResult)
 	payload, ok := tool.StructuredContent.(map[string]any)
-	if !ok || !tool.IsError || payload["code"] != app.ReadSpanTooLarge || payload["max_bytes"] != 64 || !bytes.Contains([]byte(tool.Content[0].Text), []byte(`"max_bytes":64`)) {
+	if !ok || !tool.IsError || payload["code"] != app.ReadSpanTooLarge || payload["max_bytes"] != 64 || len(tool.Content) != 0 {
 		t.Fatalf("tool error=%#v", tool)
 	}
 }
@@ -316,6 +317,68 @@ func TestToolResultRepresentationsDoNotDuplicatePayload(t *testing.T) {
 	text := representedToolResult(`{"location":"a.go:1"}`, value, false, ResultRepresentationText)
 	if len(text.Content) != 1 || text.Content[0].Text != `{"location":"a.go:1"}` || text.StructuredContent != nil || text.IsError {
 		t.Fatalf("text result=%#v", text)
+	}
+}
+
+type searchCaptureServices struct {
+	fakeServices
+	request  app.SearchRequest
+	response search.Response
+}
+
+func (service *searchCaptureServices) Search(_ context.Context, request app.SearchRequest) (any, error) {
+	service.request = request
+	return service.response, nil
+}
+
+func TestSearchWireIsStructuredLocatorOnlyAndRequestsNoBody(t *testing.T) {
+	digest := "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	parent := search.ByteLineRange{StartByte: 10, EndByte: 30, StartLine: 2, EndLine: 4}
+	service := &searchCaptureServices{response: search.Response{Hits: []search.Hit{
+		{ChunkID: 7, Path: "a.go", Language: "go", Kind: "function", QualifiedSymbol: "p.F", Signature: "func F()", ParentRange: parent, IndexedSHA256: digest, LexicalSources: []string{"symbol"}, ScoreSource: search.ScoreSourceFTS, Body: []byte("secret source")},
+		{ChunkID: 8, Path: "a.go", Language: "go", Kind: "function", QualifiedSymbol: "p.F", ParentRange: parent, IndexedSHA256: digest, LexicalSources: []string{"descriptive_fts"}, ScoreSource: search.ScoreSourceBoth},
+	}}}
+	result, failure := callTool(context.Background(), service, json.RawMessage(`{"name":"search","arguments":{"query":"F","k":10,"mode":"fts","max_inline_bytes":12000}}`))
+	if failure != nil {
+		t.Fatalf("protocol failure=%v", failure)
+	}
+	if service.request.MaxInline != 0 {
+		t.Fatalf("shared search max inline=%d", service.request.MaxInline)
+	}
+	tool := result.(callToolResult)
+	if len(tool.Content) != 0 || tool.StructuredContent == nil || tool.IsError {
+		t.Fatalf("tool result=%#v", tool)
+	}
+	encoded, err := json.Marshal(tool.StructuredContent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(encoded, &payload); err != nil {
+		t.Fatal(err)
+	}
+	if len(payload) != 1 {
+		t.Fatalf("top-level payload=%s", encoded)
+	}
+	results, ok := payload["results"].([]any)
+	if !ok || len(results) != 1 {
+		t.Fatalf("results=%#v", payload["results"])
+	}
+	hit, ok := results[0].(map[string]any)
+	if !ok || len(hit) != 9 || hit["chunk_id"] != float64(7) || hit["path"] != "a.go" || hit["qualified_symbol"] != "p.F" || hit["start_line"] != float64(2) || hit["end_line"] != float64(4) {
+		t.Fatalf("locator=%#v", results[0])
+	}
+	for _, forbidden := range []string{"body", "signature", "parent_range", "fused_score", "query_shape", "manifest_sha256"} {
+		if _, exists := hit[forbidden]; exists {
+			t.Fatalf("locator exposed %s: %#v", forbidden, hit)
+		}
+		if _, exists := payload[forbidden]; exists {
+			t.Fatalf("payload exposed %s: %#v", forbidden, payload)
+		}
+	}
+	sources, ok := hit["match_sources"].([]any)
+	if !ok || len(sources) != 3 || sources[0] != "symbol" || sources[1] != "descriptive_fts" || sources[2] != "vector" {
+		t.Fatalf("match sources=%#v", hit["match_sources"])
 	}
 }
 

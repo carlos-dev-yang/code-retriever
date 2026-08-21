@@ -26,6 +26,7 @@ type callToolResult struct {
 type ResultRepresentation string
 
 const (
+	ResultRepresentationDefault    ResultRepresentation = ResultRepresentationStructured
 	ResultRepresentationDual       ResultRepresentation = "dual"
 	ResultRepresentationText       ResultRepresentation = "text"
 	ResultRepresentationStructured ResultRepresentation = "structured"
@@ -65,7 +66,7 @@ func (value ApplicationServices) Reindex(ctx context.Context, dry bool) (any, er
 }
 
 func callTool(ctx context.Context, services Services, raw json.RawMessage) (any, *Error) {
-	return callToolWithRepresentation(ctx, services, raw, ResultRepresentationDual)
+	return callToolWithRepresentation(ctx, services, raw, ResultRepresentationDefault)
 }
 
 func callToolWithRepresentation(ctx context.Context, services Services, raw json.RawMessage, representation ResultRepresentation) (any, *Error) {
@@ -104,6 +105,10 @@ func callToolWithRepresentation(ctx context.Context, services Services, raw json
 				return nil, &Error{Code: invalidParams, Message: "INVALID_SEARCH_MODE"}
 			}
 		}
+		// The retained v1 max_inline_bytes field is validated above for wire
+		// compatibility. MCP search is locator-only and must never ask the shared
+		// search service to package source bodies.
+		request.MaxInline = 0
 		result, callErr := services.Search(ctx, request)
 		return toolOutcome(wireSearch(result), applicationError(callErr), representation), nil
 	case "read_span":
@@ -160,10 +165,10 @@ func representedToolResult(text string, structured any, isError bool, representa
 	switch representation {
 	case ResultRepresentationText:
 		return callToolResult{Content: []toolContent{{Type: "text", Text: text}}, IsError: isError}
-	case ResultRepresentationStructured:
-		return callToolResult{Content: []toolContent{}, StructuredContent: structured, IsError: isError}
-	default:
+	case ResultRepresentationDual:
 		return callToolResult{Content: []toolContent{{Type: "text", Text: text}}, StructuredContent: structured, IsError: isError}
+	default:
+		return callToolResult{Content: []toolContent{}, StructuredContent: structured, IsError: isError}
 	}
 }
 
@@ -205,46 +210,62 @@ func wireSearch(value any) any {
 		return value
 	}
 	type hit struct {
-		ChunkID            int64                 `json:"chunk_id"`
-		Path               string                `json:"path"`
-		Language           string                `json:"language"`
-		Kind               string                `json:"kind"`
-		Symbol             string                `json:"symbol"`
-		QualifiedSymbol    string                `json:"qualified_symbol"`
-		Signature          string                `json:"signature"`
-		ParentRange        search.ByteLineRange  `json:"parent_range"`
-		IndexedSHA256      string                `json:"indexed_sha256"`
-		LexicalRank        int                   `json:"lexical_rank"`
-		VectorRank         int                   `json:"vector_rank"`
-		SymbolRank         int                   `json:"symbol_rank"`
-		PathRank           int                   `json:"path_rank"`
-		DescriptiveRank    int                   `json:"descriptive_rank"`
-		SymbolMatchTier    int                   `json:"symbol_match_tier"`
-		PathMatchTier      int                   `json:"path_match_tier"`
-		MatchedTerms       int                   `json:"matched_terms"`
-		SelectedTerms      int                   `json:"selected_terms"`
-		LexicalSources     []string              `json:"lexical_sources"`
-		FusedScore         float64               `json:"fused_score"`
-		ScoreSource        search.ScoreSource    `json:"score_source"`
-		MatchedSegment     *search.ByteLineRange `json:"matched_segment,omitempty"`
-		Body               *string               `json:"body"`
-		BodyRange          *search.ByteLineRange `json:"body_range,omitempty"`
-		BodyComplete       bool                  `json:"body_complete"`
-		BodyBytes          int                   `json:"body_bytes"`
-		BodyOmissionReason search.OmissionReason `json:"body_omission_reason,omitempty"`
-		SourceState        string                `json:"source_state"`
-		ContentSource      string                `json:"content_source"`
+		ChunkID         int64    `json:"chunk_id"`
+		Path            string   `json:"path"`
+		Language        string   `json:"language"`
+		Kind            string   `json:"kind"`
+		QualifiedSymbol string   `json:"qualified_symbol"`
+		StartLine       int      `json:"start_line"`
+		EndLine         int      `json:"end_line"`
+		IndexedSHA256   string   `json:"indexed_sha256"`
+		MatchSources    []string `json:"match_sources"`
+	}
+	type locatorKey struct {
+		IndexedSHA256, Path, QualifiedSymbol string
+		StartLine, EndLine                   int
 	}
 	hits := make([]hit, 0, len(response.Hits))
+	positions := make(map[locatorKey]int, len(response.Hits))
 	for _, source := range response.Hits {
-		value := hit{ChunkID: source.ChunkID, Path: source.Path, Language: source.Language, Kind: source.Kind, Symbol: source.Symbol, QualifiedSymbol: source.QualifiedSymbol, Signature: source.Signature, ParentRange: source.ParentRange, IndexedSHA256: source.IndexedSHA256, LexicalRank: source.LexicalRank, VectorRank: source.VectorRank, SymbolRank: source.SymbolRank, PathRank: source.PathRank, DescriptiveRank: source.DescriptiveRank, SymbolMatchTier: source.SymbolMatchTier, PathMatchTier: source.PathMatchTier, MatchedTerms: source.MatchedTerms, SelectedTerms: source.SelectedTerms, LexicalSources: append([]string(nil), source.LexicalSources...), FusedScore: source.FusedScore, ScoreSource: source.ScoreSource, MatchedSegment: source.MatchedSegment, BodyRange: source.BodyRange, BodyComplete: source.BodyComplete, BodyBytes: source.BodyBytes, BodyOmissionReason: source.BodyOmissionReason, SourceState: source.SourceState, ContentSource: "indexed_snapshot"}
-		if source.Body != nil {
-			body := string(source.Body)
-			value.Body = &body
+		matchSources := compactMatchSources(source)
+		key := locatorKey{IndexedSHA256: source.IndexedSHA256, Path: source.Path, QualifiedSymbol: source.QualifiedSymbol, StartLine: source.ParentRange.StartLine, EndLine: source.ParentRange.EndLine}
+		if position, exists := positions[key]; exists {
+			hits[position].MatchSources = mergeStrings(hits[position].MatchSources, matchSources)
+			continue
 		}
-		hits = append(hits, value)
+		positions[key] = len(hits)
+		hits = append(hits, hit{ChunkID: source.ChunkID, Path: source.Path, Language: source.Language, Kind: source.Kind, QualifiedSymbol: source.QualifiedSymbol, StartLine: source.ParentRange.StartLine, EndLine: source.ParentRange.EndLine, IndexedSHA256: source.IndexedSHA256, MatchSources: matchSources})
 	}
-	return map[string]any{"index_generation": response.Generation, "manifest_sha256": response.ManifestSHA256, "source_profile": response.SourceProfile, "vector_space_profile": response.VectorSpaceProfile, "vector_storage_profile": response.VectorStorageProfile, "vector_coverage_observed": response.VectorCoverageObserved, "requested_max_inline_bytes": response.RequestedMaxInlineBytes, "effective_max_inline_bytes": response.EffectiveMaxInlineBytes, "max_inline_bytes_clamped": response.MaxInlineBytesClamped, "requested_mode": response.RequestedMode, "effective_mode": response.EffectiveMode, "lexical_query_planner_version": response.LexicalQueryPlannerVersion, "query_text_format_version": response.QueryTextFormatVersion, "query_shape": response.QueryShape, "lexical_boolean_form": response.LexicalBooleanForm, "explicit_anchors": response.ExplicitAnchors, "path_anchors": response.PathAnchors, "selected_descriptive_terms": response.SelectedDescriptiveTerms, "dropped_descriptive_terms": response.DroppedDescriptiveTerms, "symbol_candidate_count": response.SymbolCandidateCount, "path_candidate_count": response.PathCandidateCount, "descriptive_candidate_count": response.DescriptiveCandidateCount, "lexical_candidate_count": response.LexicalCandidateCount, "lexical_candidate_zero": response.LexicalCandidateZero, "query_embedding_used": response.QueryEmbeddingUsed, "fallback_reason": response.FallbackReason, "vector_coverage_numerator": response.CoverageNumerator, "vector_coverage_denominator": response.CoverageDenominator, "partial_vector_coverage": response.PartialVectorCoverage, "inline_bytes_used": response.InlineBytesUsed, "inline_limited": response.InlineLimited, "results": hits}
+	return map[string]any{"results": hits}
+}
+
+func compactMatchSources(source search.Hit) []string {
+	values := append([]string(nil), source.LexicalSources...)
+	if source.ScoreSource == search.ScoreSourceVector || source.ScoreSource == search.ScoreSourceBoth {
+		values = append(values, "vector")
+	}
+	if len(values) == 0 && source.ScoreSource == search.ScoreSourceFTS {
+		values = append(values, "fts")
+	}
+	return mergeStrings(nil, values)
+}
+
+func mergeStrings(existing, additions []string) []string {
+	seen := make(map[string]struct{}, len(existing)+len(additions))
+	result := make([]string, 0, len(existing)+len(additions))
+	for _, group := range [][]string{existing, additions} {
+		for _, value := range group {
+			if value == "" {
+				continue
+			}
+			if _, exists := seen[value]; exists {
+				continue
+			}
+			seen[value] = struct{}{}
+			result = append(result, value)
+		}
+	}
+	return result
 }
 func requiredString(value map[string]json.RawMessage, key string, target *string) bool {
 	input, ok := value[key]
