@@ -523,3 +523,26 @@ the smallest remaining candidate. Full metrics and artifact digests are in
 Next: send this fixed evidence to ChatGPT and Grok. Freeze the final permitted
 V6 only if both independent reviews and the local audit accept that one-field
 prompt addition; otherwise stop the experiment sequence and report why.
+
+## 16. 2026-08-22 V5 external review and final-experiment decision
+
+The same fixed V5 evidence and one-field hypothesis were sent to ChatGPT and
+Grok. Both returned `PROCEED_V6_HASH_FIELD`. They agreed that the three failures
+are a direct prompt/schema mismatch rather than a retrieval diagnosis and that
+new treatment-only turns cannot be compared against the old V5 baseline.
+
+V6 inserts one sentence after the exact-range instruction: every `read_span`
+must pass `path`, `start_line`, `end_line`, and `expected_sha256` exactly from
+the selected locator. Everything else remains byte-identical or frozen.
+
+Both reviews imposed the same final stop rule. V6 ends this V4–V6 sequence
+under all outcomes. If it eliminates hash omissions but does not pass the
+0.85/8-of-12 model-total gate, the recorded conclusion is that known
+prompt-level mechanical waste was corrected without establishing material
+model-token reduction on this panel. There is no V7 corrective rerun. Exact
+review evidence is in
+[`assistant-ab-v5-external-review.md`](evidence/phase-14/assistant-ab-v5-external-review.md).
+
+Next: freeze V6 inputs and identities, run all 24 turns once, blind grade both
+corpus packets, aggregate, obtain final side-panel interpretation, and close
+the experiment sequence.

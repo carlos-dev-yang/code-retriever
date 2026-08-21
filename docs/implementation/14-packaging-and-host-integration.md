@@ -80,6 +80,15 @@ but omitted required `expected_sha256`; the same ranges then succeeded with
 the hash. Exact evidence and the bounded one-field V6 candidate are in the
 [V5 result](evidence/phase-14/assistant-ab-v5-result.md). Do not change
 retrieval, `k`, wire semantics, corpus, or questions before post-result review.
+
+## 2026-08-22 V5 post-result review checkpoint
+
+ChatGPT and Grok both returned `PROCEED_V6_HASH_FIELD`. The
+[review record](evidence/phase-14/assistant-ab-v5-external-review.md) accepts
+one exact `expected_sha256` prompt sentence and no other change. V6 retains all
+V5 product, corpus, model, order, reducer, grading, and token controls. It is
+the final permitted run in this corrective sequence; no V7 follows regardless
+of its outcome.
 - Prerequisite: reconciled locator-only `13-cli-and-mcp`
 - Followed by: v1 release-candidate validation
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 1–3 and 7–10
