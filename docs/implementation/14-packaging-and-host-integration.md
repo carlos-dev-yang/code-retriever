@@ -15,9 +15,11 @@
   [Phase 13 locator evidence](evidence/phase-13/locator-only-mcp-reconciliation.md).
   The chronological handoff and exact next action are in the
   [FTS/assistant work journal](FTS-REMEDIATION-AND-ASSISTANT-AB-JOURNAL.md).
-  The active work is to freeze and execute paired V4 with no simultaneous
-  ranking, query, `k`, corpus, or prompt change. Official Phase 12 and
-  release-candidate promotion remain blocked.
+  V4 is complete, and matching ChatGPT and Grok post-result reviews selected
+  one prompt-only orchestration intervention for V5. The active work is to
+  freeze and execute that full pair with no simultaneous ranking, query, `k`,
+  corpus, wire, or `read_span` change. Official Phase 12 and release-candidate
+  promotion remain blocked.
 
 ## 2026-08-22 V4 freeze checkpoint
 
@@ -39,6 +41,18 @@ six failed ranges, four identical successful rereads, and macro read precision
 0.586. Exact metrics and artifact identities are in the
 [V4 result](evidence/phase-14/assistant-ab-v4-result.md). Do not change `k`,
 retrieval, or `read_span` semantics before the required post-result review.
+
+## 2026-08-22 V4 post-result review checkpoint
+
+ChatGPT and Grok independently returned `PROCEED_V5_ORCHESTRATION` after
+receiving the same fixed V4 evidence. They approved one assistant-facing
+paragraph that requires an initial locator search with `max_inline_bytes=0`,
+forbids identical searches and reads, starts evidence reads at exact returned
+ranges, permits at most one specifically justified refinement, and stops after
+material claims have direct evidence. The [external review record](evidence/phase-14/assistant-ab-v4-external-review.md)
+freezes the wording and guardrails. Prompt noncompliance is a measured outcome
+of V5 rather than an automatic invalidation. `k=10`, retrieval/ranking, wire,
+read semantics, corpus/tasks, and grading remain unchanged.
 - Prerequisite: reconciled locator-only `13-cli-and-mcp`
 - Followed by: v1 release-candidate validation
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 1–3 and 7–10

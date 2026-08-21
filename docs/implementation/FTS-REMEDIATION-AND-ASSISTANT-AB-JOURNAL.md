@@ -450,3 +450,31 @@ candidate is one orchestration intervention that prevents identical repeats,
 starts with locator ranges, allows only a justified bounded refinement, and
 stops after direct evidence covers each material claim. It is not frozen until
 both side-panel reviews are recorded.
+
+## 13. 2026-08-22 V4 external review and V5 disposition
+
+The completed V4 packet was sent unchanged to the existing ChatGPT and Grok
+side-panel conversations. Both returned `PROCEED_V5_ORCHESTRATION`. Their
+shared causal judgment is that locator-only search fixed the measured response
+contract while preserving correctness, and the next isolated loss is the
+assistant's repeated/refined search and evidence-acquisition behavior. Neither
+review treated V4 as proof that lowering `k` is safe or that retrieval,
+ranking, hybrid/dense, or server-side range semantics should change.
+
+The accepted V5 change is one assistant-facing paragraph: start with one cidx
+search using `max_inline_bytes=0`; use search only for locators; do not repeat
+identical searches or reads; initially read the exact returned locator range;
+allow at most one refined search for specifically identified missing material
+evidence; and stop once all material claims have direct cited repository
+evidence. Everything else from V4 remains frozen.
+
+Prompt-policy noncompliance stays in the result denominators. It is evidence
+that the intervention did not reliably control behavior, not a reason to
+discard an otherwise valid task. Correctness, token efficiency, and mechanical
+orchestration effects remain separate result dimensions. The exact review,
+wording, guardrails, and decision metrics are recorded in
+[`assistant-ab-v4-external-review.md`](evidence/phase-14/assistant-ab-v4-external-review.md).
+
+Next: create a V5 plan and manifest with this paragraph as the sole change,
+freeze exact identities, execute one full contemporaneous 24-turn pair, blind
+grade it, and choose any third experiment only from its measured first loss.
