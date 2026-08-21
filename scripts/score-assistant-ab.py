@@ -272,6 +272,31 @@ def range_key(value: dict[str, Any]) -> tuple[Any, ...]:
     return (value.get("path"), value.get("start_line"), value.get("end_line"))
 
 
+def canonical_arguments(value: Any) -> str | None:
+    if not isinstance(value, dict):
+        return None
+    return json.dumps(
+        value,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    )
+
+
+def search_query_key(value: Any) -> tuple[Any, ...] | None:
+    if not isinstance(value, dict) or not isinstance(value.get("query"), str):
+        return None
+    return (value["query"].strip(), value.get("mode", "fts"))
+
+
+def read_matches_locator(read: dict[str, Any], locator: dict[str, Any]) -> bool:
+    if range_key(read) != range_key(locator):
+        return False
+    expected = read.get("expected_sha256")
+    indexed = locator.get("indexed_sha256")
+    return not isinstance(expected, str) or expected == indexed
+
+
 def ranges_overlap(left: dict[str, Any], right: dict[str, Any]) -> bool:
     if left.get("path") != right.get("path"):
         return False
@@ -587,6 +612,7 @@ def deterministic_journey(
     action_ordinal = 0
     started_ordinals: dict[str, int] = {}
     search_calls: list[dict[str, Any]] = []
+    read_attempts: list[dict[str, Any]] = []
     successful_reads: list[dict[str, Any]] = []
     for event in events(events_path):
         item = event.get("item")
@@ -655,6 +681,7 @@ def deterministic_journey(
                 search_calls.append(
                     {
                         "ordinal": started_ordinals.get(str(item.get("id")), action_ordinal),
+                        "arguments": item.get("arguments"),
                         "locators": locators,
                     }
                 )
@@ -667,6 +694,19 @@ def deterministic_journey(
                     read_both_representation_calls += 1
                 result = item.get("result")
                 arguments = item.get("arguments")
+                read_attempt = {
+                    "ordinal": started_ordinals.get(
+                        str(item.get("id")), action_ordinal
+                    ),
+                    "arguments": arguments,
+                    "status": item.get("status"),
+                    "result_code": (
+                        payload.get("code") if isinstance(payload, dict) else None
+                    ),
+                }
+                if isinstance(arguments, dict):
+                    read_attempt.update(arguments)
+                read_attempts.append(read_attempt)
                 if (
                     isinstance(payload, dict)
                     and isinstance(result, dict)
@@ -717,6 +757,7 @@ def deterministic_journey(
                 )
 
     search_calls.sort(key=lambda item: item["ordinal"])
+    read_attempts.sort(key=lambda item: item["ordinal"])
     locator_occurrences = [
         locator for call in search_calls for locator in call["locators"]
     ]
@@ -808,6 +849,92 @@ def deterministic_journey(
             all_groups_action = read["ordinal"] + 1
             break
 
+    search_argument_keys = [
+        key
+        for key in (
+            canonical_arguments(call.get("arguments")) for call in search_calls
+        )
+        if key is not None
+    ]
+    search_query_keys = [
+        key
+        for key in (search_query_key(call.get("arguments")) for call in search_calls)
+        if key is not None
+    ]
+    read_range_keys = [
+        range_key(read)
+        for read in read_attempts
+        if isinstance(read.get("path"), str)
+        and isinstance(read.get("start_line"), int)
+        and isinstance(read.get("end_line"), int)
+    ]
+    exact_locator_reads = []
+    for read in read_attempts:
+        earlier_locators = [
+            locator
+            for call in search_calls
+            if call["ordinal"] < read["ordinal"]
+            for locator in call["locators"]
+        ]
+        if any(read_matches_locator(read, locator) for locator in earlier_locators):
+            exact_locator_reads.append(read)
+    initial_reads: list[dict[str, Any]] = []
+    seen_read_sources: set[tuple[Any, ...]] = set()
+    for read in read_attempts:
+        source_key = (read.get("path"), read.get("expected_sha256"))
+        if source_key in seen_read_sources:
+            continue
+        seen_read_sources.add(source_key)
+        initial_reads.append(read)
+    exact_initial_locator_reads = []
+    for read in initial_reads:
+        earlier_locators = [
+            locator
+            for call in search_calls
+            if call["ordinal"] < read["ordinal"]
+            for locator in call["locators"]
+        ]
+        if any(read_matches_locator(read, locator) for locator in earlier_locators):
+            exact_initial_locator_reads.append(read)
+    invalid_range_reads = [
+        read
+        for read in read_attempts
+        if read.get("status") == "failed" and read.get("result_code") == "INVALID_RANGE"
+    ]
+    repository_action_count = shell_actions + search_actions + read_span_actions
+    actions_after_complete = (
+        max(0, repository_action_count - all_groups_action)
+        if all_groups_action is not None
+        else None
+    )
+    first_search_max_inline_zero = (
+        isinstance(search_calls[0].get("arguments"), dict)
+        and search_calls[0]["arguments"].get("max_inline_bytes") == 0
+        if search_calls
+        else False
+    )
+    repeated_search_queries = len(search_query_keys) - len(set(search_query_keys))
+    duplicate_search_arguments = len(search_argument_keys) - len(
+        set(search_argument_keys)
+    )
+    duplicate_read_ranges = len(read_range_keys) - len(set(read_range_keys))
+    nonexact_locator_reads = len(read_attempts) - len(exact_locator_reads)
+    nonexact_initial_locator_reads = len(initial_reads) - len(
+        exact_initial_locator_reads
+    )
+    stopped_after_complete = (
+        actions_after_complete == 0 if actions_after_complete is not None else None
+    )
+    mechanically_adherent = (
+        first_discovery == "cidx_search"
+        and first_search_max_inline_zero
+        and search_actions <= 2
+        and repeated_search_queries == 0
+        and duplicate_read_ranges == 0
+        and not invalid_range_reads
+        and nonexact_initial_locator_reads == 0
+    )
+
     cited_from_cidx = sorted(cited_paths & cidx_paths)
     if read_span_actions and cited_from_cidx:
         usage_class = "read_span_cited"
@@ -818,12 +945,10 @@ def deterministic_journey(
     else:
         usage_class = "no_use"
     return {
-        "schema_version": 2,
+        "schema_version": 3,
         "first_repository_discovery_action": first_discovery,
         "first_discovery_is_cidx_search": first_discovery == "cidx_search",
-        "repository_inspection_action_count": (
-            shell_actions + search_actions + read_span_actions
-        ),
+        "repository_inspection_action_count": repository_action_count,
         "shell_inspection_action_count": shell_actions,
         "cidx_search_count": search_actions,
         "cidx_read_span_count": read_span_actions,
@@ -842,6 +967,34 @@ def deterministic_journey(
         "cidx_returned_source_paths": sorted(cidx_paths),
         "cidx_cited_source_paths": cited_from_cidx,
         "cidx_usage_class": usage_class,
+        "orchestration_stage": {
+            "first_search_max_inline_zero": first_search_max_inline_zero,
+            "search_count_within_two": search_actions <= 2,
+            "repeated_search_query_count": repeated_search_queries,
+            "duplicate_search_argument_count": duplicate_search_arguments,
+            "read_attempt_count": len(read_attempts),
+            "duplicate_read_range_count": duplicate_read_ranges,
+            "invalid_range_read_count": len(invalid_range_reads),
+            "exact_locator_range_read_count": len(exact_locator_reads),
+            "nonexact_locator_range_read_count": nonexact_locator_reads,
+            "exact_locator_range_read_rate": ratio_or_none(
+                len(exact_locator_reads), len(read_attempts)
+            ),
+            "initial_source_read_count": len(initial_reads),
+            "exact_initial_locator_range_read_count": len(
+                exact_initial_locator_reads
+            ),
+            "nonexact_initial_locator_range_read_count": (
+                nonexact_initial_locator_reads
+            ),
+            "exact_initial_locator_range_read_rate": ratio_or_none(
+                len(exact_initial_locator_reads), len(initial_reads)
+            ),
+            "inspection_actions_after_complete_evidence": actions_after_complete,
+            "stopped_after_complete_evidence": stopped_after_complete,
+            "mechanically_adherent": mechanically_adherent,
+            "semantic_refinement_justification_reviewed": False,
+        },
         "locator_stage": {
             "search_count": search_actions,
             "locator_occurrence_count": len(locator_occurrences),
@@ -1013,7 +1166,68 @@ def mean_present(values: list[float | int | None]) -> float | None:
 def assistant_stage_summary(pairs: list[dict[str, Any]]) -> dict[str, Any]:
     locator = [pair["cidx_fts"]["journey"]["locator_stage"] for pair in pairs]
     evidence = [pair["cidx_fts"]["journey"]["evidence_stage"] for pair in pairs]
+    orchestration = [
+        pair["cidx_fts"]["journey"]["orchestration_stage"] for pair in pairs
+    ]
     return {
+        "orchestration": {
+            "task_count": len(orchestration),
+            "mechanically_adherent_task_count": sum(
+                item["mechanically_adherent"] for item in orchestration
+            ),
+            "first_search_max_inline_zero_count": sum(
+                item["first_search_max_inline_zero"] for item in orchestration
+            ),
+            "search_count_within_two_count": sum(
+                item["search_count_within_two"] for item in orchestration
+            ),
+            "repeated_search_query_count": sum(
+                item["repeated_search_query_count"] for item in orchestration
+            ),
+            "duplicate_search_argument_count": sum(
+                item["duplicate_search_argument_count"] for item in orchestration
+            ),
+            "duplicate_read_range_count": sum(
+                item["duplicate_read_range_count"] for item in orchestration
+            ),
+            "invalid_range_read_count": sum(
+                item["invalid_range_read_count"] for item in orchestration
+            ),
+            "exact_locator_range_read_count": sum(
+                item["exact_locator_range_read_count"] for item in orchestration
+            ),
+            "nonexact_locator_range_read_count": sum(
+                item["nonexact_locator_range_read_count"] for item in orchestration
+            ),
+            "exact_locator_range_read_rate_macro": mean_present(
+                [item["exact_locator_range_read_rate"] for item in orchestration]
+            ),
+            "initial_source_read_count": sum(
+                item["initial_source_read_count"] for item in orchestration
+            ),
+            "exact_initial_locator_range_read_count": sum(
+                item["exact_initial_locator_range_read_count"]
+                for item in orchestration
+            ),
+            "nonexact_initial_locator_range_read_count": sum(
+                item["nonexact_initial_locator_range_read_count"]
+                for item in orchestration
+            ),
+            "exact_initial_locator_range_read_rate_macro": mean_present(
+                [
+                    item["exact_initial_locator_range_read_rate"]
+                    for item in orchestration
+                ]
+            ),
+            "stopped_after_complete_evidence_count": sum(
+                item["stopped_after_complete_evidence"] is True
+                for item in orchestration
+            ),
+            "inspection_actions_after_complete_evidence": sum(
+                item["inspection_actions_after_complete_evidence"] or 0
+                for item in orchestration
+            ),
+        },
         "locator": {
             "task_count": len(locator),
             "search_count": sum(item["search_count"] for item in locator),
@@ -1408,11 +1622,18 @@ def aggregate(context: dict[str, Any]) -> None:
         )
     locator_summary = aggregate_value["assistant_stages"]["locator"]
     evidence_summary = aggregate_value["assistant_stages"]["evidence"]
+    orchestration_summary = aggregate_value["assistant_stages"]["orchestration"]
     report_lines.extend(
         [
             "",
-            "## Locator and evidence stages",
+            "## Orchestration, locator, and evidence stages",
             "",
+            f"- Mechanically prompt-adherent treatment tasks: {orchestration_summary['mechanically_adherent_task_count']}/{orchestration_summary['task_count']}",
+            f"- First search with max_inline_bytes=0: {orchestration_summary['first_search_max_inline_zero_count']}/{orchestration_summary['task_count']}",
+            f"- At most two searches: {orchestration_summary['search_count_within_two_count']}/{orchestration_summary['task_count']}",
+            f"- Repeated search queries / duplicate read ranges / invalid ranges: {orchestration_summary['repeated_search_query_count']} / {orchestration_summary['duplicate_read_range_count']} / {orchestration_summary['invalid_range_read_count']}",
+            f"- Exact / non-exact initial locator-range reads: {orchestration_summary['exact_initial_locator_range_read_count']} / {orchestration_summary['nonexact_initial_locator_range_read_count']}",
+            f"- Stopped after complete cidx evidence: {orchestration_summary['stopped_after_complete_evidence_count']}/{orchestration_summary['task_count']}",
             f"- First-search complete locator hit: {locator_summary['complete_first_search_locator_hit_count']}/{locator_summary['task_count']}",
             f"- First-search requirement coverage (macro): {locator_summary['first_search_requirement_coverage_macro']:.3f}",
             f"- Any-search requirement coverage (macro): {locator_summary['any_search_requirement_coverage_macro']:.3f}",

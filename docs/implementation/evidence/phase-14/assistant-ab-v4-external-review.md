@@ -88,8 +88,8 @@ V5 must preserve V4's:
 - versioned 12-task panel, required evidence, order, and arm schedule;
 - Codex model/version, reasoning effort, isolation, timeout, and token source;
 - baseline and treatment task prompt outside the new paragraph;
-- locator-only MCP contract, `k=10`, FTS planner, candidate generation,
-  ranking, and `read_span` semantics;
+- locator-only MCP contract, current caller-selected `k` semantics with default
+  10, FTS planner, candidate generation, ranking, and `read_span` semantics;
 - blind grading and arm-blind mechanical journey reducer; and
 - complete 24-turn contemporaneous execution with no selective replacement.
 
@@ -126,5 +126,5 @@ without changing the retrieval system to compensate.
 The two independent reviews and the local first-loss attribution agree. Freeze
 V5 with the paragraph above as the sole change, record exact identities, run
 the full pair once, and grade it before selecting any third experiment. Do not
-lower `k`, clamp ranges server-side, enable hybrid/dense, or acquire another
-corpus at this boundary.
+lower or otherwise fix a new `k`, clamp ranges server-side, enable
+hybrid/dense, or acquire another corpus at this boundary.

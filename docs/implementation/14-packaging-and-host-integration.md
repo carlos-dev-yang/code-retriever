@@ -51,8 +51,9 @@ forbids identical searches and reads, starts evidence reads at exact returned
 ranges, permits at most one specifically justified refinement, and stops after
 material claims have direct evidence. The [external review record](evidence/phase-14/assistant-ab-v4-external-review.md)
 freezes the wording and guardrails. Prompt noncompliance is a measured outcome
-of V5 rather than an automatic invalidation. `k=10`, retrieval/ranking, wire,
-read semantics, corpus/tasks, and grading remain unchanged.
+of V5 rather than an automatic invalidation. Current caller-selected `k`
+semantics with default 10, retrieval/ranking, wire, read semantics,
+corpus/tasks, and grading remain unchanged.
 - Prerequisite: reconciled locator-only `13-cli-and-mcp`
 - Followed by: v1 release-candidate validation
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 1–3 and 7–10

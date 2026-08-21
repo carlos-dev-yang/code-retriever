@@ -49,6 +49,7 @@
 - Frozen compact-response experiment: [Version 4 plan](ASSISTANT-AB-TEST-PLAN-V4.md) and [preflight checkpoint](evidence/phase-14/assistant-ab-v4-freeze.md)
 - Completed compact-response result: [Version 4 result](evidence/phase-14/assistant-ab-v4-result.md)
 - V4 post-result disposition: [matching external reviews and accepted V5 intervention](evidence/phase-14/assistant-ab-v4-external-review.md)
+- V5 mechanism instrumentation: [assistant orchestration reducer v3](evidence/phase-14/assistant-orchestration-reducer-v3.md)
 - Remaining-work handoff: [remaining-work-review-handoff-r4.md](evidence/revision-4/remaining-work-review-handoff-r4.md)
 - Final corpus-independent review: [int8/source-profile implementation-to-design review](evidence/revision-4/int8-source-profile-final-review.md)
 - Last updated: 2026-08-22
