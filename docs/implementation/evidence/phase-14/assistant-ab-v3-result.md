@@ -6,6 +6,23 @@
 - Scope: existing chi and React Hook Form calibration questions only
 - Promotion authority: none
 
+## Post-run accounting erratum — 2026-08-21
+
+The frozen journey reducer undercounted baseline shell output when the first
+repository command was recorded inside a quoted shell wrapper such as
+`/bin/zsh -lc "rg ..."`. The original claim that model-visible repository
+output increased in all 12 treatment tasks and the derived cohort
+visible-output ratios are withdrawn. A raw-event audit observes a larger
+treatment transcript-output proxy in 11/12 tasks; the baseline's broad
+`rhf-t09-control-contract` search is the exception. The immutable frozen
+journey rows and digests remain preserved as the output of the recorded
+reducer, but their visible-byte values are not valid comparison evidence.
+
+Blind grades, official token usage, MCP compliance, call counts, and all other
+V3 conclusions are unaffected. The corrected accounting and next contract are
+recorded in the
+[locator/evidence review](assistant-response-contract-and-v4-direction.md).
+
 ## What was tested
 
 Twelve frozen questions were each run once in two fresh Codex CLI sessions:
@@ -71,24 +88,25 @@ Among 11 dual-complete pairs, the treatment/baseline model-total median was
 bootstrap interval was `[0.832, 2.140]`. The frozen efficiency requirement was a
 median at most `0.85` and at least `8/11` non-increasing, so it failed clearly.
 
-Model-visible repository output bytes increased in every treatment task.
 Treatment made 2–8 cidx calls; searches commonly requested `k=10` and
 `max_inline_bytes=12,000` or `20,000`. Serialized search results were commonly
-about 34–75 KB before follow-up `read_span` calls. The transcript contains both
-text and structured forms of MCP results, but this evidence does not by itself
-prove both forms entered the model context; official token usage and the
-machine-frozen visible-output measure remain the authority.
+about 34–75 KB before follow-up `read_span` calls. A later raw-event audit
+found about 697 KB of baseline shell output and about 989 KB of treatment
+shell-plus-MCP event payload, while also finding the baseline-detection defect
+described above. The transcript contains both text and structured forms of MCP
+results, but this evidence does not by itself prove both forms entered the
+model context. Official token usage remains the end-to-end authority.
 
 ## Critical-cohort diagnostic
 
-| Critical cohort | Tasks | Baseline complete | cidx complete | Median model ratio | Non-increasing | Median inspection delta | Median visible-output ratio |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| lexical anchor | 3 | 3 | 3 | 0.832 | 2/3 | +2 | 5.631 |
-| semantic only | 5 | 5 | 5 | 1.435 | 0/5 | +3 | 5.341 |
-| mixed signal | 4 | 3 | 4 | 1.378 | 1/3 dual-complete | +2 | 19.645 |
-| contract disambiguation | 4 | 4 | 4 | 1.816 | 1/4 | +3 | 16.922 |
-| multi requirement | 3 | 3 | 3 | 1.435 | 0/3 | +3 | 6.604 |
-| known hard negative | 1 | 1 | 1 | 2.255 | 0/1 | +4 | 19.645 |
+| Critical cohort | Tasks | Baseline complete | cidx complete | Median model ratio | Non-increasing | Median inspection delta |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| lexical anchor | 3 | 3 | 3 | 0.832 | 2/3 | +2 |
+| semantic only | 5 | 5 | 5 | 1.435 | 0/5 | +3 |
+| mixed signal | 4 | 3 | 4 | 1.378 | 1/3 dual-complete | +2 |
+| contract disambiguation | 4 | 4 | 4 | 1.816 | 1/4 | +3 |
+| multi requirement | 3 | 3 | 3 | 1.435 | 0/3 | +3 |
+| known hard negative | 1 | 1 | 1 | 2.255 | 0/1 | +4 |
 
 The bounded panel suggests lexical-anchor questions are the best current fit for
 FTS-first. Semantic, contract, multi-requirement, and hard-negative tasks preserve

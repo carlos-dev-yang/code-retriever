@@ -1,7 +1,8 @@
 # FTS Remediation and Assistant A/B Work Journal
 
 - Work period: 2026-08-20 through 2026-08-21
-- Status: completed calibration remediation and completed assistant diagnostic
+- Status: completed calibration remediation, assistant diagnostic, and
+  locator/evidence response-contract review; implementation remains pending
 - Repositories: the existing owner-approved chi v5.3.1 and React Hook Form
   v7.85.0 snapshots only
 - Provider operations: zero for the FTS reruns and assistant A/B
@@ -12,6 +13,8 @@
   [`natural-language-lexical-rerun-v2.md`](evidence/phase-07/natural-language-lexical-rerun-v2.md)
 - Final assistant evidence:
   [`assistant-ab-v3-result.md`](evidence/phase-14/assistant-ab-v3-result.md)
+- Response-contract direction:
+  [`assistant-response-contract-and-v4-direction.md`](evidence/phase-14/assistant-response-contract-and-v4-direction.md)
 
 This document is the durable chronological handoff for the natural-language
 FTS correction and the paired Codex CLI assistant experiment that followed it.
@@ -240,15 +243,20 @@ The current integration did not meet the frozen efficiency rule:
   was `1.378`; and
 - only `3/11` dual-complete pairs were non-increasing.
 
-Every treatment exposed more repository-output bytes. Searches commonly used
-`k=10`, `max_inline_bytes=12,000` or `20,000`, and serialized roughly 34–75 KB
-before later `read_span` calls. Schema-only probes differed by two model tokens,
-so static MCP schema overhead does not explain the increase.
+The frozen journey reducer initially reported that every treatment exposed
+more repository-output bytes. A later audit found that its shell detector
+missed shell-wrapped first commands and materially undercounted baseline
+output. Raw event-output proxies are about 697 KB for baseline and 989 KB for
+treatment, with treatment larger in 11/12 tasks. The original all-task and
+cohort visible-output ratios are withdrawn; official token results are
+unchanged. Searches commonly used `k=10`, `max_inline_bytes=12,000` or
+`20,000`, and serialized roughly 34–75 KB before later `read_span` calls.
+Schema-only probes differed by two model tokens, so static MCP schema overhead
+does not explain the increase.
 
 The transcript records both textual and structured MCP result forms. That is a
 serialization lead to investigate, not proof that both forms entered model
-context. Official token usage and the frozen model-visible output measure are
-the current authority.
+context. Official token usage remains the end-to-end authority.
 
 ## 7. What the assistant result means
 
@@ -284,37 +292,39 @@ second, and lexical-versus-semantic routing later.
 
 ## 8. Next-work direction
 
-### Stage A — measure the response contract before changing retrieval
+### Stage A — completed response accounting
 
-This is the exact next action.
+The frozen V3 treatment contains 19 searches, 29 reads, 176 hits, 170,423
+inline source bytes, 46,009 later read-source bytes, 390,071 structured-search
+bytes, and 402,601 equivalent text-search bytes. Events prove the two
+representations exist but do not prove both entered model context.
 
-1. Trace what `internal/mcp` serializes for `search` and what the Codex CLI
-   records as model-visible tool output.
-2. Measure text, structured content, metadata, inline source, and escaping
-   overhead separately on the frozen V3 treatment calls.
-3. Determine whether equivalent text/structured representations are actually
-   both supplied to the model; do not infer this from the transcript shape.
-4. Produce a proposed compact response contract and before/after byte estimate.
+The audit also found and documented the frozen journey reducer's baseline
+shell-output undercount. A compact locator projection is about 49.7-55.9 KB,
+or 13-14% of current structured search output. Full definitions and the
+corrected accounting are in the response-contract report.
 
-No ranking, query planner, corpus, or paid provider changes belong to Stage A.
+No ranking, query planner, corpus, or paid provider changed in Stage A.
 
-### Stage B — smallest response/orchestration correction
+### Stage B — adopted response direction, implementation pending
 
-Subject to the external-contract review required below:
+Both new side-panel reviews returned `APPROVE_LOCATOR_EVIDENCE_SPLIT`. The
+adopted diagnostic direction is:
 
-- preserve result IDs, rank, paths, parent ranges, freshness, and source hashes;
-- keep search metadata compact and retrieve decisive source through targeted
-  `read_span`;
-- avoid semantically duplicate response representations when the host contract
-  permits it;
-- evaluate smaller `k` and inline-body budgets as frozen experiment values,
-  not silently accepted product defaults;
-- guide the assistant toward one broad search followed by targeted reads and a
-  bounded number of refinements; and
-- preserve the four stable MCP tools and rank invariance under body budgets.
+- `search` returns deduplicated path/symbol/kind/range/hash/match locators and
+  no source body;
+- `read_span` is the only cidx source-text operation;
+- serving and evaluation diagnostics remain in traces rather than the
+  assistant response;
+- one semantic result representation is selected only after host conformance;
+- current caller-selected `k` semantics are preserved before any explicit
+  smaller-depth experiment; and
+- locator, evidence, and end-to-end assistant metrics have separate exact
+  denominators.
 
-Candidate values such as `k=3–5` or a smaller inline budget came from the
-reviewers. They are experiment candidates, not current configuration decisions.
+`k=3–5`, prompt/call limits, routing, hybrid/dense, opaque result handles, and
+public removal of `max_inline_bytes` are deferred. Changing the public MCP
+result schema remains an external-contract implementation decision.
 
 Changing the public MCP result schema is an external-contract decision. Before
 editing it, update the canonical design, Phase 13/14 contracts, wire schemas,
@@ -330,10 +340,12 @@ After the response correction is frozen:
 - reuse the same 12 questions, corpora, model, reasoning effort, arm order,
   isolation, blind grader contract, and journey reducer unless a separately
   recorded reason requires a new version;
-- change only the declared response/tool-guidance intervention;
+- change only the declared locator-only response intervention and preserve
+  current `k` semantics plus existing tool guidance;
 - run the complete 24-turn batch, never selective replacements;
 - compare correctness, model-total tokens, uncached input, inspection actions,
-  model-visible output bytes, calls, cited paths, and false claims; and
+  separately measured search/evidence event bytes, calls, cited paths, and
+  false claims; and
 - keep the result diagnostic rather than promotion evidence.
 
 An unchanged V3 repeat is not justified. Repeated stochastic estimates may be
@@ -364,7 +376,9 @@ Before any implementation resumes:
    `EVALUATION-CONTRACT.md`, this journal, Phase 13, Phase 14, and the V3 result.
 2. Verify the V3 plan SHA-256 and preserve all V1–V3 manifests and results.
 3. Confirm the worktree and exact branch; existing changes belong to the owner.
-4. Start with Stage A response accounting, not another A/B or a ranking change.
+4. Resume with the accepted locator/evidence report: correct the reducer,
+   complete the one-representation host probe, and reconcile the public
+   contract before implementation. Do not start another A/B or ranking change.
 5. Do not edit the critical/general v2 question truth to improve results. A
    changed question becomes a new version and run.
 6. Do not use Voyage, hybrid, a new repository, or a new MCP tool without the
@@ -386,6 +400,7 @@ Before any implementation resumes:
 | V2 interface-compliance result/plan | [`ASSISTANT-AB-TEST-PLAN-V2.md`](ASSISTANT-AB-TEST-PLAN-V2.md) |
 | V3 frozen execution plan | [`ASSISTANT-AB-TEST-PLAN-V3.md`](ASSISTANT-AB-TEST-PLAN-V3.md) |
 | V3 final result and artifact digests | [`assistant-ab-v3-result.md`](evidence/phase-14/assistant-ab-v3-result.md) |
+| response accounting, stage metrics, dual review, and V4 direction | [`assistant-response-contract-and-v4-direction.md`](evidence/phase-14/assistant-response-contract-and-v4-direction.md) |
 | operational phase authority | [`STATUS.md`](STATUS.md) |
 
 ## 11. Validation already performed and deliberately absent
@@ -394,7 +409,10 @@ FTS correction evidence records focused normal/race tests, vet, the CLI build,
 real-corpus provider-free reruns, artifact checksums, and clean-VCS binary
 identity. The V3 assistant evidence records 24 scored task turns, two schema
 probes, fresh per-turn isolation, blind grading, machine-frozen journeys,
-manifest/schema validation, and two external pre/post reviews.
+manifest/schema validation, and two external pre/post reviews. The subsequent
+response audit re-read all V3 event streams, projected the compact wire, found
+the baseline reducer defect, and obtained matching locator/evidence reviews
+from ChatGPT and Grok.
 
 Not performed or claimed:
 

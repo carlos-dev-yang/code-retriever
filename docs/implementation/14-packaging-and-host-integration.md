@@ -5,8 +5,12 @@
   Codex CLI diagnostic is complete under the
   [Version 3 result](evidence/phase-14/assistant-ab-v3-result.md): correctness
   was preserved, but the current FTS-first integration increased tokens and
-  must be compacted before another A/B. The chronological handoff and exact
-  next action are in the
+  must be compacted before another A/B. Response accounting subsequently found
+  a frozen baseline-byte reducer defect and dual review accepted a
+  locator-only `search` plus source-only `read_span` diagnostic direction in
+  the
+  [response-contract review](evidence/phase-14/assistant-response-contract-and-v4-direction.md).
+  The chronological handoff and exact next action are in the
   [FTS/assistant work journal](FTS-REMEDIATION-AND-ASSISTANT-AB-JOURNAL.md).
   Official Phase 12 and release-candidate promotion remain blocked.
 - Prerequisite: `13-cli-and-mcp`
@@ -26,6 +30,10 @@ Read the [implementation index](README.md), [execution guide](EXECUTION-GUIDE.md
 - Treat the forced first cidx call in diagnostic V3 as a bounded causal
   intervention only. It does not override the non-forced release-candidate
   assistant protocol above.
+- Before another diagnostic, use the stage metrics and V4 controls in the
+  locator/evidence response-contract review. Preserve current caller-selected
+  `k` semantics before any smaller-depth experiment, and do not call
+  transcript envelope bytes model-visible unless the host proves ingestion.
 - If the relation completion series reaches assistant evaluation, add the
   separately frozen closure, body-free hints plus existing `read_span`, and
   closure-plus-hints development arms from
@@ -325,6 +333,8 @@ The remaining items below are promotion/release gates, so the phase stays
 - Release-surface review confirming fixed-model/external-vector policy remains out of scope.
 - Frozen assistant task/control manifest and paired records for existing tools only, plus lexical cidx, and plus hybrid cidx.
 - Per-task and aggregate task success, requirement coverage, evidence utilization, false leads, correct edit/test outcome, tool/time/token/cost, failure, and no-use evidence with explicit denominators.
+- Corrected assistant journey reducer, host result-representation compatibility
+  evidence, locator/evidence stage metrics, and compact-response V4 diagnostic.
 - New immutable `scope=release_candidate` promotion result referencing the Phase 12 core result and showing every applicable assistant/host gate, or an explicit `NOT_PROMOTION_READY` with failed cohorts and first-loss evidence.
 
 Never report an unverified target as supported.
@@ -353,3 +363,4 @@ If operational feedback establishes a real requirement for permanent model pinni
 | CLI-only provenance report | Build facts are needed for package verification, while Phase 13's MCP `serverInfo` and four-tool surface remain frozen | The MCP version contract is separately revised |
 | Verify both current product profiles from one source bank | Default 1024/int8 and explicit 512/int8 must work in the installed binary without making source storage a serving dependency | The source/serving contract changes |
 | Keep Binary/256 package checks negative-only | Retired experimental profiles remain historical evidence and cannot regain an executable product entry point | A new measured design decision explicitly reauthorizes them |
+| Separate locator search from evidence reads in the next assistant diagnostic | V3 top ranks often contained useful code, but source-bearing search results, repeated diagnostics, and later reads overlapped; preserving caller-selected `k` while compacting results isolates the response contract before changing retrieval | Compact V4 evidence shows a different first loss or the public contract cannot preserve required safety/provenance |

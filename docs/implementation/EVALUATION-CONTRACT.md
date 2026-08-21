@@ -1,6 +1,7 @@
 # cidx v1 Evaluation and Promotion Contract
 
-- Status: normative; natural-language lexical admission revised 2026-08-20
+- Status: normative; natural-language lexical admission revised 2026-08-20;
+  assistant locator/evidence accounting revised 2026-08-21
 - Applies to: Phases 00 through 14 wherever evidence, comparison, or promotion is required
 - Canonical product design: [Revision 4](../../local-code-search-mcp-v1-design-r4.md)
 - Phase index: [README](README.md)
@@ -336,6 +337,95 @@ KnownHardNegativeHit@k = sum over verified hard-negative queries / that exact de
 ```
 
 Do not rename this as abstention accuracy. It measures known misleading retrieval, not whether a top-k search returned anything.
+
+### 5.1 Assistant locator and evidence stages
+
+Assistant diagnostics separate candidate navigation from source acquisition.
+`search` locators do not become evidence merely because they were returned,
+and `read_span` source does not become used evidence merely because it entered
+the context. Do not combine these stages into one precision score.
+
+For assistant task `q`, let:
+
+- `Gq` be its frozen required evidence groups;
+- `Lq,s@k` be the unique canonical locators returned by search call `s`;
+- `Uq` be the union of all search locators for the task;
+- `Rq` be the locators selected for successful source reads;
+- `Eq` be the unique source ranges delivered by those reads;
+- `Cq` be the final cited source ranges; and
+- `accepted(g)` be all reviewed OR alternatives for requirement group `g`.
+
+A canonical locator uses indexed content identity, path, parent range, and
+qualified symbol. Repeated segments or lanes from one parent do not count as
+several locators.
+
+Locator/navigation reports include:
+
+```text
+FirstSearchRequirementCoverage@k(q)
+  = groups with an accepted locator in Lq,1@k / |Gq|
+
+CompleteFirstSearchLocatorHit@k(q)
+  = 1 only when FirstSearchRequirementCoverage@k(q) = 1
+
+AnySearchRequirementCoverage(q)
+  = groups with an accepted locator in Uq / |Gq|
+
+DuplicateLocatorExposureRate
+  = repeated canonical occurrences after the first / all locator occurrences
+
+LocatorSelectionUtilization(q)
+  = |Uq intersect Rq| / |Uq|
+
+LocatorCitationUtilization(q)
+  = |Uq intersect Cq| / |Uq|
+
+NavigationFalseLeadRate(q)
+  = inspected locators neither accepted nor cited / |Rq|
+```
+
+Also report the first accepted locator rank, first-search versus later-search
+coverage, search/refinement counts, structured/text/event-envelope bytes,
+source bytes in search, bytes per unique locator, and duplicate exposure. Use
+all required tasks for task-level coverage, including failed and timed-out
+runs. First-rank summaries name the exact denominator and give a zero/missing
+outcome under an all-task MRR-style aggregate when no accepted locator exists.
+
+Source-read/evidence reports include:
+
+```text
+EvidenceRequirementCoverage(q)
+  = groups with an accepted alternative intersecting Eq / |Gq|
+
+CompleteEvidenceHit(q)
+  = 1 only when EvidenceRequirementCoverage(q) = 1
+
+ReadSpanPrecision(q)
+  = successful reads intersecting an accepted alternative / successful reads
+
+EvidenceCitationUtilization(q)
+  = unique read ranges intersecting Cq / |Eq|
+
+EvidenceFalseLeadRate(q)
+  = read ranges neither accepted nor cited / |Eq|
+
+RedundantEvidenceRatio(q)
+  = (gross delivered source bytes - unique delivered source bytes)
+    / gross delivered source bytes
+```
+
+Report read success/failure counts, gross and unique evidence bytes, repeated
+overlap, and the first ordered action at which every required group was
+available when that point is mechanically derivable from frozen span-mapped
+alternatives. A final citation remains assistant-use evidence, not a substitute
+for frozen relevance.
+
+End-to-end assistant reports retain blind task outcome, requirement coverage,
+false claims, official token fields, inspection actions, stage bytes,
+locator-to-read/citation utilization, evidence-to-citation utilization, and
+citation provenance as separate dimensions. Transcript envelopes containing
+both text and structured result representations are not called model-visible
+bytes unless the host proves both representations entered model context.
 
 ## 6. Dense Representation and Codec Fidelity
 
