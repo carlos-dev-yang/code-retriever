@@ -30,9 +30,12 @@
   paired model-total median is 0.954 with only 6/12 non-increasing tasks, so
   the frozen token gate still fails. Three hash-omission read retries are the
   first remaining isolated loss. Matching ChatGPT and Grok reviews approved
-  one exact field-instruction sentence for the final V6. Its inputs,
-  identities, and two schema probes are now frozen and valid; all 24 scored
-  turns remain to run, and the series stops after that result.
+  one exact field-instruction sentence for the final V6. V6 is complete: all
+  hash omissions disappeared, but treatment blindly graded 11 complete and
+  one partial versus baseline 12 complete. Its dual-complete model-token
+  median is 0.977 with 6/11 non-increasing, so correctness preservation and
+  the token gate both fail. Final side-panel interpretation closes the series;
+  no V7 follows.
   Official Phase 12 and release-candidate evidence remain separately gated
 - Canonical design: [Local Code Search MCP v1 Final Target Contract — Revision 4](../../local-code-search-mcp-v1-design-r4.md)
 - Earlier designs: [original](../../local-code-search-mcp-v1-design.md), [r1](../../local-code-search-mcp-v1-design-r1.md), [r2](../../local-code-search-mcp-v1-design-r2.md), [r3](../../local-code-search-mcp-v1-design-r3.md)
@@ -60,6 +63,7 @@
 - Completed orchestration result: [Version 5 result](evidence/phase-14/assistant-ab-v5-result.md)
 - V5 post-result disposition: [matching external reviews and final V6 boundary](evidence/phase-14/assistant-ab-v5-external-review.md)
 - Frozen final experiment: [Version 6 plan](ASSISTANT-AB-TEST-PLAN-V6.md) and [preflight checkpoint](evidence/phase-14/assistant-ab-v6-freeze.md)
+- Completed final experiment: [Version 6 result](evidence/phase-14/assistant-ab-v6-result.md)
 - Remaining-work handoff: [remaining-work-review-handoff-r4.md](evidence/revision-4/remaining-work-review-handoff-r4.md)
 - Final corpus-independent review: [int8/source-profile implementation-to-design review](evidence/revision-4/int8-source-profile-final-review.md)
 - Last updated: 2026-08-22
@@ -139,7 +143,7 @@ Allowed states are `planned | in_progress | blocked | done`. A phase becomes `do
 | 11 | done | [Vector and hybrid search](11-vector-and-hybrid-search.md) | reconciled 02/09/10, existing 06 | Int8-only request-local scan, RRF, fallback, and body packaging | [Current evidence](evidence/phase-11/int8-only-query-search-reconciliation.md) and [historical R4 evidence](evidence/phase-11/revision-4.md) |
 | 12 | blocked | [Retrieval evaluation](12-retrieval-evaluation.md) | 07, reconciled 08, 09, 11 | Accepted int8-only corpus-independent adapter; official corpus evaluation and promotion remain externally gated | [Current evidence](evidence/phase-12/int8-only-evaluation-reconciliation.md) and [accepted R4 accounting evidence](evidence/phase-12/revision-4.md) |
 | 13 | done | [CLI and MCP](13-cli-and-mcp.md) | reconciled 02/08/11 and existing Phase 12 core | Four-tool structured-only MCP with locator-only search, source-only `read_span`, and retained compatibility input independent of result identity | [Locator-only completion](evidence/phase-13/locator-only-mcp-reconciliation.md), [reducer v2](evidence/phase-13/assistant-reducer-v2.md), [Codex representation probe](evidence/phase-13/codex-result-representation-probe.md), and existing [int8-only evidence](evidence/phase-13/int8-only-cli-mcp-reconciliation.md) |
-| 14 | in_progress | [Packaging and host integration](14-packaging-and-host-integration.md) | 13 | Execute the frozen final V6 once, blind grade all 24 observations, obtain final external interpretation, and stop the sequence | [V6 freeze](evidence/phase-14/assistant-ab-v6-freeze.md), [V6 plan](ASSISTANT-AB-TEST-PLAN-V6.md), [V5 external review](evidence/phase-14/assistant-ab-v5-external-review.md), and [reducer v3](evidence/phase-14/assistant-orchestration-reducer-v3.md) |
+| 14 | in_progress | [Packaging and host integration](14-packaging-and-host-integration.md) | 13 | Obtain final external interpretation of the completed V6, write the V4–V6 closure report, and stop without V7 | [V6 result](evidence/phase-14/assistant-ab-v6-result.md), [V6 freeze](evidence/phase-14/assistant-ab-v6-freeze.md), [V5 external review](evidence/phase-14/assistant-ab-v5-external-review.md), and [reducer v3](evidence/phase-14/assistant-orchestration-reducer-v3.md) |
 
 `STATUS.md` is the operational ledger. Keep this summary table synchronized with it whenever a phase changes state.
 

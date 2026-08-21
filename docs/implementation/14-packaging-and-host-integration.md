@@ -97,6 +97,18 @@ The [V6 plan](ASSISTANT-AB-TEST-PLAN-V6.md), manifest, and
 Exact comparison proves one prompt-sentence insertion and equality of every
 V5 control, question source, corpus, and ordered task record. Corpus/state/tool
 preflight and both unscored schema probes passed. No scored V6 turn has run.
+
+## 2026-08-22 V6 result checkpoint
+
+All 24 V6 turns were valid. The required-hash mechanism passed with 24/24
+successful reads, zero omitted hashes, and zero failed/recovery calls.
+Correctness preservation failed: baseline remained 12/12 complete while
+treatment was 11 complete and one partial because `rhf-x03-form-submit` added
+one material claim not established by its cited excerpts. The 11
+dual-complete pairs have model-total median ratio 0.977 and 6/11
+non-increasing, so the token gate also fails. Exact evidence is in the
+[V6 result](evidence/phase-14/assistant-ab-v6-result.md). Final external
+interpretation closes V4–V6; no V7 follows.
 - Prerequisite: reconciled locator-only `13-cli-and-mcp`
 - Followed by: v1 release-candidate validation
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 1–3 and 7–10

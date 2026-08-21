@@ -566,3 +566,31 @@ scored V6 turn has run. Full identities and the final-run boundary are in
 Next: execute the complete new 24-turn paired run exactly once, blind grade
 one packet per corpus, aggregate with unchanged reducer v3, obtain final
 ChatGPT/Grok interpretation, then stop the V4–V6 sequence without V7.
+
+## 18. 2026-08-22 Version 6 result
+
+V6 completed all 24 new observations without timeout, control violation,
+source mutation, state mutation, or selective rerun. Two tool-free blind
+grader calls covered all 24 outputs.
+
+The sole mechanism target passed exactly: all 24 `read_span` attempts carried
+the locator hash and succeeded, with zero hash omission, failed MCP call, or
+hash-only recovery. Mechanical adherence reached 12/12. This did not reduce
+the total source journey below V5: searches stayed 17, successful reads rose
+18→24, gross source rose 17,967→28,022 bytes, and cidx calls rose 38→41.
+
+Correctness preservation failed. Baseline graded 12 complete, while treatment
+graded 11 complete and one partial. `rhf-x03-form-submit` covered its frozen
+required group but added a claim that its cited excerpts did not establish.
+It had found and locally read the relevant implementation, so the loss is
+final claim/evidence discipline after navigation rather than an FTS zero-hit
+diagnosis.
+
+The token gate failed independently. Aggregate treatment model totals were
+7.9% lower, but among 11 dual-complete pairs the median ratio was 0.977 and
+only 6 were non-increasing, versus required 0.85 and 8. Full pair, mechanism,
+stage, and artifact evidence is in
+[`assistant-ab-v6-result.md`](evidence/phase-14/assistant-ab-v6-result.md).
+
+Next: send the fixed result to ChatGPT and Grok, record their independent
+interpretation, and close V4–V6. The frozen stop rule prohibits V7.
