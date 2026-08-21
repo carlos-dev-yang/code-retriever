@@ -402,6 +402,18 @@ Assistant reducer v2 checkpoint (2026-08-21):
 
 Exact evidence: [assistant reducer v2](evidence/phase-13/assistant-reducer-v2.md).
 
+Codex result-representation checkpoint (2026-08-22):
+
+- structured-only and text-only cidx results each completed an isolated real
+  search-to-`read_span` journey;
+- structured-only was selected because it preserves the typed object without
+  duplicating JSON text; and
+- the result does not claim compatibility for another host or compare the two
+  stochastic turns as an efficiency experiment.
+
+Exact evidence:
+[Codex result representation probe](evidence/phase-13/codex-result-representation-probe.md).
+
 Current int8-only CLI/MCP acceptance (2026-08-17):
 
 - `cidx init` defaults to 1024/int8, accepts only explicit 1024 or 512, and

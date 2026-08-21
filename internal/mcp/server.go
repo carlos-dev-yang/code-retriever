@@ -18,9 +18,10 @@ const maxStdioFrameBytes = 16 << 20
 const serverBusyCode = -32098
 
 type Server struct {
-	Services      Services
-	MaxConcurrent int
-	lifecycle     *lifecycle
+	Services             Services
+	MaxConcurrent        int
+	ResultRepresentation ResultRepresentation
+	lifecycle            *lifecycle
 }
 type lifecycle struct {
 	mutex              sync.Mutex
@@ -231,7 +232,7 @@ func (server Server) dispatch(ctx context.Context, request request) (any, *Error
 		}
 		return map[string]any{"tools": toolRegistry()}, nil
 	case "tools/call":
-		return callTool(ctx, server.Services, request.Params)
+		return callToolWithRepresentation(ctx, server.Services, request.Params, server.ResultRepresentation)
 	case "ping":
 		return map[string]any{}, nil
 	default:

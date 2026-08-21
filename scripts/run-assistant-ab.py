@@ -281,7 +281,10 @@ def verify_corpus(
 
 
 def verify_mcp_tools(
-    mcp_binary: Path, source_root: Path, state_root: Path
+    mcp_binary: Path,
+    source_root: Path,
+    state_root: Path,
+    result_representation: str,
 ) -> dict[str, Any]:
     process = subprocess.Popen(
         [
@@ -290,6 +293,8 @@ def verify_mcp_tools(
             str(source_root),
             "--state-root",
             str(state_root),
+            "--result-representation",
+            result_representation,
         ],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
@@ -391,9 +396,19 @@ def verify_mcp_tools(
         separators=(",", ":"),
         ensure_ascii=False,
     ).encode("utf-8")
-    status = status_response.get("result", {}).get("structuredContent")
+    tool_result = status_response.get("result", {})
+    status = tool_result.get("structuredContent")
     if not isinstance(status, dict):
-        raise ExperimentError("cidx status lacks structured content")
+        for block in tool_result.get("content", []):
+            if isinstance(block, dict) and isinstance(block.get("text"), str):
+                try:
+                    status = json.loads(block["text"])
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(status, dict):
+                    break
+    if not isinstance(status, dict):
+        raise ExperimentError("cidx status lacks a usable result representation")
     for name in ("stale_count", "unindexed_count", "deleted_count"):
         if status.get(name) != 0:
             raise ExperimentError(f"isolated cidx status {name}={status.get(name)}")
@@ -404,6 +419,7 @@ def verify_mcp_tools(
         "tools": sorted(raw_tools, key=lambda item: item["name"]),
         "sha256": hashlib.sha256(canonical).hexdigest(),
         "isolated_status": status,
+        "result_representation": result_representation,
     }
 
 
@@ -416,6 +432,7 @@ def codex_command(
     arm: str,
     mcp_binary: Path,
     state_root: Path | None,
+    result_representation: str,
 ) -> list[str]:
     command = [
         codex_binary,
@@ -455,6 +472,8 @@ def codex_command(
                         str(root),
                         "--state-root",
                         str(state_root),
+                        "--result-representation",
+                        result_representation,
                     ]
                 ),
                 "--config",
@@ -586,6 +605,7 @@ def execute_one(
     arm: str,
     task_id: str,
     prompt: str,
+    result_representation: str,
 ) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=False)
     prompt_path = output_dir / "prompt.txt"
@@ -595,7 +615,15 @@ def execute_one(
     observation_path = output_dir / "observation.json"
     prompt_path.write_text(prompt, encoding="utf-8")
     command = codex_command(
-        codex_binary, controls, schema, root, final_path, arm, mcp_binary, state_root
+        codex_binary,
+        controls,
+        schema,
+        root,
+        final_path,
+        arm,
+        mcp_binary,
+        state_root,
+        result_representation,
     )
     write_json(
         output_dir / "command.json",
@@ -699,6 +727,7 @@ def execute_isolated(
     arm: str,
     task_id: str,
     prompt: str,
+    result_representation: str,
     require_first_cidx_search: bool = True,
 ) -> dict[str, Any]:
     source_root: Path | None = None
@@ -720,6 +749,7 @@ def execute_isolated(
             arm=arm,
             task_id=task_id,
             prompt=prompt,
+            result_representation=result_representation,
         )
         source_after = verify_isolated_source(source_root, corpus)
         state_after = (
@@ -779,6 +809,11 @@ def main() -> int:
     parser.add_argument("--run-id")
     parser.add_argument("--only-task", action="append", default=[])
     parser.add_argument("--preflight-only", action="store_true")
+    parser.add_argument(
+        "--mcp-result-representation",
+        choices=("dual", "text", "structured"),
+        default="dual",
+    )
     args = parser.parse_args()
 
     project_root = Path(__file__).resolve().parent.parent
@@ -823,7 +858,10 @@ def main() -> int:
         verify_isolated_source(preflight_source, corpus_specs[first_corpus_id])
         preflight_state, _ = copy_cidx_state(bindings[first_corpus_id])
         tool_schema = verify_mcp_tools(
-            mcp_binary, preflight_source, preflight_state
+            mcp_binary,
+            preflight_source,
+            preflight_state,
+            args.mcp_result_representation,
         )
     finally:
         cleanup_isolated(preflight_source, "cidx-ab-source-")
@@ -881,6 +919,7 @@ def main() -> int:
         "mcp_binary_sha256": sha256_file(mcp_binary),
         "cidx_tool_schema_sha256": tool_schema["sha256"],
         "cidx_tools": tool_schema["names"],
+        "mcp_result_representation": args.mcp_result_representation,
         "environment_variable_allowlist": sorted(isolated_environment()),
         "controls": controls,
         "corpora": corpus_records,
@@ -906,6 +945,7 @@ def main() -> int:
             arm=arm,
             task_id=SCHEMA_PROBE_TASK,
             prompt=SCHEMA_PROBE_PROMPT,
+            result_representation=args.mcp_result_representation,
             require_first_cidx_search=False,
         )
         if (
@@ -954,6 +994,7 @@ def main() -> int:
                 arm=arm,
                 task_id=task_id,
                 prompt=prompt,
+                result_representation=args.mcp_result_representation,
             )
             print(
                 f"  exit={observation['exit_code']} timeout={observation['timed_out']} "

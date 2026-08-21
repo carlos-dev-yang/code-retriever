@@ -307,6 +307,18 @@ func TestToolErrorPreservesReadSpanTypedData(t *testing.T) {
 	}
 }
 
+func TestToolResultRepresentationsDoNotDuplicatePayload(t *testing.T) {
+	value := map[string]any{"location": "a.go:1"}
+	structured := representedToolResult(`{"location":"a.go:1"}`, value, false, ResultRepresentationStructured)
+	if len(structured.Content) != 0 || structured.StructuredContent == nil || structured.IsError {
+		t.Fatalf("structured result=%#v", structured)
+	}
+	text := representedToolResult(`{"location":"a.go:1"}`, value, false, ResultRepresentationText)
+	if len(text.Content) != 1 || text.Content[0].Text != `{"location":"a.go:1"}` || text.StructuredContent != nil || text.IsError {
+		t.Fatalf("text result=%#v", text)
+	}
+}
+
 func TestReadSpanRejectsInvalidWireRangesAndDigest(t *testing.T) {
 	for _, arguments := range []string{
 		`{"path":"a.go","start_line":0,"end_line":1,"expected_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}`,

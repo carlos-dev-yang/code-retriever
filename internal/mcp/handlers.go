@@ -23,6 +23,14 @@ type callToolResult struct {
 	IsError           bool          `json:"isError,omitempty"`
 }
 
+type ResultRepresentation string
+
+const (
+	ResultRepresentationDual       ResultRepresentation = "dual"
+	ResultRepresentationText       ResultRepresentation = "text"
+	ResultRepresentationStructured ResultRepresentation = "structured"
+)
+
 type Services interface {
 	Status(context.Context) (app.StatusResponse, error)
 	Search(context.Context, app.SearchRequest) (any, error)
@@ -57,6 +65,10 @@ func (value ApplicationServices) Reindex(ctx context.Context, dry bool) (any, er
 }
 
 func callTool(ctx context.Context, services Services, raw json.RawMessage) (any, *Error) {
+	return callToolWithRepresentation(ctx, services, raw, ResultRepresentationDual)
+}
+
+func callToolWithRepresentation(ctx context.Context, services Services, raw json.RawMessage, representation ResultRepresentation) (any, *Error) {
 	call, failure := decodeObject(raw, "name", "arguments", "_meta")
 	if failure != nil {
 		return nil, failure
@@ -72,7 +84,7 @@ func callTool(ctx context.Context, services Services, raw json.RawMessage) (any,
 			return nil, err
 		}
 		result, err := services.Status(ctx)
-		return toolOutcome(wireStatus(result), applicationError(err)), nil
+		return toolOutcome(wireStatus(result), applicationError(err), representation), nil
 	case "search":
 		value, err := decodeObject(args, "query", "k", "mode", "max_inline_bytes")
 		if err != nil {
@@ -93,7 +105,7 @@ func callTool(ctx context.Context, services Services, raw json.RawMessage) (any,
 			}
 		}
 		result, callErr := services.Search(ctx, request)
-		return toolOutcome(wireSearch(result), applicationError(callErr)), nil
+		return toolOutcome(wireSearch(result), applicationError(callErr), representation), nil
 	case "read_span":
 		value, err := decodeObject(args, "path", "start_line", "end_line", "expected_sha256")
 		if err != nil {
@@ -104,7 +116,7 @@ func callTool(ctx context.Context, services Services, raw json.RawMessage) (any,
 			return nil, &Error{Code: invalidParams, Message: "INVALID_READ_SPAN_REQUEST"}
 		}
 		result, callErr := services.ReadSpan(ctx, request)
-		return toolOutcome(wireReadSpan(result), applicationError(callErr)), nil
+		return toolOutcome(wireReadSpan(result), applicationError(callErr), representation), nil
 	case "reindex":
 		value, err := decodeObject(args, "dry_run")
 		if err != nil {
@@ -115,13 +127,13 @@ func callTool(ctx context.Context, services Services, raw json.RawMessage) (any,
 			return nil, &Error{Code: invalidParams, Message: "INVALID_DRY_RUN"}
 		}
 		result, callErr := services.Reindex(ctx, dry)
-		return toolOutcome(wireReindex(result), applicationError(callErr)), nil
+		return toolOutcome(wireReindex(result), applicationError(callErr), representation), nil
 	default:
 		return nil, &Error{Code: invalidParams, Message: "UNKNOWN_TOOL"}
 	}
 }
 
-func toolOutcome(value any, failure *Error) callToolResult {
+func toolOutcome(value any, failure *Error, representation ResultRepresentation) callToolResult {
 	if failure != nil {
 		payload := map[string]any{"code": failure.Message}
 		if data, ok := failure.Data.(map[string]any); ok {
@@ -133,15 +145,26 @@ func toolOutcome(value any, failure *Error) callToolResult {
 		}
 		encoded, err := json.Marshal(payload)
 		if err != nil {
-			return callToolResult{Content: []toolContent{{Type: "text", Text: "APPLICATION_ERROR"}}, IsError: true}
+			return representedToolResult("APPLICATION_ERROR", nil, true, representation)
 		}
-		return callToolResult{Content: []toolContent{{Type: "text", Text: string(encoded)}}, StructuredContent: payload, IsError: true}
+		return representedToolResult(string(encoded), payload, true, representation)
 	}
 	encoded, err := json.Marshal(value)
 	if err != nil {
-		return callToolResult{Content: []toolContent{{Type: "text", Text: "APPLICATION_ERROR"}}, IsError: true}
+		return representedToolResult("APPLICATION_ERROR", nil, true, representation)
 	}
-	return callToolResult{Content: []toolContent{{Type: "text", Text: string(encoded)}}, StructuredContent: value}
+	return representedToolResult(string(encoded), value, false, representation)
+}
+
+func representedToolResult(text string, structured any, isError bool, representation ResultRepresentation) callToolResult {
+	switch representation {
+	case ResultRepresentationText:
+		return callToolResult{Content: []toolContent{{Type: "text", Text: text}}, IsError: isError}
+	case ResultRepresentationStructured:
+		return callToolResult{Content: []toolContent{}, StructuredContent: structured, IsError: isError}
+	default:
+		return callToolResult{Content: []toolContent{{Type: "text", Text: text}}, StructuredContent: structured, IsError: isError}
+	}
 }
 
 func wireStatus(value app.StatusResponse) map[string]any {

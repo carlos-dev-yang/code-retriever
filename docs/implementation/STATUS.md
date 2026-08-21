@@ -7,10 +7,11 @@ This ledger is the authoritative resumable state for implementation work. Update
 - Active phase: 13 — the previously accepted four-tool surface is reopened
   only for the owner-approved locator-only search-result projection, corrected
   assistant reducer, and one-representation Codex host probe. Reducer v2 and
-  its complete disposable V3 replay are recorded; host conformance is next.
-  Ranking, query planning, caller-selected `k`, `read_span`, corpora, and
-  provider behavior remain frozen. Phase 14 V4 execution waits for this
-  reconciliation.
+  its complete disposable V3 replay are recorded. Structured-only and text-only
+  probes both completed search-to-read journeys; structured-only is selected.
+  Locator projection implementation is next. Ranking, query planning,
+  caller-selected `k`, `read_span`, corpora, and provider behavior remain
+  frozen. Phase 14 V4 execution waits for this reconciliation.
 - Active owner: `/root`
 - Completed bounded work: the final provider-free graph-only Pareto admission
   diagnostic is complete at clean commit
@@ -241,9 +242,9 @@ This ledger is the authoritative resumable state for implementation work. Update
   and arm-blind machine journey evidence. Treatment was 12/12 complete versus
   baseline 11 complete + 1 partial, but used 37.2% more model tokens and 50.6%
   more uncached input. Both reviewers require correction before another A/B.
-- Exact next action: prove which single result representation Codex consumes,
-  implement and validate the locator-only projection without changing ranking,
-  then return Phase 13 to done and enter the controlled Phase 14 V4 diagnostic.
+- Exact next action: make structured-only the server default, implement and
+  validate the locator-only projection without changing ranking, then return
+  Phase 13 to done and enter the controlled Phase 14 V4 diagnostic.
 
 Existing phase completion rows and implementation are historical work produced against earlier design revisions. They must not be read as proof that the current code satisfies Revision 4; the implementation remains a prototype until it is explicitly reconciled and revalidated against the final target contract.
 
@@ -264,7 +265,7 @@ Existing phase completion rows and implementation are historical work produced a
 | 10 | done | `/root` | Yes — accepted Phase 09 boundary, prior Phase 10 R4 evidence, active embedding path, source-bank decision, and retired-profile contract inspected | Source-bank-first provider success handling, compatible local reuse, public source/Voyage plan split, provider-only request accounting, and final offline boundary accepted | [Current evidence](evidence/phase-10/source-bank-first-document-publication.md), historical [R4 evidence](evidence/phase-10/revision-4.md), and [source-bank decision](SOURCE-VECTOR-BANK-DECISION.md) | Hand current int8 coverage/profile state to Phase 11 |
 | 11 | done | `/root` | Yes — accepted Phase 09/10 boundaries, prior Phase 11 R4 evidence, live vector scan/evaluation code, five-profile evidence, and retired-profile contract inspected | Current request-local int8 scan, nonpersistent serving-f32 reference, fallback/RRF/body behavior, retired comparison removal, and focused boundary accepted | [Current evidence](evidence/phase-11/int8-only-query-search-reconciliation.md), historical [R4 evidence](evidence/phase-11/revision-4.md), and [retired-profile contract](RETIRED-VECTOR-PROFILES.md) | Hand the current evaluation arms to Phase 12 |
 | 12 | blocked | `/root` | Yes — accepted current Phase 11 boundary, prior Phase 12 R4 evidence, evaluation contract, current schemas/adapters, relation completion authority, retired-profile contract, closed Stage E/F, and adopted packaging contract inspected | Corpus-independent adapter accepted; packaging/no-policy authority is now frozen evaluation-only sibling 4/4096; official `core_retrieval` still lacks independent confirmation | [Remaining-work handoff](evidence/revision-4/remaining-work-review-handoff-r4.md), [adopted sibling contract](../../testdata/retrieval/relation-sibling-packaging-adopted-v1.json), [current evidence](evidence/phase-12/int8-only-evaluation-reconciliation.md), and [R4 accounting evidence](evidence/phase-12/revision-4.md) | After owner-selected unexposed confirmation, seal margins and run official core evaluation; assistant V3 remains separate non-promotion evidence |
-| 13 | in_progress | `/root` | Yes — execution guide, index, status, evaluation contract, full Phase 13/14 documents, current Phase 13 evidence, live MCP handlers/schema, frozen V3 artifacts, and accepted response-contract review inspected | Reducer v2 passed a complete disposable 24-record V3 replay, corrected shell-wrapper accounting, and added locator/evidence denominators without changing frozen V3 | [Reducer v2 checkpoint](evidence/phase-13/assistant-reducer-v2.md), [response-contract direction](evidence/phase-14/assistant-response-contract-and-v4-direction.md), existing [int8-only evidence](evidence/phase-13/int8-only-cli-mcp-reconciliation.md), and historical [R4 evidence](evidence/phase-13/revision-4.md) | Complete the single-representation host probe, implement locator-only output, and record focused evidence |
+| 13 | in_progress | `/root` | Yes — execution guide, index, status, evaluation contract, full Phase 13/14 documents, current Phase 13 evidence, live MCP handlers/schema, frozen V3 artifacts, and accepted response-contract review inspected | Reducer v2 passed a complete disposable V3 replay; structured-only and text-only each completed a Codex search-to-read journey, and structured-only is selected without a token comparison | [Reducer v2 checkpoint](evidence/phase-13/assistant-reducer-v2.md), [Codex representation probe](evidence/phase-13/codex-result-representation-probe.md), [response-contract direction](evidence/phase-14/assistant-response-contract-and-v4-direction.md), and existing [int8-only evidence](evidence/phase-13/int8-only-cli-mcp-reconciliation.md) | Make structured-only the server default, implement locator-only output, and record focused evidence |
 | 14 | blocked | `/root` | Yes — accepted current Phase 13 boundary, prior Phase 14 checkpoint, unchanged critical/general v2 inputs, three versioned assistant protocols, 24 V3 scored task turns, 48 V3 cidx calls, blind grades, raw response accounting, compact projection, reducer erratum, and matching ChatGPT/Grok response-contract reviews inspected | Assistant diagnostic and response review complete: correctness was preserved/improved, current integration increased official tokens, frozen baseline visible-byte accounting was invalid, and compact locator/evidence separation was accepted without changing ranking or caller-selected `k` semantics | [Response-contract direction](evidence/phase-14/assistant-response-contract-and-v4-direction.md), [Work journal](FTS-REMEDIATION-AND-ASSISTANT-AB-JOURNAL.md), [Assistant A/B V3 result](evidence/phase-14/assistant-ab-v3-result.md), [V3 plan](ASSISTANT-AB-TEST-PLAN-V3.md), [current int8 package evidence](evidence/phase-14/int8-profile-package-reconciliation.md), and [historical R4 checkpoint](evidence/phase-14/revision-4.md) | Reconcile the public contract, fix/version the reducer, prove one-representation host compatibility, implement locator-only search with current `k` semantics, then freeze V4; official promotion remains externally gated |
 
 ## Resume note template
