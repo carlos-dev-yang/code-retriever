@@ -616,3 +616,22 @@ stage-separated evaluation. Exact review evidence is in
 
 Next: write the final V4–V6 closure and handoff. Do not create V7 or implement
 the separately scoped future directions without a new owner decision.
+
+## 20. 2026-08-22 V4–V6 series closure
+
+The three authorized improvements are complete and independently committed.
+V4 fixed the response contract, V5 reduced search/read waste, and V6 fixed the
+required-hash field. None passed the frozen paired token gate; V6 also had one
+complete-to-partial treatment reversal. The series is closed without V7.
+
+The final interpretation is deliberately bounded. Compact FTS locators and
+explicit source reads are useful navigation primitives, and their wire/tool
+mechanics now behave as intended. The experiments do not support mandatory
+cidx-first as a correctness-safe, consistently token-saving default. They
+also do not support calling the local auxiliary MCP useless.
+
+The [closure report](evidence/phase-14/assistant-ab-v4-v6-closure.md) hands the
+owner three separate choices: optional host positioning, future claim/stopping
+discipline, or a new stage-separated evaluation. None is authorized by this
+closure. No rerun, regrade, provider action, corpus edit, or product change is
+pending.

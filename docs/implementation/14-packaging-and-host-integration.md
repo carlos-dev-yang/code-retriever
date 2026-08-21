@@ -120,6 +120,16 @@ label difference is whether observed locator behavior merits an explicit
 “bounded optional value” suffix. The reconciled decision closes V4–V6 with no
 efficiency claim and leaves optional locator value unpromoted. See the
 [review record](evidence/phase-14/assistant-ab-v6-external-review.md).
+
+## 2026-08-22 V4–V6 closure checkpoint
+
+The [closure and handoff](evidence/phase-14/assistant-ab-v4-v6-closure.md)
+records all three improvements, their independent correctness/mechanism/token
+decisions, matching external interpretation, prohibited claims, preserved
+commit history, and next owner choices. The compact locator and required-hash
+mechanics remain accepted. Mandatory cidx-first token efficiency and final
+correctness preservation are not established. No rerun, regrade, or V7 is
+pending.
 - Prerequisite: reconciled locator-only `13-cli-and-mcp`
 - Followed by: v1 release-candidate validation
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 1–3 and 7–10

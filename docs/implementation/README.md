@@ -66,6 +66,7 @@
 - Frozen final experiment: [Version 6 plan](ASSISTANT-AB-TEST-PLAN-V6.md) and [preflight checkpoint](evidence/phase-14/assistant-ab-v6-freeze.md)
 - Completed final experiment: [Version 6 result](evidence/phase-14/assistant-ab-v6-result.md)
 - Final external interpretation: [Version 6 matching gate review and disposition](evidence/phase-14/assistant-ab-v6-external-review.md)
+- Closed three-experiment handoff: [Assistant A/B V4–V6 closure and next owner decisions](evidence/phase-14/assistant-ab-v4-v6-closure.md)
 - Remaining-work handoff: [remaining-work-review-handoff-r4.md](evidence/revision-4/remaining-work-review-handoff-r4.md)
 - Final corpus-independent review: [int8/source-profile implementation-to-design review](evidence/revision-4/int8-source-profile-final-review.md)
 - Last updated: 2026-08-22
@@ -145,7 +146,7 @@ Allowed states are `planned | in_progress | blocked | done`. A phase becomes `do
 | 11 | done | [Vector and hybrid search](11-vector-and-hybrid-search.md) | reconciled 02/09/10, existing 06 | Int8-only request-local scan, RRF, fallback, and body packaging | [Current evidence](evidence/phase-11/int8-only-query-search-reconciliation.md) and [historical R4 evidence](evidence/phase-11/revision-4.md) |
 | 12 | blocked | [Retrieval evaluation](12-retrieval-evaluation.md) | 07, reconciled 08, 09, 11 | Accepted int8-only corpus-independent adapter; official corpus evaluation and promotion remain externally gated | [Current evidence](evidence/phase-12/int8-only-evaluation-reconciliation.md) and [accepted R4 accounting evidence](evidence/phase-12/revision-4.md) |
 | 13 | done | [CLI and MCP](13-cli-and-mcp.md) | reconciled 02/08/11 and existing Phase 12 core | Four-tool structured-only MCP with locator-only search, source-only `read_span`, and retained compatibility input independent of result identity | [Locator-only completion](evidence/phase-13/locator-only-mcp-reconciliation.md), [reducer v2](evidence/phase-13/assistant-reducer-v2.md), [Codex representation probe](evidence/phase-13/codex-result-representation-probe.md), and existing [int8-only evidence](evidence/phase-13/int8-only-cli-mcp-reconciliation.md) |
-| 14 | in_progress | [Packaging and host integration](14-packaging-and-host-integration.md) | 13 | Write the V4–V6 closure/handoff report from the completed result and matching external gate assessment; do not create V7 | [V6 external review](evidence/phase-14/assistant-ab-v6-external-review.md), [V6 result](evidence/phase-14/assistant-ab-v6-result.md), [V6 freeze](evidence/phase-14/assistant-ab-v6-freeze.md), and [reducer v3](evidence/phase-14/assistant-orchestration-reducer-v3.md) |
+| 14 | in_progress | [Packaging and host integration](14-packaging-and-host-integration.md) | 13 | Assistant V4–V6 is closed; await a separate owner choice on optional host policy, claim/stopping discipline, or a new evaluation design while release gates remain separate | [V4–V6 closure](evidence/phase-14/assistant-ab-v4-v6-closure.md), [V6 external review](evidence/phase-14/assistant-ab-v6-external-review.md), [V6 result](evidence/phase-14/assistant-ab-v6-result.md), and [reducer v3](evidence/phase-14/assistant-orchestration-reducer-v3.md) |
 
 `STATUS.md` is the operational ledger. Keep this summary table synchronized with it whenever a phase changes state.
 
