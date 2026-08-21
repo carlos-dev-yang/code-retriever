@@ -27,6 +27,18 @@ locator-only structured search is the sole treatment change. Exact native
 Codex 0.148.0, corpus/state, four-tool schema, and representation-lock
 preflight passed. Identities and the no-scored-turn boundary are recorded in
 [the V4 freeze evidence](evidence/phase-14/assistant-ab-v4-freeze.md).
+
+## 2026-08-22 V4 result checkpoint
+
+All 24 V4 task turns were valid and both arms blindly graded 12/12 complete.
+Compact search returned 72,172 structured bytes, zero text, and zero source;
+total cidx event payload fell 82.9% from V3. The paired model-token median was
+nevertheless 1.044, only 4/12 tasks were non-increasing, and uncached input
+sum increased 9.8%. The first residual is 23 searches plus 39 reads, including
+six failed ranges, four identical successful rereads, and macro read precision
+0.586. Exact metrics and artifact identities are in the
+[V4 result](evidence/phase-14/assistant-ab-v4-result.md). Do not change `k`,
+retrieval, or `read_span` semantics before the required post-result review.
 - Prerequisite: reconciled locator-only `13-cli-and-mcp`
 - Followed by: v1 release-candidate validation
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 1–3 and 7–10

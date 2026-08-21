@@ -401,6 +401,8 @@ Before any implementation resumes:
 | V3 frozen execution plan | [`ASSISTANT-AB-TEST-PLAN-V3.md`](ASSISTANT-AB-TEST-PLAN-V3.md) |
 | V3 final result and artifact digests | [`assistant-ab-v3-result.md`](evidence/phase-14/assistant-ab-v3-result.md) |
 | response accounting, stage metrics, dual review, and V4 direction | [`assistant-response-contract-and-v4-direction.md`](evidence/phase-14/assistant-response-contract-and-v4-direction.md) |
+| V4 frozen plan and preflight | [`ASSISTANT-AB-TEST-PLAN-V4.md`](ASSISTANT-AB-TEST-PLAN-V4.md), [`assistant-ab-v4-freeze.md`](evidence/phase-14/assistant-ab-v4-freeze.md) |
+| V4 complete compact-response result | [`assistant-ab-v4-result.md`](evidence/phase-14/assistant-ab-v4-result.md) |
 | operational phase authority | [`STATUS.md`](STATUS.md) |
 
 ## 11. Validation already performed and deliberately absent
@@ -422,3 +424,29 @@ Not performed or claimed:
 - no repeated estimate of model stochasticity;
 - no product response-compaction implementation; and
 - no `core_retrieval` or `release_candidate` promotion.
+
+## 12. 2026-08-22 Version 4 completion checkpoint
+
+Stage B is implemented and Stage C is complete. V4 preserved the exact V3
+questions, prompt, model, order, FTS planner/rank, caller-selected `k`, and
+source-read contract; locator-only structured search was the sole treatment
+change. All 24 turns were valid and both arms blindly graded 12/12 complete.
+
+Search response compaction succeeded: V4 emitted 72,172 structured search
+bytes, zero text copy, and zero search source. Corrected total cidx event
+payload was 160,738 bytes versus V3's 938,001. The product direction is not
+reverted.
+
+End-to-end token efficiency did not reach the frozen bar. Treatment's total
+model sum was 0.6% lower but uncached input was 9.8% higher; the paired
+model-total median was 1.044 and only 4/12 tasks were non-increasing. The
+remaining expansion is behavioral: 23 searches and 39 reads, including six
+out-of-range failures, four exact successful rereads, and one six-search task.
+Complete selected evidence remained 12/12.
+
+The next action is post-result review, not an automatic smaller `k`, hybrid
+query, new corpus, or range-clamping contract. The provisional smallest V5
+candidate is one orchestration intervention that prevents identical repeats,
+starts with locator ranges, allows only a justified bounded refinement, and
+stops after direct evidence covers each material claim. It is not frozen until
+both side-panel reviews are recorded.
