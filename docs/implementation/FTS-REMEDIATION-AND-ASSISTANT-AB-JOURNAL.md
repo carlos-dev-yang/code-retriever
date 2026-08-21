@@ -594,3 +594,25 @@ stage, and artifact evidence is in
 
 Next: send the fixed result to ChatGPT and Grok, record their independent
 interpretation, and close V4–V6. The frozen stop rule prohibits V7.
+
+## 19. 2026-08-22 Version 6 final external review
+
+The same fixed V6 packet was sent to ChatGPT and Grok. ChatGPT returned
+`CLOSE_SERIES_WITH_BOUNDED_OPTIONAL_VALUE`; Grok returned
+`CLOSE_SERIES_NO_EFFICIENCY_CLAIM`. They reported no factual disagreement.
+
+Both accepted the required-hash pass, correctness failure, paired token
+failure, X03 final claim/evidence-discipline classification, and mandatory
+no-V7 stop. Both also found the 12/12 mechanical measure too narrow because it
+does not bound distinct reads, post-complete inspection, or unsupported final
+claims.
+
+The disposition wording is reconciled without inflating the evidence: close
+V4–V6 with no efficiency claim, while preserving bounded optional locator
+value only as an unpromoted product hypothesis. Their normalized future
+directions are host claim discipline, evidence-budgeted stopping, and
+stage-separated evaluation. Exact review evidence is in
+[`assistant-ab-v6-external-review.md`](evidence/phase-14/assistant-ab-v6-external-review.md).
+
+Next: write the final V4–V6 closure and handoff. Do not create V7 or implement
+the separately scoped future directions without a new owner decision.

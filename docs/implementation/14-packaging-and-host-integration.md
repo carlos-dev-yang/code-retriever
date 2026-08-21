@@ -109,6 +109,17 @@ dual-complete pairs have model-total median ratio 0.977 and 6/11
 non-increasing, so the token gate also fails. Exact evidence is in the
 [V6 result](evidence/phase-14/assistant-ab-v6-result.md). Final external
 interpretation closes V4–V6; no V7 follows.
+
+## 2026-08-22 V6 final external review checkpoint
+
+ChatGPT and Grok agree on all fixed gates and the first-loss classification:
+the hash mechanism passes, correctness and paired tokens fail, X03 is final
+claim/evidence discipline after successful navigation, and 12/12 mechanical
+adherence is too narrow to establish efficient orchestration. Their only
+label difference is whether observed locator behavior merits an explicit
+“bounded optional value” suffix. The reconciled decision closes V4–V6 with no
+efficiency claim and leaves optional locator value unpromoted. See the
+[review record](evidence/phase-14/assistant-ab-v6-external-review.md).
 - Prerequisite: reconciled locator-only `13-cli-and-mcp`
 - Followed by: v1 release-candidate validation
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 1–3 and 7–10
