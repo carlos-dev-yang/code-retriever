@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 import random
 import re
+import shlex
 import statistics
 from typing import Any
 
@@ -19,10 +20,47 @@ SOURCE_SUFFIXES = (".go", ".ts", ".tsx")
 REPOSITORY_INSPECTION_RE = re.compile(
     r"(?i)(?:^|[;&|()\s])(?:rg|grep|find|fd|ls|tree|sed|cat|head|tail|awk|nl)(?:\s|$)|git\s+grep"
 )
+SHELL_NAMES = {"sh", "bash", "zsh", "dash", "ksh"}
 
 
 class ScoreError(RuntimeError):
     pass
+
+
+def normalized_shell_command(command: str) -> str:
+    """Unwrap a recorded shell -c invocation before command classification."""
+    current = command
+    for _ in range(4):
+        try:
+            parts = shlex.split(current, posix=True)
+        except ValueError:
+            return current
+        if not parts or Path(parts[0]).name not in SHELL_NAMES:
+            return current
+        script: str | None = None
+        for index, token in enumerate(parts[1:], start=1):
+            if token.startswith("-") and "c" in token[1:] and index + 1 < len(parts):
+                script = parts[index + 1]
+                break
+        if script is None or script == current:
+            return current
+        current = script
+    return current
+
+
+def is_repository_inspection(command: str) -> bool:
+    return bool(REPOSITORY_INSPECTION_RE.search(normalized_shell_command(command)))
+
+
+def encoded_json_bytes(value: Any) -> int:
+    return len(
+        json.dumps(
+            value,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+        ).encode("utf-8")
+    )
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -147,6 +185,208 @@ def byte_span(root: Path, span: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def byte_range_to_lines(data: bytes, start: int, end: int) -> tuple[int, int]:
+    if start < 0 or end <= start or end > len(data):
+        raise ScoreError(f"invalid source byte range: {start}:{end}/{len(data)}")
+    return data.count(b"\n", 0, start) + 1, data.count(b"\n", 0, end - 1) + 1
+
+
+def frozen_line_groups(root: Path, case: dict[str, Any]) -> list[dict[str, Any]]:
+    files: dict[str, bytes] = {}
+    groups: list[dict[str, Any]] = []
+    for group in case["required_groups"]:
+        alternatives: list[list[dict[str, Any]]] = []
+        for alternative in group["alternatives"]:
+            spans: list[dict[str, Any]] = []
+            for span in alternative["spans"]:
+                path = span["path"]
+                if path not in files:
+                    files[path] = safe_source_path(root, path).read_bytes()
+                start_line, end_line = byte_range_to_lines(
+                    files[path], span["start_byte"], span["end_byte"]
+                )
+                spans.append(
+                    {
+                        "path": path,
+                        "qualified_symbol": span.get("qualified_symbol"),
+                        "start_line": start_line,
+                        "end_line": end_line,
+                    }
+                )
+            alternatives.append(spans)
+        groups.append({"group_id": group["id"], "alternatives": alternatives})
+    return groups
+
+
+def line_range(value: dict[str, Any]) -> tuple[int, int] | None:
+    start = value.get("start_line")
+    end = value.get("end_line")
+    if isinstance(start, int) and isinstance(end, int) and start > 0 and end >= start:
+        return start, end
+    parent = value.get("parent_range")
+    if isinstance(parent, dict):
+        start = parent.get("start_line")
+        end = parent.get("end_line")
+        if isinstance(start, int) and isinstance(end, int) and start > 0 and end >= start:
+            return start, end
+    return None
+
+
+def locator_from_hit(hit: dict[str, Any]) -> dict[str, Any] | None:
+    lines = line_range(hit)
+    path = hit.get("path")
+    digest = hit.get("indexed_sha256")
+    symbol = hit.get("qualified_symbol")
+    if (
+        lines is None
+        or not isinstance(path, str)
+        or not isinstance(digest, str)
+        or not isinstance(symbol, str)
+    ):
+        return None
+    sources = hit.get("match_sources", hit.get("lexical_sources", []))
+    if not isinstance(sources, list):
+        sources = []
+    return {
+        "chunk_id": hit.get("chunk_id"),
+        "path": path,
+        "qualified_symbol": symbol,
+        "start_line": lines[0],
+        "end_line": lines[1],
+        "indexed_sha256": digest,
+        "match_sources": sorted({item for item in sources if isinstance(item, str)}),
+    }
+
+
+def locator_key(value: dict[str, Any]) -> tuple[Any, ...]:
+    return (
+        value.get("indexed_sha256"),
+        value.get("path"),
+        value.get("start_line"),
+        value.get("end_line"),
+        value.get("qualified_symbol"),
+    )
+
+
+def range_key(value: dict[str, Any]) -> tuple[Any, ...]:
+    return (value.get("path"), value.get("start_line"), value.get("end_line"))
+
+
+def ranges_overlap(left: dict[str, Any], right: dict[str, Any]) -> bool:
+    if left.get("path") != right.get("path"):
+        return False
+    left_range = line_range(left)
+    right_range = line_range(right)
+    return bool(
+        left_range
+        and right_range
+        and left_range[0] <= right_range[1]
+        and right_range[0] <= left_range[1]
+    )
+
+
+def item_matches_span(item: dict[str, Any], span: dict[str, Any]) -> bool:
+    if not ranges_overlap(item, span):
+        return False
+    wanted_symbol = span.get("qualified_symbol")
+    item_symbol = item.get("qualified_symbol")
+    return not wanted_symbol or not item_symbol or wanted_symbol == item_symbol
+
+
+def group_is_covered(items: list[dict[str, Any]], group: dict[str, Any]) -> bool:
+    return any(
+        all(any(item_matches_span(item, span) for item in items) for span in alternative)
+        for alternative in group["alternatives"]
+    )
+
+
+def group_coverage(items: list[dict[str, Any]], groups: list[dict[str, Any]]) -> float:
+    return (
+        sum(group_is_covered(items, group) for group in groups) / len(groups)
+        if groups
+        else 0.0
+    )
+
+
+def accepted_item(item: dict[str, Any], groups: list[dict[str, Any]]) -> bool:
+    return any(
+        item_matches_span(item, span)
+        for group in groups
+        for alternative in group["alternatives"]
+        for span in alternative
+    )
+
+
+def tool_result_parts(item: dict[str, Any]) -> tuple[Any, int, int, int]:
+    result = item.get("result")
+    if not isinstance(result, dict):
+        return None, 0, 0, 0
+    structured = result.get("structuredContent", result.get("structured_content"))
+    structured_bytes = encoded_json_bytes(structured) if structured is not None else 0
+    text_bytes = 0
+    decoded_text: Any = None
+    content = result.get("content")
+    if isinstance(content, list):
+        for block in content:
+            if not isinstance(block, dict) or not isinstance(block.get("text"), str):
+                continue
+            text = block["text"]
+            text_bytes += len(text.encode("utf-8"))
+            if decoded_text is None:
+                try:
+                    decoded_text = json.loads(text)
+                except json.JSONDecodeError:
+                    pass
+    return (
+        structured if structured is not None else decoded_text,
+        structured_bytes,
+        text_bytes,
+        encoded_json_bytes(result),
+    )
+
+
+def source_line_interval(data: bytes, start: int, end: int) -> tuple[int, int] | None:
+    if start < 1 or end < start:
+        return None
+    line = 1
+    begin: int | None = None
+    offset = 0
+    while offset < len(data):
+        newline = data.find(b"\n", offset)
+        line_end = len(data) if newline < 0 else newline + 1
+        if line == start:
+            begin = offset
+        if line == end:
+            return (begin, line_end) if begin is not None else None
+        line += 1
+        offset = line_end
+    return None
+
+
+def union_interval_bytes(intervals: list[tuple[str, int, int]]) -> int:
+    total = 0
+    by_path: dict[str, list[tuple[int, int]]] = {}
+    for path, start, end in intervals:
+        by_path.setdefault(path, []).append((start, end))
+    for values in by_path.values():
+        current_start = current_end = -1
+        for start, end in sorted(values):
+            if current_start < 0:
+                current_start, current_end = start, end
+            elif start <= current_end:
+                current_end = max(current_end, end)
+            else:
+                total += current_end - current_start
+                current_start, current_end = start, end
+        if current_start >= 0:
+            total += current_end - current_start
+    return total
+
+
+def ratio_or_none(numerator: int | float, denominator: int | float) -> float | None:
+    return numerator / denominator if denominator else None
+
+
 def blind_id(seed: str, task_id: str, arm: str) -> str:
     framed = f"cidx/assistant-blind/v1\0{seed}\0{task_id}\0{arm}".encode()
     return "blind-" + hashlib.sha256(framed).hexdigest()[:12]
@@ -184,6 +424,8 @@ def prepare(context: dict[str, Any]) -> None:
                     **deterministic_journey(
                         run_root / task_id / arm / "events.jsonl",
                         run_root / task_id / arm / "final.json",
+                        root,
+                        case,
                     ),
                 }
             )
@@ -248,7 +490,7 @@ def prepare(context: dict[str, Any]) -> None:
     write_json(
         grading_root / "journey-freeze.json",
         {
-            "schema_version": 1,
+            "schema_version": 2,
             "record_count": len(journey_records),
             "journey_sha256": sha256_file(journey_path),
             "reducer_sha256": sha256_file(Path(__file__).resolve()),
@@ -314,29 +556,38 @@ def source_paths_from_text(text: str) -> set[str]:
     return found
 
 
-def mcp_visible_output(item: dict[str, Any]) -> str:
-    hidden = {
-        "id",
-        "type",
-        "server",
-        "tool",
-        "status",
-        "arguments",
-        "duration_ms",
-    }
-    visible = {key: value for key, value in item.items() if key not in hidden}
-    return json.dumps(visible, sort_keys=True, ensure_ascii=False) if visible else ""
-
-
-def deterministic_journey(events_path: Path, final_path: Path) -> dict[str, Any]:
+def deterministic_journey(
+    events_path: Path,
+    final_path: Path,
+    root: Path,
+    case: dict[str, Any],
+) -> dict[str, Any]:
+    groups = frozen_line_groups(root, case)
     visible_paths: set[str] = set()
     cidx_paths: set[str] = set()
-    shell_output_bytes = 0
-    cidx_output_bytes = 0
+    shell_event_output_bytes = 0
+    shell_repository_output_bytes = 0
+    cidx_event_result_bytes = 0
+    cidx_structured_bytes = 0
+    cidx_text_bytes = 0
+    search_structured_bytes = 0
+    search_text_bytes = 0
+    search_event_result_bytes = 0
+    read_structured_bytes = 0
+    read_text_bytes = 0
+    read_event_result_bytes = 0
+    cidx_both_representation_calls = 0
+    search_both_representation_calls = 0
+    read_both_representation_calls = 0
+    search_source_bytes = 0
     shell_actions = 0
     search_actions = 0
     read_span_actions = 0
     first_discovery: str | None = None
+    action_ordinal = 0
+    started_ordinals: dict[str, int] = {}
+    search_calls: list[dict[str, Any]] = []
+    successful_reads: list[dict[str, Any]] = []
     for event in events(events_path):
         item = event.get("item")
         if not isinstance(item, dict):
@@ -345,39 +596,105 @@ def deterministic_journey(events_path: Path, final_path: Path) -> dict[str, Any]
         if event.get("type") == "item.started":
             if kind == "mcp_tool_call" and item.get("server") == "cidx":
                 tool = item.get("tool")
-                if tool in ("search", "read_span") and first_discovery is None:
-                    first_discovery = f"cidx_{tool}"
+                if tool in ("search", "read_span"):
+                    if isinstance(item.get("id"), str):
+                        started_ordinals[item["id"]] = action_ordinal
+                    action_ordinal += 1
+                    if first_discovery is None:
+                        first_discovery = f"cidx_{tool}"
             elif kind == "command_execution":
                 command = str(item.get("command", ""))
-                if REPOSITORY_INSPECTION_RE.search(command) and first_discovery is None:
-                    first_discovery = "shell_repository_inspection"
+                if is_repository_inspection(command):
+                    if isinstance(item.get("id"), str):
+                        started_ordinals[item["id"]] = action_ordinal
+                    action_ordinal += 1
+                    if first_discovery is None:
+                        first_discovery = "shell_repository_inspection"
             continue
         if event.get("type") != "item.completed":
             continue
         if kind == "command_execution":
             command = str(item.get("command", ""))
             output = item.get("aggregated_output")
-            if REPOSITORY_INSPECTION_RE.search(command):
+            if isinstance(output, str):
+                shell_event_output_bytes += len(output.encode("utf-8"))
+            if is_repository_inspection(command):
                 shell_actions += 1
                 if isinstance(output, str):
-                    shell_output_bytes += len(output.encode("utf-8"))
+                    shell_repository_output_bytes += len(output.encode("utf-8"))
                     visible_paths.update(source_paths_from_text(output))
                 visible_paths.update(source_paths_from_text(command))
         elif kind == "mcp_tool_call" and item.get("server") == "cidx":
             tool = item.get("tool")
             if tool not in ("search", "read_span"):
                 continue
+            payload, structured_bytes, text_bytes, event_result_bytes = tool_result_parts(item)
+            cidx_structured_bytes += structured_bytes
+            cidx_text_bytes += text_bytes
+            cidx_event_result_bytes += event_result_bytes
+            if structured_bytes and text_bytes:
+                cidx_both_representation_calls += 1
             if tool == "search":
                 search_actions += 1
+                search_structured_bytes += structured_bytes
+                search_text_bytes += text_bytes
+                search_event_result_bytes += event_result_bytes
+                if structured_bytes and text_bytes:
+                    search_both_representation_calls += 1
+                locators: list[dict[str, Any]] = []
+                if isinstance(payload, dict) and isinstance(payload.get("results"), list):
+                    for hit in payload["results"]:
+                        if not isinstance(hit, dict):
+                            continue
+                        locator = locator_from_hit(hit)
+                        if locator is not None:
+                            locators.append(locator)
+                        body = hit.get("body")
+                        if isinstance(body, str):
+                            search_source_bytes += len(body.encode("utf-8"))
+                search_calls.append(
+                    {
+                        "ordinal": started_ordinals.get(str(item.get("id")), action_ordinal),
+                        "locators": locators,
+                    }
+                )
             else:
                 read_span_actions += 1
-            output = mcp_visible_output(item)
-            cidx_output_bytes += len(output.encode("utf-8"))
+                read_structured_bytes += structured_bytes
+                read_text_bytes += text_bytes
+                read_event_result_bytes += event_result_bytes
+                if structured_bytes and text_bytes:
+                    read_both_representation_calls += 1
+                result = item.get("result")
+                arguments = item.get("arguments")
+                if (
+                    isinstance(payload, dict)
+                    and isinstance(result, dict)
+                    and not result.get("isError", result.get("is_error", False))
+                    and isinstance(arguments, dict)
+                ):
+                    lines = line_range(payload)
+                    path = payload.get("path")
+                    body = payload.get("body")
+                    if lines and isinstance(path, str) and isinstance(body, str):
+                        successful_reads.append(
+                            {
+                                "path": path,
+                                "start_line": lines[0],
+                                "end_line": lines[1],
+                                "body": body,
+                                "ordinal": started_ordinals.get(
+                                    str(item.get("id")), action_ordinal
+                                ),
+                            }
+                        )
+            output = json.dumps(payload, sort_keys=True, ensure_ascii=False) if payload is not None else ""
             paths = source_paths_from_text(output)
             cidx_paths.update(paths)
             visible_paths.update(paths)
 
     cited_paths: set[str] = set()
+    citations: list[dict[str, Any]] = []
     try:
         final_value = read_json(final_path)
     except ScoreError:
@@ -387,7 +704,110 @@ def deterministic_journey(events_path: Path, final_path: Path) -> dict[str, Any]
             continue
         path = evidence.get("path")
         if isinstance(path, str) and path.endswith(SOURCE_SUFFIXES):
-            cited_paths.add(path.lstrip("./"))
+            normalized_path = path.lstrip("./")
+            cited_paths.add(normalized_path)
+            lines = line_range(evidence)
+            if lines:
+                citations.append(
+                    {
+                        "path": normalized_path,
+                        "start_line": lines[0],
+                        "end_line": lines[1],
+                    }
+                )
+
+    search_calls.sort(key=lambda item: item["ordinal"])
+    locator_occurrences = [
+        locator for call in search_calls for locator in call["locators"]
+    ]
+    unique_locators: list[dict[str, Any]] = []
+    seen_locator_keys: set[tuple[Any, ...]] = set()
+    for locator in locator_occurrences:
+        key = locator_key(locator)
+        if key not in seen_locator_keys:
+            seen_locator_keys.add(key)
+            unique_locators.append(locator)
+    first_locators: list[dict[str, Any]] = []
+    if search_calls:
+        seen_first: set[tuple[Any, ...]] = set()
+        for locator in search_calls[0]["locators"]:
+            key = locator_key(locator)
+            if key not in seen_first:
+                seen_first.add(key)
+                first_locators.append(locator)
+
+    selected_locators = [
+        locator
+        for locator in unique_locators
+        if any(ranges_overlap(locator, read) for read in successful_reads)
+    ]
+    cited_locators = [
+        locator
+        for locator in unique_locators
+        if any(ranges_overlap(locator, citation) for citation in citations)
+    ]
+    selected_keys = {locator_key(item) for item in selected_locators}
+    cited_keys = {locator_key(item) for item in cited_locators}
+    navigation_false_leads = [
+        item
+        for item in selected_locators
+        if not accepted_item(item, groups)
+        and locator_key(item) not in cited_keys
+    ]
+    first_useful_locator_rank = next(
+        (
+            rank
+            for rank, locator in enumerate(first_locators, start=1)
+            if accepted_item(locator, groups)
+        ),
+        None,
+    )
+
+    unique_reads: list[dict[str, Any]] = []
+    seen_reads: set[tuple[Any, ...]] = set()
+    for read in successful_reads:
+        key = range_key(read)
+        if key not in seen_reads:
+            seen_reads.add(key)
+            unique_reads.append(read)
+    accepted_reads = [read for read in successful_reads if accepted_item(read, groups)]
+    cited_reads = [
+        read
+        for read in unique_reads
+        if any(ranges_overlap(read, citation) for citation in citations)
+    ]
+    evidence_false_leads = [
+        read
+        for read in unique_reads
+        if not accepted_item(read, groups)
+        and not any(ranges_overlap(read, citation) for citation in citations)
+    ]
+    gross_evidence_bytes = sum(
+        len(read["body"].encode("utf-8")) for read in successful_reads
+    )
+    source_cache: dict[str, bytes] = {}
+    delivered_intervals: list[tuple[str, int, int]] = []
+    for read in successful_reads:
+        path = read["path"]
+        try:
+            if path not in source_cache:
+                source_cache[path] = safe_source_path(root, path).read_bytes()
+            interval = source_line_interval(
+                source_cache[path], read["start_line"], read["end_line"]
+            )
+        except (OSError, ScoreError):
+            interval = None
+        if interval is not None:
+            delivered_intervals.append((path, interval[0], interval[1]))
+    unique_evidence_bytes = union_interval_bytes(delivered_intervals)
+    all_groups_action: int | None = None
+    accumulated_reads: list[dict[str, Any]] = []
+    for read in sorted(successful_reads, key=lambda item: item["ordinal"]):
+        accumulated_reads.append(read)
+        if group_coverage(accumulated_reads, groups) == 1.0:
+            all_groups_action = read["ordinal"] + 1
+            break
+
     cited_from_cidx = sorted(cited_paths & cidx_paths)
     if read_span_actions and cited_from_cidx:
         usage_class = "read_span_cited"
@@ -398,7 +818,7 @@ def deterministic_journey(events_path: Path, final_path: Path) -> dict[str, Any]
     else:
         usage_class = "no_use"
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "first_repository_discovery_action": first_discovery,
         "first_discovery_is_cidx_search": first_discovery == "cidx_search",
         "repository_inspection_action_count": (
@@ -407,10 +827,14 @@ def deterministic_journey(events_path: Path, final_path: Path) -> dict[str, Any]
         "shell_inspection_action_count": shell_actions,
         "cidx_search_count": search_actions,
         "cidx_read_span_count": read_span_actions,
-        "shell_visible_output_bytes": shell_output_bytes,
-        "cidx_visible_output_bytes": cidx_output_bytes,
-        "model_visible_repository_output_bytes": (
-            shell_output_bytes + cidx_output_bytes
+        "shell_event_output_bytes": shell_event_output_bytes,
+        "shell_repository_output_bytes": shell_repository_output_bytes,
+        "cidx_structured_bytes": cidx_structured_bytes,
+        "cidx_text_bytes": cidx_text_bytes,
+        "cidx_event_result_bytes": cidx_event_result_bytes,
+        "cidx_both_representation_call_count": cidx_both_representation_calls,
+        "repository_event_output_proxy_bytes": (
+            shell_repository_output_bytes + cidx_event_result_bytes
         ),
         "visible_source_paths": sorted(visible_paths),
         "final_cited_source_paths": sorted(cited_paths),
@@ -418,6 +842,69 @@ def deterministic_journey(events_path: Path, final_path: Path) -> dict[str, Any]
         "cidx_returned_source_paths": sorted(cidx_paths),
         "cidx_cited_source_paths": cited_from_cidx,
         "cidx_usage_class": usage_class,
+        "locator_stage": {
+            "search_count": search_actions,
+            "locator_occurrence_count": len(locator_occurrences),
+            "unique_locator_count": len(unique_locators),
+            "first_search_requirement_coverage_at_k": group_coverage(
+                first_locators, groups
+            ),
+            "complete_first_search_locator_hit_at_k": (
+                group_coverage(first_locators, groups) == 1.0
+            ),
+            "any_search_requirement_coverage": group_coverage(
+                unique_locators, groups
+            ),
+            "first_useful_locator_rank": first_useful_locator_rank,
+            "duplicate_locator_exposure_rate": ratio_or_none(
+                len(locator_occurrences) - len(unique_locators),
+                len(locator_occurrences),
+            ),
+            "locator_selection_utilization": ratio_or_none(
+                len(selected_keys), len(unique_locators)
+            ),
+            "locator_citation_utilization": ratio_or_none(
+                len(cited_keys), len(unique_locators)
+            ),
+            "navigation_false_lead_rate": ratio_or_none(
+                len(navigation_false_leads), len(selected_locators)
+            ),
+            "structured_bytes": search_structured_bytes,
+            "text_bytes": search_text_bytes,
+            "event_result_bytes": search_event_result_bytes,
+            "both_representation_call_count": search_both_representation_calls,
+            "source_bytes": search_source_bytes,
+            "bytes_per_unique_locator": ratio_or_none(
+                search_event_result_bytes, len(unique_locators)
+            ),
+        },
+        "evidence_stage": {
+            "read_span_count": read_span_actions,
+            "successful_read_span_count": len(successful_reads),
+            "unique_read_range_count": len(unique_reads),
+            "evidence_requirement_coverage": group_coverage(unique_reads, groups),
+            "complete_evidence_hit": group_coverage(unique_reads, groups) == 1.0,
+            "read_span_precision": ratio_or_none(
+                len(accepted_reads), len(successful_reads)
+            ),
+            "evidence_citation_utilization": ratio_or_none(
+                len(cited_reads), len(unique_reads)
+            ),
+            "evidence_false_lead_rate": ratio_or_none(
+                len(evidence_false_leads), len(unique_reads)
+            ),
+            "gross_source_bytes": gross_evidence_bytes,
+            "unique_source_bytes": unique_evidence_bytes,
+            "redundant_evidence_ratio": ratio_or_none(
+                max(0, gross_evidence_bytes - unique_evidence_bytes),
+                gross_evidence_bytes,
+            ),
+            "first_inspection_action_with_complete_evidence": all_groups_action,
+            "structured_bytes": read_structured_bytes,
+            "text_bytes": read_text_bytes,
+            "event_result_bytes": read_event_result_bytes,
+            "both_representation_call_count": read_both_representation_calls,
+        },
     }
 
 
@@ -479,13 +966,13 @@ def paired_group_summary(
             for pair in dual
             if pair["paired"]["model_total_ratio"] is not None
         ]
-        output_ratios = [
+        output_proxy_ratios = [
             ratio(
                 pair["cidx_fts"]["journey"][
-                    "model_visible_repository_output_bytes"
+                    "repository_event_output_proxy_bytes"
                 ],
                 pair["baseline"]["journey"][
-                    "model_visible_repository_output_bytes"
+                    "repository_event_output_proxy_bytes"
                 ],
             )
             for pair in dual
@@ -511,11 +998,101 @@ def paired_group_summary(
                     for pair in dual
                 ]
             ),
-            "visible_output_bytes_ratio_median": median(
-                [value for value in output_ratios if value is not None]
+            "event_output_proxy_ratio_median": median(
+                [value for value in output_proxy_ratios if value is not None]
             ),
         }
     return result
+
+
+def mean_present(values: list[float | int | None]) -> float | None:
+    present = [float(value) for value in values if value is not None]
+    return statistics.mean(present) if present else None
+
+
+def assistant_stage_summary(pairs: list[dict[str, Any]]) -> dict[str, Any]:
+    locator = [pair["cidx_fts"]["journey"]["locator_stage"] for pair in pairs]
+    evidence = [pair["cidx_fts"]["journey"]["evidence_stage"] for pair in pairs]
+    return {
+        "locator": {
+            "task_count": len(locator),
+            "search_count": sum(item["search_count"] for item in locator),
+            "locator_occurrence_count": sum(
+                item["locator_occurrence_count"] for item in locator
+            ),
+            "unique_locator_count_sum": sum(
+                item["unique_locator_count"] for item in locator
+            ),
+            "complete_first_search_locator_hit_count": sum(
+                item["complete_first_search_locator_hit_at_k"] for item in locator
+            ),
+            "first_search_requirement_coverage_macro": mean_present(
+                [item["first_search_requirement_coverage_at_k"] for item in locator]
+            ),
+            "any_search_requirement_coverage_macro": mean_present(
+                [item["any_search_requirement_coverage"] for item in locator]
+            ),
+            "first_useful_locator_rank_median": median(
+                [
+                    item["first_useful_locator_rank"]
+                    for item in locator
+                    if item["first_useful_locator_rank"] is not None
+                ]
+            ),
+            "duplicate_locator_exposure_rate_macro": mean_present(
+                [item["duplicate_locator_exposure_rate"] for item in locator]
+            ),
+            "locator_selection_utilization_macro": mean_present(
+                [item["locator_selection_utilization"] for item in locator]
+            ),
+            "locator_citation_utilization_macro": mean_present(
+                [item["locator_citation_utilization"] for item in locator]
+            ),
+            "navigation_false_lead_rate_macro": mean_present(
+                [item["navigation_false_lead_rate"] for item in locator]
+            ),
+            "structured_bytes": sum(item["structured_bytes"] for item in locator),
+            "text_bytes": sum(item["text_bytes"] for item in locator),
+            "event_result_bytes": sum(item["event_result_bytes"] for item in locator),
+            "both_representation_call_count": sum(
+                item["both_representation_call_count"] for item in locator
+            ),
+            "source_bytes": sum(item["source_bytes"] for item in locator),
+        },
+        "evidence": {
+            "task_count": len(evidence),
+            "read_span_count": sum(item["read_span_count"] for item in evidence),
+            "successful_read_span_count": sum(
+                item["successful_read_span_count"] for item in evidence
+            ),
+            "complete_evidence_hit_count": sum(
+                item["complete_evidence_hit"] for item in evidence
+            ),
+            "evidence_requirement_coverage_macro": mean_present(
+                [item["evidence_requirement_coverage"] for item in evidence]
+            ),
+            "read_span_precision_macro": mean_present(
+                [item["read_span_precision"] for item in evidence]
+            ),
+            "evidence_citation_utilization_macro": mean_present(
+                [item["evidence_citation_utilization"] for item in evidence]
+            ),
+            "evidence_false_lead_rate_macro": mean_present(
+                [item["evidence_false_lead_rate"] for item in evidence]
+            ),
+            "redundant_evidence_ratio_macro": mean_present(
+                [item["redundant_evidence_ratio"] for item in evidence]
+            ),
+            "gross_source_bytes": sum(item["gross_source_bytes"] for item in evidence),
+            "unique_source_bytes": sum(item["unique_source_bytes"] for item in evidence),
+            "structured_bytes": sum(item["structured_bytes"] for item in evidence),
+            "text_bytes": sum(item["text_bytes"] for item in evidence),
+            "event_result_bytes": sum(item["event_result_bytes"] for item in evidence),
+            "both_representation_call_count": sum(
+                item["both_representation_call_count"] for item in evidence
+            ),
+        },
+    }
 
 
 def load_grades(context: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -636,12 +1213,12 @@ def aggregate(context: dict[str, Any]) -> None:
                         treatment["journey"]["repository_inspection_action_count"]
                         - baseline["journey"]["repository_inspection_action_count"]
                     ),
-                    "model_visible_repository_output_bytes_difference": (
+                    "repository_event_output_proxy_bytes_difference": (
                         treatment["journey"][
-                            "model_visible_repository_output_bytes"
+                            "repository_event_output_proxy_bytes"
                         ]
                         - baseline["journey"][
-                            "model_visible_repository_output_bytes"
+                            "repository_event_output_proxy_bytes"
                         ]
                     ),
                 },
@@ -775,18 +1352,16 @@ def aggregate(context: dict[str, Any]) -> None:
             ) if enough else "INSUFFICIENT_DENOMINATOR",
             "optional_tool_value_observed": cidx_calls > 0,
         },
+        "assistant_stages": assistant_stage_summary(pairs),
         "journey_freeze": read_json(grading_root / "journey-freeze.json"),
         "by_critical_cohort": paired_group_summary(pairs, critical_labels),
         "by_language": paired_group_summary(pairs, language_labels),
     }
     write_json(run_root / "aggregate.json", aggregate_value)
     manifest_id = manifest.get("manifest_id", "")
-    if manifest_id.endswith("v3"):
-        version_label = "Version 3"
-    elif manifest_id.endswith("v2"):
-        version_label = "Version 2"
-    else:
-        version_label = "Version 1"
+    version_match = re.search(r"v(\d+)$", manifest_id)
+    version_number = int(version_match.group(1)) if version_match else 1
+    version_label = f"Version {version_number}"
     report_lines = [
         f"# Paired Codex CLI Assistant A/B Result — {version_label}",
         "",
@@ -823,17 +1398,34 @@ def aggregate(context: dict[str, Any]) -> None:
             "",
             "## Critical cohorts",
             "",
-            "| Cohort | Tasks | Baseline complete | cidx complete | Median model-total ratio | Non-increasing | Median inspection delta | Median visible-output ratio |",
+            "| Cohort | Tasks | Baseline complete | cidx complete | Median model-total ratio | Non-increasing | Median inspection delta | Median event-output proxy ratio |",
             "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
         ]
     )
     for label, values in aggregate_value["by_critical_cohort"].items():
         report_lines.append(
-            f"| {label} | {values['task_count']} | {values['baseline_complete']} | {values['cidx_complete']} | {values['model_total_ratio_median']:.3f} | {values['model_total_non_increasing']}/{values['dual_complete']} | {values['inspection_action_difference_median']:.1f} | {values['visible_output_bytes_ratio_median']:.3f} |"
+            f"| {label} | {values['task_count']} | {values['baseline_complete']} | {values['cidx_complete']} | {values['model_total_ratio_median']:.3f} | {values['model_total_non_increasing']}/{values['dual_complete']} | {values['inspection_action_difference_median']:.1f} | {values['event_output_proxy_ratio_median']:.3f} |"
         )
+    locator_summary = aggregate_value["assistant_stages"]["locator"]
+    evidence_summary = aggregate_value["assistant_stages"]["evidence"]
+    report_lines.extend(
+        [
+            "",
+            "## Locator and evidence stages",
+            "",
+            f"- First-search complete locator hit: {locator_summary['complete_first_search_locator_hit_count']}/{locator_summary['task_count']}",
+            f"- First-search requirement coverage (macro): {locator_summary['first_search_requirement_coverage_macro']:.3f}",
+            f"- Any-search requirement coverage (macro): {locator_summary['any_search_requirement_coverage_macro']:.3f}",
+            f"- Search payload: {locator_summary['structured_bytes']} structured bytes, {locator_summary['text_bytes']} text bytes, {locator_summary['source_bytes']} source bytes",
+            f"- Complete cidx evidence hit: {evidence_summary['complete_evidence_hit_count']}/{evidence_summary['task_count']}",
+            f"- Evidence requirement coverage (macro): {evidence_summary['evidence_requirement_coverage_macro']:.3f}",
+            f"- Read-span precision (macro): {evidence_summary['read_span_precision_macro']:.3f}",
+            f"- Read-span source: {evidence_summary['gross_source_bytes']} gross bytes, {evidence_summary['unique_source_bytes']} unique bytes",
+        ]
+    )
     interpretation = (
         f"This {version_label} batch estimates the effect of requiring one initial cidx FTS search when the tool is available. It remains a bounded diagnostic on the frozen 12-task panel, not a population estimate or release gate."
-        if version_label in ("Version 2", "Version 3")
+        if version_number >= 2
         else "Because the cidx arm made no cidx call, this run identifies the adoption effect of merely exposing the optional tool, not retrieval value."
     )
     report_lines.extend(

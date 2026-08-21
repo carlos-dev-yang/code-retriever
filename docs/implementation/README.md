@@ -19,9 +19,9 @@
   correctness was preserved, but the current FTS-first integration used 37.2%
   more model tokens. Response accounting is complete, its baseline-byte
   reducer defect is documented, and dual review adopted a locator-only
-  `search` plus source-only `read_span` direction. Phase 13 is reopened only
-  for that result projection, reducer correction, and host conformance; an
-  unchanged A/B rerun is rejected.
+  `search` plus source-only `read_span` direction. Phase 13 reducer v2 is now
+  complete; host representation conformance and the result projection remain.
+  An unchanged A/B rerun is rejected.
   Official Phase 12 and release-candidate evidence remain separately gated
 - Canonical design: [Local Code Search MCP v1 Final Target Contract — Revision 4](../../local-code-search-mcp-v1-design-r4.md)
 - Earlier designs: [original](../../local-code-search-mcp-v1-design.md), [r1](../../local-code-search-mcp-v1-design-r1.md), [r2](../../local-code-search-mcp-v1-design-r2.md), [r3](../../local-code-search-mcp-v1-design-r3.md)
@@ -118,7 +118,7 @@ Allowed states are `planned | in_progress | blocked | done`. A phase becomes `do
 | 10 | done | [Embedding orchestration and reconciliation](10-embedding-orchestration-and-reconciliation.md) | reconciled 02/09, existing 05/08 | Source-bank-first Voyage document publication, provider-free source reuse, and provider-only request accounting | [Current evidence](evidence/phase-10/source-bank-first-document-publication.md) and [historical R4 evidence](evidence/phase-10/revision-4.md) |
 | 11 | done | [Vector and hybrid search](11-vector-and-hybrid-search.md) | reconciled 02/09/10, existing 06 | Int8-only request-local scan, RRF, fallback, and body packaging | [Current evidence](evidence/phase-11/int8-only-query-search-reconciliation.md) and [historical R4 evidence](evidence/phase-11/revision-4.md) |
 | 12 | blocked | [Retrieval evaluation](12-retrieval-evaluation.md) | 07, reconciled 08, 09, 11 | Accepted int8-only corpus-independent adapter; official corpus evaluation and promotion remain externally gated | [Current evidence](evidence/phase-12/int8-only-evaluation-reconciliation.md) and [accepted R4 accounting evidence](evidence/phase-12/revision-4.md) |
-| 13 | in_progress | [CLI and MCP](13-cli-and-mcp.md) | reconciled 02/08/11 and existing Phase 12 core | Preserve the four tools while replacing source-bearing search output with the versioned locator-only projection and proving one host-compatible representation | Existing [int8-only evidence](evidence/phase-13/int8-only-cli-mcp-reconciliation.md) remains valid except for the superseded search-result wire; new reconciliation evidence pending |
+| 13 | in_progress | [CLI and MCP](13-cli-and-mcp.md) | reconciled 02/08/11 and existing Phase 12 core | Preserve the four tools while replacing source-bearing search output with the versioned locator-only projection and proving one host-compatible representation | [Reducer v2 checkpoint](evidence/phase-13/assistant-reducer-v2.md); existing [int8-only evidence](evidence/phase-13/int8-only-cli-mcp-reconciliation.md) remains valid except for the superseded search-result wire |
 | 14 | blocked | [Packaging and host integration](14-packaging-and-host-integration.md) | 13 | Paired diagnostic and response accounting complete; compact locator-only search/source-only read direction accepted, but reducer, host compatibility, implementation, and another A/B remain before usefulness evidence | [Response-contract direction](evidence/phase-14/assistant-response-contract-and-v4-direction.md), [Assistant A/B V3 result](evidence/phase-14/assistant-ab-v3-result.md), [current int8 package evidence](evidence/phase-14/int8-profile-package-reconciliation.md), and [historical local checkpoint](evidence/phase-14/revision-4.md) |
 
 `STATUS.md` is the operational ledger. Keep this summary table synchronized with it whenever a phase changes state.

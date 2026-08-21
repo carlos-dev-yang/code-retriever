@@ -390,6 +390,18 @@ This file defines an implementation plan and does not add test code.
 
 ## 11. Completion Evidence
 
+Assistant reducer v2 checkpoint (2026-08-21):
+
+- quoted shell wrappers are normalized before repository-command
+  classification;
+- shell, MCP structured, MCP text, result-envelope, and source bytes are
+  recorded separately;
+- locator and evidence stage metrics have explicit denominators; and
+- a disposable complete V3 replay preserved official outcomes/tokens while
+  reproducing the corrected event accounting.
+
+Exact evidence: [assistant reducer v2](evidence/phase-13/assistant-reducer-v2.md).
+
 Current int8-only CLI/MCP acceptance (2026-08-17):
 
 - `cidx init` defaults to 1024/int8, accepts only explicit 1024 or 512, and

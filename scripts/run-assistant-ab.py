@@ -52,10 +52,38 @@ SCHEMA_PROBE_PROMPT = (
     '"end_line":null,"supports":"probe"}],'
     '"uncertainties":[]}'
 )
+REPOSITORY_INSPECTION_RE = re.compile(
+    r"(?i)(?:^|[;&|()\s])(?:rg|grep|find|fd|ls|tree|sed|cat|head|tail|awk|nl)(?:\s|$)|git\s+grep"
+)
+SHELL_NAMES = {"sh", "bash", "zsh", "dash", "ksh"}
 
 
 class ExperimentError(RuntimeError):
     pass
+
+
+def normalized_shell_command(command: str) -> str:
+    current = command
+    for _ in range(4):
+        try:
+            parts = shlex.split(current, posix=True)
+        except ValueError:
+            return current
+        if not parts or Path(parts[0]).name not in SHELL_NAMES:
+            return current
+        script: str | None = None
+        for index, token in enumerate(parts[1:], start=1):
+            if token.startswith("-") and "c" in token[1:] and index + 1 < len(parts):
+                script = parts[index + 1]
+                break
+        if script is None or script == current:
+            return current
+        current = script
+    return current
+
+
+def is_repository_inspection(command: str) -> bool:
+    return bool(REPOSITORY_INSPECTION_RE.search(normalized_shell_command(command)))
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -481,10 +509,7 @@ def event_observation(events_path: Path, final_path: Path) -> dict[str, Any]:
                     )
             elif kind == "command_execution":
                 command_text = str(item.get("command", ""))
-                if re.search(
-                    r"(?i)(?:^|[;&|()\s])(?:rg|grep|find|fd|ls|tree|sed|cat|head|tail|awk|nl)(?:\s|$)|git\s+grep",
-                    command_text,
-                ):
+                if is_repository_inspection(command_text):
                     discovery_actions.append(
                         {
                             "kind": "shell_repository_inspection",
@@ -825,7 +850,9 @@ def main() -> int:
 
     controls = manifest["controls"]
     run_id = args.run_id or (
-        "assistant-ab-v2-" + dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        str(manifest.get("manifest_id", "assistant-ab"))
+        + "-"
+        + dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     )
     run_root = artifact_root / run_id
     if run_root.exists():
