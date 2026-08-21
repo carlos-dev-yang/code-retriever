@@ -18,6 +18,15 @@
   The active work is to freeze and execute paired V4 with no simultaneous
   ranking, query, `k`, corpus, or prompt change. Official Phase 12 and
   release-candidate promotion remain blocked.
+
+## 2026-08-22 V4 freeze checkpoint
+
+The [Version 4 plan](ASSISTANT-AB-TEST-PLAN-V4.md) and manifest are frozen.
+Their questions, corpora, prompt, 12-task schedule, and arm order equal V3;
+locator-only structured search is the sole treatment change. Exact native
+Codex 0.148.0, corpus/state, four-tool schema, and representation-lock
+preflight passed. Identities and the no-scored-turn boundary are recorded in
+[the V4 freeze evidence](evidence/phase-14/assistant-ab-v4-freeze.md).
 - Prerequisite: reconciled locator-only `13-cli-and-mcp`
 - Followed by: v1 release-candidate validation
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 1–3 and 7–10

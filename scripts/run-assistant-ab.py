@@ -833,6 +833,17 @@ def main() -> int:
         raise ExperimentError(
             f"manifest is not executable: {manifest_status}"
         )
+    frozen_representation = manifest.get("controls", {}).get(
+        "treatment_result_representation"
+    )
+    if (
+        frozen_representation is not None
+        and args.mcp_result_representation != frozen_representation
+    ):
+        raise ExperimentError(
+            "MCP result representation differs from frozen manifest: "
+            f"got {args.mcp_result_representation}, want {frozen_representation}"
+        )
     if not cidx_binary.is_file() or not os.access(cidx_binary, os.X_OK):
         raise ExperimentError(f"cidx binary is not executable: {cidx_binary}")
     if not mcp_binary.is_file() or not os.access(mcp_binary, os.X_OK):
