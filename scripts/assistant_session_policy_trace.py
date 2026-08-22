@@ -89,6 +89,26 @@ def _stage_program(stage: list[str]) -> tuple[str | None, list[str]]:
     return None, []
 
 
+def is_shell_cidx_attempt(command: str) -> bool:
+    """Recognize cidx as an executable/probe, not merely as command data."""
+    normalized = passive_v1.normalized_shell_command(command)
+    segments = [
+        segment.strip()
+        for segment in _SEQUENTIAL_COMMANDS.split(normalized)
+        if segment.strip()
+    ]
+    for segment in segments:
+        for stage in passive_v1._pipeline_stages(segment):
+            executable, arguments = _stage_program(stage)
+            if executable == "cidx":
+                return True
+            if executable in {"which", "type"} and any(
+                Path(argument).name == "cidx" for argument in arguments
+            ):
+                return True
+    return False
+
+
 def _git_subcommand(arguments: list[str]) -> str | None:
     index = 0
     while index < len(arguments):
@@ -213,6 +233,14 @@ def classify_repository_command(command: str) -> dict[str, Any]:
     violations.
     """
     normalized = passive_v1.normalized_shell_command(command)
+    if is_shell_cidx_attempt(normalized):
+        return {
+            "kind": "shell_cidx_attempt",
+            "ordinary_discovery_families": [],
+            "ambiguous_discovery_families": [],
+            "known_file_read_families": [],
+            "plain_path_output_contract": False,
+        }
     families: set[str] = set()
     ambiguous: set[str] = set()
     readers: set[str] = set()
@@ -654,7 +682,10 @@ def build_policy_trace(
     ambiguous_actions = [
         action for action in actions if action["kind"] == "ambiguous_repository_discovery"
     ]
-    discovery_violations = ordinary_actions + ambiguous_actions
+    shell_cidx_actions = [
+        action for action in actions if action["kind"] == "shell_cidx_attempt"
+    ]
+    discovery_violations = ordinary_actions + ambiguous_actions + shell_cidx_actions
     cidx_search_actions = [
         action for action in actions if action["kind"] == "cidx_search"
     ]
@@ -680,6 +711,9 @@ def build_policy_trace(
     ] + [
         {"ordinal": action["ordinal"], "kind": "ambiguous_repository_discovery"}
         for action in ambiguous_actions
+    ] + [
+        {"ordinal": action["ordinal"], "kind": "shell_cidx_attempt"}
+        for action in shell_cidx_actions
     ]
     discovery_actions.sort(key=lambda value: value["ordinal"])
     first_discovery = discovery_actions[0] if discovery_actions else None
@@ -753,6 +787,8 @@ def build_policy_trace(
         compliance_reasons.append("ordinary_repository_discovery")
     if ambiguous_actions:
         compliance_reasons.append("ambiguous_repository_discovery")
+    if shell_cidx_actions:
+        compliance_reasons.append("shell_cidx_attempt")
     incomplete_search_count = sum(not action["completed"] for action in cidx_search_actions)
     incomplete_read_count = sum(not action["completed"] for action in cidx_read_actions)
     if incomplete_search_count:
@@ -804,6 +840,7 @@ def build_policy_trace(
                     }
                 )
             },
+            "shell_cidx_attempt_count": len(shell_cidx_actions),
             "known_file_read_action_count": sum(
                 action["kind"] == "known_file_read" for action in actions
             ),

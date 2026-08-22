@@ -35,6 +35,7 @@ try:
         POLICY_TRACE_PROTOCOL,
         TRACE_SCHEMA_VERSION as POLICY_TRACE_SCHEMA_VERSION,
         build_policy_trace as build_policy_session_trace,
+        is_shell_cidx_attempt,
     )
 except ModuleNotFoundError as exc:
     if exc.name != "assistant_session_policy_trace":
@@ -42,6 +43,7 @@ except ModuleNotFoundError as exc:
     POLICY_TRACE_PROTOCOL = "forced-cidx-policy-v2"
     POLICY_TRACE_SCHEMA_VERSION = None
     build_policy_session_trace = None
+    is_shell_cidx_attempt = None
 
 
 BASELINE_ARM = "baseline"
@@ -1465,7 +1467,8 @@ def policy_noncompliance_violations(observation: dict[str, Any]) -> list[str]:
         {
             "shell_cidx_attempt"
             for command in observation.get("commands", [])
-            if SHELL_CIDX_PATTERN.search(str(command.get("command", "")))
+            if is_shell_cidx_attempt is not None
+            and is_shell_cidx_attempt(str(command.get("command", "")))
         }
     )
 

@@ -2450,6 +2450,9 @@ def policy_tool_summary(journeys: list[dict[str, Any]]) -> dict[str, Any]:
             )
             for family in ambiguous_families
         },
+        "shell_cidx_attempt_count": sum(
+            int(stage.get("shell_cidx_attempt_count", 0)) for stage in stages
+        ),
         "known_file_read_action_count": sum(
             int(stage.get("known_file_read_action_count", 0)) for stage in stages
         ),

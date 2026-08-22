@@ -52,6 +52,7 @@ The new aggregate and paired rows report separate, unweighted surfaces for:
   known-file reads, discovery timing, incomplete cidx attempts,
   non-temporal cidx/ordinary overlap, and temporal cidx-to-ordinary source
   reacquisition;
+- shell-cidx policy attempts, even when valid MCP calls also occur;
 - directed-arm mechanical compliance and every independent failure reason; and
 - Go, TypeScript, TSX, and frozen primary question-shape slices.
 
