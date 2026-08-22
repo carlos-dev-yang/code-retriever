@@ -503,6 +503,20 @@ def validate_policy_trace_identity(context: dict[str, Any]) -> None:
     run_manifest = context["run_manifest"]
     trace_path = Path(__file__).resolve().with_name("assistant_session_policy_trace.py")
     delegated_path = Path(__file__).resolve().with_name("assistant_session_trace.py")
+    freeze = context["manifest"].get("freeze")
+    builders = freeze.get("trace_builders") if isinstance(freeze, dict) else None
+    expected_frozen = {
+        "policy": {
+            "path": "scripts/assistant_session_policy_trace.py",
+            "sha256": sha256_file(trace_path),
+        },
+        "passive": {
+            "path": "scripts/assistant_session_trace.py",
+            "sha256": sha256_file(delegated_path),
+        },
+    }
+    if builders != expected_frozen:
+        raise ScoreError("policy-v2 manifest trace-builder freeze is incomplete or stale")
     if (
         run_manifest.get("session_trace_protocol")
         != policy_trace.POLICY_TRACE_PROTOCOL
@@ -516,6 +530,11 @@ def validate_policy_trace_identity(context: dict[str, Any]) -> None:
         != session_trace.TRACE_SCHEMA_VERSION
         or run_manifest.get("session_trace_delegated_builder_sha256")
         != sha256_file(delegated_path)
+        or run_manifest.get("frozen_trace_builder_hashes")
+        != {
+            "policy": expected_frozen["policy"]["sha256"],
+            "passive": expected_frozen["passive"]["sha256"],
+        }
     ):
         raise ScoreError("policy-v2 trace identity does not match the runner manifest")
     arm_ids, _, _ = policy_arms(context["manifest"])

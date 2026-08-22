@@ -457,6 +457,10 @@ def verify_frozen_trace_builder_hashes(
     declared = frozen_trace_builder_hashes(manifest)
     if session_trace_protocol != POLICY_TRACE_PROTOCOL:
         return declared
+    if set(declared) != {"policy", "passive"}:
+        raise ExperimentError(
+            "forced-cidx-policy-v2 requires frozen policy and passive trace hashes"
+        )
     actual = {
         "policy": identity["sha256"],
         "passive": identity["delegated_sha256"],
