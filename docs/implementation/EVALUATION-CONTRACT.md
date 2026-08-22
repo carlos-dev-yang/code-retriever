@@ -1,12 +1,13 @@
 # cidx v1 Evaluation and Promotion Contract
 
 - Status: normative; natural-language lexical admission revised 2026-08-20;
-  assistant locator/evidence accounting revised 2026-08-21
+  assistant locator/evidence accounting revised 2026-08-22
 - Applies to: Phases 00 through 14 wherever evidence, comparison, or promotion is required
 - Canonical product design: [Revision 4](../../local-code-search-mcp-v1-design-r4.md)
 - Phase index: [README](README.md)
 - Execution protocol: [EXECUTION-GUIDE](EXECUTION-GUIDE.md)
 - Persistent phase state: [STATUS](STATUS.md)
+- Assistant interaction design: [Search-to-evidence flow](ASSISTANT-SEARCH-EVIDENCE-FLOW-DESIGN.md)
 
 This contract defines how cidx proves implementation correctness, retrieval quality, representation fidelity, packaging usefulness, and operational behavior. It is intentionally multi-axis. No weighted total score may replace its stage results or hard gates.
 
@@ -14,8 +15,14 @@ The contract adapts lessons from the sibling `knowledge-system` project after an
 
 ## 1. Product and Evaluation Boundaries
 
-1. cidx is an auxiliary local retrieval MCP used beside file readers, grep/symbol tools, compilers, and tests.
-2. Product usefulness is measured as the marginal effect of adding cidx to those tools, not by forcing an assistant to use cidx and not by evaluating a cidx-only assistant as the primary product arm.
+1. cidx is a local retrieval MCP made available beside file readers,
+   grep/symbol tools, compilers, and tests. The host may use it as the first,
+   main, occasional, or unused repository-search path for a task; the product
+   does not force or demote it.
+2. Product usefulness is measured as the marginal effect of making cidx
+   available beside the unchanged existing tools, not by forcing an assistant
+   to use cidx. All treatment tasks, including no-use, remain in the primary
+   intent-to-treat denominator; cidx-user-only slices are descriptive.
 3. FTS and dense retrieval are parallel provider lanes. They must be measured separately before RRF.
 4. cidx scans every eligible stored vector. Int8 differences from serving-dimension f32 are representation and codec losses, not ANN recall losses. Historical Binary/256 results are evidence-only.
 5. Frozen source-backed relevance truth and serving-dimension f32 ranking are independent references:
@@ -720,7 +727,7 @@ Post-activation checks prove the evaluated profile is serving; they do not repla
 
 ## 12. Advisory Provenance and Decision Log
 
-This plan was reviewed in English with the referenced `@kb-metric` Codex task. The advisor summarized reusable evidence and promotion practices from its already-implemented dense/RRF evaluation work, while this document deliberately removed HNSW/ANN-specific criteria and adapted the remainder to cidx's single-profile, exhaustive-scan, auxiliary-MCP product boundary.
+This plan was reviewed in English with the referenced `@kb-metric` Codex task. The advisor summarized reusable evidence and promotion practices from its already-implemented dense/RRF evaluation work, while this document deliberately removed HNSW/ANN-specific criteria and adapted the remainder to cidx's single-profile, exhaustive-scan, local-MCP product boundary.
 
 The 2026-08-14 advisory review used these `knowledge-system` sources as design references, without importing its corpus-specific thresholds:
 

@@ -1,25 +1,15 @@
 # 14. Packaging and MCP Host Integration
 
-- Status: `in_progress` — the current default-1024/int8 and provider-free
-  compact-512 local package checkpoint is accepted. Phase 13 now provides the
-  structured-only locator search and source-only `read_span` contract. The
-  owner-directed paired Codex CLI diagnostic is complete under the
-  [Version 3 result](evidence/phase-14/assistant-ab-v3-result.md): correctness
-  was preserved, but the current FTS-first integration increased tokens and
-  required compaction before another A/B. Response accounting subsequently found
-  a frozen baseline-byte reducer defect and dual review accepted a
-  locator-only `search` plus source-only `read_span` diagnostic direction in
-  the
-  [response-contract review](evidence/phase-14/assistant-response-contract-and-v4-direction.md).
-  That contract is implemented and accepted in the
-  [Phase 13 locator evidence](evidence/phase-13/locator-only-mcp-reconciliation.md).
-  The chronological handoff and exact next action are in the
-  [FTS/assistant work journal](FTS-REMEDIATION-AND-ASSISTANT-AB-JOURNAL.md).
-  V4 is complete, and matching ChatGPT and Grok post-result reviews selected
-  one prompt-only orchestration intervention for V5. The active work is to
-  freeze and execute that full pair with no simultaneous ranking, query, `k`,
-  corpus, wire, or `read_span` change. Official Phase 12 and release-candidate
-  promotion remain blocked.
+- Status: `in_progress` — the default-1024/int8 package checkpoint and Phase
+  13's structured-only locator search/source-only `read_span` contract remain
+  accepted. Assistant V4–V6 is closed without an efficiency claim and is not
+  reopened. The owner selected a new host-decided, stage-separated
+  search-to-evidence direction; its documentation and 30-question/60-turn,
+  FTS-only evaluation design received matching ChatGPT and Grok
+  `FINAL_ACCEPT`. The neutral-interface and passive harness trace/reducer
+  implementation checkpoint is now complete. Question construction, scored
+  execution, new test code, and paid provider work remain unopened.
+  Official Phase 12 and release-candidate promotion remain blocked.
 
 ## 2026-08-22 V4 freeze checkpoint
 
@@ -130,6 +120,50 @@ commit history, and next owner choices. The compact locator and required-hash
 mechanics remain accepted. Mandatory cidx-first token efficiency and final
 correctness preservation are not established. No rerun, regrade, or V7 is
 pending.
+
+## 2026-08-22 Search-to-evidence design checkpoint
+
+The owner accepted the
+[host-decided search-to-evidence design](ASSISTANT-SEARCH-EVIDENCE-FLOW-DESIGN.md)
+as the next planning direction. It does not label cidx secondary-only or force
+it to run first. It preserves the existing nine-field locator response and
+four-tool MCP, then separates compact candidate discovery, complete selected
+parent evidence, and only claim-required dependency/context expansion.
+
+The initial study is 30 frozen question pairs and 60 assistant turns over the
+existing approved Go, TypeScript, and TSX corpora. It is FTS-only and
+provider-free, leaves cidx use to the assistant, retains no-use treatment
+turns in the primary denominator, and records exploration through a passive,
+non-model-facing session trace. It adds no tool, database authority, session
+store, signature, neighbor metadata, dependency hint, repository, or paid
+query operation. ChatGPT and Grok both returned `FINAL_ACCEPT`; the complete
+[external review record](evidence/phase-14/assistant-search-evidence-flow-external-review.md)
+contains their corrections and cautions. The subsequent owner instruction
+opens Section 14 Step 2 only; question construction and execution remain
+separate. The phase dependency topology is unchanged.
+
+## 2026-08-22 Search-to-evidence Step 2 implementation checkpoint
+
+The owner-opened Step 2 boundary is complete. The four MCP tool names and
+input schemas are unchanged; description text now states capabilities without
+forcing cidx-first or secondary-only use. The harness writes a versioned,
+body-free passive trace only under ignored evaluation artifacts. It observes
+cidx search/read order, requested and effective FTS authority, canonical
+locators, exact source-conformant reads, ordinary repository inspection,
+attributed and unattributed output bytes, source-range overlap, no-use, and
+paired exploration. Blind-grade schema v2 adds post-turn material-claim units
+and evidence references without changing legacy v1 grades.
+
+There is no new MCP tool, public input/output field, retrieval behavior,
+production SQLite table/write, server-side conversation state, question,
+scored assistant turn, or provider operation. Temporary replay proved V3–V6
+aggregate JSON byte-identical and reports identical except for expected local
+temporary-path lines. Focused existing Go checks, script compilation, real-log
+trace/reducer probes, MCP representation preflight, schema/claim-contract
+probes, and independent code review are recorded in the
+[Step 2 implementation evidence](evidence/phase-14/assistant-search-evidence-flow-step-2-implementation.md).
+Step 3 remains a separate owner decision.
+
 - Prerequisite: reconciled locator-only `13-cli-and-mcp`
 - Followed by: v1 release-candidate validation
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 1–3 and 7–10
@@ -146,14 +180,29 @@ Read the [implementation index](README.md), [execution guide](EXECUTION-GUIDE.md
   ceiling, no read-span line cap, and environment-only `VOYAGE_API_KEY`
   forwarding.
 - Re-check that serving/package smoke does not open the source bank or lab DB, mutate host config or hooks, promise unverified platforms, or invent fixed-model/external-vector policy.
-- Re-check the frozen assistant-task controls and three product arms: existing tools only, existing tools plus lexical cidx, and existing tools plus hybrid cidx. Never force a cidx call.
+- Read the accepted
+  [search-to-evidence design](ASSISTANT-SEARCH-EVIDENCE-FLOW-DESIGN.md) and its
+  [external review](evidence/phase-14/assistant-search-evidence-flow-external-review.md)
+  before changing an assistant interface, harness, question set, or metric.
+- Preserve host choice: cidx may be first, main, occasional, or unused. In the
+  initial availability study, no-use treatment turns remain in the primary
+  denominator and cidx-user-only slices are descriptive.
+- Keep the first live session ledger passive, non-model-facing, absent from
+  product/SQLite/server state, and unable to alter ranking, tool calls, prompts,
+  or MCP behavior. Retain only a truth-free, body-free snapshot in ignored
+  local evaluation artifacts for reproducibility. Populate usefulness and
+  claim-support annotations only after blind grading.
+- Do not add signature, neighbor, or dependency metadata before the initial
+  measured first loss shows that the existing nine locators plus `read_span`
+  are insufficient.
 - Treat the forced first cidx call in diagnostic V3 as a bounded causal
   intervention only. It does not override the non-forced release-candidate
   assistant protocol above.
-- Before another diagnostic, use the stage metrics and V4 controls in the
-  locator/evidence response-contract review. Preserve current caller-selected
-  `k` semantics before any smaller-depth experiment, and do not call
-  transcript envelope bytes model-visible unless the host proves ingestion.
+- Before the 30-question study, freeze the current configured default `k=10`
+  and maximum 20, source-first questions, execution identities, pure-capability
+  tool descriptions, provider-free enforcement, and metric authorities. Do
+  not call transcript envelope bytes model-visible unless the host proves
+  ingestion.
 - If the relation completion series reaches assistant evaluation, add the
   separately frozen closure, body-free hints plus existing `read_span`, and
   closure-plus-hints development arms from
@@ -175,7 +224,11 @@ The deployment must preserve:
 - cidx does not modify host settings, register user scope, or put secrets in project config.
 - Production serve does not open the product source bank or lab DB.
 
-Release-candidate evidence must also measure cidx's marginal usefulness beside an assistant's existing file, symbol, compiler, and test tools. It does not treat a cidx-only assistant or forced cidx invocation as the product.
+Release-candidate evidence must also measure the marginal effect of making cidx
+available beside an assistant's existing file, symbol, compiler, and test
+tools. The host remains free to use cidx as its first, main, occasional, or
+unused repository-search path; forced invocation and cidx-user-only slices do
+not replace the intent-to-treat product comparison.
 
 ## Current local accepted checkpoint
 
@@ -437,8 +490,11 @@ This file defines a plan and creates no test code or release artifact.
 
 The current local darwin/arm64 implementation and operational subset is
 accepted in [current int8 package evidence](evidence/phase-14/int8-profile-package-reconciliation.md).
+The separately bounded assistant interface/trace Step 2 implementation is
+accepted in the
+[search-to-evidence Step 2 evidence](evidence/phase-14/assistant-search-evidence-flow-step-2-implementation.md).
 The remaining items below are promotion/release gates, so the phase stays
-`blocked` rather than `done`.
+open rather than `done`.
 
 - Actual supported OS/architecture artifacts and checksums.
 - Build manifest and third-party notices.
@@ -477,7 +533,9 @@ If operational feedback establishes a real requirement for permanent model pinni
 | No runtime dependency download | Preserve offline operation, reproducibility, and supply-chain boundary | An explicit plugin system is approved |
 | Fixed model versus external supply stays out of scope | Do not mix initial lab needs with long-term distribution | Real production requirements appear |
 | No speculative vector import format | Avoid unvalidated integrity/security compatibility | A separate ADR and provenance design are approved |
-| Evaluate marginal assistant value | cidx is an auxiliary tool, so existing tools remain the product baseline and cidx use must not be forced | The product role changes |
+| Evaluate marginal assistant value through host-decided availability | Existing tools remain the baseline, while the treatment makes the neutral four-tool cidx interface available without forcing or demoting it; all treatment turns stay in the intent-to-treat denominator | A later frozen intervention tests an explicit host policy |
+| Keep first-run session accounting passive and host-side | Measure duplicate exploration, evidence acquisition, and claim support without adding a server authority or changing assistant behavior | A separately approved orchestration study freezes active guidance as its sole intervention |
+| Complete Step 2 without changing the public MCP schema | Neutral descriptions plus a body-free ignored-artifact trace measure availability and evidence flow while preserving four tools, locator-only search, source-only reads, and SQLite authority | A measured first loss and separate owner decision authorize Step 3 or reopen the wire |
 | Runtime checks use disposable local state | FTS5/WAL and all embedded grammars must fail before repository mutation or production migration, without downloads or repairs | A future runtime changes the bundled dependency boundary |
 | Owner selected Apache-2.0; root license and local package checkpoint recorded | The unmodified root `LICENSE` supplies cidx's terms while third-party notices remain separate; local verification is limited to darwin/arm64 | Another release target, distribution policy, or owner terms require review |
 | CLI-only provenance report | Build facts are needed for package verification, while Phase 13's MCP `serverInfo` and four-tool surface remain frozen | The MCP version contract is separately revised |

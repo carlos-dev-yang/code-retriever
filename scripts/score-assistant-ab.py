@@ -13,6 +13,8 @@ import shlex
 import statistics
 from typing import Any
 
+import assistant_session_trace as session_trace
+
 
 ARMS = ("baseline", "cidx_fts")
 OUTCOMES = {"complete", "partial", "incorrect", "ungradable"}
@@ -106,6 +108,10 @@ def load_context(args: argparse.Namespace) -> dict[str, Any]:
     run_manifest = read_json(run_root / "run-manifest.json")
     if run_manifest.get("experiment_manifest_sha256") != sha256_file(manifest_path):
         raise ScoreError("run and experiment manifest digests differ")
+    if passive_trace_enabled(manifest):
+        trace_path = Path(__file__).resolve().with_name("assistant_session_trace.py")
+        if run_manifest.get("session_trace_protocol") != session_trace.PASSIVE_TRACE_PROTOCOL or run_manifest.get("session_trace_schema_version") != session_trace.TRACE_SCHEMA_VERSION or run_manifest.get("session_trace_builder_sha256") != sha256_file(trace_path):
+            raise ScoreError("passive trace identity does not match the runner manifest")
     bindings_raw = read_json(resolve(project_root, args.bindings))
     bindings = {
         key: resolve(project_root, value) for key, value in bindings_raw.items()
@@ -417,6 +423,17 @@ def blind_id(seed: str, task_id: str, arm: str) -> str:
     return "blind-" + hashlib.sha256(framed).hexdigest()[:12]
 
 
+def passive_trace_enabled(manifest: dict[str, Any]) -> bool:
+    return trace_protocol(manifest) == session_trace.PASSIVE_TRACE_PROTOCOL
+
+
+def trace_protocol(manifest: dict[str, Any]) -> str:
+    try:
+        return session_trace.resolve_trace_protocol(manifest)
+    except ValueError as exc:
+        raise ScoreError(str(exc)) from exc
+
+
 def prepare(context: dict[str, Any]) -> None:
     manifest = context["manifest"]
     run_root = context["run_root"]
@@ -443,17 +460,29 @@ def prepare(context: dict[str, Any]) -> None:
             answer = read_json(run_root / task_id / arm / "final.json")
             observation = read_json(run_root / task_id / arm / "observation.json")
             identifier = blind_id(seed, task_id, arm)
-            journey_records.append(
-                {
-                    "blind_id": identifier,
-                    **deterministic_journey(
+            trace_path = run_root / task_id / arm / "session-trace.json"
+            if passive_trace_enabled(manifest):
+                if not trace_path.exists():
+                    raise ScoreError(f"passive run is missing stored trace: {trace_path}")
+                trace = read_json(trace_path)
+                rebuilt = session_trace.build_session_trace(
+                    run_root / task_id / arm / "events.jsonl",
+                    run_root / task_id / arm / "final.json", root, frozen_fts_default=True,
+                )
+                if trace != rebuilt:
+                    raise ScoreError(f"stored passive trace differs from deterministic rebuild: {identifier}")
+            else:
+                journey_records.append(
+                    {"blind_id": identifier, **deterministic_journey(
                         run_root / task_id / arm / "events.jsonl",
-                        run_root / task_id / arm / "final.json",
-                        root,
-                        case,
-                    ),
-                }
-            )
+                        run_root / task_id / arm / "final.json", root, case,
+                    )}
+                )
+                trace = None
+            if trace is not None:
+                if trace.get("schema_version") != session_trace.TRACE_SCHEMA_VERSION:
+                    raise ScoreError(f"unsupported session trace schema for {identifier}")
+                journey_records.append({"blind_id": identifier, **trace})
             key["entries"][identifier] = {
                 "task_id": task_id,
                 "arm": arm,
@@ -515,12 +544,14 @@ def prepare(context: dict[str, Any]) -> None:
     write_json(
         grading_root / "journey-freeze.json",
         {
-            "schema_version": 2,
+            "schema_version": 3 if passive_trace_enabled(manifest) else 2,
             "record_count": len(journey_records),
             "journey_sha256": sha256_file(journey_path),
             "reducer_sha256": sha256_file(Path(__file__).resolve()),
             "arm_identity_present": False,
             "manual_fields_present": False,
+            "trace_contains_frozen_truth": False if passive_trace_enabled(manifest) else None,
+            "trace_contains_claim_grades": False if passive_trace_enabled(manifest) else None,
         },
     )
     write_json(grading_root / "blind-key.json", key)
@@ -538,6 +569,17 @@ def prepare(context: dict[str, Any]) -> None:
         "zero-based indices from assistant_output.evidence. Do not infer missing "
         "evidence. Return only JSON matching the supplied schema."
     )
+    if passive_trace_enabled(manifest):
+        instructions += (
+            " For every material final-answer claim, provide one stable local "
+            "claim_id, exact claim_text, observed|derived|unresolved classification, "
+            "and evidence-index support references. Observed and derived claims must "
+            "have at least one support reference; use unresolved when the cited "
+            "evidence does not support the claim. Put claim_id values, not prose, in "
+            "unsupported_claims and contradicted_claims; those two lists must be "
+            "disjoint. This post-grade annotation remains separate from required-group "
+            "coverage."
+        )
     for corpus_id, entries in packets.items():
         entries.sort(key=lambda item: hashlib.sha256(item["blind_id"].encode()).hexdigest())
         packet = {
@@ -1061,6 +1103,266 @@ def deterministic_journey(
     }
 
 
+def trace_read_item(read: dict[str, Any]) -> dict[str, Any] | None:
+    requested = read.get("requested")
+    delivered = read.get("delivered")
+    if not isinstance(requested, dict) or not isinstance(delivered, dict) or not isinstance(delivered.get("path"), str):
+        return None
+    start, end = requested.get("start_line"), requested.get("end_line")
+    if not isinstance(start, int) or not isinstance(end, int) or start < 1 or end < start:
+        return None
+    return {"path": delivered["path"], "start_line": delivered.get("start_line"), "end_line": delivered.get("end_line"), "expected_sha256": delivered.get("indexed_sha256"), "ordinal": read.get("ordinal")}
+
+
+def reduce_frozen_trace(
+    trace: dict[str, Any], root: Path, case: dict[str, Any], *, require_first_cidx_search: bool
+) -> dict[str, Any]:
+    """Join frozen mechanics with frozen truth only after blind grades exist."""
+    groups = frozen_line_groups(root, case)
+    searches = [item for item in trace.get("search_observations", []) if isinstance(item, dict)]
+    reads = [item for item in trace.get("read_observations", []) if isinstance(item, dict)]
+    actions = [item for item in trace.get("actions", []) if isinstance(item, dict)]
+    citations = [item for item in trace.get("final_citations", []) if isinstance(item, dict)]
+    searches.sort(key=lambda item: item.get("ordinal", 0))
+    reads.sort(key=lambda item: item.get("ordinal", 0))
+    actions.sort(key=lambda item: item.get("ordinal", 0))
+    locator_occurrences = [locator for search in searches for locator in search.get("locators", []) if isinstance(locator, dict)]
+    unique_locators: list[dict[str, Any]] = []
+    seen_locator_keys: set[str] = set()
+    for locator in locator_occurrences:
+        key = locator.get("key")
+        if not isinstance(key, str) or key in seen_locator_keys:
+            continue
+        seen_locator_keys.add(key)
+        unique_locators.append(locator)
+    first_locators = []
+    if searches:
+        first_seen: set[str] = set()
+        for locator in searches[0].get("locators", []):
+            if isinstance(locator, dict) and isinstance(locator.get("key"), str) and locator["key"] not in first_seen:
+                first_seen.add(locator["key"])
+                first_locators.append(locator)
+    read_attempts = [item for item in (trace_read_item(read) for read in reads) if item is not None]
+    successful_reads = []
+    for raw in reads:
+        item = trace_read_item(raw)
+        if item is not None and raw.get("success"):
+            item["delivered_source_bytes"] = int(raw.get("delivered_source_bytes", 0))
+            successful_reads.append(item)
+    selected_locators = [locator for locator in unique_locators if any(ranges_overlap(locator, read) for read in successful_reads)]
+    cited_locators = [locator for locator in unique_locators if any(ranges_overlap(locator, citation) for citation in citations)]
+    selected_keys = {locator.get("key") for locator in selected_locators}
+    cited_keys = {locator.get("key") for locator in cited_locators}
+    navigation_false_leads = [locator for locator in selected_locators if not accepted_item(locator, groups) and locator.get("key") not in cited_keys]
+    unique_reads: list[dict[str, Any]] = []
+    seen_read_keys: set[tuple[Any, ...]] = set()
+    for read in successful_reads:
+        key = range_key(read)
+        if key not in seen_read_keys:
+            seen_read_keys.add(key)
+            unique_reads.append(read)
+    accepted_reads = [read for read in successful_reads if accepted_item(read, groups)]
+    cited_reads = [read for read in unique_reads if any(ranges_overlap(read, citation) for citation in citations)]
+    evidence_false_leads = [read for read in unique_reads if not accepted_item(read, groups) and not any(ranges_overlap(read, citation) for citation in citations)]
+    gross_source_bytes = sum(read["delivered_source_bytes"] for read in successful_reads)
+    source_cache: dict[str, bytes] = {}
+    intervals: list[tuple[str, int, int]] = []
+    for read in successful_reads:
+        try:
+            source_cache.setdefault(read["path"], safe_source_path(root, read["path"]).read_bytes())
+            interval = source_line_interval(source_cache[read["path"]], read["start_line"], read["end_line"])
+        except (OSError, ScoreError):
+            interval = None
+        if interval is not None:
+            intervals.append((read["path"], interval[0], interval[1]))
+    complete_evidence_ordinal: int | None = None
+    first_complete_evidence_action: int | None = None
+    accumulated: list[dict[str, Any]] = []
+    for read in successful_reads:
+        accumulated.append(read)
+        if group_coverage(accumulated, groups) == 1.0:
+            complete_evidence_ordinal = int(read.get("ordinal", 0))
+            first_complete_evidence_action = complete_evidence_ordinal + 1
+            break
+    read_range_keys = [range_key(read) for read in read_attempts]
+    search_argument_keys = [canonical_arguments(search.get("query") and {"query": search.get("query"), "mode": search.get("requested_mode"), "k": search.get("k")}) for search in searches]
+    search_argument_keys = [key for key in search_argument_keys if key is not None]
+    search_query_keys = [(search.get("query", "").strip(), search.get("requested_mode", "fts")) for search in searches if isinstance(search.get("query"), str)]
+    first_discovery = actions[0].get("kind") if actions else None
+    first_search_policy_met = first_discovery == "cidx_search" if require_first_cidx_search else None
+    search_payloads = [item.get("payload_bytes", {}) for item in searches]
+    read_payloads = [item.get("payload_bytes", {}) for item in reads]
+    cidx_structured = sum(int(value.get("structured", 0)) for value in search_payloads + read_payloads if isinstance(value, dict))
+    cidx_text = sum(int(value.get("text", 0)) for value in search_payloads + read_payloads if isinstance(value, dict))
+    cidx_result = sum(int(value.get("event_result", 0)) for value in search_payloads + read_payloads if isinstance(value, dict))
+    shells = [item for item in trace.get("shell_observations", []) if isinstance(item, dict)]
+    ordinary_ranges = [value for shell in shells for value in shell.get("delivered_ranges", []) if isinstance(value, dict)]
+    ordinary_discovered_paths = {
+        path
+        for shell in shells
+        for path in shell.get("discovered_source_paths", [])
+        if isinstance(path, str)
+    }
+    locator_paths = {
+        locator.get("path")
+        for locator in unique_locators
+        if isinstance(locator.get("path"), str)
+    }
+    read_paths = {
+        read.get("path")
+        for read in successful_reads
+        if isinstance(read.get("path"), str)
+    }
+    visible_paths = sorted(ordinary_discovered_paths | locator_paths | read_paths)
+    ordinary_intervals: list[tuple[str, int, int]] = []
+    for value in ordinary_ranges:
+        try:
+            path = value["path"]
+            source_cache.setdefault(path, safe_source_path(root, path).read_bytes())
+            interval = source_line_interval(source_cache[path], value["start_line"], value["end_line"])
+            if interval is not None: ordinary_intervals.append((path, interval[0], interval[1]))
+        except (KeyError, OSError, ScoreError):
+            pass
+    ordinary_unique = union_interval_bytes(ordinary_intervals)
+    cidx_unique = union_interval_bytes(intervals)
+    combined_unique = union_interval_bytes(intervals + ordinary_intervals)
+    ordinary_before = (
+        sum(shell.get("ordinal", 0) < complete_evidence_ordinal for shell in shells)
+        if complete_evidence_ordinal is not None
+        else None
+    )
+    ordinary_after = (
+        sum(shell.get("ordinal", 0) > complete_evidence_ordinal for shell in shells)
+        if complete_evidence_ordinal is not None
+        else None
+    )
+    ordinary_output_bytes = sum(int(shell.get("output_bytes", 0)) for shell in shells)
+    ordinary_attributed_output_bytes = sum(
+        int(shell.get("attributed_output_bytes", 0)) for shell in shells
+    )
+    ordinary_unattributed_output_bytes = sum(
+        int(shell.get("unattributed_output_bytes", 0)) for shell in shells
+    )
+    range_attribution = (
+        "FULL"
+        if ordinary_output_bytes > 0 and ordinary_unattributed_output_bytes == 0
+        else "PARTIAL"
+        if ordinary_attributed_output_bytes > 0
+        else "NOT_OBSERVED"
+    )
+    first_cidx_action_position = next(
+        (
+            int(action.get("ordinal", 0)) + 1
+            for action in actions
+            if action.get("kind") in {"cidx_search", "cidx_read_span"}
+        ),
+        None,
+    )
+    return {
+        "schema_version": 4,
+        "first_repository_discovery_action": first_discovery,
+        "first_cidx_action_position": first_cidx_action_position,
+        "first_discovery_is_cidx_search": first_discovery == "cidx_search",
+        "repository_inspection_action_count": len(actions),
+        "shell_inspection_action_count": sum(item.get("kind") == "shell_repository_inspection" for item in actions),
+        "cidx_search_count": len(searches),
+        "cidx_read_span_count": len(reads),
+        "cidx_structured_bytes": cidx_structured,
+        "cidx_text_bytes": cidx_text,
+        "cidx_event_result_bytes": cidx_result,
+        "repository_event_output_proxy_bytes": sum(int(shell.get("output_bytes", 0)) for shell in shells) + cidx_result,
+        "visible_source_paths": visible_paths,
+        "final_cited_source_paths": sorted({citation.get("path") for citation in citations if isinstance(citation.get("path"), str)}),
+        "cidx_usage_class": "read_span" if successful_reads else ("navigation" if searches else "no_use"),
+        "orchestration_stage": {
+            "first_cidx_search_required": require_first_cidx_search,
+            "first_cidx_search_policy_met": first_search_policy_met,
+            "repeated_search_query_count": len(search_query_keys) - len(set(search_query_keys)),
+            "duplicate_search_argument_count": len(search_argument_keys) - len(set(search_argument_keys)),
+            "read_attempt_count": len(read_attempts),
+            "duplicate_read_range_count": len(read_range_keys) - len(set(read_range_keys)),
+            "overlapping_successful_read_count": sum(bool(read.get("overlaps_prior_successful_read_keys")) for read in reads if read.get("success")),
+            "effective_fts_search_count": sum(search.get("effective_mode") == "fts" for search in searches),
+            "explicit_fts_search_count": sum(
+                search.get("effective_mode_authority") == "explicit_request"
+                for search in searches
+            ),
+            "frozen_default_fts_search_count": sum(
+                search.get("effective_mode_authority") == "frozen_fts_default_config"
+                for search in searches
+            ),
+            "effective_mode_not_observed_count": sum(search.get("effective_mode") is None for search in searches),
+            "read_failure_count": sum(not read.get("success") for read in reads),
+            "read_identity_mismatch_count": sum(
+                read.get("conformance_error") == "IDENTITY_MISMATCH" for read in reads
+            ),
+            "read_source_conformance_failure_count": sum(
+                not read.get("success")
+                and read.get("conformance_error") != "READ_FAILURE"
+                for read in reads
+            ),
+            "total_repository_tool_actions": len(actions),
+        },
+        "locator_stage": {
+            "search_count": len(searches),
+            "refined_search_count": max(0, len(searches) - 1),
+            "refinement_reason_observability": (
+                "NOT_OBSERVED" if len(searches) > 1 else "NOT_APPLICABLE"
+            ),
+            "locator_occurrence_count": len(locator_occurrences),
+            "unique_locator_count": len(unique_locators),
+            "first_search_requirement_coverage_at_k": group_coverage(first_locators, groups),
+            "complete_first_search_locator_hit_at_k": group_coverage(first_locators, groups) == 1.0,
+            "any_search_requirement_coverage": group_coverage(unique_locators, groups),
+            "first_useful_locator_rank": next((rank for rank, locator in enumerate(first_locators, start=1) if accepted_item(locator, groups)), None),
+            "duplicate_locator_exposure_rate": ratio_or_none(len(locator_occurrences) - len(unique_locators), len(locator_occurrences)),
+            "locator_selection_utilization": ratio_or_none(len(selected_keys), len(unique_locators)),
+            "locator_citation_utilization": ratio_or_none(len(cited_keys), len(unique_locators)),
+            "navigation_false_lead_rate": ratio_or_none(len(navigation_false_leads), len(selected_locators)),
+            "structured_bytes": sum(int(value.get("structured", 0)) for value in search_payloads if isinstance(value, dict)),
+            "text_bytes": sum(int(value.get("text", 0)) for value in search_payloads if isinstance(value, dict)),
+            "event_result_bytes": sum(int(value.get("event_result", 0)) for value in search_payloads if isinstance(value, dict)),
+            "source_bytes": 0,
+        },
+        "evidence_stage": {
+            "read_span_count": len(reads),
+            "successful_read_span_count": len(successful_reads),
+            "unique_read_range_count": len(unique_reads),
+            "evidence_requirement_coverage": group_coverage(unique_reads, groups),
+            "complete_evidence_hit": group_coverage(unique_reads, groups) == 1.0,
+            "read_span_precision": ratio_or_none(len(accepted_reads), len(successful_reads)),
+            "evidence_citation_utilization": ratio_or_none(len(cited_reads), len(unique_reads)),
+            "evidence_false_lead_rate": ratio_or_none(len(evidence_false_leads), len(unique_reads)),
+            "gross_source_bytes": gross_source_bytes,
+            "unique_source_bytes": union_interval_bytes(intervals),
+            "redundant_evidence_ratio": ratio_or_none(max(0, gross_source_bytes - union_interval_bytes(intervals)), gross_source_bytes),
+            "first_inspection_action_with_complete_evidence": first_complete_evidence_action,
+            "structured_bytes": sum(int(value.get("structured", 0)) for value in read_payloads if isinstance(value, dict)),
+            "text_bytes": sum(int(value.get("text", 0)) for value in read_payloads if isinstance(value, dict)),
+            "event_result_bytes": sum(int(value.get("event_result", 0)) for value in read_payloads if isinstance(value, dict)),
+        },
+        "exploration_stage": {
+            "observability": "PARTIAL",
+            "ordinary_inspection_action_count": len(shells),
+            "ordinary_output_bytes": ordinary_output_bytes,
+            "ordinary_attributed_output_bytes": ordinary_attributed_output_bytes,
+            "ordinary_unattributed_output_bytes": ordinary_unattributed_output_bytes,
+            "ordinary_range_attribution": range_attribution,
+            "ordinary_discovered_source_path_count": len(ordinary_discovered_paths),
+            "ordinary_attributed_range_count": len(ordinary_ranges),
+            "ordinary_unique_source_bytes": ordinary_unique,
+            "cidx_unique_source_bytes": cidx_unique,
+            "combined_unique_source_bytes": combined_unique,
+            "cidx_ordinary_reacquired_bytes": cidx_unique + ordinary_unique - combined_unique,
+            "ordinary_inspections_before_complete_cidx_evidence": ordinary_before,
+            "ordinary_inspections_after_complete_cidx_evidence": ordinary_after,
+            "total_repository_tool_actions": len(actions),
+            "named_parent_attribution": "NOT_OBSERVED",
+            "named_parent_reason": "ordinary_tool_output_has_no_canonical_parent_identity",
+        },
+    }
+
+
 def load_frozen_journey(run_root: Path) -> dict[str, dict[str, Any]]:
     path = run_root / "grading" / "journey-frozen.jsonl"
     freeze = read_json(run_root / "grading" / "journey-freeze.json")
@@ -1078,6 +1380,10 @@ def load_frozen_journey(run_root: Path) -> dict[str, dict[str, Any]]:
 
 def median(values: list[float | int]) -> float | None:
     return statistics.median(values) if values else None
+
+
+def display_number(value: float | int | None, digits: int = 3) -> str:
+    return f"{value:.{digits}f}" if value is not None else "NOT_OBSERVED"
 
 
 def ratio(numerator: int | float, denominator: int | float) -> float | None:
@@ -1099,7 +1405,9 @@ def bootstrap_median_interval(values: list[float], seed: str) -> list[float] | N
 
 
 def paired_group_summary(
-    pairs: list[dict[str, Any]], labels: list[str]
+    pairs: list[dict[str, Any]],
+    labels: list[str],
+    protocol: str,
 ) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for label in sorted(set(labels)):
@@ -1119,17 +1427,24 @@ def paired_group_summary(
             for pair in dual
             if pair["paired"]["model_total_ratio"] is not None
         ]
-        output_proxy_ratios = [
-            ratio(
-                pair["cidx_fts"]["journey"][
-                    "repository_event_output_proxy_bytes"
-                ],
-                pair["baseline"]["journey"][
-                    "repository_event_output_proxy_bytes"
-                ],
-            )
-            for pair in dual
-        ]
+        if protocol == "legacy-v3":
+            output_proxy_ratios = [
+                ratio(
+                    pair["cidx_fts"]["journey"]["model_visible_repository_output_bytes"],
+                    pair["baseline"]["journey"]["model_visible_repository_output_bytes"],
+                )
+                for pair in dual
+            ]
+            output_ratio_key = "visible_output_bytes_ratio_median"
+        else:
+            output_proxy_ratios = [
+                ratio(
+                    pair["cidx_fts"]["journey"].get("repository_event_output_proxy_bytes", 0),
+                    pair["baseline"]["journey"].get("repository_event_output_proxy_bytes", 0),
+                )
+                for pair in dual
+            ]
+            output_ratio_key = "event_output_proxy_ratio_median"
         result[label] = {
             "task_count": len(members),
             "baseline_complete": sum(
@@ -1151,10 +1466,29 @@ def paired_group_summary(
                     for pair in dual
                 ]
             ),
-            "event_output_proxy_ratio_median": median(
+            output_ratio_key: median(
                 [value for value in output_proxy_ratios if value is not None]
             ),
         }
+        if protocol == session_trace.PASSIVE_TRACE_PROTOCOL:
+            first_positions = [
+                pair["cidx_fts"]["journey"].get("first_cidx_action_position")
+                for pair in members
+                if pair["cidx_fts"]["journey"].get("first_cidx_action_position")
+                is not None
+            ]
+            result[label].update(
+                {
+                    "cidx_adoption_tasks": sum(
+                        pair["cidx_fts"]["mcp_call_count"] > 0 for pair in members
+                    ),
+                    "cidx_search_adoption_tasks": sum(
+                        pair["cidx_fts"]["journey"]["cidx_search_count"] > 0
+                        for pair in members
+                    ),
+                    "first_cidx_action_position_median": median(first_positions),
+                }
+            )
     return result
 
 
@@ -1163,24 +1497,125 @@ def mean_present(values: list[float | int | None]) -> float | None:
     return statistics.mean(present) if present else None
 
 
-def assistant_stage_summary(pairs: list[dict[str, Any]]) -> dict[str, Any]:
-    locator = [pair["cidx_fts"]["journey"]["locator_stage"] for pair in pairs]
-    evidence = [pair["cidx_fts"]["journey"]["evidence_stage"] for pair in pairs]
-    orchestration = [
-        pair["cidx_fts"]["journey"]["orchestration_stage"] for pair in pairs
+def exploration_arm_summary(journeys: list[dict[str, Any]]) -> dict[str, Any]:
+    stages = [journey.get("exploration_stage", {}) for journey in journeys]
+    before = [
+        item.get("ordinary_inspections_before_complete_cidx_evidence")
+        for item in stages
+        if item.get("ordinary_inspections_before_complete_cidx_evidence") is not None
+    ]
+    after = [
+        item.get("ordinary_inspections_after_complete_cidx_evidence")
+        for item in stages
+        if item.get("ordinary_inspections_after_complete_cidx_evidence") is not None
     ]
     return {
+        "task_count": len(stages),
+        "ordinary_inspection_action_count": sum(
+            int(item.get("ordinary_inspection_action_count", 0)) for item in stages
+        ),
+        "ordinary_output_bytes": sum(
+            int(item.get("ordinary_output_bytes", 0)) for item in stages
+        ),
+        "ordinary_attributed_output_bytes": sum(
+            int(item.get("ordinary_attributed_output_bytes", 0)) for item in stages
+        ),
+        "ordinary_unattributed_output_bytes": sum(
+            int(item.get("ordinary_unattributed_output_bytes", 0)) for item in stages
+        ),
+        "ordinary_full_range_attribution_task_count": sum(
+            item.get("ordinary_range_attribution") == "FULL" for item in stages
+        ),
+        "ordinary_partial_range_attribution_task_count": sum(
+            item.get("ordinary_range_attribution") == "PARTIAL" for item in stages
+        ),
+        "ordinary_range_not_observed_task_count": sum(
+            item.get("ordinary_range_attribution") == "NOT_OBSERVED"
+            for item in stages
+        ),
+        "ordinary_discovered_source_path_count": sum(
+            int(item.get("ordinary_discovered_source_path_count", 0))
+            for item in stages
+        ),
+        "ordinary_attributed_range_count": sum(
+            int(item.get("ordinary_attributed_range_count", 0)) for item in stages
+        ),
+        "ordinary_unique_source_bytes": sum(
+            int(item.get("ordinary_unique_source_bytes", 0)) for item in stages
+        ),
+        "cidx_unique_source_bytes": sum(
+            int(item.get("cidx_unique_source_bytes", 0)) for item in stages
+        ),
+        "combined_unique_source_bytes": sum(
+            int(item.get("combined_unique_source_bytes", 0)) for item in stages
+        ),
+        "cidx_ordinary_reacquired_bytes": sum(
+            int(item.get("cidx_ordinary_reacquired_bytes", 0)) for item in stages
+        ),
+        "total_repository_tool_actions": sum(
+            int(item.get("total_repository_tool_actions", 0)) for item in stages
+        ),
+        "complete_cidx_evidence_timing_observed_count": len(before),
+        "ordinary_inspections_before_complete_cidx_evidence": sum(before),
+        "ordinary_inspections_after_complete_cidx_evidence": sum(after),
+        "visible_source_path_count_task_sum": sum(
+            len(journey.get("visible_source_paths", [])) for journey in journeys
+        ),
+        "named_parent_attribution": "NOT_OBSERVED",
+    }
+
+
+def assistant_stage_summary(
+    pairs: list[dict[str, Any]],
+    protocol: str,
+) -> dict[str, Any]:
+    journeys = [pair["cidx_fts"]["journey"] for pair in pairs]
+    if protocol == "legacy-v4":
+        compatible = []
+        for pair in pairs:
+            clone = dict(pair)
+            treatment = dict(pair["cidx_fts"])
+            journey = dict(treatment["journey"])
+            journey["orchestration_stage"] = {
+                "mechanically_adherent": False,
+                "first_search_max_inline_zero": False,
+                "search_count_within_two": False,
+                "repeated_search_query_count": 0,
+                "duplicate_search_argument_count": 0,
+                "duplicate_read_range_count": 0,
+                "invalid_range_read_count": 0,
+                "exact_locator_range_read_count": 0,
+                "nonexact_locator_range_read_count": 0,
+                "exact_locator_range_read_rate": None,
+                "initial_source_read_count": 0,
+                "exact_initial_locator_range_read_count": 0,
+                "nonexact_initial_locator_range_read_count": 0,
+                "exact_initial_locator_range_read_rate": None,
+                "stopped_after_complete_evidence": None,
+                "inspection_actions_after_complete_evidence": None,
+            }
+            treatment["journey"] = journey
+            clone["cidx_fts"] = treatment
+            compatible.append(clone)
+        result = legacy_assistant_stage_summary(compatible)
+        result.pop("orchestration", None)
+        return result
+    if protocol in {"legacy-v5", "legacy-v6"}:
+        return legacy_assistant_stage_summary(pairs)
+    if protocol != session_trace.PASSIVE_TRACE_PROTOCOL:
+        raise ScoreError(f"stage summary is unavailable for protocol: {protocol}")
+    locator = [journey["locator_stage"] for journey in journeys if journey["locator_stage"]["search_count"] > 0]
+    evidence = [journey["evidence_stage"] for journey in journeys if journey["evidence_stage"]["read_span_count"] > 0]
+    baseline_journeys = [pair["baseline"]["journey"] for pair in pairs]
+    orchestration = [journey["orchestration_stage"] for journey in journeys]
+    return {
         "orchestration": {
-            "task_count": len(orchestration),
-            "mechanically_adherent_task_count": sum(
-                item["mechanically_adherent"] for item in orchestration
+            "treatment_task_count": len(orchestration),
+            "first_cidx_search_required": all(item["first_cidx_search_required"] for item in orchestration),
+            "first_cidx_search_policy_eligible_task_count": sum(
+                item["first_cidx_search_required"] for item in orchestration
             ),
-            "first_search_max_inline_zero_count": sum(
-                item["first_search_max_inline_zero"] for item in orchestration
-            ),
-            "search_count_within_two_count": sum(
-                item["search_count_within_two"] for item in orchestration
-            ),
+            "first_cidx_search_policy_met_count": sum(item["first_cidx_search_policy_met"] is True for item in orchestration),
             "repeated_search_query_count": sum(
                 item["repeated_search_query_count"] for item in orchestration
             ),
@@ -1190,47 +1625,33 @@ def assistant_stage_summary(pairs: list[dict[str, Any]]) -> dict[str, Any]:
             "duplicate_read_range_count": sum(
                 item["duplicate_read_range_count"] for item in orchestration
             ),
-            "invalid_range_read_count": sum(
-                item["invalid_range_read_count"] for item in orchestration
+            "overlapping_successful_read_count": sum(item["overlapping_successful_read_count"] for item in orchestration),
+            "effective_fts_search_count": sum(item["effective_fts_search_count"] for item in orchestration),
+            "explicit_fts_search_count": sum(
+                item["explicit_fts_search_count"] for item in orchestration
             ),
-            "exact_locator_range_read_count": sum(
-                item["exact_locator_range_read_count"] for item in orchestration
+            "frozen_default_fts_search_count": sum(
+                item["frozen_default_fts_search_count"] for item in orchestration
             ),
-            "nonexact_locator_range_read_count": sum(
-                item["nonexact_locator_range_read_count"] for item in orchestration
+            "effective_mode_not_observed_count": sum(item["effective_mode_not_observed_count"] for item in orchestration),
+            "read_failure_count": sum(item["read_failure_count"] for item in orchestration),
+            "read_identity_mismatch_count": sum(
+                item["read_identity_mismatch_count"] for item in orchestration
             ),
-            "exact_locator_range_read_rate_macro": mean_present(
-                [item["exact_locator_range_read_rate"] for item in orchestration]
-            ),
-            "initial_source_read_count": sum(
-                item["initial_source_read_count"] for item in orchestration
-            ),
-            "exact_initial_locator_range_read_count": sum(
-                item["exact_initial_locator_range_read_count"]
-                for item in orchestration
-            ),
-            "nonexact_initial_locator_range_read_count": sum(
-                item["nonexact_initial_locator_range_read_count"]
-                for item in orchestration
-            ),
-            "exact_initial_locator_range_read_rate_macro": mean_present(
-                [
-                    item["exact_initial_locator_range_read_rate"]
-                    for item in orchestration
-                ]
-            ),
-            "stopped_after_complete_evidence_count": sum(
-                item["stopped_after_complete_evidence"] is True
-                for item in orchestration
-            ),
-            "inspection_actions_after_complete_evidence": sum(
-                item["inspection_actions_after_complete_evidence"] or 0
-                for item in orchestration
+            "read_source_conformance_failure_count": sum(
+                item["read_source_conformance_failure_count"] for item in orchestration
             ),
         },
         "locator": {
-            "task_count": len(locator),
+            "cidx_search_task_count": len(locator),
+            "no_search_treatment_task_count": len(journeys) - len(locator),
             "search_count": sum(item["search_count"] for item in locator),
+            "refined_search_count": sum(item["refined_search_count"] for item in locator),
+            "refinement_reason_observability": (
+                "NOT_OBSERVED"
+                if any(item["refined_search_count"] > 0 for item in locator)
+                else "NOT_APPLICABLE"
+            ),
             "locator_occurrence_count": sum(
                 item["locator_occurrence_count"] for item in locator
             ),
@@ -1268,13 +1689,11 @@ def assistant_stage_summary(pairs: list[dict[str, Any]]) -> dict[str, Any]:
             "structured_bytes": sum(item["structured_bytes"] for item in locator),
             "text_bytes": sum(item["text_bytes"] for item in locator),
             "event_result_bytes": sum(item["event_result_bytes"] for item in locator),
-            "both_representation_call_count": sum(
-                item["both_representation_call_count"] for item in locator
-            ),
             "source_bytes": sum(item["source_bytes"] for item in locator),
         },
         "evidence": {
-            "task_count": len(evidence),
+            "read_span_task_count": len(evidence),
+            "no_read_treatment_task_count": len(journeys) - len(evidence),
             "read_span_count": sum(item["read_span_count"] for item in evidence),
             "successful_read_span_count": sum(
                 item["successful_read_span_count"] for item in evidence
@@ -1302,11 +1721,278 @@ def assistant_stage_summary(pairs: list[dict[str, Any]]) -> dict[str, Any]:
             "structured_bytes": sum(item["structured_bytes"] for item in evidence),
             "text_bytes": sum(item["text_bytes"] for item in evidence),
             "event_result_bytes": sum(item["event_result_bytes"] for item in evidence),
-            "both_representation_call_count": sum(
-                item["both_representation_call_count"] for item in evidence
-            ),
+        },
+        "exploration": {
+            "baseline": exploration_arm_summary(baseline_journeys),
+            "cidx_fts": exploration_arm_summary(journeys),
+            "paired": {
+                "combined_unique_source_bytes_difference_sum": sum(
+                    pair["cidx_fts"]["journey"]["exploration_stage"]["combined_unique_source_bytes"]
+                    - pair["baseline"]["journey"]["exploration_stage"]["combined_unique_source_bytes"]
+                    for pair in pairs
+                ),
+                "combined_unique_source_bytes_difference_median": median(
+                    [
+                        pair["cidx_fts"]["journey"]["exploration_stage"]["combined_unique_source_bytes"]
+                        - pair["baseline"]["journey"]["exploration_stage"]["combined_unique_source_bytes"]
+                        for pair in pairs
+                    ]
+                ),
+                "repository_tool_action_difference_sum": sum(
+                    pair["paired"]["repository_inspection_action_difference"]
+                    for pair in pairs
+                ),
+                "repository_tool_action_difference_median": median(
+                    [
+                        pair["paired"]["repository_inspection_action_difference"]
+                        for pair in pairs
+                    ]
+                ),
+                "visible_source_path_difference_sum": sum(
+                    pair["paired"]["visible_source_path_difference"] for pair in pairs
+                ),
+                "visible_source_path_difference_median": median(
+                    [pair["paired"]["visible_source_path_difference"] for pair in pairs]
+                ),
+                "repository_event_output_proxy_bytes_difference_sum": sum(
+                    pair["paired"]["repository_event_output_proxy_bytes_difference"]
+                    for pair in pairs
+                ),
+                "repository_event_output_proxy_bytes_difference_median": median(
+                    [
+                        pair["paired"]["repository_event_output_proxy_bytes_difference"]
+                        for pair in pairs
+                    ]
+                ),
+            },
         },
     }
+
+
+def legacy_assistant_stage_summary(pairs: list[dict[str, Any]]) -> dict[str, Any]:
+    """Frozen V3-V6 presentation, retained byte-for-byte in metric meaning."""
+    locator = [pair["cidx_fts"]["journey"]["locator_stage"] for pair in pairs]
+    evidence = [pair["cidx_fts"]["journey"]["evidence_stage"] for pair in pairs]
+    orchestration = [pair["cidx_fts"]["journey"]["orchestration_stage"] for pair in pairs]
+    return {
+        "orchestration": {
+            "task_count": len(orchestration),
+            "mechanically_adherent_task_count": sum(item["mechanically_adherent"] for item in orchestration),
+            "first_search_max_inline_zero_count": sum(item["first_search_max_inline_zero"] for item in orchestration),
+            "search_count_within_two_count": sum(item["search_count_within_two"] for item in orchestration),
+            "repeated_search_query_count": sum(item["repeated_search_query_count"] for item in orchestration),
+            "duplicate_search_argument_count": sum(item["duplicate_search_argument_count"] for item in orchestration),
+            "duplicate_read_range_count": sum(item["duplicate_read_range_count"] for item in orchestration),
+            "invalid_range_read_count": sum(item["invalid_range_read_count"] for item in orchestration),
+            "exact_locator_range_read_count": sum(item["exact_locator_range_read_count"] for item in orchestration),
+            "nonexact_locator_range_read_count": sum(item["nonexact_locator_range_read_count"] for item in orchestration),
+            "exact_locator_range_read_rate_macro": mean_present([item["exact_locator_range_read_rate"] for item in orchestration]),
+            "initial_source_read_count": sum(item["initial_source_read_count"] for item in orchestration),
+            "exact_initial_locator_range_read_count": sum(item["exact_initial_locator_range_read_count"] for item in orchestration),
+            "nonexact_initial_locator_range_read_count": sum(item["nonexact_initial_locator_range_read_count"] for item in orchestration),
+            "exact_initial_locator_range_read_rate_macro": mean_present([item["exact_initial_locator_range_read_rate"] for item in orchestration]),
+            "stopped_after_complete_evidence_count": sum(item["stopped_after_complete_evidence"] is True for item in orchestration),
+            "inspection_actions_after_complete_evidence": sum(item["inspection_actions_after_complete_evidence"] or 0 for item in orchestration),
+        },
+        "locator": {
+            "task_count": len(locator), "search_count": sum(item["search_count"] for item in locator),
+            "locator_occurrence_count": sum(item["locator_occurrence_count"] for item in locator),
+            "unique_locator_count_sum": sum(item["unique_locator_count"] for item in locator),
+            "complete_first_search_locator_hit_count": sum(item["complete_first_search_locator_hit_at_k"] for item in locator),
+            "first_search_requirement_coverage_macro": mean_present([item["first_search_requirement_coverage_at_k"] for item in locator]),
+            "any_search_requirement_coverage_macro": mean_present([item["any_search_requirement_coverage"] for item in locator]),
+            "first_useful_locator_rank_median": median([item["first_useful_locator_rank"] for item in locator if item["first_useful_locator_rank"] is not None]),
+            "duplicate_locator_exposure_rate_macro": mean_present([item["duplicate_locator_exposure_rate"] for item in locator]),
+            "locator_selection_utilization_macro": mean_present([item["locator_selection_utilization"] for item in locator]),
+            "locator_citation_utilization_macro": mean_present([item["locator_citation_utilization"] for item in locator]),
+            "navigation_false_lead_rate_macro": mean_present([item["navigation_false_lead_rate"] for item in locator]),
+            "structured_bytes": sum(item["structured_bytes"] for item in locator), "text_bytes": sum(item["text_bytes"] for item in locator),
+            "event_result_bytes": sum(item["event_result_bytes"] for item in locator),
+            "both_representation_call_count": sum(item["both_representation_call_count"] for item in locator), "source_bytes": sum(item["source_bytes"] for item in locator),
+        },
+        "evidence": {
+            "task_count": len(evidence), "read_span_count": sum(item["read_span_count"] for item in evidence),
+            "successful_read_span_count": sum(item["successful_read_span_count"] for item in evidence),
+            "complete_evidence_hit_count": sum(item["complete_evidence_hit"] for item in evidence),
+            "evidence_requirement_coverage_macro": mean_present([item["evidence_requirement_coverage"] for item in evidence]),
+            "read_span_precision_macro": mean_present([item["read_span_precision"] for item in evidence]),
+            "evidence_citation_utilization_macro": mean_present([item["evidence_citation_utilization"] for item in evidence]),
+            "evidence_false_lead_rate_macro": mean_present([item["evidence_false_lead_rate"] for item in evidence]),
+            "redundant_evidence_ratio_macro": mean_present([item["redundant_evidence_ratio"] for item in evidence]),
+            "gross_source_bytes": sum(item["gross_source_bytes"] for item in evidence), "unique_source_bytes": sum(item["unique_source_bytes"] for item in evidence),
+            "structured_bytes": sum(item["structured_bytes"] for item in evidence), "text_bytes": sum(item["text_bytes"] for item in evidence),
+            "event_result_bytes": sum(item["event_result_bytes"] for item in evidence),
+            "both_representation_call_count": sum(item["both_representation_call_count"] for item in evidence),
+        },
+    }
+
+
+def valid_source_evidence_indices(
+    root: Path,
+    answer_evidence: list[Any],
+) -> set[int]:
+    """Return only citations that resolve to a valid source excerpt."""
+    return {
+        index
+        for index, evidence in enumerate(answer_evidence)
+        if isinstance(evidence, dict)
+        and "source_excerpt" in line_excerpt(root, evidence)
+    }
+
+
+def validate_passive_grade(
+    context: dict[str, Any],
+    key: dict[str, Any],
+    identifier: str,
+    grade: dict[str, Any],
+) -> None:
+    expected_grade_keys = {
+        "blind_id",
+        "outcome",
+        "required_groups",
+        "unsupported_claims",
+        "contradicted_claims",
+        "rationale",
+        "material_claims",
+    }
+    if set(grade) != expected_grade_keys:
+        raise ScoreError(f"invalid grade fields for {identifier}")
+
+    claims = grade.get("material_claims")
+    required_groups = grade.get("required_groups")
+    rationale = grade.get("rationale")
+    if (
+        not isinstance(claims, list)
+        or not isinstance(required_groups, list)
+        or not isinstance(rationale, str)
+        or not rationale
+    ):
+        raise ScoreError(f"missing material claims for {identifier}")
+
+    mapping = key["entries"][identifier]
+    answer_evidence = read_json(
+        context["run_root"]
+        / mapping["task_id"]
+        / mapping["arm"]
+        / "final.json"
+    ).get("evidence", [])
+    if not isinstance(answer_evidence, list):
+        raise ScoreError(f"invalid final evidence for {identifier}")
+    valid_evidence = valid_source_evidence_indices(
+        context["bindings"][mapping["corpus_id"]],
+        answer_evidence,
+    )
+
+    group_ids: set[str] = set()
+    for group in required_groups:
+        evidence_indices = (
+            group.get("evidence_indices") if isinstance(group, dict) else None
+        )
+        if (
+            not isinstance(group, dict)
+            or set(group) != {"group_id", "status", "evidence_indices"}
+            or not isinstance(group.get("group_id"), str)
+            or not group["group_id"]
+            or group["group_id"] in group_ids
+            or group.get("status")
+            not in {"covered", "missing", "invalid_evidence"}
+            or not isinstance(evidence_indices, list)
+            or any(
+                type(index) is not int
+                or index < 0
+                or index >= len(answer_evidence)
+                or index not in valid_evidence
+                for index in evidence_indices
+            )
+            or len(set(evidence_indices)) != len(evidence_indices)
+        ):
+            raise ScoreError(f"invalid required-group grade for {identifier}")
+        group_ids.add(group["group_id"])
+
+    matching_tasks = [
+        task
+        for task in context["manifest"]["tasks"]
+        if task.get("task_id") == mapping["task_id"]
+        and task.get("corpus_id") == mapping["corpus_id"]
+    ]
+    if len(matching_tasks) != 1:
+        raise ScoreError(f"blind entry does not map to one task: {identifier}")
+    task = matching_tasks[0]
+    case = context["sources"][task["question_source_index"]].get(
+        mapping["task_id"]
+    )
+    if not isinstance(case, dict):
+        raise ScoreError(f"blind entry lacks frozen question truth: {identifier}")
+    expected_group_ids = {
+        group.get("id")
+        for group in case.get("required_groups", [])
+        if isinstance(group, dict) and isinstance(group.get("id"), str)
+    }
+    if group_ids != expected_group_ids:
+        raise ScoreError(f"grade group mismatch for {identifier}")
+
+    claim_ids: set[str] = set()
+    for claim in claims:
+        if (
+            not isinstance(claim, dict)
+            or set(claim)
+            != {
+                "claim_id",
+                "claim_text",
+                "classification",
+                "support_references",
+            }
+            or not isinstance(claim.get("claim_id"), str)
+            or not claim["claim_id"]
+            or claim["claim_id"] in claim_ids
+            or not isinstance(claim.get("claim_text"), str)
+            or not claim["claim_text"]
+            or claim.get("classification")
+            not in {"observed", "derived", "unresolved"}
+            or not isinstance(claim.get("support_references"), list)
+        ):
+            raise ScoreError(f"invalid material claim for {identifier}")
+        if (
+            claim["classification"] in {"observed", "derived"}
+            and not claim["support_references"]
+        ):
+            raise ScoreError(
+                f"supported material claim has no reference for {identifier}"
+            )
+        reference_indices: list[int] = []
+        for reference in claim["support_references"]:
+            if (
+                not isinstance(reference, dict)
+                or set(reference) != {"evidence_index"}
+                or type(reference["evidence_index"]) is not int
+                or reference["evidence_index"] < 0
+                or reference["evidence_index"] >= len(answer_evidence)
+                or reference["evidence_index"] not in valid_evidence
+            ):
+                raise ScoreError(
+                    f"invalid material claim support reference for {identifier}"
+                )
+            reference_indices.append(reference["evidence_index"])
+        if len(set(reference_indices)) != len(reference_indices):
+            raise ScoreError(
+                f"duplicate material claim support reference for {identifier}"
+            )
+        claim_ids.add(claim["claim_id"])
+
+    unsupported = grade.get("unsupported_claims")
+    contradicted = grade.get("contradicted_claims")
+    if not isinstance(unsupported, list) or not isinstance(contradicted, list):
+        raise ScoreError(f"invalid claim finding lists for {identifier}")
+    if (
+        any(not isinstance(value, str) for value in unsupported + contradicted)
+        or len(set(unsupported)) != len(unsupported)
+        or len(set(contradicted)) != len(contradicted)
+        or not set(unsupported + contradicted).issubset(claim_ids)
+        or set(unsupported) & set(contradicted)
+    ):
+        raise ScoreError(
+            f"claim finding does not map to material claims for {identifier}"
+        )
 
 
 def load_grades(context: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -1316,7 +2002,11 @@ def load_grades(context: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]
     for corpus in context["manifest"]["corpora"]:
         corpus_id = corpus["corpus_id"]
         payload = read_json(grading_root / f"grades-{corpus_id}.json")
-        if payload.get("schema_version") != 1 or payload.get("corpus_id") != corpus_id:
+        allowed_versions = {2} if passive_trace_enabled(context["manifest"]) else {1}
+        if (
+            payload.get("schema_version") not in allowed_versions
+            or payload.get("corpus_id") != corpus_id
+        ):
             raise ScoreError(f"wrong grade envelope for {corpus_id}")
         for grade in payload.get("grades", []):
             identifier = grade.get("blind_id")
@@ -1324,6 +2014,8 @@ def load_grades(context: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]
                 raise ScoreError(f"unknown or duplicate blind id: {identifier}")
             if grade.get("outcome") not in OUTCOMES:
                 raise ScoreError(f"invalid outcome: {grade}")
+            if payload.get("schema_version") == 2:
+                validate_passive_grade(context, key, identifier, grade)
             grades[identifier] = grade
     if set(grades) != set(key["entries"]):
         raise ScoreError("blind grading does not cover the full run")
@@ -1354,9 +2046,17 @@ def aggregate(context: dict[str, Any]) -> None:
         if actual_groups != expected_groups:
             raise ScoreError(f"grade group mismatch for {identifier}")
         grade_by_cell[(mapping["task_id"], mapping["arm"])] = grade
-        journey_by_cell[(mapping["task_id"], mapping["arm"])] = frozen_journey[
-            identifier
-        ]
+        if passive_trace_enabled(manifest):
+            journey_by_cell[(mapping["task_id"], mapping["arm"])] = reduce_frozen_trace(
+                frozen_journey[identifier],
+                context["bindings"][mapping["corpus_id"]],
+                case,
+                require_first_cidx_search=context["manifest"].get("controls", {}).get(
+                    "require_first_cidx_search", True
+                ),
+            )
+        else:
+            journey_by_cell[(mapping["task_id"], mapping["arm"])] = frozen_journey[identifier]
 
     pairs = []
     arm_counts = {arm: {outcome: 0 for outcome in OUTCOMES} for arm in ARMS}
@@ -1428,12 +2128,8 @@ def aggregate(context: dict[str, Any]) -> None:
                         - baseline["journey"]["repository_inspection_action_count"]
                     ),
                     "repository_event_output_proxy_bytes_difference": (
-                        treatment["journey"][
-                            "repository_event_output_proxy_bytes"
-                        ]
-                        - baseline["journey"][
-                            "repository_event_output_proxy_bytes"
-                        ]
+                        treatment["journey"].get("repository_event_output_proxy_bytes", 0)
+                        - baseline["journey"].get("repository_event_output_proxy_bytes", 0)
                     ),
                 },
             }
@@ -1512,6 +2208,24 @@ def aggregate(context: dict[str, Any]) -> None:
         }
     )
     language_labels = sorted({pair["language"] for pair in pairs})
+    claim_support: dict[str, dict[str, Any]] = {}
+    for arm in ARMS:
+        grades = [pair[arm]["grade"] for pair in pairs]
+        claim_rows = [claim for grade in grades for claim in grade.get("material_claims", []) if isinstance(claim, dict)]
+        claim_support[arm] = {
+            "status": "OBSERVED" if any("material_claims" in grade for grade in grades) else "NOT_OBSERVED",
+            "material_claim_count": len(claim_rows),
+            "observed_count": sum(claim.get("classification") == "observed" for claim in claim_rows),
+            "derived_count": sum(claim.get("classification") == "derived" for claim in claim_rows),
+            "unresolved_count": sum(claim.get("classification") == "unresolved" for claim in claim_rows),
+            "claims_with_support_references": sum(bool(claim.get("support_references")) for claim in claim_rows),
+            "support_reference_count": sum(len(claim.get("support_references", [])) for claim in claim_rows),
+            "unsupported_claim_count": sum(len(grade.get("unsupported_claims", [])) for grade in grades),
+            "contradicted_claim_count": sum(len(grade.get("contradicted_claims", [])) for grade in grades),
+            "unsupported_claim_rate": ratio_or_none(sum(len(grade.get("unsupported_claims", [])) for grade in grades), len(claim_rows)),
+            "unsupported_claim_rate_status": "OBSERVED" if claim_rows else "NOT_OBSERVED",
+        }
+    protocol = trace_protocol(manifest)
     aggregate_value = {
         "schema_version": 1,
         "run_id": context["run_manifest"]["run_id"],
@@ -1566,11 +2280,27 @@ def aggregate(context: dict[str, Any]) -> None:
             ) if enough else "INSUFFICIENT_DENOMINATOR",
             "optional_tool_value_observed": cidx_calls > 0,
         },
-        "assistant_stages": assistant_stage_summary(pairs),
         "journey_freeze": read_json(grading_root / "journey-freeze.json"),
-        "by_critical_cohort": paired_group_summary(pairs, critical_labels),
-        "by_language": paired_group_summary(pairs, language_labels),
+        "by_critical_cohort": paired_group_summary(pairs, critical_labels, protocol),
+        "by_language": paired_group_summary(pairs, language_labels, protocol),
     }
+    if protocol != "legacy-v3":
+        aggregate_value["assistant_stages"] = assistant_stage_summary(pairs, protocol)
+    if protocol == session_trace.PASSIVE_TRACE_PROTOCOL:
+        aggregate_value["answer_claim_support"] = claim_support
+        no_use_pairs = [
+            pair for pair in pairs if pair["cidx_fts"]["mcp_call_count"] == 0
+        ]
+        aggregate_value["cidx_no_use_outcomes"] = {
+            "task_count": len(no_use_pairs),
+            **{
+                outcome: sum(
+                    pair["cidx_fts"]["grade"]["outcome"] == outcome
+                    for pair in no_use_pairs
+                )
+                for outcome in sorted(OUTCOMES)
+            },
+        }
     write_json(run_root / "aggregate.json", aggregate_value)
     manifest_id = manifest.get("manifest_id", "")
     version_match = re.search(r"v(\d+)$", manifest_id)
@@ -1612,28 +2342,84 @@ def aggregate(context: dict[str, Any]) -> None:
             "",
             "## Critical cohorts",
             "",
-            "| Cohort | Tasks | Baseline complete | cidx complete | Median model-total ratio | Non-increasing | Median inspection delta | Median event-output proxy ratio |",
+            (
+                "| Cohort | Tasks | Baseline complete | cidx complete | Median model-total ratio | Non-increasing | Median inspection delta | Median visible-output ratio |"
+                if protocol == "legacy-v3"
+                else "| Cohort | Tasks | Baseline complete | cidx complete | Median model-total ratio | Non-increasing | Median inspection delta | Median event-output proxy ratio |"
+            ),
             "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
         ]
     )
     for label, values in aggregate_value["by_critical_cohort"].items():
+        output_ratio = values[
+            "visible_output_bytes_ratio_median"
+            if protocol == "legacy-v3"
+            else "event_output_proxy_ratio_median"
+        ]
         report_lines.append(
-            f"| {label} | {values['task_count']} | {values['baseline_complete']} | {values['cidx_complete']} | {values['model_total_ratio_median']:.3f} | {values['model_total_non_increasing']}/{values['dual_complete']} | {values['inspection_action_difference_median']:.1f} | {values['event_output_proxy_ratio_median']:.3f} |"
+            f"| {label} | {values['task_count']} | {values['baseline_complete']} | {values['cidx_complete']} | {display_number(values['model_total_ratio_median'])} | {values['model_total_non_increasing']}/{values['dual_complete']} | {display_number(values['inspection_action_difference_median'], 1)} | {display_number(output_ratio)} |"
         )
-    locator_summary = aggregate_value["assistant_stages"]["locator"]
-    evidence_summary = aggregate_value["assistant_stages"]["evidence"]
-    orchestration_summary = aggregate_value["assistant_stages"]["orchestration"]
-    report_lines.extend(
-        [
-            "",
-            "## Orchestration, locator, and evidence stages",
-            "",
-            f"- Mechanically prompt-adherent treatment tasks: {orchestration_summary['mechanically_adherent_task_count']}/{orchestration_summary['task_count']}",
-            f"- First search with max_inline_bytes=0: {orchestration_summary['first_search_max_inline_zero_count']}/{orchestration_summary['task_count']}",
-            f"- At most two searches: {orchestration_summary['search_count_within_two_count']}/{orchestration_summary['task_count']}",
-            f"- Repeated search queries / duplicate read ranges / invalid ranges: {orchestration_summary['repeated_search_query_count']} / {orchestration_summary['duplicate_read_range_count']} / {orchestration_summary['invalid_range_read_count']}",
-            f"- Exact / non-exact initial locator-range reads: {orchestration_summary['exact_initial_locator_range_read_count']} / {orchestration_summary['nonexact_initial_locator_range_read_count']}",
-            f"- Stopped after complete cidx evidence: {orchestration_summary['stopped_after_complete_evidence_count']}/{orchestration_summary['task_count']}",
+    if protocol == session_trace.PASSIVE_TRACE_PROTOCOL:
+        report_lines.extend(
+            [
+                "",
+                "## Cidx adoption by critical cohort",
+                "",
+                "| Cohort | Tasks | Any cidx use | Search use | Median first cidx action |",
+                "| --- | ---: | ---: | ---: | ---: |",
+            ]
+        )
+        for label, values in aggregate_value["by_critical_cohort"].items():
+            report_lines.append(
+                f"| {label} | {values['task_count']} | {values['cidx_adoption_tasks']} | {values['cidx_search_adoption_tasks']} | {display_number(values['first_cidx_action_position_median'], 1)} |"
+            )
+    stages = aggregate_value.get("assistant_stages")
+    locator_summary = stages.get("locator") if isinstance(stages, dict) else None
+    evidence_summary = stages.get("evidence") if isinstance(stages, dict) else None
+    orchestration_summary = stages.get("orchestration") if isinstance(stages, dict) else None
+    if passive_trace_enabled(manifest):
+        exploration_summary = aggregate_value["assistant_stages"]["exploration"]
+        baseline_exploration = exploration_summary["baseline"]
+        cidx_exploration = exploration_summary["cidx_fts"]
+        paired_exploration = exploration_summary["paired"]
+        policy_eligible = orchestration_summary[
+            "first_cidx_search_policy_eligible_task_count"
+        ]
+        policy_result = (
+            f"{orchestration_summary['first_cidx_search_policy_met_count']}/"
+            f"{policy_eligible}"
+            if policy_eligible
+            else "NOT_APPLICABLE"
+        )
+        report_lines.extend([
+            "", "## Stage-separated navigation and evidence", "",
+            f"- Availability/adoption: {aggregate_value['cidx_adoption_tasks']}/{len(pairs)} treatment tasks used cidx; {locator_summary['no_search_treatment_task_count']} made no cidx search.",
+            f"- No-use outcomes: {aggregate_value['cidx_no_use_outcomes']['complete']} complete, {aggregate_value['cidx_no_use_outcomes']['partial']} partial, {aggregate_value['cidx_no_use_outcomes']['incorrect']} incorrect, and {aggregate_value['cidx_no_use_outcomes']['ungradable']} ungradable across {aggregate_value['cidx_no_use_outcomes']['task_count']} tasks.",
+            f"- First-cidx-search policy required: {orchestration_summary['first_cidx_search_required']}; policy result: {policy_result}.",
+            f"- Candidate navigation (search users only): {locator_summary['cidx_search_task_count']} tasks, {locator_summary['search_count']} searches, first-search complete locator hit {locator_summary['complete_first_search_locator_hit_count']}/{locator_summary['cidx_search_task_count']}.",
+            f"- Refined searches: {locator_summary['refined_search_count']}; reason attribution is {locator_summary['refinement_reason_observability']} because the passive trace does not infer intent.",
+            f"- Evidence acquisition (read users only): {evidence_summary['read_span_task_count']} tasks, {evidence_summary['successful_read_span_count']}/{evidence_summary['read_span_count']} successful reads, {evidence_summary['gross_source_bytes']} gross / {evidence_summary['unique_source_bytes']} unique source bytes.",
+            f"- Read failures: {orchestration_summary['read_failure_count']}; identity mismatches: {orchestration_summary['read_identity_mismatch_count']}; source-conformance failures: {orchestration_summary['read_source_conformance_failure_count']}.",
+            f"- Exploration scope, baseline / cidx: {baseline_exploration['total_repository_tool_actions']} / {cidx_exploration['total_repository_tool_actions']} repository actions and {baseline_exploration['combined_unique_source_bytes']} / {cidx_exploration['combined_unique_source_bytes']} task-summed unique source bytes; paired median differences are {display_number(paired_exploration['repository_tool_action_difference_median'], 1)} actions and {display_number(paired_exploration['combined_unique_source_bytes_difference_median'], 1)} bytes.",
+            f"- cidx/ordinary overlap in treatment: {cidx_exploration['cidx_ordinary_reacquired_bytes']} bytes. Named-parent attribution is NOT_OBSERVED for both arms.",
+            f"- Ordinary-output attribution, baseline / cidx: {baseline_exploration['ordinary_attributed_output_bytes']}/{baseline_exploration['ordinary_output_bytes']} and {cidx_exploration['ordinary_attributed_output_bytes']}/{cidx_exploration['ordinary_output_bytes']} bytes; unattributed bytes are {baseline_exploration['ordinary_unattributed_output_bytes']} / {cidx_exploration['ordinary_unattributed_output_bytes']}.",
+            f"- Post-evidence exploration: complete cidx evidence timing was observed in {cidx_exploration['complete_cidx_evidence_timing_observed_count']} tasks; those tasks had {cidx_exploration['ordinary_inspections_before_complete_cidx_evidence']} ordinary inspections before and {cidx_exploration['ordinary_inspections_after_complete_cidx_evidence']} after that event.",
+            f"- Effective FTS mode: {orchestration_summary['effective_fts_search_count']} authoritatively observed ({orchestration_summary['explicit_fts_search_count']} explicit, {orchestration_summary['frozen_default_fts_search_count']} frozen-default); {orchestration_summary['effective_mode_not_observed_count']} not observed.",
+            f"- Baseline material claims: {claim_support['baseline']['material_claim_count']}; unsupported / contradicted: {claim_support['baseline']['unsupported_claim_count']} / {claim_support['baseline']['contradicted_claim_count']}; unsupported rate: {display_number(claim_support['baseline']['unsupported_claim_rate'])}.",
+            f"- cidx material claims: {claim_support['cidx_fts']['material_claim_count']}; unsupported / contradicted: {claim_support['cidx_fts']['unsupported_claim_count']} / {claim_support['cidx_fts']['contradicted_claim_count']}; unsupported rate: {display_number(claim_support['cidx_fts']['unsupported_claim_rate'])}.",
+            "- Answer quality, claim support, navigation, evidence, and exploration remain separate surfaces; no weighted total is reported.",
+        ])
+        interpretation = "This host-decided availability batch keeps no-use treatment tasks in the primary denominator. Candidate and evidence rates are conditional on the corresponding observed action."
+    elif protocol != "legacy-v3":
+        stage_heading = (
+            "## Locator and evidence stages"
+            if protocol == "legacy-v4"
+            else "## Orchestration, locator, and evidence stages"
+        )
+        report_lines.extend([
+            "", stage_heading, "",
+            *( [f"- Mechanically prompt-adherent treatment tasks: {orchestration_summary['mechanically_adherent_task_count']}/{orchestration_summary['task_count']}", f"- First search with max_inline_bytes=0: {orchestration_summary['first_search_max_inline_zero_count']}/{orchestration_summary['task_count']}", f"- At most two searches: {orchestration_summary['search_count_within_two_count']}/{orchestration_summary['task_count']}"] if orchestration_summary is not None else []),
+            *( [f"- Repeated search queries / duplicate read ranges / invalid ranges: {orchestration_summary['repeated_search_query_count']} / {orchestration_summary['duplicate_read_range_count']} / {orchestration_summary['invalid_range_read_count']}", f"- Exact / non-exact initial locator-range reads: {orchestration_summary['exact_initial_locator_range_read_count']} / {orchestration_summary['nonexact_initial_locator_range_read_count']}", f"- Stopped after complete cidx evidence: {orchestration_summary['stopped_after_complete_evidence_count']}/{orchestration_summary['task_count']}"] if orchestration_summary is not None else []),
             f"- First-search complete locator hit: {locator_summary['complete_first_search_locator_hit_count']}/{locator_summary['task_count']}",
             f"- First-search requirement coverage (macro): {locator_summary['first_search_requirement_coverage_macro']:.3f}",
             f"- Any-search requirement coverage (macro): {locator_summary['any_search_requirement_coverage_macro']:.3f}",
@@ -1642,13 +2428,10 @@ def aggregate(context: dict[str, Any]) -> None:
             f"- Evidence requirement coverage (macro): {evidence_summary['evidence_requirement_coverage_macro']:.3f}",
             f"- Read-span precision (macro): {evidence_summary['read_span_precision_macro']:.3f}",
             f"- Read-span source: {evidence_summary['gross_source_bytes']} gross bytes, {evidence_summary['unique_source_bytes']} unique bytes",
-        ]
-    )
-    interpretation = (
-        f"This {version_label} batch estimates the effect of requiring one initial cidx FTS search when the tool is available. It remains a bounded diagnostic on the frozen 12-task panel, not a population estimate or release gate."
-        if version_number >= 2
-        else "Because the cidx arm made no cidx call, this run identifies the adoption effect of merely exposing the optional tool, not retrieval value."
-    )
+        ])
+        interpretation = (f"This {version_label} batch estimates the effect of requiring one initial cidx FTS search when the tool is available. It remains a bounded diagnostic on the frozen 12-task panel, not a population estimate or release gate." if version_number >= 2 else "Because the cidx arm made no cidx call, this run identifies the adoption effect of merely exposing the optional tool, not retrieval value.")
+    else:
+        interpretation = "This Version 3 batch estimates the effect of requiring one initial cidx FTS search when the tool is available. It remains a bounded diagnostic on the frozen 12-task panel, not a population estimate or release gate."
     report_lines.extend(
         [
             "",

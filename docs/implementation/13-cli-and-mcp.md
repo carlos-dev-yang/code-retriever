@@ -476,7 +476,7 @@ Phase 14 receives one `cidx` binary and public help, the `cidx serve --root <rep
 
 | Decision | Rationale | Revisit when |
 | --- | --- | --- |
-| Exactly four MCP tools | Keep this auxiliary tool and host context surface small | A measured independent use case exists |
+| Exactly four MCP tools | Keep the local retrieval and host-context surface small | A measured independent use case exists |
 | Retain the required maximum temporarily; no detail enum | Preserve the v1 request wire while the response becomes locator-only | A later explicit MCP schema revision removes the compatibility field |
 | Search body removal cannot affect rank | Response compaction must preserve retrieval identity and result order | Core v1 invariant; no planned revisit |
 | Project the Phase 11 ranked hits rather than its body package | Offline retrieval retains full diagnostics while the assistant sees only navigation fields | Evaluation proves another locator field is required |

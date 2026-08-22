@@ -73,7 +73,10 @@ Voyage documentation describes MRL, or Matryoshka Representation Learning, outpu
 
 ### 4.1 Product and cost
 
-1. `cidx` is a local auxiliary search tool. It does not replace an IDE, LSP, `rg`, or a file reader.
+1. `cidx` is a local code-retrieval service made available beside IDE, LSP,
+   `rg`, and file-reader capabilities. The host decides whether cidx is its
+   first, main, occasional, or unused repository-search path for a task; cidx
+   does not replace those tools' non-retrieval roles.
 2. `index`, MCP `reindex`, and FTS search never call the Voyage API.
 3. Normal document embedding and hybrid query embedding call the API only after explicit authorization.
 4. Initial raw capture is a paid operation only under a separate `cidx dev ... --apply` command.

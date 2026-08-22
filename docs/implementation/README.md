@@ -36,7 +36,14 @@
   median is 0.977 with 6/11 non-increasing, so correctness preservation and
   the token gate both fail. Final ChatGPT/Grok review agrees on every gate and
   loss attribution. V4–V6 is closed with no efficiency claim; bounded optional
-  locator value remains a separate product hypothesis, and no V7 follows.
+  locator value remains a separate product hypothesis, and no V7 follows. The
+  owner has since selected a host-decided, stage-separated search-to-evidence
+  direction for the next series. Its 30-question/60-turn, FTS-only design was
+  independently reviewed by ChatGPT and Grok; both returned `FINAL_ACCEPT`.
+  Documentation is reconciled, and the neutral-interface plus passive
+  trace/reducer Step 2 boundary is implemented and validated. Question
+  construction, scored execution, new test code, and paid provider work remain
+  gated.
   Official Phase 12 and release-candidate evidence remain separately gated
 - Canonical design: [Local Code Search MCP v1 Final Target Contract — Revision 4](../../local-code-search-mcp-v1-design-r4.md)
 - Earlier designs: [original](../../local-code-search-mcp-v1-design.md), [r1](../../local-code-search-mcp-v1-design-r1.md), [r2](../../local-code-search-mcp-v1-design-r2.md), [r3](../../local-code-search-mcp-v1-design-r3.md)
@@ -67,6 +74,9 @@
 - Completed final experiment: [Version 6 result](evidence/phase-14/assistant-ab-v6-result.md)
 - Final external interpretation: [Version 6 matching gate review and disposition](evidence/phase-14/assistant-ab-v6-external-review.md)
 - Closed three-experiment handoff: [Assistant A/B V4–V6 closure and next owner decisions](evidence/phase-14/assistant-ab-v4-v6-closure.md)
+- Reviewed next assistant design: [host-decided search-to-evidence flow](ASSISTANT-SEARCH-EVIDENCE-FLOW-DESIGN.md)
+- Next-design external review: [matching ChatGPT and Grok final acceptance](evidence/phase-14/assistant-search-evidence-flow-external-review.md)
+- Completed next-design Step 2: [neutral interface and passive trace/reducer implementation](evidence/phase-14/assistant-search-evidence-flow-step-2-implementation.md)
 - Remaining-work handoff: [remaining-work-review-handoff-r4.md](evidence/revision-4/remaining-work-review-handoff-r4.md)
 - Final corpus-independent review: [int8/source-profile implementation-to-design review](evidence/revision-4/int8-source-profile-final-review.md)
 - Last updated: 2026-08-22
@@ -111,7 +121,12 @@ Binary/256 handling, and source-bank-free serving from clean provenance
 `5f4955e1499ee8896be5c825ef0fb9b3a52abb70`. It is not immutable
 `release_candidate` evidence; the earlier local checkpoint remains historical.
 
-cidx is a **local auxiliary search MCP** used alongside file readers, symbol tools, compilers, and tests. It is not a comprehensive code-knowledge system. The plan is bounded by free local AST/FTS indexing, explicit paid embeddings, a small MCP surface, caller-controlled inline source volume, and one serving-vector profile per repository.
+cidx is a **local code-retrieval MCP** made available alongside file readers,
+symbol tools, compilers, and tests. The host may use cidx as the first, main,
+occasional, or unused repository-search path for a task. The plan is bounded by
+free local AST/FTS indexing, explicit paid embeddings, a four-tool MCP surface,
+caller-controlled inline source volume, and one serving-vector profile per
+repository.
 
 ## Resume here after context compaction
 
@@ -146,7 +161,7 @@ Allowed states are `planned | in_progress | blocked | done`. A phase becomes `do
 | 11 | done | [Vector and hybrid search](11-vector-and-hybrid-search.md) | reconciled 02/09/10, existing 06 | Int8-only request-local scan, RRF, fallback, and body packaging | [Current evidence](evidence/phase-11/int8-only-query-search-reconciliation.md) and [historical R4 evidence](evidence/phase-11/revision-4.md) |
 | 12 | blocked | [Retrieval evaluation](12-retrieval-evaluation.md) | 07, reconciled 08, 09, 11 | Accepted int8-only corpus-independent adapter; official corpus evaluation and promotion remain externally gated | [Current evidence](evidence/phase-12/int8-only-evaluation-reconciliation.md) and [accepted R4 accounting evidence](evidence/phase-12/revision-4.md) |
 | 13 | done | [CLI and MCP](13-cli-and-mcp.md) | reconciled 02/08/11 and existing Phase 12 core | Four-tool structured-only MCP with locator-only search, source-only `read_span`, and retained compatibility input independent of result identity | [Locator-only completion](evidence/phase-13/locator-only-mcp-reconciliation.md), [reducer v2](evidence/phase-13/assistant-reducer-v2.md), [Codex representation probe](evidence/phase-13/codex-result-representation-probe.md), and existing [int8-only evidence](evidence/phase-13/int8-only-cli-mcp-reconciliation.md) |
-| 14 | in_progress | [Packaging and host integration](14-packaging-and-host-integration.md) | 13 | Assistant V4–V6 is closed; await a separate owner choice on optional host policy, claim/stopping discipline, or a new evaluation design while release gates remain separate | [V4–V6 closure](evidence/phase-14/assistant-ab-v4-v6-closure.md), [V6 external review](evidence/phase-14/assistant-ab-v6-external-review.md), [V6 result](evidence/phase-14/assistant-ab-v6-result.md), and [reducer v3](evidence/phase-14/assistant-orchestration-reducer-v3.md) |
+| 14 | in_progress | [Packaging and host integration](14-packaging-and-host-integration.md) | 13 | V4–V6 remains closed. Step 2 is complete: neutral four-tool descriptions, a passive non-model-facing assistant trace/reducer, and its versioned blind-grade claim contract. Question construction, scored runs, new tests, public MCP schema expansion, and provider traffic remain gated | [Step 2 implementation](evidence/phase-14/assistant-search-evidence-flow-step-2-implementation.md), [search-to-evidence design](ASSISTANT-SEARCH-EVIDENCE-FLOW-DESIGN.md), [matching final external review](evidence/phase-14/assistant-search-evidence-flow-external-review.md), and historical [V4–V6 closure](evidence/phase-14/assistant-ab-v4-v6-closure.md) |
 
 `STATUS.md` is the operational ledger. Keep this summary table synchronized with it whenever a phase changes state.
 
@@ -408,6 +423,8 @@ Do not introduce a deferred item implicitly for implementation convenience.
 
 | Date | Change | Reason |
 | --- | --- | --- |
+| 2026-08-22 | Completed the neutral four-tool interface and passive assistant trace/reducer Step 2 boundary | Measure voluntary adoption, exact evidence, ordinary-tool overlap, exploration scope, and blind claim support without changing retrieval, public schemas, or server/SQLite authority |
+| 2026-08-22 | Accepted a host-decided, stage-separated search-to-evidence design for the next assistant study without reopening V4–V6 | Measure candidate narrowing, selected evidence, dependency acquisition, exploration scope, claim support, and voluntary cidx adoption separately before adding metadata or another intervention |
 | 2026-08-19 | Deferred assistant A/B; made required-parent selection, isolated-noise residual, and mechanical packaging the current relation test | Owner rejected host/model-dependent final-answer gates; Stage E/F plus overlap replay show sibling packaging as the first loss | |
 | 2026-08-17 | Made 1024/int8 the default, retained compact 512/int8, productized durable document source-1024 f32, and removed Binary/256 code paths | Preserve maximum measured int8 fidelity by default while making dimension changes provider-free and keeping retired evidence document-only |
 | 2026-08-14 | Created the phase-oriented implementation plan | Decompose the r3 contract into executable work and evidence |

@@ -635,3 +635,82 @@ owner three separate choices: optional host positioning, future claim/stopping
 discipline, or a new stage-separated evaluation. None is authorized by this
 closure. No rerun, regrade, provider action, corpus edit, or product change is
 pending.
+
+## 21. 2026-08-22 Host-decided search-to-evidence design
+
+The owner rejected turning the V4–V6 mandatory-first result into a product rule
+that cidx is secondary-only. A caller may use cidx as its first, main,
+occasional, or unused repository-search path. The next design therefore tests
+availability and the complete evidence journey rather than another forced
+prompt correction.
+
+The new
+[`ASSISTANT-SEARCH-EVIDENCE-FLOW-DESIGN.md`](ASSISTANT-SEARCH-EVIDENCE-FLOW-DESIGN.md)
+keeps the current four tools, SQLite authority, nine-field locator response,
+and source-only `read_span`. It separates compact candidate discovery from
+complete selected-parent evidence and permits further search/read work only
+for a material dependency, conflict, ambiguity, or context claim that remains
+unresolved. The optimization order is correctness and claim support, then
+repository narrowing, then total exploration/source/token reduction. Minimum
+single-response bytes are not the product goal.
+
+The first proposed series uses 30 new versioned questions over the existing
+approved Go, TypeScript, and TSX corpora and 60 paired Codex turns. It is
+FTS-only, has no Voyage credential or query client, never forces cidx use, and
+keeps all no-use treatment turns in the primary intent-to-treat denominator.
+A passive, non-model-facing host trace records candidates, reads, overlap,
+source volume, and order. Candidate usefulness and material-claim support are
+added only after blind grading. No active reminder, duplicate suppression,
+server session state, signature, neighbor metadata, dependency hint, new MCP
+tool, or new repository is part of this first design.
+
+The full draft was sent unchanged to the existing ChatGPT and Grok side-panel
+conversations. Both first returned `ACCEPT_WITH_CORRECTIONS`. Their required
+corrections established execution isolation, source-first question authoring,
+the passive-versus-active trace boundary, pure-capability tool descriptions,
+exact metric authorities and denominators, unsupported-claim accounting, the
+configured `k=10`/maximum-20 freeze, and executable FTS-only/no-credential
+enforcement. The revised complete design was returned to both reviewers; both
+returned `FINAL_ACCEPT`. Exact findings and retained cautions are in the
+[`external review record`](evidence/phase-14/assistant-search-evidence-flow-external-review.md).
+
+This checkpoint changes documentation only. V4–V6 remains closed, and no
+product/harness implementation, test creation, question construction, scored
+turn, paid embedding, new corpus, or public MCP schema expansion is authorized. The next
+action is to await explicit implementation authorization and, if granted,
+validate neutral tool-description bytes and the passive trace before preparing
+the question-set version.
+
+## 22. 2026-08-22 Search-to-evidence Step 2 implementation
+
+The owner subsequently authorized only the interface/session-ledger Step 2
+boundary. That work is complete. MCP still exposes `status`, `search`,
+`read_span`, and `reindex`; all four input schemas are byte-equivalent to the
+preserved V6 interface digest. Only pure-capability descriptions changed, and
+their new digest is frozen by each future run manifest.
+
+The assistant harness now creates a passive, body-free trace only in ignored
+evaluation artifacts. It records cidx search/read order, explicit versus
+frozen-default FTS authority, canonical locators, requested and delivered read
+identity, exact source-byte conformance, ordinary repository inspection,
+verified ranges, output attribution gaps, overlap, visible paths, and paired
+exploration. It stores neither source bodies nor truth and creates no product
+SQLite or server conversation state. The reducer joins frozen truth only after
+blind grades exist. Blind-grade v2 requires stable material-claim IDs,
+observed/derived/unresolved classification, valid evidence references, and
+claim-ID-mapped unsupported/contradicted findings; legacy v1 remains readable.
+
+Main validation replayed temporary copies of V3, V4, V5, and V6. Every
+aggregate JSON remained byte-identical, and each report remained identical
+after excluding the two expected temporary local-path lines. A structural
+probe over all 24 V6 cells observed 67 ordinary inspections and 24/24
+source-conformant `read_span` responses while retaining zero raw shell commands
+or source bodies in the passive trace. These values validate instrumentation
+against known logs; they are not a new score or a reinterpretation of V6.
+
+The complete file scope, hashes, focused checks, independent review, and
+unopened work are in the
+[Step 2 implementation evidence](evidence/phase-14/assistant-search-evidence-flow-step-2-implementation.md).
+No question, scored turn, provider call, retrieval change, public schema field,
+or test code was added. The next action is an owner decision on Step 3; it is
+not implicitly opened by completing this checkpoint.

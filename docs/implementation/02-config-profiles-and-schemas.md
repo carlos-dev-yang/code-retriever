@@ -442,7 +442,7 @@ Provide Phases 07 and 12 with the versioned `evalcontract` types/schemas, stable
 | Source-dimension authority | fixed: active `EmbeddingSourceProfile.SourceDimensions=1024` | Keep the model registry and document/query API source space aligned. |
 | Serving-dimension authority | fixed: active `VectorSpaceProfile.ServingDimensions` | Prevent reducer, codec, and scanner dimension mismatch. |
 | Quantization authority | fixed: codec/version in the active `VectorStorageProfile` | Guarantee one production serving format. |
-| Active serving-profile count | fixed: one | Keep the auxiliary MCP runtime path simple. |
+| Active serving-profile count | fixed: one | Keep the local MCP runtime path simple. |
 | Production serving raw vector | excluded | `index.db` stores only cidx-owned int8; source f32 lives in the separate product source bank. |
 | Product source storage | fixed: `<state_root>/db/embeddings.db` | Preserve immutable document 1024-f32 for provider-free 1024/512 rematerialization without making it a serving authority. |
 | Lab storage | fixed: separate database, schema, and package | Isolate evaluation run metadata from both serving and source data. |

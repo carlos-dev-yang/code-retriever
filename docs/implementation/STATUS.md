@@ -26,7 +26,15 @@ This ledger is the authoritative resumable state for implementation work. Update
   gate both fail. ChatGPT and Grok agree on the gates, final-claim loss, narrow
   adherence metric, and no-V7 stop. Close with no efficiency claim; bounded
   optional locator value remains an unpromoted product hypothesis. The
-  closure/handoff is complete and awaits a separate owner direction.
+  closure/handoff is complete. The owner has now selected a separate
+  host-decided search-to-evidence design for a future 30-question/60-turn,
+  FTS-only availability study. ChatGPT and Grok both returned `FINAL_ACCEPT`;
+  documentation is reconciled. The owner-authorized neutral tool-description
+  plus passive harness trace/reducer Step 2 boundary is now implemented and
+  validated; question construction, scored execution, new test code, public
+  MCP schema expansion, and paid provider work remain unauthorized. The
+  versioned blind-grade schema for post-turn claim accounting is included in
+  the completed passive reducer boundary.
 - Active owner: `/root`
 - Completed bounded work: the final provider-free graph-only Pareto admission
   diagnostic is complete at clean commit
@@ -64,7 +72,7 @@ This ledger is the authoritative resumable state for implementation work. Update
   graph-only branch was useful in `1/7`; bridge, Pareto, and their combined
   rule are rejected for product use. The full sidecar remains evaluation-only.
 - Phase 07 simple-control implementation owner: `/root/phase07_simple_control` (store/eval/devlab only; no corpus, provider, or production-ranking mutation)
-- Last updated: 2026-08-21
+- Last updated: 2026-08-22
 - Owner review index: [`OWNER-REVIEW-INDEX.md`](OWNER-REVIEW-INDEX.md) — single
   entry for packaging freeze, live results, adopted contract, and remaining
   gated work
@@ -77,12 +85,17 @@ This ledger is the authoritative resumable state for implementation work. Update
   cell, so the one-hop gate fails and Arm D stays unauthorized. Do not retune
   this closed unit. Assistant A/B was deferred at that checkpoint and later
   completed as Version 3 after lexical remediation.
-- Latest owner direction: do not add a repository. Natural-language lexical
-  remediation and paired assistant A/B Version 3 are complete. Do not repeat
-  V3 unchanged. Resume with response-contract accounting and a compact-response
-  proposal before changing retrieval or running another paired batch. Durable
-  chronology and stop conditions are in
-  [`FTS-REMEDIATION-AND-ASSISTANT-AB-JOURNAL.md`](FTS-REMEDIATION-AND-ASSISTANT-AB-JOURNAL.md).
+- Latest owner direction: do not add a repository and do not constrain cidx to
+  a secondary-only product role. Preserve V4–V6 as closed history. The next
+  planning direction lets the host decide whether cidx is first, main,
+  occasional, or unused; it separates compact candidate locators from complete
+  selected evidence and claim-required dependency expansion. The accepted
+  design uses the existing approved corpora, the existing nine-field search
+  wire and `read_span`, a passive host-side trace, and 30 frozen pairs/60 turns
+  in FTS-only/no-credential mode. See
+  [`ASSISTANT-SEARCH-EVIDENCE-FLOW-DESIGN.md`](ASSISTANT-SEARCH-EVIDENCE-FLOW-DESIGN.md)
+  and the matching
+  [`FINAL_ACCEPT` review](evidence/phase-14/assistant-search-evidence-flow-external-review.md).
 - Canonical target: [`local-code-search-mcp-v1-design-r4.md`](../../local-code-search-mcp-v1-design-r4.md)
 - Completed critical/general checkpoint: every prior question-set file and run
   remains preserved; `critical-general-v1`, chi/RHF question-set v2, explicit
@@ -257,9 +270,12 @@ This ledger is the authoritative resumable state for implementation work. Update
   and arm-blind machine journey evidence. Treatment was 12/12 complete versus
   baseline 11 complete + 1 partial, but used 37.2% more model tokens and 50.6%
   more uncached input. Both reviewers require correction before another A/B.
-- Exact next action: make structured-only the server default, implement and
-  validate the locator-only projection without changing ranking, then return
-  Phase 13 to done and enter the controlled Phase 14 V4 diagnostic.
+- Exact next action: await an explicit owner decision on Section 14 Step 3.
+  If opened, prepare and freeze the versioned 30-question set source-first
+  against only the existing approved corpora; do not execute scored turns in
+  that same checkpoint. Until then, do not add metadata, another tool, a
+  repository, a question set, a scored run, new test code, public MCP schema
+  fields, or provider traffic.
 
 Existing phase completion rows and implementation are historical work produced against earlier design revisions. They must not be read as proof that the current code satisfies Revision 4; the implementation remains a prototype until it is explicitly reconciled and revalidated against the final target contract.
 
@@ -280,8 +296,8 @@ Existing phase completion rows and implementation are historical work produced a
 | 10 | done | `/root` | Yes — accepted Phase 09 boundary, prior Phase 10 R4 evidence, active embedding path, source-bank decision, and retired-profile contract inspected | Source-bank-first provider success handling, compatible local reuse, public source/Voyage plan split, provider-only request accounting, and final offline boundary accepted | [Current evidence](evidence/phase-10/source-bank-first-document-publication.md), historical [R4 evidence](evidence/phase-10/revision-4.md), and [source-bank decision](SOURCE-VECTOR-BANK-DECISION.md) | Hand current int8 coverage/profile state to Phase 11 |
 | 11 | done | `/root` | Yes — accepted Phase 09/10 boundaries, prior Phase 11 R4 evidence, live vector scan/evaluation code, five-profile evidence, and retired-profile contract inspected | Current request-local int8 scan, nonpersistent serving-f32 reference, fallback/RRF/body behavior, retired comparison removal, and focused boundary accepted | [Current evidence](evidence/phase-11/int8-only-query-search-reconciliation.md), historical [R4 evidence](evidence/phase-11/revision-4.md), and [retired-profile contract](RETIRED-VECTOR-PROFILES.md) | Hand the current evaluation arms to Phase 12 |
 | 12 | blocked | `/root` | Yes — accepted current Phase 11 boundary, prior Phase 12 R4 evidence, evaluation contract, current schemas/adapters, relation completion authority, retired-profile contract, closed Stage E/F, and adopted packaging contract inspected | Corpus-independent adapter accepted; packaging/no-policy authority is now frozen evaluation-only sibling 4/4096; official `core_retrieval` still lacks independent confirmation | [Remaining-work handoff](evidence/revision-4/remaining-work-review-handoff-r4.md), [adopted sibling contract](../../testdata/retrieval/relation-sibling-packaging-adopted-v1.json), [current evidence](evidence/phase-12/int8-only-evaluation-reconciliation.md), and [R4 accounting evidence](evidence/phase-12/revision-4.md) | After owner-selected unexposed confirmation, seal margins and run official core evaluation; assistant V3 remains separate non-promotion evidence |
-| 13 | done | `/root` | Yes — execution guide, index, status, evaluation contract, full Phase 13/14 documents, current Phase 13 evidence, live MCP handlers/schema, frozen V3 artifacts, and accepted response-contract review inspected | Structured-only is the product default; search emits only nine-field deduplicated locators, requests zero source bytes, and preserves caller-selected ranking. Focused normal/race/static checks, 0/12000/65537 byte-identical server responses, and a real Codex search-to-read journey passed | [Locator-only completion](evidence/phase-13/locator-only-mcp-reconciliation.md), [reducer v2](evidence/phase-13/assistant-reducer-v2.md), [Codex representation probe](evidence/phase-13/codex-result-representation-probe.md), and existing [int8-only evidence](evidence/phase-13/int8-only-cli-mcp-reconciliation.md) | Hand the compact wire and reducer v2 to Phase 14 V4 |
-| 14 | in_progress | `/root` | Yes — V4/V5/V6 freezes, full results, reducer stages, paired decisions, matching external gate assessments, commit history, and final handoff inspected | V4–V6 is closed: locator wire and hash mechanics improved, but mandatory cidx-first correctness/token efficiency was not established. No V7, rerun, or regrade remains. Bounded optional locator value is not promotion evidence | [V4–V6 closure](evidence/phase-14/assistant-ab-v4-v6-closure.md), [V6 external review](evidence/phase-14/assistant-ab-v6-external-review.md), [V6 result](evidence/phase-14/assistant-ab-v6-result.md), and [Reducer v3](evidence/phase-14/assistant-orchestration-reducer-v3.md) | Await owner choice: optional host policy, separately scoped claim/stopping control, or a new stage-separated evaluation; official Phase 12/release evidence remains separately gated |
+| 13 | done | `/root` | Yes — execution guide, index, status, evaluation contract, full Phase 13/14 documents, current Phase 13 evidence, live MCP handlers/schema, frozen V3 artifacts, and accepted response-contract review inspected | Structured-only is the product default; search emits only nine-field deduplicated locators, requests zero source bytes, and preserves caller-selected ranking. Focused normal/race/static checks, 0/12000/65537 byte-identical server responses, and a real Codex search-to-read journey passed | [Locator-only completion](evidence/phase-13/locator-only-mcp-reconciliation.md), [reducer v2](evidence/phase-13/assistant-reducer-v2.md), [Codex representation probe](evidence/phase-13/codex-result-representation-probe.md), and existing [int8-only evidence](evidence/phase-13/int8-only-cli-mcp-reconciliation.md) | Preserve the nine-field locator and source-only `read_span`; reopen only for the separately authorized neutral-description validation |
+| 14 | in_progress | `/root`; Terra high implementation agent; independent Sol high review; main-agent validation | Yes — execution guide, implementation index, status, evaluation contract, full Phase 14 and accepted search-to-evidence design/review, Phase 13 document/evidence, current MCP schema, runner, reducer, and preserved V3–V6 artifacts inspected | Step 2 complete: neutral capability descriptions, passive body-free ignored-artifact trace, stage-separated reducer, and blind-grade v2 claim contract validated without changing the four public input schemas, retrieval, server/SQLite state, questions, scored runs, tests, or provider behavior | [Step 2 implementation evidence](evidence/phase-14/assistant-search-evidence-flow-step-2-implementation.md), [search-to-evidence design](ASSISTANT-SEARCH-EVIDENCE-FLOW-DESIGN.md), [matching design review](evidence/phase-14/assistant-search-evidence-flow-external-review.md), and [Phase 13 locator evidence](evidence/phase-13/locator-only-mcp-reconciliation.md) | Await explicit Step 3 authorization; if opened, prepare and freeze the source-first 30-question version without running scored turns |
 
 ## Resume note template
 

@@ -7,12 +7,17 @@
 - Previous canonical draft: [`local-code-search-mcp-v1-design-r3.md`](local-code-search-mcp-v1-design-r3.md)
 - Detailed implementation plan: [`docs/implementation/README.md`](docs/implementation/README.md)
 - Evaluation contract: [`docs/implementation/EVALUATION-CONTRACT.md`](docs/implementation/EVALUATION-CONTRACT.md)
+- Assistant interaction design: [`docs/implementation/ASSISTANT-SEARCH-EVIDENCE-FLOW-DESIGN.md`](docs/implementation/ASSISTANT-SEARCH-EVIDENCE-FLOW-DESIGN.md)
 
 Revision 4 is the normative v1 target. Earlier revisions remain design history. If an earlier revision, phase document, implementation, or completion record conflicts with this document, Revision 4 wins and the affected phase must be reconciled before implementation resumes.
 
 ## 1. Product boundary
 
-`cidx` is a small, repository-local MCP search assistant for Go, TypeScript, and TSX source code. It complements file readers, `rg`, language servers, compilers, and tests; it does not replace them.
+`cidx` is a small, repository-local MCP retrieval service for Go, TypeScript,
+and TSX source code. It coexists with file readers, `rg`, language servers,
+compilers, and tests without replacing their non-retrieval roles. The product
+does not prescribe whether a host treats cidx as its first, main, occasional,
+or unused repository-search path; the calling AI or host decides per task.
 
 The v1 retrieval unit is a named function, method, or type. Local AST extraction and SQLite FTS5 indexing are free. Dense retrieval is optional and uses the official Voyage AI embeddings endpoint with `voyage-code-4`. Paid document or query embeddings are never hidden inside indexing or FTS search.
 
@@ -202,6 +207,14 @@ complete-source response ceiling for `read_span`; it may be lowered
 operationally but never raised above the separate 1 MiB executable ceiling.
 The name is retained for configuration compatibility in v1 and is not a host
 token-budget guarantee.
+
+Assistant use follows a stage-separated candidate-to-evidence flow. `search`
+first narrows the repository with compact locators. The host then requests the
+complete selected parent through `read_span` and expands only to source needed
+for an unresolved dependency, conflict, or material claim. The optimization
+target is the whole investigation journey, not minimum bytes in one response.
+The exact evaluation and passive session-accounting contract is in the
+[assistant search-to-evidence design](docs/implementation/ASSISTANT-SEARCH-EVIDENCE-FLOW-DESIGN.md).
 
 The final target has no `max_read_span_lines` and makes no unsupported 400-line claim. Line count is a caller selection, not a reliable payload-size measure. `read_span` validates:
 

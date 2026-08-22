@@ -23,6 +23,13 @@ import tempfile
 import time
 from typing import Any
 
+from assistant_session_trace import (
+    PASSIVE_TRACE_PROTOCOL,
+    TRACE_SCHEMA_VERSION,
+    build_session_trace,
+    resolve_trace_protocol,
+)
+
 
 BASELINE_ARM = "baseline"
 CIDX_ARM = "cidx_fts"
@@ -52,38 +59,17 @@ SCHEMA_PROBE_PROMPT = (
     '"end_line":null,"supports":"probe"}],'
     '"uncertainties":[]}'
 )
-REPOSITORY_INSPECTION_RE = re.compile(
-    r"(?i)(?:^|[;&|()\s])(?:rg|grep|find|fd|ls|tree|sed|cat|head|tail|awk|nl)(?:\s|$)|git\s+grep"
-)
-SHELL_NAMES = {"sh", "bash", "zsh", "dash", "ksh"}
 
 
 class ExperimentError(RuntimeError):
     pass
 
 
-def normalized_shell_command(command: str) -> str:
-    current = command
-    for _ in range(4):
-        try:
-            parts = shlex.split(current, posix=True)
-        except ValueError:
-            return current
-        if not parts or Path(parts[0]).name not in SHELL_NAMES:
-            return current
-        script: str | None = None
-        for index, token in enumerate(parts[1:], start=1):
-            if token.startswith("-") and "c" in token[1:] and index + 1 < len(parts):
-                script = parts[index + 1]
-                break
-        if script is None or script == current:
-            return current
-        current = script
-    return current
-
-
-def is_repository_inspection(command: str) -> bool:
-    return bool(REPOSITORY_INSPECTION_RE.search(normalized_shell_command(command)))
+def experiment_protocol(manifest: dict[str, Any]) -> str:
+    try:
+        return resolve_trace_protocol(manifest)
+    except ValueError as exc:
+        raise ExperimentError(str(exc)) from exc
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -286,6 +272,9 @@ def verify_mcp_tools(
     state_root: Path,
     result_representation: str,
 ) -> dict[str, Any]:
+    preflight_environment = isolated_environment()
+    if "VOYAGE_API_KEY" in preflight_environment:
+        raise ExperimentError("FTS preflight must not expose VOYAGE_API_KEY")
     process = subprocess.Popen(
         [
             str(mcp_binary),
@@ -301,7 +290,7 @@ def verify_mcp_tools(
         stderr=subprocess.PIPE,
         text=True,
         bufsize=1,
-        env=isolated_environment(),
+        env=preflight_environment,
     )
     assert process.stdin is not None
     assert process.stdout is not None
@@ -414,10 +403,30 @@ def verify_mcp_tools(
             raise ExperimentError(f"isolated cidx status {name}={status.get(name)}")
     if status.get("dirty") is not False:
         raise ExperimentError("isolated cidx source is dirty")
+    descriptions = {
+        tool["name"]: tool.get("description")
+        for tool in raw_tools
+        if isinstance(tool.get("name"), str) and isinstance(tool.get("description"), str)
+    }
+    input_schemas = {
+        tool["name"]: tool.get("inputSchema")
+        for tool in raw_tools
+        if isinstance(tool.get("name"), str)
+    }
+    if sorted(descriptions) != EXPECTED_CIDX_TOOLS or sorted(input_schemas) != EXPECTED_CIDX_TOOLS:
+        raise ExperimentError("cidx tools must expose descriptions and input schemas")
     return {
         "names": tools,
         "tools": sorted(raw_tools, key=lambda item: item["name"]),
         "sha256": hashlib.sha256(canonical).hexdigest(),
+        "description_sha256": hashlib.sha256(
+            json.dumps(descriptions, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+        ).hexdigest(),
+        "input_schema_sha256": hashlib.sha256(
+            json.dumps(input_schemas, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+        ).hexdigest(),
+        "descriptions": descriptions,
+        "provider_credentials_present": False,
         "isolated_status": status,
         "result_representation": result_representation,
     }
@@ -486,7 +495,11 @@ def codex_command(
     return command
 
 
-def event_observation(events_path: Path, final_path: Path) -> dict[str, Any]:
+def event_observation(
+    events_path: Path,
+    final_path: Path,
+    trace: dict[str, Any],
+) -> dict[str, Any]:
     parsed: list[dict[str, Any]] = []
     invalid_event_lines = 0
     if events_path.exists():
@@ -502,7 +515,6 @@ def event_observation(events_path: Path, final_path: Path) -> dict[str, Any]:
     usage: dict[str, Any] = {}
     commands: list[dict[str, Any]] = []
     mcp_calls: list[dict[str, Any]] = []
-    discovery_actions: list[dict[str, Any]] = []
     source_paths: set[str] = set()
     for event in parsed:
         if event.get("type") == "turn.completed" and isinstance(
@@ -515,27 +527,6 @@ def event_observation(events_path: Path, final_path: Path) -> dict[str, Any]:
         if not isinstance(item, dict):
             continue
         kind = item.get("type")
-        if event.get("type") == "item.started":
-            if kind == "mcp_tool_call" and item.get("server") == "cidx":
-                tool = item.get("tool")
-                if tool in ("search", "read_span"):
-                    discovery_actions.append(
-                        {
-                            "kind": f"cidx_{tool}",
-                            "id": item.get("id"),
-                            "ordinal": len(discovery_actions),
-                        }
-                    )
-            elif kind == "command_execution":
-                command_text = str(item.get("command", ""))
-                if is_repository_inspection(command_text):
-                    discovery_actions.append(
-                        {
-                            "kind": "shell_repository_inspection",
-                            "id": item.get("id"),
-                            "ordinal": len(discovery_actions),
-                        }
-                    )
         if kind == "command_execution" and event.get("type") == "item.completed":
             record = {
                 key: item.get(key)
@@ -583,9 +574,9 @@ def event_observation(events_path: Path, final_path: Path) -> dict[str, Any]:
         "mcp_call_count": len(mcp_calls),
         "mcp_calls": mcp_calls,
         "cidx_used": bool(mcp_calls),
-        "discovery_actions": discovery_actions,
+        "discovery_actions": trace["actions"],
         "first_repository_discovery_action": (
-            discovery_actions[0]["kind"] if discovery_actions else None
+            trace["actions"][0]["kind"] if trace["actions"] else None
         ),
         "source_paths_from_commands": sorted(source_paths),
         "final": final_value,
@@ -606,6 +597,7 @@ def execute_one(
     task_id: str,
     prompt: str,
     result_representation: str,
+    session_trace_protocol: str,
 ) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=False)
     prompt_path = output_dir / "prompt.txt"
@@ -661,7 +653,15 @@ def execute_one(
                 os.killpg(process.pid, signal.SIGKILL)
                 process.wait(timeout=10)
     elapsed = time.monotonic() - started
-    observation = event_observation(events_path, final_path)
+    trace = build_session_trace(
+        events_path,
+        final_path,
+        root,
+        frozen_fts_default=True,
+    )
+    observation = event_observation(events_path, final_path, trace)
+    if session_trace_protocol == PASSIVE_TRACE_PROTOCOL:
+        write_json(output_dir / "session-trace.json", trace)
     observation.update(
         {
             "task_id": task_id,
@@ -728,7 +728,8 @@ def execute_isolated(
     task_id: str,
     prompt: str,
     result_representation: str,
-    require_first_cidx_search: bool = True,
+    require_first_cidx_search: bool,
+    session_trace_protocol: str,
 ) -> dict[str, Any]:
     source_root: Path | None = None
     state_root: Path | None = None
@@ -750,6 +751,7 @@ def execute_isolated(
             task_id=task_id,
             prompt=prompt,
             result_representation=result_representation,
+            session_trace_protocol=session_trace_protocol,
         )
         source_after = verify_isolated_source(source_root, corpus)
         state_after = (
@@ -901,6 +903,10 @@ def main() -> int:
         raise ExperimentError(f"Codex CLI is not logged in: {login_status}")
 
     controls = manifest["controls"]
+    session_trace_protocol = experiment_protocol(manifest)
+    require_first_cidx_search = controls.get("require_first_cidx_search", True)
+    if not isinstance(require_first_cidx_search, bool):
+        raise ExperimentError("controls.require_first_cidx_search must be boolean")
     run_id = args.run_id or (
         str(manifest.get("manifest_id", "assistant-ab"))
         + "-"
@@ -932,12 +938,20 @@ def main() -> int:
         "cidx_binary_sha256": sha256_file(cidx_binary),
         "mcp_binary_sha256": sha256_file(mcp_binary),
         "cidx_tool_schema_sha256": tool_schema["sha256"],
+        "cidx_tool_description_sha256": tool_schema["description_sha256"],
+        "cidx_tool_input_schema_sha256": tool_schema["input_schema_sha256"],
+        "cidx_tool_descriptions": tool_schema["descriptions"],
         "cidx_tools": tool_schema["names"],
         "mcp_result_representation": args.mcp_result_representation,
         "environment_variable_allowlist": sorted(isolated_environment()),
         "controls": controls,
         "corpora": corpus_records,
     }
+    if session_trace_protocol == PASSIVE_TRACE_PROTOCOL:
+        trace_path = Path(__file__).resolve().with_name("assistant_session_trace.py")
+        run_manifest["session_trace_protocol"] = session_trace_protocol
+        run_manifest["session_trace_schema_version"] = TRACE_SCHEMA_VERSION
+        run_manifest["session_trace_builder_sha256"] = sha256_file(trace_path)
     write_json(run_root / "run-manifest.json", run_manifest)
     write_json(run_root / "tool-schema.json", tool_schema)
     print(f"preflight passed; run={run_id}", flush=True)
@@ -961,6 +975,7 @@ def main() -> int:
             prompt=SCHEMA_PROBE_PROMPT,
             result_representation=args.mcp_result_representation,
             require_first_cidx_search=False,
+            session_trace_protocol=session_trace_protocol,
         )
         if (
             not probe["valid_execution"]
@@ -1001,7 +1016,11 @@ def main() -> int:
         )
         second_arm = CIDX_ARM if task["first_arm"] == BASELINE_ARM else BASELINE_ARM
         for arm in (task["first_arm"], second_arm):
-            print(f"task {task['sequence']:02d}/12 {task_id}: {arm}", flush=True)
+            print(
+                f"task {task['sequence']:02d}/{len(manifest['tasks'])} "
+                f"{task_id}: {arm}",
+                flush=True,
+            )
             observation = execute_isolated(
                 codex_binary=str(codex_path),
                 mcp_binary=mcp_binary,
@@ -1015,6 +1034,8 @@ def main() -> int:
                 task_id=task_id,
                 prompt=prompt,
                 result_representation=args.mcp_result_representation,
+                require_first_cidx_search=require_first_cidx_search,
+                session_trace_protocol=session_trace_protocol,
             )
             print(
                 f"  exit={observation['exit_code']} timeout={observation['timed_out']} "
