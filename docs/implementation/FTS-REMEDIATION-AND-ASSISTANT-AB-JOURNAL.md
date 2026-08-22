@@ -714,3 +714,62 @@ unopened work are in the
 No question, scored turn, provider call, retrieval change, public schema field,
 or test code was added. The next action is an owner decision on Step 3; it is
 not implicitly opened by completing this checkpoint.
+
+## 23. 2026-08-22 Assistant availability freeze and execution
+
+The owner opened Step 3 and Step 4. A source-first, versioned 30-question set
+was frozen over the existing chi and React Hook Form corpora: ten Go, ten
+TypeScript, and ten TSX tasks, each slice balanced across exact, semantic,
+multi-hop, contract/state, ambiguous, and verified-negative shapes. Independent
+Sol and Terra reviews accepted the questions and truth after corrections. The
+manifest froze the model, prompt, 15/15 arm order, source/config/index bytes,
+four live tool definitions and schemas, provider-free FTS controls, `k=5`, and
+the 64 KiB read maximum.
+
+The run completed all 30 pairs and 60 turns exactly once. Every turn was valid;
+there was no timeout, final error, source/state mutation, provider action, or
+control violation. Treatment exposed the frozen cidx MCP but selected it in
+0/30 turns and made zero MCP calls. Every treatment's first repository action
+was shell inspection and every first command invoked `rg`. Baseline used 101
+ordinary commands and 2,708,043 model-total tokens; treatment used 104 and
+2,833,556. With no cidx result, those differences are availability-level
+observations, not cidx transport or retrieval-efficiency measurements.
+
+Arm-blind packets and passive journeys were frozen. Blind grading then stopped
+before model output because the structured-output endpoint rejected the
+canonical schema's `uniqueItems` and a temporary compatibility probe's
+`allOf`. The original schema was restored and both failures retained. Exact
+run, token, packet, journey, and failure identities are in the
+[Step 4 execution checkpoint](evidence/phase-14/assistant-availability-v1-step-4-execution-and-grading-block.md).
+
+## 24. 2026-08-22 Assistant availability result review and direction
+
+The fixed execution result and grading block were sent unchanged to the
+existing ChatGPT and Grok side-panel review conversations. Both separated
+technical tool exposure from behavioral salience and agreed that 0/30 is a
+pure-availability adoption result, not evidence that cidx retrieval failed or
+that the model consciously compared cidx with `rg` and rejected it. They also
+agreed that the downstream grading-schema failure cannot explain tool use.
+
+Both accepted an output-only v2 response-format adapter as the minimal grading
+recovery, with the canonical schema and deterministic scorer retaining all
+semantic authority. Both recommended reusing the unchanged 30 questions in a
+new version, explicitly naming the optional cidx capability without forcing or
+rewarding its use, and deferring every retrieval/product/provider change.
+
+Their arm proposals differed. Grok proposed a three-arm neutral/aware study;
+ChatGPT proposed a fresh two-arm informed comparison. The two-arm design is
+selected because both arms receive the same capability-awareness paragraph and
+only actual cidx availability differs. The current neutral run remains the
+descriptive spontaneous-discovery record. Current tool-description bytes stay
+fixed so prompt awareness is not mixed with a second interface change.
+
+The exact transmitted packet and response identities, owner clarification,
+review findings, selected paragraph, arm adjudication, metrics, and forbidden
+claims are recorded in the
+[result external review](evidence/phase-14/assistant-availability-v1-result-external-review.md).
+
+Next: complete the frozen current grading through one supported-keyword v2
+output adapter, aggregate once, and only then prepare the new informed optional-
+use A/B version. No new run or product change is implicitly opened by this
+review record.
