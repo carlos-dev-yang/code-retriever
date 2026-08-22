@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cidx/assistant-question-set-review/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "reviewer",
+    "disposition",
+    "coverage",
+    "findings",
+    "summary"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "reviewer": {
+      "type": "string",
+      "minLength": 1
+    },
+    "disposition": {
+      "type": "string",
+      "enum": [
+        "ACCEPT",
+        "ACCEPT_WITH_CORRECTIONS",
+        "BLOCK"
+      ]
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_count",
+        "all_cases_reviewed",
+        "shape_distribution_verified",
+        "source_spans_verified",
+        "hard_negatives_verified",
+        "prompt_neutrality_verified",
+        "schedule_balance_verified"
+      ],
+      "properties": {
+        "case_count": {
+          "type": "integer",
+          "const": 30
+        },
+        "all_cases_reviewed": {
+          "type": "boolean"
+        },
+        "shape_distribution_verified": {
+          "type": "boolean"
+        },
+        "source_spans_verified": {
+          "type": "boolean"
+        },
+        "hard_negatives_verified": {
+          "type": "boolean"
+        },
+        "prompt_neutrality_verified": {
+          "type": "boolean"
+        },
+        "schedule_balance_verified": {
+          "type": "boolean"
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "severity",
+          "task_id",
+          "field",
+          "problem",
+          "required_correction"
+        ],
+        "properties": {
+          "severity": {
+            "type": "string",
+            "enum": [
+              "P1",
+              "P2",
+              "P3"
+            ]
+          },
+          "task_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "field": {
+            "type": "string",
+            "minLength": 1
+          },
+          "problem": {
+            "type": "string",
+            "minLength": 1
+          },
+          "required_correction": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

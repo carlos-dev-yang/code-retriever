@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "reviewer": "codex-sol-high",
+  "disposition": "ACCEPT_WITH_CORRECTIONS",
+  "coverage": {
+    "case_count": 30,
+    "all_cases_reviewed": true,
+    "shape_distribution_verified": true,
+    "source_spans_verified": true,
+    "hard_negatives_verified": true,
+    "prompt_neutrality_verified": true,
+    "schedule_balance_verified": true
+  },
+  "findings": [
+    {
+      "severity": "P1",
+      "task_id": "avail-tsx-contract-form-submit",
+      "field": "truth.required_claims",
+      "problem": "The claim that thrown errors call onError and cause root.server state is overbroad. Only exceptions inside the string-action and function-action try blocks are converted into returned errors; exceptions from data conversion or onSubmit are outside those blocks. The truth also omits onSuccess for accepted string-action responses.",
+      "required_correction": "Restrict the error claim to failed response statuses and exceptions caught inside the string-action or function-action branches, record that onSuccess receives accepted string-action responses, and regenerate the affected case and manifest digests."
+    },
+    {
+      "severity": "P2",
+      "task_id": "avail-go-multihop-compression",
+      "field": "required_groups.encoder-selection",
+      "problem": "The frozen span ends with selectEncoder and excludes matchAcceptEncoding, even though that helper defines how Accept-Encoding entries actually match an encoder. The present evidence cannot establish the exact matching mechanism requested by the question.",
+      "required_correction": "Add the exact matchAcceptEncoding parent span to the encoder-selection evidence and grade-2 judgments, update the material claim to describe the lowercase comma split, configured precedence, and substring match behavior, and regenerate dependent digests."
+    },
+    {
+      "severity": "P2",
+      "task_id": "avail-ts-multihop-controller-subscriptions",
+      "field": "question_text_and_required_groups",
+      "problem": "The question only asks how useController obtains the two values and which hooks provide them; the useController parent alone establishes both answers. Consequently the useWatch and useFormState implementation groups are not necessary, weakening this required multi-hop shape cell.",
+      "required_correction": "Revise the question and truth to require source-backed details of how useWatch and useFormState establish and clean up their subscriptions, or remove the redundant groups and replace or reclassify the case so the TypeScript multi-hop slice remains valid."
+    },
+    {
+      "severity": "P2",
+      "task_id": "avail-ts-contract-use-form-lifecycle",
+      "field": "truth.required_claims",
+      "problem": "The question asks when the control is created or replaced, but the frozen claim only says that useForm creates or adopts a control. It omits the replacement condition when a new formControl prop identity is supplied and the associated adoption/reset behavior.",
+      "required_correction": "Expand the claim to state the initial creation path and the external-formControl identity-change replacement path, including the non-function default-values reset performed when adopting that control, then regenerate dependent digests."
+    },
+    {
+      "severity": "P2",
+      "task_id": "avail-tsx-exact-form-provider",
+      "field": "truth.required_claims",
+      "problem": "The source shows two nested context writes: the memoized UseFormReturn goes to HookFormContext and memoizedValue.control goes to HookFormControlContext. The frozen claim records only the first, so grading can accept an incomplete answer to what FormProvider places in context.",
+      "required_correction": "Add the HookFormControlContext control value to the material claim and expected answer while retaining the existing FormProvider parent span, then regenerate dependent digests."
+    },
+    {
+      "severity": "P2",
+      "task_id": "avail-tsx-contract-form-state-props",
+      "field": "required_groups.form-state-props",
+      "problem": "FormStateProps inherits its subscription fields from UseFormStateProps, but the frozen type-contract evidence contains only the reference to that type. It does not directly establish the complete inherited contract requested by the question.",
+      "required_correction": "Add the exact UseFormStateProps parent from src/types/form.ts to the type-contract evidence and grade-2 judgments, enumerate control, disabled, name, exact, and render in the truth, and regenerate dependent digests."
+    },
+    {
+      "severity": "P3",
+      "task_id": null,
+      "field": "taxonomy.nonexclusive_modifiers",
+      "problem": "The question files use state_flow and same_symbol_multiple_modes, but neither modifier is declared by assistant-availability-question-shapes-v1.json.",
+      "required_correction": "Declare those modifiers in the taxonomy or remove or map them to declared modifiers, then update the taxonomy, question-source, case, and manifest identities consistently."
+    }
+  ],
+  "summary": "All 30 cases were reviewed against clean local checkouts at the pinned commits. The 10/10/10 language counts and every 2/2/2/2/1/1 primary-shape count are present; all encoded paths, file hashes, byte ranges, symbols, judgments, canonical case digests, hard negatives, three absence scans, neutral shared prompt properties, and the 15/15 complete paired schedule were checked. The listed source-truth, dependency-evidence, and shape-cell corrections are repairable during Step 3 without changing the paired estimand."
+}

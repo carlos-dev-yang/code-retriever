@@ -1,0 +1,406 @@
+{
+  "schema_version": 1,
+  "truth_id": "assistant-availability-chi-rhf-v1-truth",
+  "question_set_versions": [
+    "go-chi-v5.3.1-assistant-availability-v1",
+    "react-hook-form-v7.85.0-assistant-availability-v1"
+  ],
+  "authoring_protocol": "source-first-v1",
+  "contamination_controls": {
+    "cidx_search_results_consulted": false,
+    "prior_assistant_outputs_consulted": false,
+    "scored_turns_observed": false,
+    "parser_inventory_use": "Exact parent symbols, byte ranges, and file hashes only after the question and expected claims were authored from source."
+  },
+  "entries": [
+    {
+      "task_id": "avail-go-exact-new-router",
+      "primary_shape": "exact_identifier_or_path",
+      "required_claims": [
+        "NewRouter is defined in chi.go and returns NewMux()."
+      ],
+      "answerability": "answerable",
+      "required_group_ids": [
+        "new-router-definition"
+      ],
+      "hard_negative_reasons": []
+    },
+    {
+      "task_id": "avail-go-exact-router-contract",
+      "primary_shape": "exact_identifier_or_path",
+      "required_claims": [
+        "Router embeds http.Handler and Routes and declares middleware, grouping/mounting, method routing, and fallback-handler operations."
+      ],
+      "answerability": "answerable",
+      "required_group_ids": [
+        "router-interface-contract"
+      ],
+      "hard_negative_reasons": []
+    },
+    {
+      "task_id": "avail-go-semantic-route-context",
+      "primary_shape": "semantic_single_hop",
+      "required_claims": [
+        "FindRoute resets transient match state, performs the lookup, appends captured keys and values to URLParams, and records the matched pattern."
+      ],
+      "answerability": "answerable",
+      "required_group_ids": [
+        "route-context-commit"
+      ],
+      "hard_negative_reasons": []
+    },
+    {
+      "task_id": "avail-go-semantic-timeout",
+      "primary_shape": "semantic_single_hop",
+      "required_claims": [
+        "Timeout wraps the request with context.WithTimeout and writes Gateway Timeout only when the derived context ends with DeadlineExceeded."
+      ],
+      "answerability": "answerable",
+      "required_group_ids": [
+        "timeout-middleware"
+      ],
+      "hard_negative_reasons": []
+    },
+    {
+      "task_id": "avail-go-multihop-compression",
+      "primary_shape": "dependency_or_type_multi_hop",
+      "required_claims": [
+        "selectEncoder lowercases and comma-splits Accept-Encoding, follows configured encoder precedence, and accepts an entry when matchAcceptEncoding finds the encoder name as a substring before obtaining a pooled or constructed encoder.",
+        "isCompressible checks an exact content type and then its wildcard major type."
+      ],
+      "answerability": "answerable",
+      "required_group_ids": [
+        "encoder-selection",
+        "content-type-eligibility"
+      ],
+      "hard_negative_reasons": []
+    },
+    {
+      "task_id": "avail-go-multihop-real-ip",
+      "primary_shape": "dependency_or_type_multi_hop",
+      "required_claims": [
+        "RealIP mutates RemoteAddr only when realIP returns a nonempty value.",
+        "realIP checks True-Client-IP, then X-Real-IP, then the leftmost X-Forwarded-For value and rejects empty or unparsable addresses."
+      ],
+      "answerability": "answerable",
+      "required_group_ids": [
+        "real-ip-application",
+        "real-ip-selection"
+      ],
+      "hard_negative_reasons": []
+    },
+    {
+      "task_id": "avail-go-contract-route-outcome",
+      "primary_shape": "contract_lifecycle_state_or_error",
+      "required_claims": [
+        "routeHTTP derives the route path and method, invokes FindRoute, copies URL parameters into request path values, assigns request Pattern, and otherwise selects method-not-allowed or not-found."
+      ],
+      "answerability": "answerable",
+      "required_group_ids": [
+        "route-outcome-contract"
+      ],
+      "hard_negative_reasons": []
+    },
+    {
+      "task_id": "avail-go-contract-throttle",
+      "primary_shape": "contract_lifecycle_state_or_error",
+      "required_claims": [
+        "ThrottleOpts defines retry-after, active limit, backlog limit and timeout, and status code.",
+        "ThrottleWithOpts validates limits, acquires and returns backlog and processing tokens, and distinguishes capacity, timeout, and context-cancellation failures."
+      ],
+      "answerability": "answerable",
+      "required_group_ids": [
+        "throttle-options",
+        "throttle-lifecycle"
+      ],
+      "hard_negative_reasons": []
+    },
+    {
+      "task_id": "avail-go-ambiguous-request-id",
+      "primary_shape": "ambiguous_disambiguation",
+      "required_claims": [
+        "RequestID preserves the configured incoming header value or generates a process-prefix plus atomic counter, then stores it in context.",
+        "GetReqID only reads the string value and returns empty for nil context, absence, or a wrong type."
+      ],
+      "answerability": "answerable",
+      "required_group_ids": [
+        "request-id-injection",
+        "request-id-read"
+      ],
+      "hard_negative_reasons": []
+    },
+    {
+      "task_id": "avail-go-negative-json-binding",
+      "primary_shape": "verified_no_answer_or_hard_negative",
+      "required_claims": [
+        "The non-test Go source contains no built-in JSON body-binding middleware; AllowContentType only validates the header and forwards or rejects the request."
+      ],
+      "answerability": "verified_no_answer",
+      "required_group_ids": [],
+      "hard_negative_reasons": [
+        "AllowContentType validates a request Content-Type whitelist and never decodes a body into a user value."
+      ]
+    },
+    {
+      "task_id": "avail-ts-exact-field-value-as",
+      "primary_shape": "exact_identifier_or_path",
+      "required_claims": [
+        "Undefined is returned unchanged; number conversion precedes date conversion, which precedes setValueAs, then the original value is returned."
+      ],
+      "answerability": "answerable",
+      "required_group_ids": [
+        "field-value-conversion"
+      ],
+      "hard_negative_reasons": []
+    },
+    {
+      "task_id": "avail-ts-exact-use-form-return",
+      "primary_shape": "exact_identifier_or_path",
+      "required_claims": [
+        "UseFormReturn collects watch/get/set/validation/reset/submission/registration/subscription operations together with formState and control."
+      ],
+      "answerability": "answerable",
+      "required_group_ids": [
+        "use-form-return-contract"
+      ],
+      "hard_negative_reasons": []
+    },
+    {
+      "task_id": "avail-ts-semantic-event-value",
+      "primary_shape": "semantic_single_hop",
+      "required_claims": [
+        "Checkboxes yield checked, file inputs yield files, other targets yield value, and a non-object or targetless input is returned unchanged."
+      ],
+      "answerability": "answerable",
+      "required_group_ids": [
+        "event-value-reduction"
+      ],
+      "hard_negative_reasons": []
+    },
+    {
+      "task_id": "avail-ts-semantic-name-subscription",
+      "primary_shape": "semantic_single_hop",
+      "required_claims": [
+        "Missing name or signal matches; exact mode accepts equality or current-name descendants, while non-exact mode accepts either-direction prefix relationships."
+      ],
+      "answerability": "answerable",
+      "required_group_ids": [
+        "name-subscription-match"
+      ],
+      "hard_negative_reasons": []
+    },
+    {
+      "task_id": "avail-ts-multihop-controller-subscriptions",
+      "primary_shape": "dependency_or_type_multi_hop",
+      "required_claims": [
+        "useController derives the current value through useWatch and scoped form state through useFormState before constructing field state and handlers.",
+        "useWatch refreshes when its control or name changes, otherwise resynchronizes if needed, subscribes to value changes for the requested name and exactness, and unsubscribes while snapshotting on cleanup.",
+        "useFormState initializes from control state, resynchronizes if needed, subscribes through its local proxy for the requested name and exactness, updates only while enabled, and unsubscribes while snapshotting on cleanup."
+      ],
+      "answerability": "answerable",
+      "required_group_ids": [
+        "controller-orchestration",
+        "value-subscription",
+        "form-state-subscription"
+      ],
+      "hard_negative_reasons": []
+    },
+    {
+      "task_id": "avail-ts-multihop-subject-contract",
+      "primary_shape": "dependency_or_type_multi_hop",
+      "required_claims": [
+        "Subject exposes observers, subscribe, unsubscribe, and next.",
+        "createSubject iterates current observers for next, filters one observer from the array for a subscription unsubscribe, and replaces the array with empty for global unsubscribe."
+      ],
+      "answerability": "answerable",
+      "required_group_ids": [
+        "subject-type-contract",
+        "subject-implementation"
+      ],
+      "hard_negative_reasons": []
+    },
+    {
+      "task_id": "avail-ts-contract-use-form-lifecycle",
+      "primary_shape": "contract_lifecycle_state_or_error",
+      "required_claims": [
+        "useForm initially creates an internal control unless an external formControl is supplied; when a new external formControl identity arrives it adopts that control, attaches current formState, and resets non-function defaultValues before continuing.",
+        "useForm subscribes root state in a layout effect, marks both rendered and control state ready, and unsubscribes while snapshotting on cleanup."
+      ],
+      "answerability": "answerable",
+      "required_group_ids": [
+        "use-form-lifecycle"
+      ],
+      "hard_negative_reasons": []
+    },
+    {
+      "task_id": "avail-ts-contract-dotted-paths",
+      "primary_shape": "contract_lifecycle_state_or_error",
+      "required_claims": [
+        "PathImpl emits the current key and recurses only for eligible unseen object values.",
+        "PathInternal stops when depth is exhausted and handles tuples, arrays, and object keys through PathImpl."
+      ],
+      "answerability": "answerable",
+      "required_group_ids": [
+        "path-segment-construction",
+        "path-recursion"
+      ],
+      "hard_negative_reasons": []
+    },
+    {
+      "task_id": "avail-ts-ambiguous-form-state",
+      "primary_shape": "ambiguous_disambiguation",
+      "required_claims": [
+        "The TypeScript FormState type enumerates aggregate state fields.",
+        "The TSX FormState value is a render-prop component that calls useFormState and passes the result to render."
+      ],
+      "answerability": "answerable",
+      "required_group_ids": [
+        "form-state-data-contract",
+        "form-state-runtime-component"
+      ],
+      "hard_negative_reasons": []
+    },
+    {
+      "task_id": "avail-ts-negative-local-storage",
+      "primary_shape": "verified_no_answer_or_hard_negative",
+      "required_claims": [
+        "The non-test src TypeScript/TSX source contains no localStorage, sessionStorage, or IndexedDB persistence path; useForm manages in-memory state and subscriptions."
+      ],
+      "answerability": "verified_no_answer",
+      "required_group_ids": [],
+      "hard_negative_reasons": [
+        "useForm owns in-memory React/control lifecycle but contains no browser-storage persistence implementation."
+      ]
+    },
+    {
+      "task_id": "avail-tsx-exact-controller",
+      "primary_shape": "exact_identifier_or_path",
+      "required_claims": [
+        "Controller calls useController with its props and passes that returned object to props.render."
+      ],
+      "answerability": "answerable",
+      "required_group_ids": [
+        "controller-component"
+      ],
+      "hard_negative_reasons": []
+    },
+    {
+      "task_id": "avail-tsx-exact-form-provider",
+      "primary_shape": "exact_identifier_or_path",
+      "required_claims": [
+        "FormProvider memoizes the enumerated UseFormReturn methods and state, provides that object through HookFormContext, and separately provides its control through the nested HookFormControlContext."
+      ],
+      "answerability": "answerable",
+      "required_group_ids": [
+        "form-provider-component"
+      ],
+      "hard_negative_reasons": []
+    },
+    {
+      "task_id": "avail-tsx-semantic-watch",
+      "primary_shape": "semantic_single_hop",
+      "required_claims": [
+        "Watch maps props.names to the hook's name option, forwards the remaining props, casts the result to WatchRenderValue, and passes it to render."
+      ],
+      "answerability": "answerable",
+      "required_group_ids": [
+        "watch-component"
+      ],
+      "hard_negative_reasons": []
+    },
+    {
+      "task_id": "avail-tsx-semantic-form-state",
+      "primary_shape": "semantic_single_hop",
+      "required_claims": [
+        "FormState forwards control, name, disabled, and exact to useFormState and returns render called with that result."
+      ],
+      "answerability": "answerable",
+      "required_group_ids": [
+        "form-state-component"
+      ],
+      "hard_negative_reasons": []
+    },
+    {
+      "task_id": "avail-tsx-multihop-field-array",
+      "primary_shape": "dependency_or_type_multi_hop",
+      "required_claims": [
+        "FieldArray passes its props to useFieldArray and sends the returned operations to render.",
+        "useFieldArray owns the field list and array mutation operations returned to the component."
+      ],
+      "answerability": "answerable",
+      "required_group_ids": [
+        "field-array-component",
+        "field-array-hook"
+      ],
+      "hard_negative_reasons": []
+    },
+    {
+      "task_id": "avail-tsx-multihop-context",
+      "primary_shape": "dependency_or_type_multi_hop",
+      "required_claims": [
+        "FormProvider supplies a memoized UseFormReturn object through HookFormContext.",
+        "useFormContext reads and casts the same context value for nested consumers."
+      ],
+      "answerability": "answerable",
+      "required_group_ids": [
+        "context-provider",
+        "context-consumer"
+      ],
+      "hard_negative_reasons": []
+    },
+    {
+      "task_id": "avail-tsx-contract-form-submit",
+      "primary_shape": "contract_lifecycle_state_or_error",
+      "required_claims": [
+        "Form converts values to FormData and JSON, runs onSubmit, then invokes fetch for string actions or the function action directly.",
+        "For a string action, a rejected response status calls onError and returns a status error while an accepted response calls onSuccess; exceptions caught inside either the string-action or function-action branch call onError and return an empty-type error.",
+        "Within Form, only those status and branch-catch paths construct returned error objects; submit marks unsuccessful state and sets root.server only when its awaited handleSubmit result is truthy, while conversion and onSubmit lie outside the branch try blocks.",
+        "The native form receives action and submit handling, becomes noValidate after mount, and receives method and encType only when action is not a function."
+      ],
+      "answerability": "answerable",
+      "required_group_ids": [
+        "form-submit-contract"
+      ],
+      "hard_negative_reasons": []
+    },
+    {
+      "task_id": "avail-tsx-contract-form-state-props",
+      "primary_shape": "contract_lifecycle_state_or_error",
+      "required_claims": [
+        "FormStateProps combines the UseFormStateProps options control, disabled, name, and exact with a render callback.",
+        "FormState destructures those options, calls useFormState, and renders its result."
+      ],
+      "answerability": "answerable",
+      "required_group_ids": [
+        "form-state-props",
+        "form-state-props-consumer"
+      ],
+      "hard_negative_reasons": []
+    },
+    {
+      "task_id": "avail-tsx-ambiguous-form-mode",
+      "primary_shape": "ambiguous_disambiguation",
+      "required_claims": [
+        "A render prop selects headless mode and receives submit; otherwise Form returns a native form.",
+        "For a function action, method and encType are not passed to the native form, while string actions use the normal submission attributes."
+      ],
+      "answerability": "answerable",
+      "required_group_ids": [
+        "form-render-modes"
+      ],
+      "hard_negative_reasons": []
+    },
+    {
+      "task_id": "avail-tsx-negative-websocket",
+      "primary_shape": "verified_no_answer_or_hard_negative",
+      "required_claims": [
+        "The non-test src TypeScript/TSX source contains no WebSocket or EventSource transport; Watch is a local render-prop value subscription."
+      ],
+      "answerability": "verified_no_answer",
+      "required_group_ids": [],
+      "hard_negative_reasons": [
+        "Watch subscribes to local form-control values through useWatch; it opens no WebSocket or EventSource."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "reviewer": "codex-sol-high",
+  "disposition": "ACCEPT",
+  "coverage": {
+    "case_count": 30,
+    "all_cases_reviewed": true,
+    "shape_distribution_verified": true,
+    "source_spans_verified": true,
+    "hard_negatives_verified": true,
+    "prompt_neutrality_verified": true,
+    "schedule_balance_verified": true
+  },
+  "findings": [],
+  "summary": "All 30 cases are source-backed and executable. Both question sources bind the frozen taxonomy correctly; every language slice has the required 2/2/2/2/1/1 distribution. Pinned commits, trees, selected-content hashes, file hashes, parent byte ranges, qualified symbols, grade-2 judgments, hard negatives, question digests, source-file digests, truth and taxonomy digests, and the composite identity digest were verified. The narrowed avail-tsx-contract-form-submit claims are fully established by module.Form alone without requiring helper implementation semantics. Repository-wide non-test source scans support all three verified-absence cases. The shared prompt is tool-neutral and identical by construction, and the schedule contains every case exactly once with 15 baseline-first and 15 cidx-first pairs."
+}

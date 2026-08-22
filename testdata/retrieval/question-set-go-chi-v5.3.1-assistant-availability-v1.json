@@ -1,0 +1,975 @@
+{
+  "schema_version": 1,
+  "question_set_id": "go-chi-v5.3.1-assistant-availability",
+  "version": "go-chi-v5.3.1-assistant-availability-v1",
+  "supersedes": [],
+  "taxonomy_version": "assistant-availability-question-shapes-v1",
+  "taxonomy_sha256": "7989919031881a6a44062a52304dd14eb1955883a508fe47bda2c128d04bd986",
+  "change_summary": [
+    "Create a new source-first assistant-availability question series without changing prior question sets or results.",
+    "Freeze ten Go tasks across the six primary shapes required by the host-decided availability design.",
+    "Use parser inventory only for exact source coordinates after direct source review; no cidx ranking or assistant output informed question construction."
+  ],
+  "corpus_id": "go-chi-chi-v5.3.1",
+  "language_slice_counts": {
+    "go": 10
+  },
+  "cases": [
+    {
+      "schema_version": 1,
+      "id": "avail-go-exact-new-router",
+      "text": "Where is `NewRouter` defined, and what concrete value does it return?",
+      "language": "go",
+      "cohorts": [
+        "availability:slice:go",
+        "availability:shape:exact_identifier_or_path",
+        "availability:modifier:exact_identifier"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "NewRouter"
+        ],
+        "paths": [
+          "chi.go"
+        ],
+        "languages": [
+          "go"
+        ],
+        "scopes": [
+          "source_answer"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "new-router-definition",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "chi.go",
+                  "content_sha256": "b659c130bc881c5cbaf03080497e3a25e6acbbed7c100ff7d19bf25f9bc64538",
+                  "qualified_symbol": "chi.NewRouter",
+                  "start_byte": 1898,
+                  "end_byte": 2016
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "chi.go",
+            "content_sha256": "b659c130bc881c5cbaf03080497e3a25e6acbbed7c100ff7d19bf25f9bc64538",
+            "qualified_symbol": "chi.NewRouter",
+            "start_byte": 1898,
+            "end_byte": 2016
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        }
+      ],
+      "review": {
+        "state": "frozen",
+        "passes": [
+          {
+            "id": "assistant-availability-v1-final-sol",
+            "reviewer": "codex-sol-high",
+            "artifact_sha256": "6587f8e130f389592a2853a65c7cd62b16e6d94bf7fbff3621964e930b46ef23"
+          },
+          {
+            "id": "assistant-availability-v1-final-terra",
+            "reviewer": "codex-terra-high",
+            "artifact_sha256": "6af0c312c30ae9b933f4437370c041bdba620267dcb86e2527169cfe76ea1535"
+          }
+        ],
+        "rationale": "Source-first questions, required evidence, hard negatives, prompt neutrality, and counterbalanced schedule were corrected through two review rounds and accepted by both final independent reviewers before any scored turn.",
+        "protocol_version": "owner-adopted-dual-ai-v1",
+        "relevance_authority": "OWNER_ADOPTED_DUAL_AI_REVIEW",
+        "review_validation": "NO_INDEPENDENT_HUMAN_REVIEW",
+        "owner_adoption_sha256": "b49a42433d3a7a846e924cccecacc029f39639afbd8df73817c54b5975289e51"
+      },
+      "digest": "98dbd768b33c2191f1c444380b664f4565cfc8af3351611bdaf577db3a2a585b"
+    },
+    {
+      "schema_version": 1,
+      "id": "avail-go-exact-router-contract",
+      "text": "Locate the `Router` interface and summarize the categories of operations its contract requires.",
+      "language": "go",
+      "cohorts": [
+        "availability:slice:go",
+        "availability:shape:exact_identifier_or_path",
+        "availability:modifier:exact_identifier",
+        "availability:modifier:type_contract"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "Router"
+        ],
+        "paths": [
+          "chi.go"
+        ],
+        "languages": [
+          "go"
+        ],
+        "scopes": [
+          "source_answer"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "router-interface-contract",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "chi.go",
+                  "content_sha256": "b659c130bc881c5cbaf03080497e3a25e6acbbed7c100ff7d19bf25f9bc64538",
+                  "qualified_symbol": "chi.Router",
+                  "start_byte": 2018,
+                  "end_byte": 3856
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "chi.go",
+            "content_sha256": "b659c130bc881c5cbaf03080497e3a25e6acbbed7c100ff7d19bf25f9bc64538",
+            "qualified_symbol": "chi.Router",
+            "start_byte": 2018,
+            "end_byte": 3856
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        }
+      ],
+      "review": {
+        "state": "frozen",
+        "passes": [
+          {
+            "id": "assistant-availability-v1-final-sol",
+            "reviewer": "codex-sol-high",
+            "artifact_sha256": "6587f8e130f389592a2853a65c7cd62b16e6d94bf7fbff3621964e930b46ef23"
+          },
+          {
+            "id": "assistant-availability-v1-final-terra",
+            "reviewer": "codex-terra-high",
+            "artifact_sha256": "6af0c312c30ae9b933f4437370c041bdba620267dcb86e2527169cfe76ea1535"
+          }
+        ],
+        "rationale": "Source-first questions, required evidence, hard negatives, prompt neutrality, and counterbalanced schedule were corrected through two review rounds and accepted by both final independent reviewers before any scored turn.",
+        "protocol_version": "owner-adopted-dual-ai-v1",
+        "relevance_authority": "OWNER_ADOPTED_DUAL_AI_REVIEW",
+        "review_validation": "NO_INDEPENDENT_HUMAN_REVIEW",
+        "owner_adoption_sha256": "b49a42433d3a7a846e924cccecacc029f39639afbd8df73817c54b5975289e51"
+      },
+      "digest": "5cc24fd8b0467b40c5b362ef61ef7ee62c61ed3ed1763645e41abc2d7091fbde"
+    },
+    {
+      "schema_version": 1,
+      "id": "avail-go-semantic-route-context",
+      "text": "After a trie lookup succeeds, where are captured URL parameters and the matched route pattern committed to the request lifecycle?",
+      "language": "go",
+      "cohorts": [
+        "availability:slice:go",
+        "availability:shape:semantic_single_hop",
+        "availability:modifier:natural_language",
+        "availability:modifier:lifecycle"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "FindRoute",
+          "URLParams",
+          "RoutePatterns"
+        ],
+        "paths": [
+          "tree.go"
+        ],
+        "languages": [
+          "go"
+        ],
+        "scopes": [
+          "source_answer"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "route-context-commit",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "tree.go",
+                  "content_sha256": "eef7d6c9eefa838f4fdfda6ac61a116911a4d71f3ba0a002a62728783631c31d",
+                  "qualified_symbol": "chi.node.FindRoute",
+                  "start_byte": 9148,
+                  "end_byte": 10052
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "tree.go",
+            "content_sha256": "eef7d6c9eefa838f4fdfda6ac61a116911a4d71f3ba0a002a62728783631c31d",
+            "qualified_symbol": "chi.node.FindRoute",
+            "start_byte": 9148,
+            "end_byte": 10052
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        }
+      ],
+      "review": {
+        "state": "frozen",
+        "passes": [
+          {
+            "id": "assistant-availability-v1-final-sol",
+            "reviewer": "codex-sol-high",
+            "artifact_sha256": "6587f8e130f389592a2853a65c7cd62b16e6d94bf7fbff3621964e930b46ef23"
+          },
+          {
+            "id": "assistant-availability-v1-final-terra",
+            "reviewer": "codex-terra-high",
+            "artifact_sha256": "6af0c312c30ae9b933f4437370c041bdba620267dcb86e2527169cfe76ea1535"
+          }
+        ],
+        "rationale": "Source-first questions, required evidence, hard negatives, prompt neutrality, and counterbalanced schedule were corrected through two review rounds and accepted by both final independent reviewers before any scored turn.",
+        "protocol_version": "owner-adopted-dual-ai-v1",
+        "relevance_authority": "OWNER_ADOPTED_DUAL_AI_REVIEW",
+        "review_validation": "NO_INDEPENDENT_HUMAN_REVIEW",
+        "owner_adoption_sha256": "b49a42433d3a7a846e924cccecacc029f39639afbd8df73817c54b5975289e51"
+      },
+      "digest": "8bdc7b5920be061b2a5786c0db10dc0457a1a1b1a9b48ddca8904fa0f2667213"
+    },
+    {
+      "schema_version": 1,
+      "id": "avail-go-semantic-timeout",
+      "text": "Which middleware installs a deadline on the request context, and under exactly what condition does it write a 504 response?",
+      "language": "go",
+      "cohorts": [
+        "availability:slice:go",
+        "availability:shape:semantic_single_hop",
+        "availability:modifier:natural_language",
+        "availability:modifier:error_flow"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "Timeout",
+          "DeadlineExceeded"
+        ],
+        "paths": [
+          "middleware/timeout.go"
+        ],
+        "languages": [
+          "go"
+        ],
+        "scopes": [
+          "source_answer"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "timeout-middleware",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "middleware/timeout.go",
+                  "content_sha256": "3e83d007ec300b4ea605d97a336351e562ecd84b32c2b26206791d11ce7501c0",
+                  "qualified_symbol": "middleware.Timeout",
+                  "start_byte": 63,
+                  "end_byte": 1221
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "middleware/timeout.go",
+            "content_sha256": "3e83d007ec300b4ea605d97a336351e562ecd84b32c2b26206791d11ce7501c0",
+            "qualified_symbol": "middleware.Timeout",
+            "start_byte": 63,
+            "end_byte": 1221
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        }
+      ],
+      "review": {
+        "state": "frozen",
+        "passes": [
+          {
+            "id": "assistant-availability-v1-final-sol",
+            "reviewer": "codex-sol-high",
+            "artifact_sha256": "6587f8e130f389592a2853a65c7cd62b16e6d94bf7fbff3621964e930b46ef23"
+          },
+          {
+            "id": "assistant-availability-v1-final-terra",
+            "reviewer": "codex-terra-high",
+            "artifact_sha256": "6af0c312c30ae9b933f4437370c041bdba620267dcb86e2527169cfe76ea1535"
+          }
+        ],
+        "rationale": "Source-first questions, required evidence, hard negatives, prompt neutrality, and counterbalanced schedule were corrected through two review rounds and accepted by both final independent reviewers before any scored turn.",
+        "protocol_version": "owner-adopted-dual-ai-v1",
+        "relevance_authority": "OWNER_ADOPTED_DUAL_AI_REVIEW",
+        "review_validation": "NO_INDEPENDENT_HUMAN_REVIEW",
+        "owner_adoption_sha256": "b49a42433d3a7a846e924cccecacc029f39639afbd8df73817c54b5975289e51"
+      },
+      "digest": "f27f82c57f1bd2dfe0dec47dfbf216703fe3ca02c8570c570e68abc16a4d0a23"
+    },
+    {
+      "schema_version": 1,
+      "id": "avail-go-multihop-compression",
+      "text": "How does response compression choose an encoder from `Accept-Encoding`, and separately decide whether a response `Content-Type` is compressible?",
+      "language": "go",
+      "cohorts": [
+        "availability:slice:go",
+        "availability:shape:dependency_or_type_multi_hop",
+        "availability:modifier:natural_language",
+        "availability:modifier:multi_requirement",
+        "availability:modifier:dependency_evidence"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 2,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "selectEncoder",
+          "matchAcceptEncoding",
+          "isCompressible"
+        ],
+        "paths": [
+          "middleware/compress.go"
+        ],
+        "languages": [
+          "go"
+        ],
+        "scopes": [
+          "source_answer"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "encoder-selection",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "middleware/compress.go",
+                  "content_sha256": "e7bc1ebe0718ae3bdc58fa4e266d01fdc72a84fd7833e0e70122e09032efd2e1",
+                  "qualified_symbol": "middleware.Compressor.selectEncoder",
+                  "start_byte": 6870,
+                  "end_byte": 7736
+                },
+                {
+                  "path": "middleware/compress.go",
+                  "content_sha256": "e7bc1ebe0718ae3bdc58fa4e266d01fdc72a84fd7833e0e70122e09032efd2e1",
+                  "qualified_symbol": "middleware.matchAcceptEncoding",
+                  "start_byte": 7738,
+                  "end_byte": 7910
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "content-type-eligibility",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "middleware/compress.go",
+                  "content_sha256": "e7bc1ebe0718ae3bdc58fa4e266d01fdc72a84fd7833e0e70122e09032efd2e1",
+                  "qualified_symbol": "middleware.compressResponseWriter.isCompressible",
+                  "start_byte": 8620,
+                  "end_byte": 9091
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "middleware/compress.go",
+            "content_sha256": "e7bc1ebe0718ae3bdc58fa4e266d01fdc72a84fd7833e0e70122e09032efd2e1",
+            "qualified_symbol": "middleware.Compressor.selectEncoder",
+            "start_byte": 6870,
+            "end_byte": 7736
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        },
+        {
+          "span": {
+            "path": "middleware/compress.go",
+            "content_sha256": "e7bc1ebe0718ae3bdc58fa4e266d01fdc72a84fd7833e0e70122e09032efd2e1",
+            "qualified_symbol": "middleware.matchAcceptEncoding",
+            "start_byte": 7738,
+            "end_byte": 7910
+          },
+          "grade": 2,
+          "rationale": "Directly establishes how a normalized Accept-Encoding entry is matched."
+        },
+        {
+          "span": {
+            "path": "middleware/compress.go",
+            "content_sha256": "e7bc1ebe0718ae3bdc58fa4e266d01fdc72a84fd7833e0e70122e09032efd2e1",
+            "qualified_symbol": "middleware.compressResponseWriter.isCompressible",
+            "start_byte": 8620,
+            "end_byte": 9091
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        }
+      ],
+      "review": {
+        "state": "frozen",
+        "passes": [
+          {
+            "id": "assistant-availability-v1-final-sol",
+            "reviewer": "codex-sol-high",
+            "artifact_sha256": "6587f8e130f389592a2853a65c7cd62b16e6d94bf7fbff3621964e930b46ef23"
+          },
+          {
+            "id": "assistant-availability-v1-final-terra",
+            "reviewer": "codex-terra-high",
+            "artifact_sha256": "6af0c312c30ae9b933f4437370c041bdba620267dcb86e2527169cfe76ea1535"
+          }
+        ],
+        "rationale": "Source-first questions, required evidence, hard negatives, prompt neutrality, and counterbalanced schedule were corrected through two review rounds and accepted by both final independent reviewers before any scored turn.",
+        "protocol_version": "owner-adopted-dual-ai-v1",
+        "relevance_authority": "OWNER_ADOPTED_DUAL_AI_REVIEW",
+        "review_validation": "NO_INDEPENDENT_HUMAN_REVIEW",
+        "owner_adoption_sha256": "b49a42433d3a7a846e924cccecacc029f39639afbd8df73817c54b5975289e51"
+      },
+      "digest": "a5123f8f87a82bc8de42676abba11fdbf518a722ab8916f4dd65c6f26781f543"
+    },
+    {
+      "schema_version": 1,
+      "id": "avail-go-multihop-real-ip",
+      "text": "How does the deprecated `RealIP` middleware determine a candidate address and apply it, including what happens for an invalid IP?",
+      "language": "go",
+      "cohorts": [
+        "availability:slice:go",
+        "availability:shape:dependency_or_type_multi_hop",
+        "availability:modifier:exact_identifier",
+        "availability:modifier:multi_requirement",
+        "availability:modifier:dependency_evidence"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 2,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "RealIP",
+          "realIP"
+        ],
+        "paths": [
+          "middleware/realip.go"
+        ],
+        "languages": [
+          "go"
+        ],
+        "scopes": [
+          "source_answer"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "real-ip-application",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "middleware/realip.go",
+                  "content_sha256": "2f837f2213de7074c5c6915dad70f85c4588077291a8563d1cbad6698a757220",
+                  "qualified_symbol": "middleware.RealIP",
+                  "start_byte": 342,
+                  "end_byte": 1214
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "real-ip-selection",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "middleware/realip.go",
+                  "content_sha256": "2f837f2213de7074c5c6915dad70f85c4588077291a8563d1cbad6698a757220",
+                  "qualified_symbol": "middleware.realIP",
+                  "start_byte": 1216,
+                  "end_byte": 1567
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "middleware/realip.go",
+            "content_sha256": "2f837f2213de7074c5c6915dad70f85c4588077291a8563d1cbad6698a757220",
+            "qualified_symbol": "middleware.RealIP",
+            "start_byte": 342,
+            "end_byte": 1214
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        },
+        {
+          "span": {
+            "path": "middleware/realip.go",
+            "content_sha256": "2f837f2213de7074c5c6915dad70f85c4588077291a8563d1cbad6698a757220",
+            "qualified_symbol": "middleware.realIP",
+            "start_byte": 1216,
+            "end_byte": 1567
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        }
+      ],
+      "review": {
+        "state": "frozen",
+        "passes": [
+          {
+            "id": "assistant-availability-v1-final-sol",
+            "reviewer": "codex-sol-high",
+            "artifact_sha256": "6587f8e130f389592a2853a65c7cd62b16e6d94bf7fbff3621964e930b46ef23"
+          },
+          {
+            "id": "assistant-availability-v1-final-terra",
+            "reviewer": "codex-terra-high",
+            "artifact_sha256": "6af0c312c30ae9b933f4437370c041bdba620267dcb86e2527169cfe76ea1535"
+          }
+        ],
+        "rationale": "Source-first questions, required evidence, hard negatives, prompt neutrality, and counterbalanced schedule were corrected through two review rounds and accepted by both final independent reviewers before any scored turn.",
+        "protocol_version": "owner-adopted-dual-ai-v1",
+        "relevance_authority": "OWNER_ADOPTED_DUAL_AI_REVIEW",
+        "review_validation": "NO_INDEPENDENT_HUMAN_REVIEW",
+        "owner_adoption_sha256": "b49a42433d3a7a846e924cccecacc029f39639afbd8df73817c54b5975289e51"
+      },
+      "digest": "d993f0632c0369831423ea14d66136eacc0c6e50c2a06f2bb16e04dce3d524bd"
+    },
+    {
+      "schema_version": 1,
+      "id": "avail-go-contract-route-outcome",
+      "text": "How does request routing choose among a matching handler, method-not-allowed, and not-found, and which path metadata is set before the handler runs?",
+      "language": "go",
+      "cohorts": [
+        "availability:slice:go",
+        "availability:shape:contract_lifecycle_state_or_error",
+        "availability:modifier:natural_language",
+        "availability:modifier:lifecycle",
+        "availability:modifier:error_flow"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "routeHTTP",
+          "MethodNotAllowedHandler",
+          "NotFoundHandler"
+        ],
+        "paths": [
+          "mux.go"
+        ],
+        "languages": [
+          "go"
+        ],
+        "scopes": [
+          "source_answer"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "route-outcome-contract",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "mux.go",
+                  "content_sha256": "3255394e5c4f305b47b81e2e3912caaf58455223fe7a126cec5c494c663adb24",
+                  "qualified_symbol": "chi.Mux.routeHTTP",
+                  "start_byte": 14344,
+                  "end_byte": 15546
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "mux.go",
+            "content_sha256": "3255394e5c4f305b47b81e2e3912caaf58455223fe7a126cec5c494c663adb24",
+            "qualified_symbol": "chi.Mux.routeHTTP",
+            "start_byte": 14344,
+            "end_byte": 15546
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        }
+      ],
+      "review": {
+        "state": "frozen",
+        "passes": [
+          {
+            "id": "assistant-availability-v1-final-sol",
+            "reviewer": "codex-sol-high",
+            "artifact_sha256": "6587f8e130f389592a2853a65c7cd62b16e6d94bf7fbff3621964e930b46ef23"
+          },
+          {
+            "id": "assistant-availability-v1-final-terra",
+            "reviewer": "codex-terra-high",
+            "artifact_sha256": "6af0c312c30ae9b933f4437370c041bdba620267dcb86e2527169cfe76ea1535"
+          }
+        ],
+        "rationale": "Source-first questions, required evidence, hard negatives, prompt neutrality, and counterbalanced schedule were corrected through two review rounds and accepted by both final independent reviewers before any scored turn.",
+        "protocol_version": "owner-adopted-dual-ai-v1",
+        "relevance_authority": "OWNER_ADOPTED_DUAL_AI_REVIEW",
+        "review_validation": "NO_INDEPENDENT_HUMAN_REVIEW",
+        "owner_adoption_sha256": "b49a42433d3a7a846e924cccecacc029f39639afbd8df73817c54b5975289e51"
+      },
+      "digest": "898d0e4d8db11d4762af5b7a14a696bca0cfc34f1614e056095d12580e452c9e"
+    },
+    {
+      "schema_version": 1,
+      "id": "avail-go-contract-throttle",
+      "text": "Which options configure request throttling, and how do capacity, backlog timeout, cancellation, and token release determine the response?",
+      "language": "go",
+      "cohorts": [
+        "availability:slice:go",
+        "availability:shape:contract_lifecycle_state_or_error",
+        "availability:modifier:type_contract",
+        "availability:modifier:lifecycle",
+        "availability:modifier:error_flow",
+        "availability:modifier:multi_requirement"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 2,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "ThrottleOpts",
+          "ThrottleWithOpts"
+        ],
+        "paths": [
+          "middleware/throttle.go"
+        ],
+        "languages": [
+          "go"
+        ],
+        "scopes": [
+          "source_answer"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "throttle-options",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "middleware/throttle.go",
+                  "content_sha256": "05569797a14131ba177a71fccccd509363ca2016fa4c45a31cff033ae44301e4",
+                  "qualified_symbol": "middleware.ThrottleOpts",
+                  "start_byte": 307,
+                  "end_byte": 530
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "throttle-lifecycle",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "middleware/throttle.go",
+                  "content_sha256": "05569797a14131ba177a71fccccd509363ca2016fa4c45a31cff033ae44301e4",
+                  "qualified_symbol": "middleware.ThrottleWithOpts",
+                  "start_byte": 1402,
+                  "end_byte": 3532
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "middleware/throttle.go",
+            "content_sha256": "05569797a14131ba177a71fccccd509363ca2016fa4c45a31cff033ae44301e4",
+            "qualified_symbol": "middleware.ThrottleOpts",
+            "start_byte": 307,
+            "end_byte": 530
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        },
+        {
+          "span": {
+            "path": "middleware/throttle.go",
+            "content_sha256": "05569797a14131ba177a71fccccd509363ca2016fa4c45a31cff033ae44301e4",
+            "qualified_symbol": "middleware.ThrottleWithOpts",
+            "start_byte": 1402,
+            "end_byte": 3532
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        }
+      ],
+      "review": {
+        "state": "frozen",
+        "passes": [
+          {
+            "id": "assistant-availability-v1-final-sol",
+            "reviewer": "codex-sol-high",
+            "artifact_sha256": "6587f8e130f389592a2853a65c7cd62b16e6d94bf7fbff3621964e930b46ef23"
+          },
+          {
+            "id": "assistant-availability-v1-final-terra",
+            "reviewer": "codex-terra-high",
+            "artifact_sha256": "6af0c312c30ae9b933f4437370c041bdba620267dcb86e2527169cfe76ea1535"
+          }
+        ],
+        "rationale": "Source-first questions, required evidence, hard negatives, prompt neutrality, and counterbalanced schedule were corrected through two review rounds and accepted by both final independent reviewers before any scored turn.",
+        "protocol_version": "owner-adopted-dual-ai-v1",
+        "relevance_authority": "OWNER_ADOPTED_DUAL_AI_REVIEW",
+        "review_validation": "NO_INDEPENDENT_HUMAN_REVIEW",
+        "owner_adoption_sha256": "b49a42433d3a7a846e924cccecacc029f39639afbd8df73817c54b5975289e51"
+      },
+      "digest": "0da13b9e16255329366593bc43a230b76b65043165769f07ea79e7b21ecba6b7"
+    },
+    {
+      "schema_version": 1,
+      "id": "avail-go-ambiguous-request-id",
+      "text": "Distinguish the code that creates or injects a request ID from the code that only reads one from context. What happens when the incoming request-ID header is present or absent?",
+      "language": "go",
+      "cohorts": [
+        "availability:slice:go",
+        "availability:shape:ambiguous_disambiguation",
+        "availability:modifier:same_name_collision",
+        "availability:modifier:multi_requirement"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 2,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "RequestID",
+          "GetReqID"
+        ],
+        "paths": [
+          "middleware/request_id.go"
+        ],
+        "languages": [
+          "go"
+        ],
+        "scopes": [
+          "source_answer"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "request-id-injection",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "middleware/request_id.go",
+                  "content_sha256": "31b21034dd5cd6393fa9abc9ce1207acc78fea1e162d866edf6bb2a7badd288b",
+                  "qualified_symbol": "middleware.RequestID",
+                  "start_byte": 1798,
+                  "end_byte": 2524
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "request-id-read",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "middleware/request_id.go",
+                  "content_sha256": "31b21034dd5cd6393fa9abc9ce1207acc78fea1e162d866edf6bb2a7badd288b",
+                  "qualified_symbol": "middleware.GetReqID",
+                  "start_byte": 2526,
+                  "end_byte": 2824
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "middleware/request_id.go",
+            "content_sha256": "31b21034dd5cd6393fa9abc9ce1207acc78fea1e162d866edf6bb2a7badd288b",
+            "qualified_symbol": "middleware.RequestID",
+            "start_byte": 1798,
+            "end_byte": 2524
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        },
+        {
+          "span": {
+            "path": "middleware/request_id.go",
+            "content_sha256": "31b21034dd5cd6393fa9abc9ce1207acc78fea1e162d866edf6bb2a7badd288b",
+            "qualified_symbol": "middleware.GetReqID",
+            "start_byte": 2526,
+            "end_byte": 2824
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        }
+      ],
+      "review": {
+        "state": "frozen",
+        "passes": [
+          {
+            "id": "assistant-availability-v1-final-sol",
+            "reviewer": "codex-sol-high",
+            "artifact_sha256": "6587f8e130f389592a2853a65c7cd62b16e6d94bf7fbff3621964e930b46ef23"
+          },
+          {
+            "id": "assistant-availability-v1-final-terra",
+            "reviewer": "codex-terra-high",
+            "artifact_sha256": "6af0c312c30ae9b933f4437370c041bdba620267dcb86e2527169cfe76ea1535"
+          }
+        ],
+        "rationale": "Source-first questions, required evidence, hard negatives, prompt neutrality, and counterbalanced schedule were corrected through two review rounds and accepted by both final independent reviewers before any scored turn.",
+        "protocol_version": "owner-adopted-dual-ai-v1",
+        "relevance_authority": "OWNER_ADOPTED_DUAL_AI_REVIEW",
+        "review_validation": "NO_INDEPENDENT_HUMAN_REVIEW",
+        "owner_adoption_sha256": "b49a42433d3a7a846e924cccecacc029f39639afbd8df73817c54b5975289e51"
+      },
+      "digest": "6fbb6af8ee23a605d4178fd4c3810ebc8c8d43359e21e73266d653722e5845cb"
+    },
+    {
+      "schema_version": 1,
+      "id": "avail-go-negative-json-binding",
+      "text": "Which chi middleware automatically decodes a JSON request body into a user struct before the handler runs? If the repository provides no such middleware, say so and distinguish the nearest Content-Type middleware.",
+      "language": "go",
+      "cohorts": [
+        "availability:slice:go",
+        "availability:shape:verified_no_answer_or_hard_negative",
+        "availability:modifier:verified_absence",
+        "availability:modifier:natural_language"
+      ],
+      "answer_mode": "ABSTAINABLE",
+      "expected_cardinality": 0,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "JSON",
+          "Decode",
+          "AllowContentType"
+        ],
+        "paths": [
+          "middleware/content_type.go"
+        ],
+        "languages": [
+          "go"
+        ],
+        "scopes": [
+          "verified_absence"
+        ]
+      },
+      "required_groups": [],
+      "hard_negatives": [
+        {
+          "span": {
+            "path": "middleware/content_type.go",
+            "content_sha256": "5cedd359e3390edc613557681dda3cbc60faa2e4efb2a8974464876377b3a797",
+            "qualified_symbol": "middleware.AllowContentType",
+            "start_byte": 381,
+            "end_byte": 1264
+          },
+          "reason": "AllowContentType validates a request Content-Type whitelist and never decodes a body into a user value."
+        }
+      ],
+      "judgments": [
+        {
+          "span": {
+            "path": "middleware/content_type.go",
+            "content_sha256": "5cedd359e3390edc613557681dda3cbc60faa2e4efb2a8974464876377b3a797",
+            "qualified_symbol": "middleware.AllowContentType",
+            "start_byte": 381,
+            "end_byte": 1264
+          },
+          "grade": 0,
+          "rationale": "AllowContentType validates a request Content-Type whitelist and never decodes a body into a user value."
+        }
+      ],
+      "review": {
+        "state": "frozen",
+        "passes": [
+          {
+            "id": "assistant-availability-v1-final-sol",
+            "reviewer": "codex-sol-high",
+            "artifact_sha256": "6587f8e130f389592a2853a65c7cd62b16e6d94bf7fbff3621964e930b46ef23"
+          },
+          {
+            "id": "assistant-availability-v1-final-terra",
+            "reviewer": "codex-terra-high",
+            "artifact_sha256": "6af0c312c30ae9b933f4437370c041bdba620267dcb86e2527169cfe76ea1535"
+          }
+        ],
+        "rationale": "Source-first questions, required evidence, hard negatives, prompt neutrality, and counterbalanced schedule were corrected through two review rounds and accepted by both final independent reviewers before any scored turn.",
+        "protocol_version": "owner-adopted-dual-ai-v1",
+        "relevance_authority": "OWNER_ADOPTED_DUAL_AI_REVIEW",
+        "review_validation": "NO_INDEPENDENT_HUMAN_REVIEW",
+        "owner_adoption_sha256": "b49a42433d3a7a846e924cccecacc029f39639afbd8df73817c54b5975289e51"
+      },
+      "digest": "9e77e5f58ca1fa571684330b5401dc9b8772f185033ab6ff8ba0863294b3329c"
+    }
+  ]
+}

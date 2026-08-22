@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "taxonomy_id": "assistant-availability-question-shapes",
+  "version": "assistant-availability-question-shapes-v1",
+  "purpose": "Primary question-shape taxonomy for the host-decided cidx availability calibration.",
+  "primary_shapes": [
+    {
+      "id": "exact_identifier_or_path",
+      "count_per_language_slice": 2,
+      "intent": "Observe direct lookup and natural cidx abstention."
+    },
+    {
+      "id": "semantic_single_hop",
+      "count_per_language_slice": 2,
+      "intent": "Locate one behavior-defining parent from natural language."
+    },
+    {
+      "id": "dependency_or_type_multi_hop",
+      "count_per_language_slice": 2,
+      "intent": "Require a selected parent plus justified dependency or type evidence."
+    },
+    {
+      "id": "contract_lifecycle_state_or_error",
+      "count_per_language_slice": 2,
+      "intent": "Require complete contract, lifecycle, state, or error evidence."
+    },
+    {
+      "id": "ambiguous_disambiguation",
+      "count_per_language_slice": 1,
+      "intent": "Resolve competing same-name or closely related locators."
+    },
+    {
+      "id": "verified_no_answer_or_hard_negative",
+      "count_per_language_slice": 1,
+      "intent": "Measure false leads and unnecessary exploration when the source does not establish the premise."
+    }
+  ],
+  "nonexclusive_modifiers": [
+    "exact_identifier",
+    "natural_language",
+    "multi_requirement",
+    "dependency_evidence",
+    "type_contract",
+    "lifecycle",
+    "state_flow",
+    "error_flow",
+    "same_name_collision",
+    "same_symbol_multiple_modes",
+    "verified_absence"
+  ]
+}

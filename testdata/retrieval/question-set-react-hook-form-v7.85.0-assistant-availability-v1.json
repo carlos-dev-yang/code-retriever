@@ -1,0 +1,1910 @@
+{
+  "schema_version": 1,
+  "question_set_id": "react-hook-form-v7.85.0-assistant-availability",
+  "version": "react-hook-form-v7.85.0-assistant-availability-v1",
+  "supersedes": [],
+  "taxonomy_version": "assistant-availability-question-shapes-v1",
+  "taxonomy_sha256": "7989919031881a6a44062a52304dd14eb1955883a508fe47bda2c128d04bd986",
+  "change_summary": [
+    "Create a new source-first assistant-availability question series without changing prior question sets or results.",
+    "Freeze ten TypeScript and ten TSX tasks across the six primary shapes required by the host-decided availability design.",
+    "Use parser inventory only for exact source coordinates after direct source review; no cidx ranking or assistant output informed question construction."
+  ],
+  "corpus_id": "react-hook-form-v7.85.0",
+  "language_slice_counts": {
+    "typescript": 10,
+    "tsx": 10
+  },
+  "cases": [
+    {
+      "schema_version": 1,
+      "id": "avail-ts-exact-field-value-as",
+      "text": "Locate the `getFieldValueAs` implementation and state its conversion precedence for undefined, numeric, date, custom, and unchanged values.",
+      "language": "typescript",
+      "cohorts": [
+        "availability:slice:typescript",
+        "availability:shape:exact_identifier_or_path",
+        "availability:modifier:exact_identifier"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "getFieldValueAs"
+        ],
+        "paths": [
+          "src/logic/getFieldValueAs.ts"
+        ],
+        "languages": [
+          "typescript"
+        ],
+        "scopes": [
+          "source_answer"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "field-value-conversion",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/logic/getFieldValueAs.ts",
+                  "content_sha256": "45e73e3bd09648f43a5f9f4b8d55e46d6adf748a2f5513d67e99b9ce83f95d57",
+                  "qualified_symbol": "module.src.logic.getFieldValueAs",
+                  "start_byte": 148,
+                  "end_byte": 543
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/logic/getFieldValueAs.ts",
+            "content_sha256": "45e73e3bd09648f43a5f9f4b8d55e46d6adf748a2f5513d67e99b9ce83f95d57",
+            "qualified_symbol": "module.src.logic.getFieldValueAs",
+            "start_byte": 148,
+            "end_byte": 543
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        }
+      ],
+      "review": {
+        "state": "frozen",
+        "passes": [
+          {
+            "id": "assistant-availability-v1-final-sol",
+            "reviewer": "codex-sol-high",
+            "artifact_sha256": "6587f8e130f389592a2853a65c7cd62b16e6d94bf7fbff3621964e930b46ef23"
+          },
+          {
+            "id": "assistant-availability-v1-final-terra",
+            "reviewer": "codex-terra-high",
+            "artifact_sha256": "6af0c312c30ae9b933f4437370c041bdba620267dcb86e2527169cfe76ea1535"
+          }
+        ],
+        "rationale": "Source-first questions, required evidence, hard negatives, prompt neutrality, and counterbalanced schedule were corrected through two review rounds and accepted by both final independent reviewers before any scored turn.",
+        "protocol_version": "owner-adopted-dual-ai-v1",
+        "relevance_authority": "OWNER_ADOPTED_DUAL_AI_REVIEW",
+        "review_validation": "NO_INDEPENDENT_HUMAN_REVIEW",
+        "owner_adoption_sha256": "b49a42433d3a7a846e924cccecacc029f39639afbd8df73817c54b5975289e51"
+      },
+      "digest": "d21121a21faaa448061cc372a034a5a0a16139c4b1680e5ac7965faca7b6140d"
+    },
+    {
+      "schema_version": 1,
+      "id": "avail-ts-exact-use-form-return",
+      "text": "Where is the `UseFormReturn` type defined, and which public operations and state handles does it expose?",
+      "language": "typescript",
+      "cohorts": [
+        "availability:slice:typescript",
+        "availability:shape:exact_identifier_or_path",
+        "availability:modifier:exact_identifier",
+        "availability:modifier:type_contract"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "UseFormReturn"
+        ],
+        "paths": [
+          "src/types/form.ts"
+        ],
+        "languages": [
+          "typescript"
+        ],
+        "scopes": [
+          "source_answer"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "use-form-return-contract",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/types/form.ts",
+                  "content_sha256": "dd86f62d9836a7adc8ba78224a87d87d55d1eb0d0cbd0dbdd0b8a1d1c37dea60",
+                  "qualified_symbol": "module.UseFormReturn",
+                  "start_byte": 28326,
+                  "end_byte": 29320
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/types/form.ts",
+            "content_sha256": "dd86f62d9836a7adc8ba78224a87d87d55d1eb0d0cbd0dbdd0b8a1d1c37dea60",
+            "qualified_symbol": "module.UseFormReturn",
+            "start_byte": 28326,
+            "end_byte": 29320
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        }
+      ],
+      "review": {
+        "state": "frozen",
+        "passes": [
+          {
+            "id": "assistant-availability-v1-final-sol",
+            "reviewer": "codex-sol-high",
+            "artifact_sha256": "6587f8e130f389592a2853a65c7cd62b16e6d94bf7fbff3621964e930b46ef23"
+          },
+          {
+            "id": "assistant-availability-v1-final-terra",
+            "reviewer": "codex-terra-high",
+            "artifact_sha256": "6af0c312c30ae9b933f4437370c041bdba620267dcb86e2527169cfe76ea1535"
+          }
+        ],
+        "rationale": "Source-first questions, required evidence, hard negatives, prompt neutrality, and counterbalanced schedule were corrected through two review rounds and accepted by both final independent reviewers before any scored turn.",
+        "protocol_version": "owner-adopted-dual-ai-v1",
+        "relevance_authority": "OWNER_ADOPTED_DUAL_AI_REVIEW",
+        "review_validation": "NO_INDEPENDENT_HUMAN_REVIEW",
+        "owner_adoption_sha256": "b49a42433d3a7a846e924cccecacc029f39639afbd8df73817c54b5975289e51"
+      },
+      "digest": "78968c62cf6e40e651d5e731ef6e9fadd26271f3d101439df4b6af2216705ef6"
+    },
+    {
+      "schema_version": 1,
+      "id": "avail-ts-semantic-event-value",
+      "text": "How is a change event reduced to a value for checkboxes, file inputs, ordinary inputs, and non-event inputs?",
+      "language": "typescript",
+      "cohorts": [
+        "availability:slice:typescript",
+        "availability:shape:semantic_single_hop",
+        "availability:modifier:natural_language"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "getEventValue"
+        ],
+        "paths": [
+          "src/logic/getEventValue.ts"
+        ],
+        "languages": [
+          "typescript"
+        ],
+        "scopes": [
+          "source_answer"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "event-value-reduction",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/logic/getEventValue.ts",
+                  "content_sha256": "a2c6c81bb87bb24e4ac61f290a59e08eaac40fd9c3377e58817851b9e2c790f1",
+                  "qualified_symbol": "module.src.logic.getEventValue",
+                  "start_byte": 178,
+                  "end_byte": 481
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/logic/getEventValue.ts",
+            "content_sha256": "a2c6c81bb87bb24e4ac61f290a59e08eaac40fd9c3377e58817851b9e2c790f1",
+            "qualified_symbol": "module.src.logic.getEventValue",
+            "start_byte": 178,
+            "end_byte": 481
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        }
+      ],
+      "review": {
+        "state": "frozen",
+        "passes": [
+          {
+            "id": "assistant-availability-v1-final-sol",
+            "reviewer": "codex-sol-high",
+            "artifact_sha256": "6587f8e130f389592a2853a65c7cd62b16e6d94bf7fbff3621964e930b46ef23"
+          },
+          {
+            "id": "assistant-availability-v1-final-terra",
+            "reviewer": "codex-terra-high",
+            "artifact_sha256": "6af0c312c30ae9b933f4437370c041bdba620267dcb86e2527169cfe76ea1535"
+          }
+        ],
+        "rationale": "Source-first questions, required evidence, hard negatives, prompt neutrality, and counterbalanced schedule were corrected through two review rounds and accepted by both final independent reviewers before any scored turn.",
+        "protocol_version": "owner-adopted-dual-ai-v1",
+        "relevance_authority": "OWNER_ADOPTED_DUAL_AI_REVIEW",
+        "review_validation": "NO_INDEPENDENT_HUMAN_REVIEW",
+        "owner_adoption_sha256": "b49a42433d3a7a846e924cccecacc029f39639afbd8df73817c54b5975289e51"
+      },
+      "digest": "3877c335cd1a42d117d9e47da8931735baa7051f756f908c40cc23f69e14f89e"
+    },
+    {
+      "schema_version": 1,
+      "id": "avail-ts-semantic-name-subscription",
+      "text": "When does a field-name subscription match an emitted signal, and how does exact mode differ from prefix mode?",
+      "language": "typescript",
+      "cohorts": [
+        "availability:slice:typescript",
+        "availability:shape:semantic_single_hop",
+        "availability:modifier:natural_language"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "shouldSubscribeByName"
+        ],
+        "paths": [
+          "src/logic/shouldSubscribeByName.ts"
+        ],
+        "languages": [
+          "typescript"
+        ],
+        "scopes": [
+          "source_answer"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "name-subscription-match",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/logic/shouldSubscribeByName.ts",
+                  "content_sha256": "a1a7d6766132c965219e3eeac76e0982dede6b01bf4b692ee02cf63981004ea5",
+                  "qualified_symbol": "module.src.logic.shouldSubscribeByName",
+                  "start_byte": 69,
+                  "end_byte": 518
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/logic/shouldSubscribeByName.ts",
+            "content_sha256": "a1a7d6766132c965219e3eeac76e0982dede6b01bf4b692ee02cf63981004ea5",
+            "qualified_symbol": "module.src.logic.shouldSubscribeByName",
+            "start_byte": 69,
+            "end_byte": 518
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        }
+      ],
+      "review": {
+        "state": "frozen",
+        "passes": [
+          {
+            "id": "assistant-availability-v1-final-sol",
+            "reviewer": "codex-sol-high",
+            "artifact_sha256": "6587f8e130f389592a2853a65c7cd62b16e6d94bf7fbff3621964e930b46ef23"
+          },
+          {
+            "id": "assistant-availability-v1-final-terra",
+            "reviewer": "codex-terra-high",
+            "artifact_sha256": "6af0c312c30ae9b933f4437370c041bdba620267dcb86e2527169cfe76ea1535"
+          }
+        ],
+        "rationale": "Source-first questions, required evidence, hard negatives, prompt neutrality, and counterbalanced schedule were corrected through two review rounds and accepted by both final independent reviewers before any scored turn.",
+        "protocol_version": "owner-adopted-dual-ai-v1",
+        "relevance_authority": "OWNER_ADOPTED_DUAL_AI_REVIEW",
+        "review_validation": "NO_INDEPENDENT_HUMAN_REVIEW",
+        "owner_adoption_sha256": "b49a42433d3a7a846e924cccecacc029f39639afbd8df73817c54b5975289e51"
+      },
+      "digest": "452e0d96eaa776102e05a27356a217c79e7765506a63b866fc1a3b20c4abec6b"
+    },
+    {
+      "schema_version": 1,
+      "id": "avail-ts-multihop-controller-subscriptions",
+      "text": "How does `useController` obtain a field value and form-state slice, and how do `useWatch` and `useFormState` establish, update, and clean up those subscriptions?",
+      "language": "typescript",
+      "cohorts": [
+        "availability:slice:typescript",
+        "availability:shape:dependency_or_type_multi_hop",
+        "availability:modifier:exact_identifier",
+        "availability:modifier:dependency_evidence",
+        "availability:modifier:multi_requirement"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 3,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "useController",
+          "useWatch",
+          "useFormState"
+        ],
+        "paths": [
+          "src/useController.ts",
+          "src/useWatch.ts",
+          "src/useFormState.ts"
+        ],
+        "languages": [
+          "typescript"
+        ],
+        "scopes": [
+          "source_answer"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "controller-orchestration",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/useController.ts",
+                  "content_sha256": "b6c0a33d84ed70f326c71d39aca846c108c33a1b285de4d1faa99843d0c12aac",
+                  "qualified_symbol": "module.useController",
+                  "start_byte": 751,
+                  "end_byte": 7323
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "value-subscription",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/useWatch.ts",
+                  "content_sha256": "9b033021ea2306ace0033055a0834ac5570e86775deb337276ad0040afc4c702",
+                  "qualified_symbol": "module.useWatch",
+                  "start_byte": 509,
+                  "end_byte": 11497
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "form-state-subscription",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/useFormState.ts",
+                  "content_sha256": "7d84d4e3517d40991d3cf59315e61b6666ca00f1e07af4ab87b1d0cb68eb625a",
+                  "qualified_symbol": "module.useFormState",
+                  "start_byte": 392,
+                  "end_byte": 3557
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/useController.ts",
+            "content_sha256": "b6c0a33d84ed70f326c71d39aca846c108c33a1b285de4d1faa99843d0c12aac",
+            "qualified_symbol": "module.useController",
+            "start_byte": 751,
+            "end_byte": 7323
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        },
+        {
+          "span": {
+            "path": "src/useWatch.ts",
+            "content_sha256": "9b033021ea2306ace0033055a0834ac5570e86775deb337276ad0040afc4c702",
+            "qualified_symbol": "module.useWatch",
+            "start_byte": 509,
+            "end_byte": 11497
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        },
+        {
+          "span": {
+            "path": "src/useFormState.ts",
+            "content_sha256": "7d84d4e3517d40991d3cf59315e61b6666ca00f1e07af4ab87b1d0cb68eb625a",
+            "qualified_symbol": "module.useFormState",
+            "start_byte": 392,
+            "end_byte": 3557
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        }
+      ],
+      "review": {
+        "state": "frozen",
+        "passes": [
+          {
+            "id": "assistant-availability-v1-final-sol",
+            "reviewer": "codex-sol-high",
+            "artifact_sha256": "6587f8e130f389592a2853a65c7cd62b16e6d94bf7fbff3621964e930b46ef23"
+          },
+          {
+            "id": "assistant-availability-v1-final-terra",
+            "reviewer": "codex-terra-high",
+            "artifact_sha256": "6af0c312c30ae9b933f4437370c041bdba620267dcb86e2527169cfe76ea1535"
+          }
+        ],
+        "rationale": "Source-first questions, required evidence, hard negatives, prompt neutrality, and counterbalanced schedule were corrected through two review rounds and accepted by both final independent reviewers before any scored turn.",
+        "protocol_version": "owner-adopted-dual-ai-v1",
+        "relevance_authority": "OWNER_ADOPTED_DUAL_AI_REVIEW",
+        "review_validation": "NO_INDEPENDENT_HUMAN_REVIEW",
+        "owner_adoption_sha256": "b49a42433d3a7a846e924cccecacc029f39639afbd8df73817c54b5975289e51"
+      },
+      "digest": "40cbc5d30d178231a8278c667a54b68d34b73bbb14fbe5931a0e104ce66fb794"
+    },
+    {
+      "schema_version": 1,
+      "id": "avail-ts-multihop-subject-contract",
+      "text": "What contract does the form-state subject expose, and how does its implementation notify, unsubscribe one observer, and clear all observers?",
+      "language": "typescript",
+      "cohorts": [
+        "availability:slice:typescript",
+        "availability:shape:dependency_or_type_multi_hop",
+        "availability:modifier:type_contract",
+        "availability:modifier:dependency_evidence",
+        "availability:modifier:multi_requirement"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 2,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "Subject",
+          "createSubject"
+        ],
+        "paths": [
+          "src/utils/createSubject.ts"
+        ],
+        "languages": [
+          "typescript"
+        ],
+        "scopes": [
+          "source_answer"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "subject-type-contract",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/utils/createSubject.ts",
+                  "content_sha256": "776c80a23071d8c5d9ec92180abfee0080d73be53fc16f79e0ca8e237ff2405e",
+                  "qualified_symbol": "module.Subject",
+                  "start_byte": 153,
+                  "end_byte": 305
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "subject-implementation",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/utils/createSubject.ts",
+                  "content_sha256": "776c80a23071d8c5d9ec92180abfee0080d73be53fc16f79e0ca8e237ff2405e",
+                  "qualified_symbol": "module.src.utils.createSubject",
+                  "start_byte": 307,
+                  "end_byte": 902
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/utils/createSubject.ts",
+            "content_sha256": "776c80a23071d8c5d9ec92180abfee0080d73be53fc16f79e0ca8e237ff2405e",
+            "qualified_symbol": "module.Subject",
+            "start_byte": 153,
+            "end_byte": 305
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        },
+        {
+          "span": {
+            "path": "src/utils/createSubject.ts",
+            "content_sha256": "776c80a23071d8c5d9ec92180abfee0080d73be53fc16f79e0ca8e237ff2405e",
+            "qualified_symbol": "module.src.utils.createSubject",
+            "start_byte": 307,
+            "end_byte": 902
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        }
+      ],
+      "review": {
+        "state": "frozen",
+        "passes": [
+          {
+            "id": "assistant-availability-v1-final-sol",
+            "reviewer": "codex-sol-high",
+            "artifact_sha256": "6587f8e130f389592a2853a65c7cd62b16e6d94bf7fbff3621964e930b46ef23"
+          },
+          {
+            "id": "assistant-availability-v1-final-terra",
+            "reviewer": "codex-terra-high",
+            "artifact_sha256": "6af0c312c30ae9b933f4437370c041bdba620267dcb86e2527169cfe76ea1535"
+          }
+        ],
+        "rationale": "Source-first questions, required evidence, hard negatives, prompt neutrality, and counterbalanced schedule were corrected through two review rounds and accepted by both final independent reviewers before any scored turn.",
+        "protocol_version": "owner-adopted-dual-ai-v1",
+        "relevance_authority": "OWNER_ADOPTED_DUAL_AI_REVIEW",
+        "review_validation": "NO_INDEPENDENT_HUMAN_REVIEW",
+        "owner_adoption_sha256": "b49a42433d3a7a846e924cccecacc029f39639afbd8df73817c54b5975289e51"
+      },
+      "digest": "746a78451f937e8fb30edd94924e4284c6ffb5af138e97097869e3b521d7ba25"
+    },
+    {
+      "schema_version": 1,
+      "id": "avail-ts-contract-use-form-lifecycle",
+      "text": "How does `useForm` create or replace its control, subscribe root form state, mark readiness, and clean up on unmount?",
+      "language": "typescript",
+      "cohorts": [
+        "availability:slice:typescript",
+        "availability:shape:contract_lifecycle_state_or_error",
+        "availability:modifier:lifecycle",
+        "availability:modifier:state_flow"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "useForm",
+          "createFormControl",
+          "_subscribe"
+        ],
+        "paths": [
+          "src/useForm.ts"
+        ],
+        "languages": [
+          "typescript"
+        ],
+        "scopes": [
+          "source_answer"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "use-form-lifecycle",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/useForm.ts",
+                  "content_sha256": "d64782eff6887719ba1ac5060c30e00c591bc356c229e2b22b631693c2b6e1e4",
+                  "qualified_symbol": "module.useForm",
+                  "start_byte": 561,
+                  "end_byte": 5962
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/useForm.ts",
+            "content_sha256": "d64782eff6887719ba1ac5060c30e00c591bc356c229e2b22b631693c2b6e1e4",
+            "qualified_symbol": "module.useForm",
+            "start_byte": 561,
+            "end_byte": 5962
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        }
+      ],
+      "review": {
+        "state": "frozen",
+        "passes": [
+          {
+            "id": "assistant-availability-v1-final-sol",
+            "reviewer": "codex-sol-high",
+            "artifact_sha256": "6587f8e130f389592a2853a65c7cd62b16e6d94bf7fbff3621964e930b46ef23"
+          },
+          {
+            "id": "assistant-availability-v1-final-terra",
+            "reviewer": "codex-terra-high",
+            "artifact_sha256": "6af0c312c30ae9b933f4437370c041bdba620267dcb86e2527169cfe76ea1535"
+          }
+        ],
+        "rationale": "Source-first questions, required evidence, hard negatives, prompt neutrality, and counterbalanced schedule were corrected through two review rounds and accepted by both final independent reviewers before any scored turn.",
+        "protocol_version": "owner-adopted-dual-ai-v1",
+        "relevance_authority": "OWNER_ADOPTED_DUAL_AI_REVIEW",
+        "review_validation": "NO_INDEPENDENT_HUMAN_REVIEW",
+        "owner_adoption_sha256": "b49a42433d3a7a846e924cccecacc029f39639afbd8df73817c54b5975289e51"
+      },
+      "digest": "cafb14448536aac43f0cecc6ae77710df5540e382533805157e31ae445ae6a06"
+    },
+    {
+      "schema_version": 1,
+      "id": "avail-ts-contract-dotted-paths",
+      "text": "How do the recursive path helper types build dotted field paths while stopping on native or primitive values, repeated types, and exhausted depth?",
+      "language": "typescript",
+      "cohorts": [
+        "availability:slice:typescript",
+        "availability:shape:contract_lifecycle_state_or_error",
+        "availability:modifier:type_contract",
+        "availability:modifier:multi_requirement"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 2,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "PathImpl",
+          "PathInternal"
+        ],
+        "paths": [
+          "src/types/path/eager.ts"
+        ],
+        "languages": [
+          "typescript"
+        ],
+        "scopes": [
+          "source_answer"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "path-segment-construction",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/types/path/eager.ts",
+                  "content_sha256": "40a91e78813f16332c5523d59df44e94e16fd50abdfd902ad24b5a3eb81fb55f",
+                  "qualified_symbol": "module.PathImpl",
+                  "start_byte": 408,
+                  "end_byte": 1042
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "path-recursion",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/types/path/eager.ts",
+                  "content_sha256": "40a91e78813f16332c5523d59df44e94e16fd50abdfd902ad24b5a3eb81fb55f",
+                  "qualified_symbol": "module.PathInternal",
+                  "start_byte": 1044,
+                  "end_byte": 1649
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/types/path/eager.ts",
+            "content_sha256": "40a91e78813f16332c5523d59df44e94e16fd50abdfd902ad24b5a3eb81fb55f",
+            "qualified_symbol": "module.PathImpl",
+            "start_byte": 408,
+            "end_byte": 1042
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        },
+        {
+          "span": {
+            "path": "src/types/path/eager.ts",
+            "content_sha256": "40a91e78813f16332c5523d59df44e94e16fd50abdfd902ad24b5a3eb81fb55f",
+            "qualified_symbol": "module.PathInternal",
+            "start_byte": 1044,
+            "end_byte": 1649
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        }
+      ],
+      "review": {
+        "state": "frozen",
+        "passes": [
+          {
+            "id": "assistant-availability-v1-final-sol",
+            "reviewer": "codex-sol-high",
+            "artifact_sha256": "6587f8e130f389592a2853a65c7cd62b16e6d94bf7fbff3621964e930b46ef23"
+          },
+          {
+            "id": "assistant-availability-v1-final-terra",
+            "reviewer": "codex-terra-high",
+            "artifact_sha256": "6af0c312c30ae9b933f4437370c041bdba620267dcb86e2527169cfe76ea1535"
+          }
+        ],
+        "rationale": "Source-first questions, required evidence, hard negatives, prompt neutrality, and counterbalanced schedule were corrected through two review rounds and accepted by both final independent reviewers before any scored turn.",
+        "protocol_version": "owner-adopted-dual-ai-v1",
+        "relevance_authority": "OWNER_ADOPTED_DUAL_AI_REVIEW",
+        "review_validation": "NO_INDEPENDENT_HUMAN_REVIEW",
+        "owner_adoption_sha256": "b49a42433d3a7a846e924cccecacc029f39639afbd8df73817c54b5975289e51"
+      },
+      "digest": "a534bc60811a11cd74db820cd942818374361959aaeb6f5865c4d81f0fa75d1d"
+    },
+    {
+      "schema_version": 1,
+      "id": "avail-ts-ambiguous-form-state",
+      "text": "Distinguish the aggregate TypeScript `FormState` data contract from the runtime React component with the same exported name.",
+      "language": "typescript",
+      "cohorts": [
+        "availability:slice:typescript",
+        "availability:shape:ambiguous_disambiguation",
+        "availability:modifier:same_name_collision",
+        "availability:modifier:type_contract",
+        "availability:modifier:multi_requirement"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 2,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "FormState"
+        ],
+        "paths": [
+          "src/types/form.ts",
+          "src/formStateSubscribe.tsx"
+        ],
+        "languages": [
+          "typescript",
+          "tsx"
+        ],
+        "scopes": [
+          "source_answer"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "form-state-data-contract",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/types/form.ts",
+                  "content_sha256": "dd86f62d9836a7adc8ba78224a87d87d55d1eb0d0cbd0dbdd0b8a1d1c37dea60",
+                  "qualified_symbol": "module.FormState",
+                  "start_byte": 4246,
+                  "end_byte": 4869
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "form-state-runtime-component",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/formStateSubscribe.tsx",
+                  "content_sha256": "e216b25d3e918397274e5c5f0635282eec2db5d941a2eee27bcc7ccca13a1e1d",
+                  "qualified_symbol": "module.FormState",
+                  "start_byte": 531,
+                  "end_byte": 799
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/types/form.ts",
+            "content_sha256": "dd86f62d9836a7adc8ba78224a87d87d55d1eb0d0cbd0dbdd0b8a1d1c37dea60",
+            "qualified_symbol": "module.FormState",
+            "start_byte": 4246,
+            "end_byte": 4869
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        },
+        {
+          "span": {
+            "path": "src/formStateSubscribe.tsx",
+            "content_sha256": "e216b25d3e918397274e5c5f0635282eec2db5d941a2eee27bcc7ccca13a1e1d",
+            "qualified_symbol": "module.FormState",
+            "start_byte": 531,
+            "end_byte": 799
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        }
+      ],
+      "review": {
+        "state": "frozen",
+        "passes": [
+          {
+            "id": "assistant-availability-v1-final-sol",
+            "reviewer": "codex-sol-high",
+            "artifact_sha256": "6587f8e130f389592a2853a65c7cd62b16e6d94bf7fbff3621964e930b46ef23"
+          },
+          {
+            "id": "assistant-availability-v1-final-terra",
+            "reviewer": "codex-terra-high",
+            "artifact_sha256": "6af0c312c30ae9b933f4437370c041bdba620267dcb86e2527169cfe76ea1535"
+          }
+        ],
+        "rationale": "Source-first questions, required evidence, hard negatives, prompt neutrality, and counterbalanced schedule were corrected through two review rounds and accepted by both final independent reviewers before any scored turn.",
+        "protocol_version": "owner-adopted-dual-ai-v1",
+        "relevance_authority": "OWNER_ADOPTED_DUAL_AI_REVIEW",
+        "review_validation": "NO_INDEPENDENT_HUMAN_REVIEW",
+        "owner_adoption_sha256": "b49a42433d3a7a846e924cccecacc029f39639afbd8df73817c54b5975289e51"
+      },
+      "digest": "af9889d16ea3b452491cdc37319f3ce5baba50c61330f0f0fb1c3751fdac93af"
+    },
+    {
+      "schema_version": 1,
+      "id": "avail-ts-negative-local-storage",
+      "text": "Which source function automatically persists `useForm` state to `localStorage`, `sessionStorage`, or IndexedDB? If none exists, state that rather than treating React state management as persistence.",
+      "language": "typescript",
+      "cohorts": [
+        "availability:slice:typescript",
+        "availability:shape:verified_no_answer_or_hard_negative",
+        "availability:modifier:verified_absence",
+        "availability:modifier:natural_language"
+      ],
+      "answer_mode": "ABSTAINABLE",
+      "expected_cardinality": 0,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "useForm",
+          "localStorage",
+          "sessionStorage",
+          "IndexedDB"
+        ],
+        "paths": [
+          "src/useForm.ts"
+        ],
+        "languages": [
+          "typescript"
+        ],
+        "scopes": [
+          "verified_absence"
+        ]
+      },
+      "required_groups": [],
+      "hard_negatives": [
+        {
+          "span": {
+            "path": "src/useForm.ts",
+            "content_sha256": "d64782eff6887719ba1ac5060c30e00c591bc356c229e2b22b631693c2b6e1e4",
+            "qualified_symbol": "module.useForm",
+            "start_byte": 561,
+            "end_byte": 5962
+          },
+          "reason": "useForm owns in-memory React/control lifecycle but contains no browser-storage persistence implementation."
+        }
+      ],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/useForm.ts",
+            "content_sha256": "d64782eff6887719ba1ac5060c30e00c591bc356c229e2b22b631693c2b6e1e4",
+            "qualified_symbol": "module.useForm",
+            "start_byte": 561,
+            "end_byte": 5962
+          },
+          "grade": 0,
+          "rationale": "useForm owns in-memory React/control lifecycle but contains no browser-storage persistence implementation."
+        }
+      ],
+      "review": {
+        "state": "frozen",
+        "passes": [
+          {
+            "id": "assistant-availability-v1-final-sol",
+            "reviewer": "codex-sol-high",
+            "artifact_sha256": "6587f8e130f389592a2853a65c7cd62b16e6d94bf7fbff3621964e930b46ef23"
+          },
+          {
+            "id": "assistant-availability-v1-final-terra",
+            "reviewer": "codex-terra-high",
+            "artifact_sha256": "6af0c312c30ae9b933f4437370c041bdba620267dcb86e2527169cfe76ea1535"
+          }
+        ],
+        "rationale": "Source-first questions, required evidence, hard negatives, prompt neutrality, and counterbalanced schedule were corrected through two review rounds and accepted by both final independent reviewers before any scored turn.",
+        "protocol_version": "owner-adopted-dual-ai-v1",
+        "relevance_authority": "OWNER_ADOPTED_DUAL_AI_REVIEW",
+        "review_validation": "NO_INDEPENDENT_HUMAN_REVIEW",
+        "owner_adoption_sha256": "b49a42433d3a7a846e924cccecacc029f39639afbd8df73817c54b5975289e51"
+      },
+      "digest": "45acf338df33f8dd90c33d6545edff26b2fa4b69a718c046fd6a17a296dd8650"
+    },
+    {
+      "schema_version": 1,
+      "id": "avail-tsx-exact-controller",
+      "text": "Locate the `Controller` component and explain exactly what it passes to its render prop.",
+      "language": "tsx",
+      "cohorts": [
+        "availability:slice:tsx",
+        "availability:shape:exact_identifier_or_path",
+        "availability:modifier:exact_identifier"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "Controller"
+        ],
+        "paths": [
+          "src/controller.tsx"
+        ],
+        "languages": [
+          "tsx"
+        ],
+        "scopes": [
+          "source_answer"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "controller-component",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/controller.tsx",
+                  "content_sha256": "51542a131b33f8873e263e7a1b491c5ec8aa3cdb2062fc0dce9781fe39521234",
+                  "qualified_symbol": "module.Controller",
+                  "start_byte": 122,
+                  "end_byte": 1756
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/controller.tsx",
+            "content_sha256": "51542a131b33f8873e263e7a1b491c5ec8aa3cdb2062fc0dce9781fe39521234",
+            "qualified_symbol": "module.Controller",
+            "start_byte": 122,
+            "end_byte": 1756
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        }
+      ],
+      "review": {
+        "state": "frozen",
+        "passes": [
+          {
+            "id": "assistant-availability-v1-final-sol",
+            "reviewer": "codex-sol-high",
+            "artifact_sha256": "6587f8e130f389592a2853a65c7cd62b16e6d94bf7fbff3621964e930b46ef23"
+          },
+          {
+            "id": "assistant-availability-v1-final-terra",
+            "reviewer": "codex-terra-high",
+            "artifact_sha256": "6af0c312c30ae9b933f4437370c041bdba620267dcb86e2527169cfe76ea1535"
+          }
+        ],
+        "rationale": "Source-first questions, required evidence, hard negatives, prompt neutrality, and counterbalanced schedule were corrected through two review rounds and accepted by both final independent reviewers before any scored turn.",
+        "protocol_version": "owner-adopted-dual-ai-v1",
+        "relevance_authority": "OWNER_ADOPTED_DUAL_AI_REVIEW",
+        "review_validation": "NO_INDEPENDENT_HUMAN_REVIEW",
+        "owner_adoption_sha256": "b49a42433d3a7a846e924cccecacc029f39639afbd8df73817c54b5975289e51"
+      },
+      "digest": "e10793eeda1e730d2b70d1a2b395c1fe1f5963d51711673f5f024fddae1cccf2"
+    },
+    {
+      "schema_version": 1,
+      "id": "avail-tsx-exact-form-provider",
+      "text": "Locate `FormProvider` and summarize what value it places in React context.",
+      "language": "tsx",
+      "cohorts": [
+        "availability:slice:tsx",
+        "availability:shape:exact_identifier_or_path",
+        "availability:modifier:exact_identifier",
+        "availability:modifier:type_contract"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "FormProvider"
+        ],
+        "paths": [
+          "src/useFormContext.tsx"
+        ],
+        "languages": [
+          "tsx"
+        ],
+        "scopes": [
+          "source_answer"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "form-provider-component",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/useFormContext.tsx",
+                  "content_sha256": "45c2e63744c9634fc6b47f2bc15558d07ba96a7545641dab5f3472db59c7abf8",
+                  "qualified_symbol": "module.FormProvider",
+                  "start_byte": 1560,
+                  "end_byte": 3954
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/useFormContext.tsx",
+            "content_sha256": "45c2e63744c9634fc6b47f2bc15558d07ba96a7545641dab5f3472db59c7abf8",
+            "qualified_symbol": "module.FormProvider",
+            "start_byte": 1560,
+            "end_byte": 3954
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        }
+      ],
+      "review": {
+        "state": "frozen",
+        "passes": [
+          {
+            "id": "assistant-availability-v1-final-sol",
+            "reviewer": "codex-sol-high",
+            "artifact_sha256": "6587f8e130f389592a2853a65c7cd62b16e6d94bf7fbff3621964e930b46ef23"
+          },
+          {
+            "id": "assistant-availability-v1-final-terra",
+            "reviewer": "codex-terra-high",
+            "artifact_sha256": "6af0c312c30ae9b933f4437370c041bdba620267dcb86e2527169cfe76ea1535"
+          }
+        ],
+        "rationale": "Source-first questions, required evidence, hard negatives, prompt neutrality, and counterbalanced schedule were corrected through two review rounds and accepted by both final independent reviewers before any scored turn.",
+        "protocol_version": "owner-adopted-dual-ai-v1",
+        "relevance_authority": "OWNER_ADOPTED_DUAL_AI_REVIEW",
+        "review_validation": "NO_INDEPENDENT_HUMAN_REVIEW",
+        "owner_adoption_sha256": "b49a42433d3a7a846e924cccecacc029f39639afbd8df73817c54b5975289e51"
+      },
+      "digest": "3e74e0bc8ed651ddb48f041ceeca4dc010dc5c8a17453183fcbea13ffb5e8a41"
+    },
+    {
+      "schema_version": 1,
+      "id": "avail-tsx-semantic-watch",
+      "text": "How does the render-prop component for watched form values pass names and options into the hook and type the value given to `render`?",
+      "language": "tsx",
+      "cohorts": [
+        "availability:slice:tsx",
+        "availability:shape:semantic_single_hop",
+        "availability:modifier:natural_language"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "Watch",
+          "useWatch"
+        ],
+        "paths": [
+          "src/watch.tsx"
+        ],
+        "languages": [
+          "tsx"
+        ],
+        "scopes": [
+          "source_answer"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "watch-component",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/watch.tsx",
+                  "content_sha256": "d78c5bcd0dca441b557b39a35901bcd798f24f083a56b8b1d597cb07684611df",
+                  "qualified_symbol": "module.Watch",
+                  "start_byte": 134,
+                  "end_byte": 1854
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/watch.tsx",
+            "content_sha256": "d78c5bcd0dca441b557b39a35901bcd798f24f083a56b8b1d597cb07684611df",
+            "qualified_symbol": "module.Watch",
+            "start_byte": 134,
+            "end_byte": 1854
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        }
+      ],
+      "review": {
+        "state": "frozen",
+        "passes": [
+          {
+            "id": "assistant-availability-v1-final-sol",
+            "reviewer": "codex-sol-high",
+            "artifact_sha256": "6587f8e130f389592a2853a65c7cd62b16e6d94bf7fbff3621964e930b46ef23"
+          },
+          {
+            "id": "assistant-availability-v1-final-terra",
+            "reviewer": "codex-terra-high",
+            "artifact_sha256": "6af0c312c30ae9b933f4437370c041bdba620267dcb86e2527169cfe76ea1535"
+          }
+        ],
+        "rationale": "Source-first questions, required evidence, hard negatives, prompt neutrality, and counterbalanced schedule were corrected through two review rounds and accepted by both final independent reviewers before any scored turn.",
+        "protocol_version": "owner-adopted-dual-ai-v1",
+        "relevance_authority": "OWNER_ADOPTED_DUAL_AI_REVIEW",
+        "review_validation": "NO_INDEPENDENT_HUMAN_REVIEW",
+        "owner_adoption_sha256": "b49a42433d3a7a846e924cccecacc029f39639afbd8df73817c54b5975289e51"
+      },
+      "digest": "c56378bfeaca0c07dc9e5ffce8776aee53e86c8e4480ccb2bfcc2ec47ef1f545"
+    },
+    {
+      "schema_version": 1,
+      "id": "avail-tsx-semantic-form-state",
+      "text": "Which props does the `FormState` render-prop component forward to its subscription hook, and what does it return?",
+      "language": "tsx",
+      "cohorts": [
+        "availability:slice:tsx",
+        "availability:shape:semantic_single_hop",
+        "availability:modifier:natural_language"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "FormState",
+          "useFormState"
+        ],
+        "paths": [
+          "src/formStateSubscribe.tsx"
+        ],
+        "languages": [
+          "tsx"
+        ],
+        "scopes": [
+          "source_answer"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "form-state-component",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/formStateSubscribe.tsx",
+                  "content_sha256": "e216b25d3e918397274e5c5f0635282eec2db5d941a2eee27bcc7ccca13a1e1d",
+                  "qualified_symbol": "module.FormState",
+                  "start_byte": 531,
+                  "end_byte": 799
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/formStateSubscribe.tsx",
+            "content_sha256": "e216b25d3e918397274e5c5f0635282eec2db5d941a2eee27bcc7ccca13a1e1d",
+            "qualified_symbol": "module.FormState",
+            "start_byte": 531,
+            "end_byte": 799
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        }
+      ],
+      "review": {
+        "state": "frozen",
+        "passes": [
+          {
+            "id": "assistant-availability-v1-final-sol",
+            "reviewer": "codex-sol-high",
+            "artifact_sha256": "6587f8e130f389592a2853a65c7cd62b16e6d94bf7fbff3621964e930b46ef23"
+          },
+          {
+            "id": "assistant-availability-v1-final-terra",
+            "reviewer": "codex-terra-high",
+            "artifact_sha256": "6af0c312c30ae9b933f4437370c041bdba620267dcb86e2527169cfe76ea1535"
+          }
+        ],
+        "rationale": "Source-first questions, required evidence, hard negatives, prompt neutrality, and counterbalanced schedule were corrected through two review rounds and accepted by both final independent reviewers before any scored turn.",
+        "protocol_version": "owner-adopted-dual-ai-v1",
+        "relevance_authority": "OWNER_ADOPTED_DUAL_AI_REVIEW",
+        "review_validation": "NO_INDEPENDENT_HUMAN_REVIEW",
+        "owner_adoption_sha256": "b49a42433d3a7a846e924cccecacc029f39639afbd8df73817c54b5975289e51"
+      },
+      "digest": "5e55bf8211d844f331addf8d33862e46d0588e0634b70a03c330db32f443379a"
+    },
+    {
+      "schema_version": 1,
+      "id": "avail-tsx-multihop-field-array",
+      "text": "How does the `FieldArray` component obtain field-array operations for its render callback, and where are those operations implemented?",
+      "language": "tsx",
+      "cohorts": [
+        "availability:slice:tsx",
+        "availability:shape:dependency_or_type_multi_hop",
+        "availability:modifier:dependency_evidence",
+        "availability:modifier:multi_requirement"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 2,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "FieldArray",
+          "useFieldArray"
+        ],
+        "paths": [
+          "src/fieldArray.tsx",
+          "src/useFieldArray.ts"
+        ],
+        "languages": [
+          "tsx",
+          "typescript"
+        ],
+        "scopes": [
+          "source_answer"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "field-array-component",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/fieldArray.tsx",
+                  "content_sha256": "cd51cc768ee956c48af89deec670cbc51059e1ec556a5b9877f863053610a655",
+                  "qualified_symbol": "module.FieldArray",
+                  "start_byte": 376,
+                  "end_byte": 1335
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "field-array-hook",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/useFieldArray.ts",
+                  "content_sha256": "814706de932307676261136828f03714925164990a0d1a389f818af80acbbe40",
+                  "qualified_symbol": "module.useFieldArray",
+                  "start_byte": 1580,
+                  "end_byte": 16479
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/fieldArray.tsx",
+            "content_sha256": "cd51cc768ee956c48af89deec670cbc51059e1ec556a5b9877f863053610a655",
+            "qualified_symbol": "module.FieldArray",
+            "start_byte": 376,
+            "end_byte": 1335
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        },
+        {
+          "span": {
+            "path": "src/useFieldArray.ts",
+            "content_sha256": "814706de932307676261136828f03714925164990a0d1a389f818af80acbbe40",
+            "qualified_symbol": "module.useFieldArray",
+            "start_byte": 1580,
+            "end_byte": 16479
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        }
+      ],
+      "review": {
+        "state": "frozen",
+        "passes": [
+          {
+            "id": "assistant-availability-v1-final-sol",
+            "reviewer": "codex-sol-high",
+            "artifact_sha256": "6587f8e130f389592a2853a65c7cd62b16e6d94bf7fbff3621964e930b46ef23"
+          },
+          {
+            "id": "assistant-availability-v1-final-terra",
+            "reviewer": "codex-terra-high",
+            "artifact_sha256": "6af0c312c30ae9b933f4437370c041bdba620267dcb86e2527169cfe76ea1535"
+          }
+        ],
+        "rationale": "Source-first questions, required evidence, hard negatives, prompt neutrality, and counterbalanced schedule were corrected through two review rounds and accepted by both final independent reviewers before any scored turn.",
+        "protocol_version": "owner-adopted-dual-ai-v1",
+        "relevance_authority": "OWNER_ADOPTED_DUAL_AI_REVIEW",
+        "review_validation": "NO_INDEPENDENT_HUMAN_REVIEW",
+        "owner_adoption_sha256": "b49a42433d3a7a846e924cccecacc029f39639afbd8df73817c54b5975289e51"
+      },
+      "digest": "b9e93af4e0c59a26960f3e3ceeead327f1e7abd6421df68998872b15661063c4"
+    },
+    {
+      "schema_version": 1,
+      "id": "avail-tsx-multihop-context",
+      "text": "How are form methods put into React context by `FormProvider` and later retrieved by `useFormContext` in a nested component?",
+      "language": "tsx",
+      "cohorts": [
+        "availability:slice:tsx",
+        "availability:shape:dependency_or_type_multi_hop",
+        "availability:modifier:dependency_evidence",
+        "availability:modifier:multi_requirement",
+        "availability:modifier:lifecycle"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 2,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "FormProvider",
+          "useFormContext"
+        ],
+        "paths": [
+          "src/useFormContext.tsx"
+        ],
+        "languages": [
+          "tsx"
+        ],
+        "scopes": [
+          "source_answer"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "context-provider",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/useFormContext.tsx",
+                  "content_sha256": "45c2e63744c9634fc6b47f2bc15558d07ba96a7545641dab5f3472db59c7abf8",
+                  "qualified_symbol": "module.FormProvider",
+                  "start_byte": 1560,
+                  "end_byte": 3954
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "context-consumer",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/useFormContext.tsx",
+                  "content_sha256": "45c2e63744c9634fc6b47f2bc15558d07ba96a7545641dab5f3472db59c7abf8",
+                  "qualified_symbol": "module.useFormContext",
+                  "start_byte": 314,
+                  "end_byte": 1557
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/useFormContext.tsx",
+            "content_sha256": "45c2e63744c9634fc6b47f2bc15558d07ba96a7545641dab5f3472db59c7abf8",
+            "qualified_symbol": "module.FormProvider",
+            "start_byte": 1560,
+            "end_byte": 3954
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        },
+        {
+          "span": {
+            "path": "src/useFormContext.tsx",
+            "content_sha256": "45c2e63744c9634fc6b47f2bc15558d07ba96a7545641dab5f3472db59c7abf8",
+            "qualified_symbol": "module.useFormContext",
+            "start_byte": 314,
+            "end_byte": 1557
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        }
+      ],
+      "review": {
+        "state": "frozen",
+        "passes": [
+          {
+            "id": "assistant-availability-v1-final-sol",
+            "reviewer": "codex-sol-high",
+            "artifact_sha256": "6587f8e130f389592a2853a65c7cd62b16e6d94bf7fbff3621964e930b46ef23"
+          },
+          {
+            "id": "assistant-availability-v1-final-terra",
+            "reviewer": "codex-terra-high",
+            "artifact_sha256": "6af0c312c30ae9b933f4437370c041bdba620267dcb86e2527169cfe76ea1535"
+          }
+        ],
+        "rationale": "Source-first questions, required evidence, hard negatives, prompt neutrality, and counterbalanced schedule were corrected through two review rounds and accepted by both final independent reviewers before any scored turn.",
+        "protocol_version": "owner-adopted-dual-ai-v1",
+        "relevance_authority": "OWNER_ADOPTED_DUAL_AI_REVIEW",
+        "review_validation": "NO_INDEPENDENT_HUMAN_REVIEW",
+        "owner_adoption_sha256": "b49a42433d3a7a846e924cccecacc029f39639afbd8df73817c54b5975289e51"
+      },
+      "digest": "4e66eb6187d635abd09323224ef00a1ca91dc4e2f98a0dea3665222eb067636c"
+    },
+    {
+      "schema_version": 1,
+      "id": "avail-tsx-contract-form-submit",
+      "text": "Trace the `Form` component submission contract: data conversion, string versus function actions, status/error callbacks, root error state, and the rendered form attributes.",
+      "language": "tsx",
+      "cohorts": [
+        "availability:slice:tsx",
+        "availability:shape:contract_lifecycle_state_or_error",
+        "availability:modifier:lifecycle",
+        "availability:modifier:error_flow",
+        "availability:modifier:multi_requirement"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "Form",
+          "handleSubmit",
+          "root.server"
+        ],
+        "paths": [
+          "src/form.tsx"
+        ],
+        "languages": [
+          "tsx"
+        ],
+        "scopes": [
+          "source_answer"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "form-submit-contract",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/form.tsx",
+                  "content_sha256": "e54f5b91743e34f6febb81dc38c9c670634509cdf714fc84531a1d3aa69bec99",
+                  "qualified_symbol": "module.Form",
+                  "start_byte": 477,
+                  "end_byte": 4138
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/form.tsx",
+            "content_sha256": "e54f5b91743e34f6febb81dc38c9c670634509cdf714fc84531a1d3aa69bec99",
+            "qualified_symbol": "module.Form",
+            "start_byte": 477,
+            "end_byte": 4138
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        }
+      ],
+      "review": {
+        "state": "frozen",
+        "passes": [
+          {
+            "id": "assistant-availability-v1-final-sol",
+            "reviewer": "codex-sol-high",
+            "artifact_sha256": "6587f8e130f389592a2853a65c7cd62b16e6d94bf7fbff3621964e930b46ef23"
+          },
+          {
+            "id": "assistant-availability-v1-final-terra",
+            "reviewer": "codex-terra-high",
+            "artifact_sha256": "6af0c312c30ae9b933f4437370c041bdba620267dcb86e2527169cfe76ea1535"
+          }
+        ],
+        "rationale": "Source-first questions, required evidence, hard negatives, prompt neutrality, and counterbalanced schedule were corrected through two review rounds and accepted by both final independent reviewers before any scored turn.",
+        "protocol_version": "owner-adopted-dual-ai-v1",
+        "relevance_authority": "OWNER_ADOPTED_DUAL_AI_REVIEW",
+        "review_validation": "NO_INDEPENDENT_HUMAN_REVIEW",
+        "owner_adoption_sha256": "b49a42433d3a7a846e924cccecacc029f39639afbd8df73817c54b5975289e51"
+      },
+      "digest": "cf89b446d637b5ef7300b96520474ff1134ccc1d0d9c90bf1ff3804675552b19"
+    },
+    {
+      "schema_version": 1,
+      "id": "avail-tsx-contract-form-state-props",
+      "text": "What is the complete props contract for the `FormState` component, and how does the component consume that contract?",
+      "language": "tsx",
+      "cohorts": [
+        "availability:slice:tsx",
+        "availability:shape:contract_lifecycle_state_or_error",
+        "availability:modifier:type_contract",
+        "availability:modifier:multi_requirement"
+      ],
+      "answer_mode": "BEST_N",
+      "expected_cardinality": 2,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "FormStateProps",
+          "UseFormStateProps",
+          "FormState"
+        ],
+        "paths": [
+          "src/formStateSubscribe.tsx",
+          "src/types/form.ts"
+        ],
+        "languages": [
+          "tsx",
+          "typescript"
+        ],
+        "scopes": [
+          "source_answer"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "form-state-props",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/formStateSubscribe.tsx",
+                  "content_sha256": "e216b25d3e918397274e5c5f0635282eec2db5d941a2eee27bcc7ccca13a1e1d",
+                  "qualified_symbol": "module.FormStateProps",
+                  "start_byte": 209,
+                  "end_byte": 439
+                },
+                {
+                  "path": "src/types/form.ts",
+                  "content_sha256": "dd86f62d9836a7adc8ba78224a87d87d55d1eb0d0cbd0dbdd0b8a1d1c37dea60",
+                  "qualified_symbol": "module.UseFormStateProps",
+                  "start_byte": 29322,
+                  "end_byte": 29657
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "form-state-props-consumer",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/formStateSubscribe.tsx",
+                  "content_sha256": "e216b25d3e918397274e5c5f0635282eec2db5d941a2eee27bcc7ccca13a1e1d",
+                  "qualified_symbol": "module.FormState",
+                  "start_byte": 531,
+                  "end_byte": 799
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/formStateSubscribe.tsx",
+            "content_sha256": "e216b25d3e918397274e5c5f0635282eec2db5d941a2eee27bcc7ccca13a1e1d",
+            "qualified_symbol": "module.FormStateProps",
+            "start_byte": 209,
+            "end_byte": 439
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        },
+        {
+          "span": {
+            "path": "src/types/form.ts",
+            "content_sha256": "dd86f62d9836a7adc8ba78224a87d87d55d1eb0d0cbd0dbdd0b8a1d1c37dea60",
+            "qualified_symbol": "module.UseFormStateProps",
+            "start_byte": 29322,
+            "end_byte": 29657
+          },
+          "grade": 2,
+          "rationale": "Directly establishes the inherited subscription options."
+        },
+        {
+          "span": {
+            "path": "src/formStateSubscribe.tsx",
+            "content_sha256": "e216b25d3e918397274e5c5f0635282eec2db5d941a2eee27bcc7ccca13a1e1d",
+            "qualified_symbol": "module.FormState",
+            "start_byte": 531,
+            "end_byte": 799
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        }
+      ],
+      "review": {
+        "state": "frozen",
+        "passes": [
+          {
+            "id": "assistant-availability-v1-final-sol",
+            "reviewer": "codex-sol-high",
+            "artifact_sha256": "6587f8e130f389592a2853a65c7cd62b16e6d94bf7fbff3621964e930b46ef23"
+          },
+          {
+            "id": "assistant-availability-v1-final-terra",
+            "reviewer": "codex-terra-high",
+            "artifact_sha256": "6af0c312c30ae9b933f4437370c041bdba620267dcb86e2527169cfe76ea1535"
+          }
+        ],
+        "rationale": "Source-first questions, required evidence, hard negatives, prompt neutrality, and counterbalanced schedule were corrected through two review rounds and accepted by both final independent reviewers before any scored turn.",
+        "protocol_version": "owner-adopted-dual-ai-v1",
+        "relevance_authority": "OWNER_ADOPTED_DUAL_AI_REVIEW",
+        "review_validation": "NO_INDEPENDENT_HUMAN_REVIEW",
+        "owner_adoption_sha256": "b49a42433d3a7a846e924cccecacc029f39639afbd8df73817c54b5975289e51"
+      },
+      "digest": "6a736b20acba107d0f364ce46b0b4f0f2257c02ffdee22759904760d1f172be5"
+    },
+    {
+      "schema_version": 1,
+      "id": "avail-tsx-ambiguous-form-mode",
+      "text": "The public `Form` can be headless or render a native `<form>`. Explain how those two modes are selected and how a function action changes native attributes.",
+      "language": "tsx",
+      "cohorts": [
+        "availability:slice:tsx",
+        "availability:shape:ambiguous_disambiguation",
+        "availability:modifier:same_symbol_multiple_modes",
+        "availability:modifier:lifecycle"
+      ],
+      "answer_mode": "SINGLE",
+      "expected_cardinality": 1,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "Form",
+          "render",
+          "action"
+        ],
+        "paths": [
+          "src/form.tsx"
+        ],
+        "languages": [
+          "tsx"
+        ],
+        "scopes": [
+          "source_answer"
+        ]
+      },
+      "required_groups": [
+        {
+          "id": "form-render-modes",
+          "alternatives": [
+            {
+              "spans": [
+                {
+                  "path": "src/form.tsx",
+                  "content_sha256": "e54f5b91743e34f6febb81dc38c9c670634509cdf714fc84531a1d3aa69bec99",
+                  "qualified_symbol": "module.Form",
+                  "start_byte": 477,
+                  "end_byte": 4138
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "hard_negatives": [],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/form.tsx",
+            "content_sha256": "e54f5b91743e34f6febb81dc38c9c670634509cdf714fc84531a1d3aa69bec99",
+            "qualified_symbol": "module.Form",
+            "start_byte": 477,
+            "end_byte": 4138
+          },
+          "grade": 2,
+          "rationale": "Directly establishes a frozen required answer claim."
+        }
+      ],
+      "review": {
+        "state": "frozen",
+        "passes": [
+          {
+            "id": "assistant-availability-v1-final-sol",
+            "reviewer": "codex-sol-high",
+            "artifact_sha256": "6587f8e130f389592a2853a65c7cd62b16e6d94bf7fbff3621964e930b46ef23"
+          },
+          {
+            "id": "assistant-availability-v1-final-terra",
+            "reviewer": "codex-terra-high",
+            "artifact_sha256": "6af0c312c30ae9b933f4437370c041bdba620267dcb86e2527169cfe76ea1535"
+          }
+        ],
+        "rationale": "Source-first questions, required evidence, hard negatives, prompt neutrality, and counterbalanced schedule were corrected through two review rounds and accepted by both final independent reviewers before any scored turn.",
+        "protocol_version": "owner-adopted-dual-ai-v1",
+        "relevance_authority": "OWNER_ADOPTED_DUAL_AI_REVIEW",
+        "review_validation": "NO_INDEPENDENT_HUMAN_REVIEW",
+        "owner_adoption_sha256": "b49a42433d3a7a846e924cccecacc029f39639afbd8df73817c54b5975289e51"
+      },
+      "digest": "5f0d9f089dfee9d150869aa419493fdd3aa9ccdddd56618d552f218ea93d0ba4"
+    },
+    {
+      "schema_version": 1,
+      "id": "avail-tsx-negative-websocket",
+      "text": "Which TSX component opens a WebSocket or EventSource to synchronize form values with a server? If none exists, do not mistake the `Watch` component for network transport.",
+      "language": "tsx",
+      "cohorts": [
+        "availability:slice:tsx",
+        "availability:shape:verified_no_answer_or_hard_negative",
+        "availability:modifier:verified_absence",
+        "availability:modifier:same_name_collision"
+      ],
+      "answer_mode": "ABSTAINABLE",
+      "expected_cardinality": 0,
+      "split": "calibration",
+      "required_constraints": {
+        "identifiers": [
+          "Watch",
+          "WebSocket",
+          "EventSource"
+        ],
+        "paths": [
+          "src/watch.tsx"
+        ],
+        "languages": [
+          "tsx"
+        ],
+        "scopes": [
+          "verified_absence"
+        ]
+      },
+      "required_groups": [],
+      "hard_negatives": [
+        {
+          "span": {
+            "path": "src/watch.tsx",
+            "content_sha256": "d78c5bcd0dca441b557b39a35901bcd798f24f083a56b8b1d597cb07684611df",
+            "qualified_symbol": "module.Watch",
+            "start_byte": 134,
+            "end_byte": 1854
+          },
+          "reason": "Watch subscribes to local form-control values through useWatch; it opens no WebSocket or EventSource."
+        }
+      ],
+      "judgments": [
+        {
+          "span": {
+            "path": "src/watch.tsx",
+            "content_sha256": "d78c5bcd0dca441b557b39a35901bcd798f24f083a56b8b1d597cb07684611df",
+            "qualified_symbol": "module.Watch",
+            "start_byte": 134,
+            "end_byte": 1854
+          },
+          "grade": 0,
+          "rationale": "Watch subscribes to local form-control values through useWatch; it opens no WebSocket or EventSource."
+        }
+      ],
+      "review": {
+        "state": "frozen",
+        "passes": [
+          {
+            "id": "assistant-availability-v1-final-sol",
+            "reviewer": "codex-sol-high",
+            "artifact_sha256": "6587f8e130f389592a2853a65c7cd62b16e6d94bf7fbff3621964e930b46ef23"
+          },
+          {
+            "id": "assistant-availability-v1-final-terra",
+            "reviewer": "codex-terra-high",
+            "artifact_sha256": "6af0c312c30ae9b933f4437370c041bdba620267dcb86e2527169cfe76ea1535"
+          }
+        ],
+        "rationale": "Source-first questions, required evidence, hard negatives, prompt neutrality, and counterbalanced schedule were corrected through two review rounds and accepted by both final independent reviewers before any scored turn.",
+        "protocol_version": "owner-adopted-dual-ai-v1",
+        "relevance_authority": "OWNER_ADOPTED_DUAL_AI_REVIEW",
+        "review_validation": "NO_INDEPENDENT_HUMAN_REVIEW",
+        "owner_adoption_sha256": "b49a42433d3a7a846e924cccecacc029f39639afbd8df73817c54b5975289e51"
+      },
+      "digest": "94865053149bc3b48d8c73afb06822a70b9fcd54e3fda635cb0b5ac644355821"
+    }
+  ]
+}

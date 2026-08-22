@@ -97,6 +97,16 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def canonical_json_sha256(value: Any) -> str:
+    encoded = json.dumps(
+        value,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
 def run_checked(command: list[str], cwd: Path | None = None) -> str:
     completed = subprocess.run(
         command,
@@ -188,6 +198,12 @@ def cleanup_isolated(path: Path | None, prefix: str) -> None:
 def question_sources(
     project_root: Path, manifest: dict[str, Any]
 ) -> list[dict[str, dict[str, Any]]]:
+    for input_name in ("taxonomy", "truth_source"):
+        spec = manifest[input_name]
+        path = resolve_project_path(project_root, spec["path"])
+        if sha256_file(path) != spec["sha256"]:
+            raise ExperimentError(f"{input_name} digest mismatch: {path}")
+
     sources: list[dict[str, dict[str, Any]]] = []
     for spec in manifest["question_sources"]:
         path = resolve_project_path(project_root, spec["path"])
@@ -204,6 +220,53 @@ def question_sources(
             raise ExperimentError(f"missing question case: {task['task_id']}") from exc
         if case.get("digest") != task["question_digest"]:
             raise ExperimentError(f"question digest mismatch: {task['task_id']}")
+
+    identity = manifest["question_set_identity"]
+    scheduled_questions = []
+    for task in manifest["tasks"]:
+        scheduled_questions.append(
+            {
+                key: task[key]
+                for key in (
+                    "sequence",
+                    "task_id",
+                    "question_source_index",
+                    "question_digest",
+                    "corpus_id",
+                )
+            }
+            | {
+                "language": sources[task["question_source_index"]][
+                    task["task_id"]
+                ]["language"]
+            }
+        )
+    identity_input = {
+        "id": identity["id"],
+        "version": identity["version"],
+        "taxonomy": manifest["taxonomy"],
+        "question_sources": manifest["question_sources"],
+        "scheduled_questions": scheduled_questions,
+    }
+    actual_identity = canonical_json_sha256(identity_input)
+    if actual_identity != identity["sha256"]:
+        raise ExperimentError(
+            "question-set identity mismatch: "
+            f"got {actual_identity}, want {identity['sha256']}"
+        )
+    if identity["case_count"] != len(manifest["tasks"]):
+        raise ExperimentError("question-set case count differs from scheduled tasks")
+    slice_counts: dict[str, int] = {}
+    for task in manifest["tasks"]:
+        language = sources[task["question_source_index"]][task["task_id"]][
+            "language"
+        ]
+        slice_counts[language] = slice_counts.get(language, 0) + 1
+    if slice_counts != identity["language_slice_counts"]:
+        raise ExperimentError(
+            "question-set language slices differ from frozen identity: "
+            f"got {slice_counts}, want {identity['language_slice_counts']}"
+        )
     return sources
 
 
@@ -237,12 +300,29 @@ def verify_corpus(
         )
     config = read_json(config_path)
     search = config.get("search", {})
+    evaluation_state = corpus.get("evaluation_state", {})
+    if sha256_file(config_path) != evaluation_state.get("config_sha256"):
+        raise ExperimentError(
+            f"cidx config differs from frozen state for {corpus['corpus_id']}"
+        )
+    if sha256_file(db_path) != evaluation_state.get("index_db_sha256"):
+        raise ExperimentError(
+            f"cidx index differs from frozen state for {corpus['corpus_id']}"
+        )
+    if search != evaluation_state.get("search"):
+        raise ExperimentError(
+            f"cidx search config differs from frozen state for {corpus['corpus_id']}"
+        )
+    if config.get("mcp") != evaluation_state.get("mcp"):
+        raise ExperimentError(
+            f"cidx MCP config differs from frozen state for {corpus['corpus_id']}"
+        )
     if (
         search.get("default_mode") != "fts"
         or search.get("allow_paid_query_embedding") is not False
     ):
         raise ExperimentError(
-            f"cidx state is not FTS-default for {corpus['corpus_id']}"
+            f"cidx state is not provider-free FTS for {corpus['corpus_id']}"
         )
     status_text = run_checked(
         [str(cidx_binary), "status", "--json", "--root", str(root)]
@@ -266,11 +346,37 @@ def verify_corpus(
     }
 
 
+def verify_frozen_tool_contract(
+    manifest: dict[str, Any], tool_schema: dict[str, Any]
+) -> None:
+    frozen = manifest.get("freeze", {}).get("tool_contract_preflight", {})
+    comparisons = {
+        "tool_names": tool_schema["names"],
+        "definition_sha256": tool_schema["sha256"],
+        "description_sha256": tool_schema["description_sha256"],
+        "input_schema_sha256": tool_schema["input_schema_sha256"],
+        "functional_output_probe_sha256": tool_schema[
+            "functional_output_probe_sha256"
+        ],
+        "provider_credentials_present": tool_schema[
+            "provider_credentials_present"
+        ],
+        "result_representation": tool_schema["result_representation"],
+    }
+    for field, actual in comparisons.items():
+        if frozen.get(field) != actual:
+            raise ExperimentError(
+                f"live cidx tool contract {field} differs from frozen manifest: "
+                f"got {actual!r}, want {frozen.get(field)!r}"
+            )
+
+
 def verify_mcp_tools(
     mcp_binary: Path,
     source_root: Path,
     state_root: Path,
     result_representation: str,
+    probe_query: str,
 ) -> dict[str, Any]:
     preflight_environment = isolated_environment()
     if "VOYAGE_API_KEY" in preflight_environment:
@@ -341,23 +447,216 @@ def verify_mcp_tools(
     except json.JSONDecodeError as exc:
         process.kill()
         raise ExperimentError("invalid cidx tools/list response") from exc
-    process.stdin.write(
-        json.dumps(
-            {
-                "jsonrpc": "2.0",
-                "id": 3,
-                "method": "tools/call",
-                "params": {"name": "status", "arguments": {}},
-            }
+
+    def call_tool(call_id: int, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+        process.stdin.write(
+            json.dumps(
+                {
+                    "jsonrpc": "2.0",
+                    "id": call_id,
+                    "method": "tools/call",
+                    "params": {"name": name, "arguments": arguments},
+                }
+            )
+            + "\n"
         )
-        + "\n"
+        process.stdin.flush()
+        try:
+            response = json.loads(process.stdout.readline())
+        except json.JSONDecodeError as exc:
+            process.kill()
+            raise ExperimentError(f"invalid cidx {name} response") from exc
+        if response.get("id") != call_id or "error" in response:
+            process.kill()
+            raise ExperimentError(f"cidx {name} call failed: {response}")
+        return response
+
+    def structured_result(response: dict[str, Any], name: str) -> dict[str, Any]:
+        tool_result = response.get("result", {})
+        value = tool_result.get("structuredContent")
+        if not isinstance(value, dict):
+            for block in tool_result.get("content", []):
+                if not isinstance(block, dict) or not isinstance(block.get("text"), str):
+                    continue
+                try:
+                    value = json.loads(block["text"])
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(value, dict):
+                    break
+        if not isinstance(value, dict):
+            raise ExperimentError(f"cidx {name} lacks a usable result representation")
+        return value
+
+    status_response = call_tool(3, "status", {})
+    status = structured_result(status_response, "status")
+    status_fields = {
+        "applied_active_serving_profile",
+        "applied_canonical_text_profile",
+        "applied_index_profile",
+        "applied_source_profile",
+        "applied_vector_space_profile",
+        "applied_vector_storage_profile",
+        "chunk_count",
+        "deleted_count",
+        "desired_active_serving_profile",
+        "desired_canonical_text_profile",
+        "desired_index_profile",
+        "desired_source_profile",
+        "desired_vector_space_profile",
+        "desired_vector_storage_profile",
+        "dirty",
+        "embed_attempted_at",
+        "embed_succeeded_at",
+        "failed_count",
+        "file_count",
+        "generation_changed_during_status",
+        "index_attempted_at",
+        "index_error_count",
+        "index_succeeded_at",
+        "manifest_sha256",
+        "observed_generation",
+        "pending_count",
+        "ready_count",
+        "segment_count",
+        "stale_count",
+        "unindexed_count",
+        "vector_coverage_denominator",
+        "vector_coverage_numerator",
+    }
+    if set(status) != status_fields:
+        raise ExperimentError(f"cidx status output contract mismatch: {status}")
+    status_count_fields = {
+        "chunk_count",
+        "deleted_count",
+        "failed_count",
+        "file_count",
+        "index_error_count",
+        "observed_generation",
+        "pending_count",
+        "ready_count",
+        "segment_count",
+        "stale_count",
+        "unindexed_count",
+        "vector_coverage_denominator",
+        "vector_coverage_numerator",
+    }
+    if any(
+        not isinstance(status[field], int)
+        or isinstance(status[field], bool)
+        or status[field] < 0
+        for field in status_count_fields
+    ):
+        raise ExperimentError(f"cidx status count contract mismatch: {status}")
+    if (
+        status["dirty"] is not False
+        or status["generation_changed_during_status"] is not False
+    ):
+        raise ExperimentError(f"cidx status freshness contract mismatch: {status}")
+    search_response = call_tool(
+        4,
+        "search",
+        {"query": probe_query, "k": 1, "mode": "fts", "max_inline_bytes": 0},
     )
-    process.stdin.flush()
-    try:
-        status_response = json.loads(process.stdout.readline())
-    except json.JSONDecodeError as exc:
-        process.kill()
-        raise ExperimentError("invalid cidx status response") from exc
+    search_result = structured_result(search_response, "search")
+    if set(search_result) != {"results"} or not isinstance(
+        search_result["results"], list
+    ):
+        raise ExperimentError("cidx search output contract mismatch")
+    if not search_result["results"]:
+        raise ExperimentError("cidx search output probe returned no locator")
+    locator = search_result["results"][0]
+    locator_fields = {
+        "chunk_id",
+        "path",
+        "language",
+        "kind",
+        "qualified_symbol",
+        "start_line",
+        "end_line",
+        "indexed_sha256",
+        "match_sources",
+    }
+    if not isinstance(locator, dict) or set(locator) != locator_fields:
+        raise ExperimentError(f"cidx search locator contract mismatch: {locator}")
+    integer_fields = ("chunk_id", "start_line", "end_line")
+    if any(
+        not isinstance(locator[field], int) or isinstance(locator[field], bool)
+        for field in integer_fields
+    ):
+        raise ExperimentError(f"cidx search locator integer type mismatch: {locator}")
+    if (
+        locator["chunk_id"] < 1
+        or locator["start_line"] < 1
+        or locator["end_line"] < locator["start_line"]
+    ):
+        raise ExperimentError(f"cidx search locator range mismatch: {locator}")
+    for field in ("path", "language", "kind", "qualified_symbol"):
+        if not isinstance(locator[field], str) or not locator[field]:
+            raise ExperimentError(f"cidx search locator {field} mismatch: {locator}")
+    if locator["language"] not in ("go", "typescript", "tsx"):
+        raise ExperimentError(f"cidx search locator language mismatch: {locator}")
+    if locator["kind"] not in ("function", "method", "type"):
+        raise ExperimentError(f"cidx search locator kind mismatch: {locator}")
+    if not isinstance(locator["indexed_sha256"], str) or not re.fullmatch(
+        r"[0-9a-f]{64}", locator["indexed_sha256"]
+    ):
+        raise ExperimentError(f"cidx search locator SHA-256 mismatch: {locator}")
+    allowed_match_sources = {"symbol", "path", "descriptive_fts", "fts"}
+    if (
+        not isinstance(locator["match_sources"], list)
+        or not locator["match_sources"]
+        or any(
+            not isinstance(value, str) or value not in allowed_match_sources
+            for value in locator["match_sources"]
+        )
+    ):
+        raise ExperimentError(f"cidx search match_sources mismatch: {locator}")
+    read_response = call_tool(
+        5,
+        "read_span",
+        {
+            "path": locator["path"],
+            "start_line": locator["start_line"],
+            "end_line": locator["end_line"],
+            "expected_sha256": locator["indexed_sha256"],
+        },
+    )
+    read_result = structured_result(read_response, "read_span")
+    read_fields = {"path", "start_line", "end_line", "body", "indexed_sha256"}
+    if (
+        set(read_result) != read_fields
+        or not isinstance(read_result["body"], str)
+        or not read_result["body"]
+    ):
+        raise ExperimentError(f"cidx read_span output contract mismatch: {read_result}")
+    if any(
+        read_result[field] != locator[field]
+        for field in ("path", "start_line", "end_line", "indexed_sha256")
+    ):
+        raise ExperimentError("cidx read_span output identity differs from locator")
+    reindex_response = call_tool(6, "reindex", {"dry_run": True})
+    reindex_result = structured_result(reindex_response, "reindex")
+    reindex_fields = {
+        "dry_run",
+        "planned_files_updated",
+        "planned_files_deleted",
+        "planned_chunks",
+        "planned_embeddings_reused",
+        "planned_embeddings_pending",
+    }
+    if (
+        set(reindex_result) != reindex_fields
+        or reindex_result.get("dry_run") is not True
+    ):
+        raise ExperimentError(f"cidx reindex dry-run contract mismatch: {reindex_result}")
+    if any(
+        not isinstance(reindex_result[field], int)
+        or isinstance(reindex_result[field], bool)
+        or reindex_result[field] < 0
+        for field in reindex_fields - {"dry_run"}
+    ):
+        raise ExperimentError(f"cidx reindex count contract mismatch: {reindex_result}")
     process.stdin.close()
     try:
         process.wait(timeout=30)
@@ -367,8 +666,7 @@ def verify_mcp_tools(
     if (
         process.returncode != 0
         or tools_response.get("id") != 2
-        or status_response.get("id") != 3
-        or "error" in status_response
+        or "error" in tools_response
     ):
         stderr = process.stderr.read() if process.stderr is not None else ""
         raise ExperimentError(
@@ -385,19 +683,6 @@ def verify_mcp_tools(
         separators=(",", ":"),
         ensure_ascii=False,
     ).encode("utf-8")
-    tool_result = status_response.get("result", {})
-    status = tool_result.get("structuredContent")
-    if not isinstance(status, dict):
-        for block in tool_result.get("content", []):
-            if isinstance(block, dict) and isinstance(block.get("text"), str):
-                try:
-                    status = json.loads(block["text"])
-                except json.JSONDecodeError:
-                    continue
-                if isinstance(status, dict):
-                    break
-    if not isinstance(status, dict):
-        raise ExperimentError("cidx status lacks a usable result representation")
     for name in ("stale_count", "unindexed_count", "deleted_count"):
         if status.get(name) != 0:
             raise ExperimentError(f"isolated cidx status {name}={status.get(name)}")
@@ -413,8 +698,19 @@ def verify_mcp_tools(
         for tool in raw_tools
         if isinstance(tool.get("name"), str)
     }
-    if sorted(descriptions) != EXPECTED_CIDX_TOOLS or sorted(input_schemas) != EXPECTED_CIDX_TOOLS:
+    if (
+        sorted(descriptions) != EXPECTED_CIDX_TOOLS
+        or sorted(input_schemas) != EXPECTED_CIDX_TOOLS
+    ):
         raise ExperimentError("cidx tools must expose descriptions and input schemas")
+    functional_probe = {
+        "query": probe_query,
+        "search_result_fields": sorted(search_result),
+        "search_locator_fields": sorted(locator_fields),
+        "read_span_fields": sorted(read_fields),
+        "status_fields": sorted(status_fields),
+        "reindex_dry_run_fields": sorted(reindex_fields),
+    }
     return {
         "names": tools,
         "tools": sorted(raw_tools, key=lambda item: item["name"]),
@@ -428,6 +724,8 @@ def verify_mcp_tools(
         "descriptions": descriptions,
         "provider_credentials_present": False,
         "isolated_status": status,
+        "functional_output_probe": functional_probe,
+        "functional_output_probe_sha256": canonical_json_sha256(functional_probe),
         "result_representation": result_representation,
     }
 
@@ -831,6 +1129,7 @@ def main() -> int:
         project_root, "schemas/evaluation/assistant-answer.schema.json"
     )
     manifest = read_json(manifest_path)
+    controls = manifest["controls"]
     manifest_status = manifest.get("status")
     if manifest_status != "frozen_for_execution" and not (
         args.preflight_only and manifest_status == "frozen_for_external_review"
@@ -866,6 +1165,18 @@ def main() -> int:
         corpus_records[corpus_id] = verify_corpus(
             corpus, bindings[corpus_id], cidx_binary
         )
+        frozen_state = corpus["evaluation_state"]
+        if controls["search_default_k"] != frozen_state["search"]["return_k"]:
+            raise ExperimentError(
+                f"controls.search_default_k differs from {corpus_id} config"
+            )
+        if (
+            controls["mcp_hard_max_inline_bytes"]
+            != frozen_state["mcp"]["hard_max_inline_bytes"]
+        ):
+            raise ExperimentError(
+                f"controls.mcp_hard_max_inline_bytes differs from {corpus_id} config"
+            )
     preflight_source: Path | None = None
     preflight_state: Path | None = None
     try:
@@ -878,7 +1189,11 @@ def main() -> int:
             preflight_source,
             preflight_state,
             args.mcp_result_representation,
+            sources[manifest["tasks"][0]["question_source_index"]][
+                manifest["tasks"][0]["task_id"]
+            ]["text"],
         )
+        verify_frozen_tool_contract(manifest, tool_schema)
     finally:
         cleanup_isolated(preflight_source, "cidx-ab-source-")
         cleanup_isolated(preflight_state, "cidx-ab-state-")
@@ -902,7 +1217,6 @@ def main() -> int:
     if "logged in" not in login_status.lower():
         raise ExperimentError(f"Codex CLI is not logged in: {login_status}")
 
-    controls = manifest["controls"]
     session_trace_protocol = experiment_protocol(manifest)
     require_first_cidx_search = controls.get("require_first_cidx_search", True)
     if not isinstance(require_first_cidx_search, bool):
@@ -940,6 +1254,9 @@ def main() -> int:
         "cidx_tool_schema_sha256": tool_schema["sha256"],
         "cidx_tool_description_sha256": tool_schema["description_sha256"],
         "cidx_tool_input_schema_sha256": tool_schema["input_schema_sha256"],
+        "cidx_tool_output_probe_sha256": tool_schema[
+            "functional_output_probe_sha256"
+        ],
         "cidx_tool_descriptions": tool_schema["descriptions"],
         "cidx_tools": tool_schema["names"],
         "mcp_result_representation": args.mcp_result_representation,

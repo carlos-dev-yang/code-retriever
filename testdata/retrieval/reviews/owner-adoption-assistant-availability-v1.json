@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "kind": "cidx.owner_adopted_dual_ai_question_set_adoption.v1",
+  "adopted_at": "2026-08-22T12:29:05Z",
+  "protocol_version": "owner-adopted-dual-ai-v1",
+  "relevance_authority": "OWNER_ADOPTED_DUAL_AI_REVIEW",
+  "review_validation": "NO_INDEPENDENT_HUMAN_REVIEW",
+  "decision": "ADOPTED_AFTER_CORRECTION",
+  "question_set_id": "assistant-availability-chi-rhf",
+  "question_set_version": "assistant-availability-chi-rhf-v1",
+  "reviewed_draft_inputs": [
+    {
+      "path": "testdata/retrieval/assistant-availability-question-shapes-v1.json",
+      "sha256": "7989919031881a6a44062a52304dd14eb1955883a508fe47bda2c128d04bd986"
+    },
+    {
+      "path": "testdata/retrieval/question-set-go-chi-v5.3.1-assistant-availability-v1.json",
+      "sha256": "cf4b48f53445b2fa55373b6185221a5b32e4e90f096cb7e95eddd08c315f833d"
+    },
+    {
+      "path": "testdata/retrieval/question-set-react-hook-form-v7.85.0-assistant-availability-v1.json",
+      "sha256": "138020897a97c83cf7ca107263a543bbcb943103764f33ece0df52d5c5606883"
+    },
+    {
+      "path": "testdata/retrieval/assistant-availability-chi-rhf-v1-truth.json",
+      "sha256": "d73cd8aeeeda9a549744560ba6814e1a91abc6e50ea2ec32ae71351745a11e57"
+    },
+    {
+      "path": "testdata/retrieval/assistant-availability-chi-rhf-v1.json",
+      "sha256": "b1db33f634af1dd1215f3d33a9540ff87c6ce7cdcd1e979710420a6e6e2f0dd7"
+    }
+  ],
+  "final_review_passes": [
+    {
+      "reviewer": "codex-sol-high",
+      "disposition": "ACCEPT",
+      "artifact": "docs/implementation/evidence/phase-14/assistant-availability-v1-review-final-sol.json",
+      "artifact_sha256": "6587f8e130f389592a2853a65c7cd62b16e6d94bf7fbff3621964e930b46ef23"
+    },
+    {
+      "reviewer": "codex-terra-high",
+      "disposition": "ACCEPT",
+      "artifact": "docs/implementation/evidence/phase-14/assistant-availability-v1-review-final-terra.json",
+      "artifact_sha256": "6af0c312c30ae9b933f4437370c041bdba620267dcb86e2527169cfe76ea1535"
+    }
+  ],
+  "correction_rounds": [
+    {
+      "round": 1,
+      "result": "CORRECTED_SOURCE_TRUTH_AND_REQUIRED_EVIDENCE",
+      "review_artifacts": [
+        "docs/implementation/evidence/phase-14/assistant-availability-v1-review-r1-sol.json",
+        "docs/implementation/evidence/phase-14/assistant-availability-v1-review-r1-terra.json"
+      ]
+    },
+    {
+      "round": 2,
+      "result": "CORRECTED_TAXONOMY_BINDINGS_AND_NARROWED_FORM_CLAIM",
+      "review_artifacts": [
+        "docs/implementation/evidence/phase-14/assistant-availability-v1-review-r2-sol.json",
+        "docs/implementation/evidence/phase-14/assistant-availability-v1-review-r2-terra.json"
+      ]
+    }
+  ],
+  "owner_statement": "The final 30-question source-first calibration set, truth sidecar, taxonomy, prompt, and counterbalanced schedule are adopted as a whole after both independent final reviews returned ACCEPT. No scored assistant result was observed during adoption.",
+  "limitation": "This solo-project authority substitutes two independent AI reviews for unavailable independent human passes and must never be reported as HUMAN_REVIEWED or promotion evidence."
+}
