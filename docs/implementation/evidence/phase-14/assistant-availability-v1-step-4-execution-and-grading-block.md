@@ -84,6 +84,13 @@ The alternative is unstructured JSON generation followed by local validation,
 but that weakens fail-closed generation and is not recommended. No further
 grader call should run until this choice is accepted.
 
+The owner subsequently accepted the output-only adapter. Its supported-keyword
+schema, unchanged canonical/scorer boundary, isolated compatibility probe, and
+exact one-call-per-corpus continuation are frozen in the
+[Blind Grade Output Adapter V2 evidence](assistant-blind-grade-output-adapter-v2.md).
+This checkpoint remains the record of the two pre-model failures; it is not
+rewritten as though either failed attempt produced a grade.
+
 ## Checks actually run
 
 - 60/60 required final, observation, event, and session-trace artifacts exist.

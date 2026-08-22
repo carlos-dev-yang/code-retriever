@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "corpus_id",
+    "grades"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer"
+    },
+    "corpus_id": {
+      "type": "string"
+    },
+    "grades": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "blind_id",
+          "outcome",
+          "required_groups",
+          "unsupported_claims",
+          "contradicted_claims",
+          "rationale",
+          "material_claims"
+        ],
+        "properties": {
+          "blind_id": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "required_groups": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "group_id",
+                "status",
+                "evidence_indices"
+              ],
+              "properties": {
+                "group_id": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "evidence_indices": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          },
+          "unsupported_claims": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "contradicted_claims": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "rationale": {
+            "type": "string"
+          },
+          "material_claims": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "claim_id",
+                "claim_text",
+                "classification",
+                "support_references"
+              ],
+              "properties": {
+                "claim_id": {
+                  "type": "string"
+                },
+                "claim_text": {
+                  "type": "string"
+                },
+                "classification": {
+                  "type": "string"
+                },
+                "support_references": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "evidence_index"
+                    ],
+                    "properties": {
+                      "evidence_index": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
