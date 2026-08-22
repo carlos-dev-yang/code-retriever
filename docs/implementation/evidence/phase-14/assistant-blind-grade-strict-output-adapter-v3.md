@@ -1,7 +1,7 @@
 # Assistant Blind Grade Strict Output Adapter V3
 
 - Date: 2026-08-23
-- Status: `awaiting_unscored_endpoint_probe`
+- Status: `endpoint_probe_passed_ready_for_new_run_freeze`
 - Scope: passive blind-grade output structure and future packet-prompt wording only
 - Provider action: none
 - Promotion authority: none
@@ -67,7 +67,19 @@ is an input to the independent neutral-cidx versus directed-cidx run.
 - Ran `python3 -m py_compile scripts/score-assistant-ab.py`.
 - Verified the future passive prompt contains both named version constants and
   that packet generation still writes `PACKET_SCHEMA_VERSION`.
+- Ran one isolated, unscored Codex CLI structured-output probe with plugins,
+  remote plugins, apps, MCP apps, and MCP servers disabled. The endpoint
+  accepted every enum constraint and returned root version 2, outcome
+  `complete`, group status `covered`, and claim classification `observed`.
+- Inspected probe events and stderr; no tool, command, MCP, OAuth, or file-
+  access event occurred.
 - Ran `git diff --check`.
+
+| Endpoint probe artifact | SHA-256 |
+| --- | --- |
+| Events | `c9ee53ac05fe5d723709a52d66f98cb44749351181648e3b54b6821a616ae50b` |
+| Final JSON | `a999ea404759384828ce04ce1c9dfabcc0b590cf04295b129a1d2c81ddf04625` |
+| Stderr | `94b68a7219b9773fb04d88fb1fb63dc3f732540d061bb5ed9ad0f6ccb6fef037` |
 
 ## Checks not run
 
@@ -75,19 +87,14 @@ is an input to the independent neutral-cidx versus directed-cidx run.
   third-party JSON Schema engine ran; no dependency was installed or network
   action taken. The recorded direct audit checks the exact adapter subset and
   its canonical enum alignment instead.
-- no Codex CLI or model call;
-- no endpoint compatibility probe; the new enum constraints are offline-only
-  validation at this checkpoint;
 - no blind grade, semantic validation, or aggregation;
 - no runner/trace-arm generalization;
 - no provider, corpus, or source-repository operation.
 
 ## Handoff
 
-First run one isolated, unscored endpoint-compatibility probe. If it accepts
-the enum-constrained schema and returns only canonical enum values, freeze the
-adapter hash into the independent neutral-cidx versus directed-cidx manifest.
-Use it only for that new run's blind grades; do not call the closed
+Freeze this adapter hash into the independent neutral-cidx versus directed-
+cidx manifest. Use it only for that new run's blind grades; do not call the closed
 Availability V1 graders again. Preserve raw output byte-for-byte and send it
 to the unchanged canonical scorer. A schema-shaped response is not semantic
 acceptance, and a failed qualifying call must be preserved without adapter
