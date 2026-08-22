@@ -1,6 +1,6 @@
 # Forced cidx Prompt Diagnostic V1
 
-- Status: `implementation_validated`; manifest freeze and execution pending
+- Status: `frozen_for_execution`; schema probes and execution pending
 - Date: 2026-08-23
 - Phase: 14
 - Experiment class: paired, non-promotion prompt-policy diagnostic
