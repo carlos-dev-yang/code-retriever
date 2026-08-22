@@ -92,3 +92,12 @@ Commit this adapter and freeze evidence before grading. Then make one new
 isolated call for each frozen corpus prompt, preserve raw events, stderr, and
 final JSON byte-for-byte, and run the unchanged local aggregate command exactly
 once only after both outputs pass fail-closed validation.
+
+## Post-freeze envelope collision
+
+The first real Go call exposed an ambiguity not exercised by the synthetic
+probe: the input packet's root `schema_version: 1` was copied into an otherwise
+v2-shaped result. It is rejected before semantic scoring and does not amend
+this adapter in place. The preserved failure and the symmetric, root-only
+protocol correction are recorded in
+[Root Envelope Recovery V1](assistant-blind-grade-root-envelope-recovery-v1.md).

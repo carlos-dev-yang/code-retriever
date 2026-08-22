@@ -1,0 +1,2 @@
+OUTPUT ENVELOPE INVARIANT — APPLIES ONLY TO YOUR RESPONSE:
+The GRADING PACKET above is input data. Its `schema_version: 1` identifies the packet format; it is not the format version of your response. Return a new grade-result object with exactly the root fields `schema_version`, `corpus_id`, and `grades`. The response `schema_version` MUST be the JSON integer `2`. Copy `corpus_id` exactly from the input packet. Do not copy the packet object or its `schema_version: 1` into your response.
