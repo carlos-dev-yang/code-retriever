@@ -30,9 +30,30 @@ from assistant_session_trace import (
     resolve_trace_protocol,
 )
 
+try:
+    from assistant_session_policy_trace import (
+        POLICY_TRACE_PROTOCOL,
+        TRACE_SCHEMA_VERSION as POLICY_TRACE_SCHEMA_VERSION,
+        build_policy_trace as build_policy_session_trace,
+    )
+except ModuleNotFoundError as exc:
+    if exc.name != "assistant_session_policy_trace":
+        raise
+    POLICY_TRACE_PROTOCOL = "forced-cidx-policy-v2"
+    POLICY_TRACE_SCHEMA_VERSION = None
+    build_policy_session_trace = None
+
 
 BASELINE_ARM = "baseline"
 CIDX_ARM = "cidx_fts"
+POLICY_NEUTRAL_ARM = "neutral_cidx"
+POLICY_DIRECTED_ARM = "directed_cidx"
+POLICY_ARM_IDS = (POLICY_NEUTRAL_ARM, POLICY_DIRECTED_ARM)
+ARM_ID_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]*")
+SHA256_PATTERN = re.compile(r"[0-9a-f]{64}")
+SHELL_CIDX_PATTERN = re.compile(
+    r"(?i)(?:^|[;&|()\s])cidx(?:\s|$)|(?:command\s+-v|which|type)\s+cidx"
+)
 EXPECTED_CIDX_TOOLS = ["read_span", "reindex", "search", "status"]
 SOURCE_SUFFIXES = (".go", ".ts", ".tsx")
 ENVIRONMENT_ALLOWLIST = (
@@ -66,10 +87,413 @@ class ExperimentError(RuntimeError):
 
 
 def experiment_protocol(manifest: dict[str, Any]) -> str:
+    controls = manifest.get("controls")
+    configured = controls.get("session_trace_protocol") if isinstance(controls, dict) else None
+    if configured == POLICY_TRACE_PROTOCOL:
+        if manifest.get("arms") is None:
+            raise ExperimentError(
+                "forced-cidx-policy-v2 requires manifest-defined neutral_cidx and directed_cidx arms"
+            )
+        return configured
+    if manifest.get("arms") is not None:
+        raise ExperimentError(
+            "manifest-defined prompt-policy arms require forced-cidx-policy-v2"
+        )
     try:
         return resolve_trace_protocol(manifest)
     except ValueError as exc:
         raise ExperimentError(str(exc)) from exc
+
+
+def sha256_text(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def require_sha256(value: Any, context: str) -> str:
+    if not isinstance(value, str) or not SHA256_PATTERN.fullmatch(value):
+        raise ExperimentError(f"{context} must be a lowercase SHA-256")
+    return value
+
+
+def legacy_arms() -> dict[str, dict[str, Any]]:
+    """Return the historical two-arm contract without changing old manifests."""
+    return {
+        BASELINE_ARM: {
+            "id": BASELINE_ARM,
+            "cidx_exposed": False,
+            "prompt_suffix": "",
+            "mcp": {},
+        },
+        CIDX_ARM: {
+            "id": CIDX_ARM,
+            "cidx_exposed": True,
+            "prompt_suffix": "",
+            "mcp": {},
+        },
+    }
+
+
+def manifest_arms(manifest: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], bool]:
+    """Resolve the historical fixed arms or a two-arm manifest-defined policy."""
+    configured = manifest.get("arms")
+    if configured is None:
+        return legacy_arms(), True
+    if isinstance(configured, dict):
+        arm_items: list[dict[str, Any]] = []
+        for arm_id, item in configured.items():
+            if not isinstance(item, dict):
+                raise ExperimentError("manifest arm must be an object")
+            if "id" in item and item["id"] != arm_id:
+                raise ExperimentError("manifest arm object id must match its arms key")
+            arm_items.append({"id": arm_id} | item)
+    elif isinstance(configured, list):
+        arm_items = configured
+    else:
+        arm_items = []
+    if len(arm_items) != 2:
+        raise ExperimentError("manifest arms must define exactly two arm objects")
+
+    arms: dict[str, dict[str, Any]] = {}
+    for item in arm_items:
+        if not isinstance(item, dict):
+            raise ExperimentError("manifest arm must be an object")
+        arm_id = item.get("id")
+        if not isinstance(arm_id, str) or not ARM_ID_PATTERN.fullmatch(arm_id):
+            raise ExperimentError("manifest arm id must be a safe non-empty identifier")
+        if arm_id in arms:
+            raise ExperimentError(f"duplicate manifest arm id: {arm_id}")
+        cidx_exposed = item.get("cidx_exposed")
+        if not isinstance(cidx_exposed, bool):
+            raise ExperimentError(f"manifest arm {arm_id} must declare boolean cidx_exposed")
+        suffix = item.get("prompt_suffix")
+        if not isinstance(suffix, str):
+            raise ExperimentError(f"manifest arm {arm_id} prompt_suffix must be a string")
+        declared_suffix_hash = item.get("prompt_suffix_sha256")
+        actual_suffix_hash = sha256_text(suffix)
+        if declared_suffix_hash is not None and declared_suffix_hash != actual_suffix_hash:
+            raise ExperimentError(f"manifest arm {arm_id} prompt suffix digest mismatch")
+        mcp = item.get("mcp", {})
+        if not isinstance(mcp, dict):
+            raise ExperimentError(f"manifest arm {arm_id} mcp configuration must be an object")
+        if not cidx_exposed and mcp:
+            raise ExperimentError(f"manifest arm {arm_id} cannot configure MCP when cidx is hidden")
+        arms[arm_id] = {
+            "id": arm_id,
+            "cidx_exposed": cidx_exposed,
+            "prompt_suffix": suffix,
+            "mcp": mcp,
+        }
+
+    if set(arms) != set(POLICY_ARM_IDS):
+        raise ExperimentError(
+            "manifest-defined arms must be exactly neutral_cidx and directed_cidx"
+        )
+    if not all(arm["cidx_exposed"] for arm in arms.values()):
+        raise ExperimentError("manifest-defined prompt-policy arms must both expose cidx")
+    return arms, False
+
+
+def arm_mcp_config(arm: dict[str, Any]) -> tuple[str, str]:
+    """Resolve the cidx server name and approval mode from one arm's config."""
+    mcp = arm["mcp"]
+    unknown_fields = set(mcp) - {
+        "server",
+        "server_name",
+        "approval_mode",
+        "default_tools_approval_mode",
+    }
+    if unknown_fields:
+        raise ExperimentError(
+            f"manifest arm {arm['id']} has unknown MCP fields: {sorted(unknown_fields)}"
+        )
+    server_name = mcp.get("server_name", mcp.get("server", "cidx"))
+    approval_mode = mcp.get(
+        "approval_mode", mcp.get("default_tools_approval_mode", "approve")
+    )
+    if server_name != "cidx":
+        raise ExperimentError("only the frozen cidx MCP server may be exposed")
+    if not isinstance(approval_mode, str) or not approval_mode:
+        raise ExperimentError(f"manifest arm {arm['id']} has invalid MCP approval mode")
+    return server_name, approval_mode
+
+
+def rendered_prompt(template: str, task_id: str, question: str, arm: dict[str, Any]) -> str:
+    return (
+        template.replace("{{TASK_ID}}", task_id).replace("{{QUESTION}}", question)
+        + arm["prompt_suffix"]
+    )
+
+
+def policy_manifest_contract(
+    manifest: dict[str, Any],
+    arms: dict[str, dict[str, Any]],
+    *,
+    session_trace_protocol: str,
+    legacy_arms_mode: bool,
+) -> dict[str, Any] | None:
+    """Validate the sole-intervention policy contract for a new manifest."""
+    if legacy_arms_mode:
+        if session_trace_protocol == POLICY_TRACE_PROTOCOL:
+            raise ExperimentError(
+                "forced-cidx-policy-v2 rejects legacy asymmetric baseline/cidx_fts arms"
+            )
+        return None
+    if session_trace_protocol != POLICY_TRACE_PROTOCOL:
+        raise ExperimentError("manifest-defined arms require forced-cidx-policy-v2")
+    prompt_policy = manifest.get("prompt_policy")
+    if not isinstance(prompt_policy, dict):
+        raise ExperimentError("policy manifest requires a top-level prompt_policy object")
+    neutral_id = prompt_policy.get("neutral_arm_id")
+    directed_id = prompt_policy.get("directed_arm_id")
+    if neutral_id != POLICY_NEUTRAL_ARM or directed_id != POLICY_DIRECTED_ARM:
+        raise ExperimentError(
+            "prompt_policy must configure neutral_arm_id=neutral_cidx and directed_arm_id=directed_cidx"
+        )
+    neutral = arms[neutral_id]
+    directed = arms[directed_id]
+    if neutral["prompt_suffix"] != "":
+        raise ExperimentError("neutral_cidx prompt_suffix must be empty")
+    if not directed["prompt_suffix"]:
+        raise ExperimentError("directed_cidx prompt_suffix must be non-empty")
+    declared_suffix_hash = require_sha256(
+        prompt_policy.get("directed_suffix_sha256"),
+        "prompt_policy.directed_suffix_sha256",
+    )
+    if sha256_text(directed["prompt_suffix"]) != declared_suffix_hash:
+        raise ExperimentError("directed_cidx prompt suffix differs from prompt_policy digest")
+    neutral_mcp_hash = canonical_json_sha256(neutral["mcp"])
+    directed_mcp_hash = canonical_json_sha256(directed["mcp"])
+    if neutral_mcp_hash != directed_mcp_hash:
+        raise ExperimentError("policy arm MCP objects must be canonical-identical")
+    neutral_mcp = arm_mcp_config(neutral)
+    directed_mcp = arm_mcp_config(directed)
+    if neutral_mcp != directed_mcp:
+        raise ExperimentError("policy arm resolved MCP settings must be identical")
+    return {
+        "neutral_arm_id": neutral_id,
+        "directed_arm_id": directed_id,
+        "directed_suffix_sha256": declared_suffix_hash,
+        "mcp_sha256": neutral_mcp_hash,
+        "mcp_server_name": neutral_mcp[0],
+        "mcp_approval_mode": neutral_mcp[1],
+    }
+
+
+def schedule_value(manifest: dict[str, Any], name: str) -> Any:
+    """Resolve one policy schedule declaration without allowing disagreement."""
+    values = []
+    if name in manifest:
+        values.append(manifest[name])
+    schedule = manifest.get("schedule")
+    if isinstance(schedule, dict) and name in schedule:
+        values.append(schedule[name])
+    if len(values) == 2 and values[0] != values[1]:
+        raise ExperimentError(f"conflicting top-level and schedule {name}")
+    return values[0] if values else None
+
+
+def paired_arm_order(
+    arms: dict[str, dict[str, Any]], first_arm: str
+) -> tuple[str, str]:
+    if first_arm not in arms:
+        raise ExperimentError(f"first_arm is not a declared arm: {first_arm!r}")
+    other_arms = [arm_id for arm_id in arms if arm_id != first_arm]
+    if len(other_arms) != 1 or other_arms[0] == first_arm:
+        raise ExperimentError("each task must execute exactly two distinct arms")
+    return first_arm, other_arms[0]
+
+
+def validate_task_schedule(
+    manifest: dict[str, Any],
+    arms: dict[str, dict[str, Any]],
+    *,
+    legacy_arms_mode: bool,
+) -> None:
+    tasks = manifest.get("tasks", [])
+    if not isinstance(tasks, list):
+        raise ExperimentError("manifest tasks must be an array")
+    task_ids: set[str] = set()
+    sequences: set[int] = set()
+    first_arm_counts = {arm_id: 0 for arm_id in arms}
+    for task in tasks:
+        if not isinstance(task, dict):
+            raise ExperimentError("manifest task must be an object")
+        task_id = task.get("task_id")
+        if not isinstance(task_id, str) or not task_id:
+            raise ExperimentError("manifest task_id must be a non-empty string")
+        if task_id in task_ids:
+            raise ExperimentError(f"duplicate task_id: {task_id}")
+        task_ids.add(task_id)
+        sequence = task.get("sequence")
+        if not isinstance(sequence, int) or isinstance(sequence, bool) or sequence < 1:
+            raise ExperimentError(f"task {task_id} sequence must be a positive integer")
+        if sequence in sequences:
+            raise ExperimentError(f"duplicate task sequence: {sequence}")
+        sequences.add(sequence)
+        first_arm, second_arm = paired_arm_order(arms, task.get("first_arm"))
+        if first_arm == second_arm:
+            raise ExperimentError(f"task {task_id} does not have two distinct arms")
+        first_arm_counts[first_arm] += 1
+    if sequences != set(range(1, len(tasks) + 1)):
+        raise ExperimentError("task sequences must be contiguous from 1 through task count")
+    if legacy_arms_mode:
+        return
+    schedule = manifest.get("schedule")
+    if not isinstance(schedule, dict):
+        raise ExperimentError("forced-cidx-policy-v2 requires a schedule object")
+    required_schedule = {
+        "pair_count": 30,
+        "neutral_first_pairs": 15,
+        "directed_first_pairs": 15,
+    }
+    for name, expected in required_schedule.items():
+        if name not in schedule:
+            raise ExperimentError(f"forced-cidx-policy-v2 schedule requires {name}")
+        declared = schedule_value(manifest, name)
+        if not isinstance(declared, int) or isinstance(declared, bool):
+            raise ExperimentError(f"{name} must be an integer")
+        if declared != expected:
+            raise ExperimentError(
+                f"forced-cidx-policy-v2 {name} must equal frozen value {expected}"
+            )
+    if len(tasks) != required_schedule["pair_count"]:
+        raise ExperimentError("forced-cidx-policy-v2 requires exactly 30 tasks")
+    expected_first_arm_counts = {
+        POLICY_NEUTRAL_ARM: required_schedule["neutral_first_pairs"],
+        POLICY_DIRECTED_ARM: required_schedule["directed_first_pairs"],
+    }
+    if first_arm_counts != expected_first_arm_counts:
+        raise ExperimentError(
+            "policy first-arm counts differ from the frozen 15/15 schedule"
+        )
+
+
+def policy_prompt_rendering_hashes(
+    manifest: dict[str, Any],
+    arms: dict[str, dict[str, Any]],
+    sources: list[dict[str, dict[str, Any]]],
+    policy_contract: dict[str, Any],
+) -> dict[str, dict[str, Any]]:
+    """Prove the directed suffix is the sole rendered-prompt difference."""
+    neutral = arms[policy_contract["neutral_arm_id"]]
+    directed = arms[policy_contract["directed_arm_id"]]
+    suffix = directed["prompt_suffix"]
+    renderings: dict[str, dict[str, Any]] = {}
+    for task in manifest["tasks"]:
+        task_id = task["task_id"]
+        question = sources[task["question_source_index"]][task_id]["text"]
+        neutral_prompt = rendered_prompt(manifest["prompt_template"], task_id, question, neutral)
+        directed_prompt = rendered_prompt(manifest["prompt_template"], task_id, question, directed)
+        if not directed_prompt.endswith(suffix):
+            raise ExperimentError(f"directed prompt does not end in its exact suffix: {task_id}")
+        directed_without_suffix = directed_prompt[: -len(suffix)]
+        if directed_without_suffix != neutral_prompt:
+            raise ExperimentError(
+                f"removing directed suffix does not yield the neutral prompt: {task_id}"
+            )
+        renderings[task_id] = {
+            "neutral_rendered_prompt_sha256": sha256_text(neutral_prompt),
+            "directed_rendered_prompt_sha256": sha256_text(directed_prompt),
+            "directed_without_suffix_sha256": sha256_text(directed_without_suffix),
+            "removing_directed_suffix_yields_neutral": True,
+        }
+    return renderings
+
+
+def policy_trace_available() -> bool:
+    return build_policy_session_trace is not None
+
+
+def frozen_trace_builder_hashes(manifest: dict[str, Any]) -> dict[str, str]:
+    """Collect declared policy/passive builder hashes from the frozen manifest."""
+    prompt_policy = manifest.get("prompt_policy")
+    freeze = manifest.get("freeze")
+    containers = [
+        prompt_policy if isinstance(prompt_policy, dict) else {},
+        freeze if isinstance(freeze, dict) else {},
+    ]
+    if isinstance(freeze, dict) and isinstance(freeze.get("trace_builders"), dict):
+        containers.append(freeze["trace_builders"])
+    aliases = {
+        "policy": (
+            "policy_trace_builder_sha256",
+            "policy_trace_module_sha256",
+        ),
+        "passive": (
+            "passive_trace_builder_sha256",
+            "passive_trace_module_sha256",
+        ),
+    }
+    result: dict[str, str] = {}
+    for role, names in aliases.items():
+        values = [container[name] for container in containers for name in names if name in container]
+        shorthand_names = {
+            "policy": ("policy", "policy_v2", "forced_cidx_policy_v2"),
+            "passive": ("passive", "passive_v1"),
+        }[role]
+        for container in containers:
+            for name in shorthand_names:
+                value = container.get(name)
+                if isinstance(value, dict) and "sha256" in value:
+                    values.append(value["sha256"])
+                elif isinstance(value, str):
+                    values.append(value)
+        if not values:
+            continue
+        normalized = [require_sha256(value, f"declared {role} trace builder hash") for value in values]
+        if len(set(normalized)) != 1:
+            raise ExperimentError(f"conflicting declared {role} trace builder hashes")
+        result[role] = normalized[0]
+    return result
+
+
+def verify_frozen_trace_builder_hashes(
+    manifest: dict[str, Any],
+    session_trace_protocol: str,
+    identity: dict[str, Any],
+) -> dict[str, str]:
+    declared = frozen_trace_builder_hashes(manifest)
+    if session_trace_protocol != POLICY_TRACE_PROTOCOL:
+        return declared
+    actual = {
+        "policy": identity["sha256"],
+        "passive": identity["delegated_sha256"],
+    }
+    for role, expected in declared.items():
+        if actual[role] != expected:
+            raise ExperimentError(
+                f"frozen {role} trace builder hash differs from the live module"
+            )
+    return declared
+
+
+def trace_builder_identity(session_trace_protocol: str) -> dict[str, Any]:
+    if session_trace_protocol == PASSIVE_TRACE_PROTOCOL:
+        trace_path = Path(__file__).resolve().with_name("assistant_session_trace.py")
+        return {
+            "module": trace_path.name,
+            "schema_version": TRACE_SCHEMA_VERSION,
+            "sha256": sha256_file(trace_path),
+            "available": True,
+        }
+    if session_trace_protocol == POLICY_TRACE_PROTOCOL:
+        trace_path = Path(__file__).resolve().with_name("assistant_session_policy_trace.py")
+        delegated_path = Path(__file__).resolve().with_name("assistant_session_trace.py")
+        return {
+            "module": trace_path.name,
+            "schema_version": POLICY_TRACE_SCHEMA_VERSION,
+            "sha256": sha256_file(trace_path) if trace_path.is_file() else None,
+            "delegated_module": delegated_path.name,
+            "delegated_schema_version": TRACE_SCHEMA_VERSION,
+            "delegated_sha256": sha256_file(delegated_path),
+            "available": policy_trace_available(),
+        }
+    return {
+        "module": None,
+        "schema_version": None,
+        "sha256": None,
+        "available": False,
+    }
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -736,7 +1160,7 @@ def codex_command(
     schema: Path,
     root: Path,
     final_path: Path,
-    arm: str,
+    arm: dict[str, Any],
     mcp_binary: Path,
     state_root: Path | None,
     result_representation: str,
@@ -764,15 +1188,16 @@ def codex_command(
     ]
     for feature in controls.get("disabled_features", []):
         command.extend(["--disable", feature])
-    if arm == CIDX_ARM:
+    if arm["cidx_exposed"]:
         if state_root is None:
-            raise ExperimentError("treatment state root is required")
+            raise ExperimentError(f"cidx state root is required for arm {arm['id']}")
+        server_name, approval_mode = arm_mcp_config(arm)
         command.extend(
             [
                 "--config",
-                f"mcp_servers.cidx.command={json.dumps(str(mcp_binary))}",
+                f"mcp_servers.{server_name}.command={json.dumps(str(mcp_binary))}",
                 "--config",
-                "mcp_servers.cidx.args="
+                f"mcp_servers.{server_name}.args="
                 + json.dumps(
                     [
                         "--source-root",
@@ -784,11 +1209,10 @@ def codex_command(
                     ]
                 ),
                 "--config",
-                'mcp_servers.cidx.default_tools_approval_mode="approve"',
+                f"mcp_servers.{server_name}.default_tools_approval_mode="
+                + json.dumps(approval_mode),
             ]
         )
-    elif arm != BASELINE_ARM:
-        raise ExperimentError(f"unknown arm: {arm}")
     command.append("-")
     return command
 
@@ -891,7 +1315,7 @@ def execute_one(
     schema: Path,
     root: Path,
     output_dir: Path,
-    arm: str,
+    arm: dict[str, Any],
     task_id: str,
     prompt: str,
     result_representation: str,
@@ -921,7 +1345,7 @@ def execute_one(
             "argv": command,
             "cwd": str(root),
             "task_id": task_id,
-            "arm": arm,
+            "arm": arm["id"],
         },
     )
 
@@ -951,19 +1375,31 @@ def execute_one(
                 os.killpg(process.pid, signal.SIGKILL)
                 process.wait(timeout=10)
     elapsed = time.monotonic() - started
-    trace = build_session_trace(
-        events_path,
-        final_path,
-        root,
-        frozen_fts_default=True,
-    )
+    if session_trace_protocol == POLICY_TRACE_PROTOCOL:
+        if build_policy_session_trace is None:
+            raise ExperimentError(
+                "policy-v2 trace requested but assistant_session_policy_trace.py is unavailable"
+            )
+        trace = build_policy_session_trace(
+            events_path,
+            final_path,
+            root,
+            frozen_fts_default=True,
+        )
+    else:
+        trace = build_session_trace(
+            events_path,
+            final_path,
+            root,
+            frozen_fts_default=True,
+        )
     observation = event_observation(events_path, final_path, trace)
-    if session_trace_protocol == PASSIVE_TRACE_PROTOCOL:
+    if session_trace_protocol in (PASSIVE_TRACE_PROTOCOL, POLICY_TRACE_PROTOCOL):
         write_json(output_dir / "session-trace.json", trace)
     observation.update(
         {
             "task_id": task_id,
-            "arm": arm,
+            "arm": arm["id"],
             "exit_code": process.returncode,
             "timed_out": timed_out,
             "elapsed_seconds": elapsed,
@@ -975,15 +1411,18 @@ def execute_one(
 
 
 def control_violations(
-    arm: str,
+    arm: dict[str, Any],
     observation: dict[str, Any],
     *,
     require_first_cidx_search: bool,
+    session_trace_protocol: str,
 ) -> list[str]:
     violations: list[str] = []
     calls = observation.get("mcp_calls", [])
-    if arm == BASELINE_ARM and calls:
-        violations.append("baseline_mcp_call")
+    if not arm["cidx_exposed"] and calls:
+        violations.append(
+            "baseline_mcp_call" if arm["id"] == BASELINE_ARM else "hidden_arm_mcp_call"
+        )
     for call in calls:
         if call.get("server") != "cidx":
             violations.append("unexpected_mcp_server")
@@ -998,18 +1437,37 @@ def control_violations(
             violations.append("hybrid_search_call")
     for command in observation.get("commands", []):
         command_text = str(command.get("command", ""))
-        if re.search(
-            r"(?i)(?:^|[;&|()\s])cidx(?:\s|$)|(?:command\s+-v|which|type)\s+cidx",
-            command_text,
+        if (
+            session_trace_protocol != POLICY_TRACE_PROTOCOL
+            and SHELL_CIDX_PATTERN.search(command_text)
         ):
             violations.append("shell_cidx_attempt")
-    if arm == CIDX_ARM and require_first_cidx_search:
+    if arm["cidx_exposed"] and require_first_cidx_search:
         first = observation.get("first_repository_discovery_action")
         if first is None:
             violations.append("missing_required_first_cidx_search")
         elif first != "cidx_search":
             violations.append("first_repository_discovery_not_cidx_search")
     return sorted(set(violations))
+
+
+def invalidating_control_violations(
+    violations: list[str], session_trace_protocol: str
+) -> list[str]:
+    """Keep a policy shell invocation observable without discarding its turn."""
+    if session_trace_protocol == POLICY_TRACE_PROTOCOL:
+        return [violation for violation in violations if violation != "shell_cidx_attempt"]
+    return violations
+
+
+def policy_noncompliance_violations(observation: dict[str, Any]) -> list[str]:
+    return sorted(
+        {
+            "shell_cidx_attempt"
+            for command in observation.get("commands", [])
+            if SHELL_CIDX_PATTERN.search(str(command.get("command", "")))
+        }
+    )
 
 
 def execute_isolated(
@@ -1022,7 +1480,7 @@ def execute_isolated(
     original_root: Path,
     corpus: dict[str, Any],
     output_dir: Path,
-    arm: str,
+    arm: dict[str, Any],
     task_id: str,
     prompt: str,
     result_representation: str,
@@ -1035,7 +1493,7 @@ def execute_isolated(
         source_root = copy_source_worktree(original_root)
         source_before = verify_isolated_source(source_root, corpus)
         state_before: str | None = None
-        if arm == CIDX_ARM:
+        if arm["cidx_exposed"]:
             state_root, state_before = copy_cidx_state(original_root)
         observation = execute_one(
             codex_binary=codex_binary,
@@ -1061,29 +1519,43 @@ def execute_isolated(
             arm,
             observation,
             require_first_cidx_search=require_first_cidx_search,
+            session_trace_protocol=session_trace_protocol,
         )
-        observation.update(
-            {
-                "source_before": source_before,
-                "source_after": source_after,
-                "state_database_sha256_before": state_before,
-                "state_database_sha256_after": state_after,
-                "control_violations": violations,
-                "valid_execution": observation["valid_execution"]
-                and not violations,
-                "isolated_source_removed_after_capture": True,
-                "isolated_state_removed_after_capture": state_root is not None,
-                "cidx_binary_sha256": sha256_file(cidx_binary),
-                "mcp_binary_sha256": sha256_file(mcp_binary),
-            }
+        policy_noncompliance = (
+            policy_noncompliance_violations(observation)
+            if session_trace_protocol == POLICY_TRACE_PROTOCOL
+            else []
         )
+        invalidating_violations = invalidating_control_violations(
+            violations, session_trace_protocol
+        )
+        updates = {
+            "source_before": source_before,
+            "source_after": source_after,
+            "state_database_sha256_before": state_before,
+            "state_database_sha256_after": state_after,
+            "control_violations": violations,
+            "valid_execution": observation["valid_execution"]
+            and not invalidating_violations,
+            "isolated_source_removed_after_capture": True,
+            "isolated_state_removed_after_capture": state_root is not None,
+            "cidx_binary_sha256": sha256_file(cidx_binary),
+            "mcp_binary_sha256": sha256_file(mcp_binary),
+        }
+        if session_trace_protocol == POLICY_TRACE_PROTOCOL:
+            updates["policy_noncompliance"] = policy_noncompliance
+        observation.update(updates)
         write_json(output_dir / "observation.json", observation)
         if any(
-            violation in {"baseline_mcp_call", "unexpected_mcp_server"}
+            violation in {
+                "baseline_mcp_call",
+                "hidden_arm_mcp_call",
+                "unexpected_mcp_server",
+            }
             for violation in violations
         ):
             raise ExperimentError(
-                f"global tool-exposure violation in {task_id}/{arm}: {violations}"
+                f"global tool-exposure violation in {task_id}/{arm['id']}: {violations}"
             )
         return observation
     finally:
@@ -1130,6 +1602,25 @@ def main() -> int:
     )
     manifest = read_json(manifest_path)
     controls = manifest["controls"]
+    arms, legacy_arms_mode = manifest_arms(manifest)
+    session_trace_protocol = experiment_protocol(manifest)
+    policy_contract = policy_manifest_contract(
+        manifest,
+        arms,
+        session_trace_protocol=session_trace_protocol,
+        legacy_arms_mode=legacy_arms_mode,
+    )
+    validate_task_schedule(
+        manifest, arms, legacy_arms_mode=legacy_arms_mode
+    )
+    trace_identity = trace_builder_identity(session_trace_protocol)
+    if session_trace_protocol == POLICY_TRACE_PROTOCOL and not trace_identity["available"]:
+        raise ExperimentError(
+            "policy-v2 trace requested but assistant_session_policy_trace.py is unavailable"
+        )
+    frozen_trace_hashes = verify_frozen_trace_builder_hashes(
+        manifest, session_trace_protocol, trace_identity
+    )
     manifest_status = manifest.get("status")
     if manifest_status != "frozen_for_execution" and not (
         args.preflight_only and manifest_status == "frozen_for_external_review"
@@ -1156,6 +1647,11 @@ def main() -> int:
         raise ExperimentError(f"answer schema is missing: {schema}")
 
     sources = question_sources(project_root, manifest)
+    policy_prompt_renderings = (
+        policy_prompt_rendering_hashes(manifest, arms, sources, policy_contract)
+        if policy_contract is not None
+        else None
+    )
     bindings = local_bindings(project_root, bindings_path)
     corpus_specs = {item["corpus_id"]: item for item in manifest["corpora"]}
     corpus_records: dict[str, Any] = {}
@@ -1217,10 +1713,15 @@ def main() -> int:
     if "logged in" not in login_status.lower():
         raise ExperimentError(f"Codex CLI is not logged in: {login_status}")
 
-    session_trace_protocol = experiment_protocol(manifest)
-    require_first_cidx_search = controls.get("require_first_cidx_search", True)
+    require_first_cidx_search = controls.get(
+        "require_first_cidx_search", True if legacy_arms_mode else False
+    )
     if not isinstance(require_first_cidx_search, bool):
         raise ExperimentError("controls.require_first_cidx_search must be boolean")
+    if not legacy_arms_mode and require_first_cidx_search:
+        raise ExperimentError(
+            "manifest-defined prompt-policy arms must record first-search noncompliance, not invalidate it"
+        )
     run_id = args.run_id or (
         str(manifest.get("manifest_id", "assistant-ab"))
         + "-"
@@ -1265,10 +1766,61 @@ def main() -> int:
         "corpora": corpus_records,
     }
     if session_trace_protocol == PASSIVE_TRACE_PROTOCOL:
-        trace_path = Path(__file__).resolve().with_name("assistant_session_trace.py")
         run_manifest["session_trace_protocol"] = session_trace_protocol
-        run_manifest["session_trace_schema_version"] = TRACE_SCHEMA_VERSION
-        run_manifest["session_trace_builder_sha256"] = sha256_file(trace_path)
+        run_manifest["session_trace_schema_version"] = trace_identity["schema_version"]
+        run_manifest["session_trace_builder_sha256"] = trace_identity["sha256"]
+    elif session_trace_protocol == POLICY_TRACE_PROTOCOL:
+        run_manifest.update(
+            {
+                "session_trace_protocol": session_trace_protocol,
+                "session_trace_schema_version": trace_identity["schema_version"],
+                "session_trace_builder_sha256": trace_identity["sha256"],
+                "session_trace_builder_module": trace_identity["module"],
+                "session_trace_delegated_builder_schema_version": trace_identity[
+                    "delegated_schema_version"
+                ],
+                "session_trace_delegated_builder_sha256": trace_identity[
+                    "delegated_sha256"
+                ],
+                "session_trace_delegated_builder_module": trace_identity[
+                    "delegated_module"
+                ],
+                "frozen_trace_builder_hashes": frozen_trace_hashes,
+            }
+        )
+    if not legacy_arms_mode:
+        assert policy_contract is not None
+        assert policy_prompt_renderings is not None
+        prompt_renderings = policy_prompt_renderings
+        run_manifest["arm_ids"] = list(arms)
+        run_manifest["arms"] = [
+            {
+                "id": arm["id"],
+                "cidx_exposed": arm["cidx_exposed"],
+                "mcp": arm["mcp"],
+                "prompt_suffix_sha256": sha256_text(arm["prompt_suffix"]),
+            }
+            for arm in arms.values()
+        ]
+        run_manifest["prompt_policy"] = {
+            **policy_contract,
+            "rendering_verification": prompt_renderings,
+        }
+        run_manifest["rendered_prompt_sha256"] = {
+            task_id: {
+                policy_contract["neutral_arm_id"]: values[
+                    "neutral_rendered_prompt_sha256"
+                ],
+                policy_contract["directed_arm_id"]: values[
+                    "directed_rendered_prompt_sha256"
+                ],
+            }
+            for task_id, values in prompt_renderings.items()
+        }
+        run_manifest["base_prompt_sha256"] = {
+            task_id: values["directed_without_suffix_sha256"]
+            for task_id, values in prompt_renderings.items()
+        }
     write_json(run_root / "run-manifest.json", run_manifest)
     write_json(run_root / "tool-schema.json", tool_schema)
     print(f"preflight passed; run={run_id}", flush=True)
@@ -1276,8 +1828,8 @@ def main() -> int:
         return 0
 
     probe_corpus_id = manifest["tasks"][0]["corpus_id"]
-    for arm in (BASELINE_ARM, CIDX_ARM):
-        print(f"schema probe: {arm}", flush=True)
+    for arm in arms.values():
+        print(f"schema probe: {arm['id']}", flush=True)
         probe = execute_isolated(
             codex_binary=str(codex_path),
             mcp_binary=mcp_binary,
@@ -1286,7 +1838,7 @@ def main() -> int:
             schema=schema,
             original_root=bindings[probe_corpus_id],
             corpus=corpus_specs[probe_corpus_id],
-            output_dir=run_root / SCHEMA_PROBE_TASK / arm,
+            output_dir=run_root / SCHEMA_PROBE_TASK / arm["id"],
             arm=arm,
             task_id=SCHEMA_PROBE_TASK,
             prompt=SCHEMA_PROBE_PROMPT,
@@ -1314,7 +1866,7 @@ def main() -> int:
                 "uncertainties": [],
             }
         ):
-            raise ExperimentError(f"invalid schema probe: {arm}")
+            raise ExperimentError(f"invalid schema probe: {arm['id']}")
 
     if args.schema_probes_only:
         run_manifest["finished_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
@@ -1328,14 +1880,14 @@ def main() -> int:
         if selected and task_id not in selected:
             continue
         case = sources[task["question_source_index"]][task_id]
-        prompt = manifest["prompt_template"].replace("{{TASK_ID}}", task_id).replace(
-            "{{QUESTION}}", case["text"]
-        )
-        second_arm = CIDX_ARM if task["first_arm"] == BASELINE_ARM else BASELINE_ARM
-        for arm in (task["first_arm"], second_arm):
+        for arm_id in paired_arm_order(arms, task["first_arm"]):
+            arm = arms[arm_id]
+            prompt = rendered_prompt(
+                manifest["prompt_template"], task_id, case["text"], arm
+            )
             print(
                 f"task {task['sequence']:02d}/{len(manifest['tasks'])} "
-                f"{task_id}: {arm}",
+                f"{task_id}: {arm_id}",
                 flush=True,
             )
             observation = execute_isolated(
@@ -1346,7 +1898,7 @@ def main() -> int:
                 schema=schema,
                 original_root=bindings[task["corpus_id"]],
                 corpus=corpus_specs[task["corpus_id"]],
-                output_dir=run_root / task_id / arm,
+                output_dir=run_root / task_id / arm_id,
                 arm=arm,
                 task_id=task_id,
                 prompt=prompt,
