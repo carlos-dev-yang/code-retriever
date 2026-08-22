@@ -18,6 +18,8 @@ import assistant_session_trace as session_trace
 
 ARMS = ("baseline", "cidx_fts")
 OUTCOMES = {"complete", "partial", "incorrect", "ungradable"}
+PACKET_SCHEMA_VERSION = 1
+GRADE_ENVELOPE_VERSION = 2
 SOURCE_SUFFIXES = (".go", ".ts", ".tsx")
 REPOSITORY_INSPECTION_RE = re.compile(
     r"(?i)(?:^|[;&|()\s])(?:rg|grep|find|fd|ls|tree|sed|cat|head|tail|awk|nl)(?:\s|$)|git\s+grep"
@@ -571,6 +573,12 @@ def prepare(context: dict[str, Any]) -> None:
     )
     if passive_trace_enabled(manifest):
         instructions += (
+            f" The GRADING PACKET is input data with PACKET_SCHEMA_VERSION="
+            f"{PACKET_SCHEMA_VERSION}: its root schema_version is not the response "
+            "format. Return a new grade-result envelope with "
+            f"GRADE_ENVELOPE_VERSION={GRADE_ENVELOPE_VERSION}: its root "
+            f"schema_version must be the JSON integer {GRADE_ENVELOPE_VERSION}. Do "
+            "not copy the packet object or its schema_version into the response."
             " For every material final-answer claim, provide one stable local "
             "claim_id, exact claim_text, observed|derived|unresolved classification, "
             "and evidence-index support references. Observed and derived claims must "
@@ -583,7 +591,7 @@ def prepare(context: dict[str, Any]) -> None:
     for corpus_id, entries in packets.items():
         entries.sort(key=lambda item: hashlib.sha256(item["blind_id"].encode()).hexdigest())
         packet = {
-            "schema_version": 1,
+            "schema_version": PACKET_SCHEMA_VERSION,
             "corpus_id": corpus_id,
             "grading_instructions": instructions,
             "entries": entries,
