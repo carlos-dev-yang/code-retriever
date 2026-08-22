@@ -48,8 +48,13 @@ This ledger is the authoritative resumable state for implementation work. Update
   accept the output-only v2 grading adapter. The selected later experiment is
   a fresh two-arm informed comparison with one byte-identical capability-
   awareness paragraph in both arms, unchanged questions, and unchanged tool
-  descriptions. The versioned blind-grade schema for post-turn claim accounting
-  remains canonical.
+  descriptions. The owner has now explicitly superseded that immediate follow-
+  up with a bounded non-promotion prompt diagnostic: both arms expose identical
+  cidx tools and FTS state, while only the directed arm is told to use cidx
+  rather than `rg` or equivalent ordinary repository search. Prompt
+  noncompliance remains in the denominator. The versioned blind-grade schema
+  for post-turn claim accounting remains canonical; an output-only supported-
+  keyword adapter must complete the frozen current grading before the new run.
 - Active owner: `/root`
 - Completed bounded work: the final provider-free graph-only Pareto admission
   diagnostic is complete at clean commit
@@ -87,7 +92,7 @@ This ledger is the authoritative resumable state for implementation work. Update
   graph-only branch was useful in `1/7`; bridge, Pareto, and their combined
   rule are rejected for product use. The full sidecar remains evaluation-only.
 - Phase 07 simple-control implementation owner: `/root/phase07_simple_control` (store/eval/devlab only; no corpus, provider, or production-ranking mutation)
-- Last updated: 2026-08-22
+- Last updated: 2026-08-23
 - Owner review index: [`OWNER-REVIEW-INDEX.md`](OWNER-REVIEW-INDEX.md) — single
   entry for packaging freeze, live results, adopted contract, and remaining
   gated work
@@ -111,6 +116,12 @@ This ledger is the authoritative resumable state for implementation work. Update
   [`ASSISTANT-SEARCH-EVIDENCE-FLOW-DESIGN.md`](ASSISTANT-SEARCH-EVIDENCE-FLOW-DESIGN.md)
   and the matching
   [`FINAL_ACCEPT` review](evidence/phase-14/assistant-search-evidence-flow-external-review.md).
+  The owner has additionally authorized one separate prompt-policy diagnostic
+  where both arms expose cidx and the directed arm must use it instead of `rg`
+  or equivalent ordinary repository search. This is non-promotion mechanism
+  evidence; it preserves violations and does not replace the optional-use
+  product comparison. See
+  [`ASSISTANT-FORCED-CIDX-PROMPT-EVALUATION-V1.md`](ASSISTANT-FORCED-CIDX-PROMPT-EVALUATION-V1.md).
 - Canonical target: [`local-code-search-mcp-v1-design-r4.md`](../../local-code-search-mcp-v1-design-r4.md)
 - Completed critical/general checkpoint: every prior question-set file and run
   remains preserved; `critical-general-v1`, chi/RHF question-set v2, explicit
@@ -285,12 +296,12 @@ This ledger is the authoritative resumable state for implementation work. Update
   and arm-blind machine journey evidence. Treatment was 12/12 complete versus
   baseline 11 complete + 1 partial, but used 37.2% more model tokens and 50.6%
   more uncached input. Both reviewers require correction before another A/B.
-- Exact next action: await an explicit owner decision on Section 14 Step 3.
-  If opened, prepare and freeze the versioned 30-question set source-first
-  against only the existing approved corpora; do not execute scored turns in
-  that same checkpoint. Until then, do not add metadata, another tool, a
-  repository, a question set, a scored run, new test code, public MCP schema
-  fields, or provider traffic.
+- Exact next action: add and freeze the supported-keyword output-only blind-
+  grade v2 adapter, make one new grader call per frozen corpus, and aggregate
+  the completed neutral run once. Then implement and freeze the manifest-
+  defined same-tools neutral-versus-directed prompt runner/accounting before
+  any new scored turn. Do not add metadata, another tool, a repository, new
+  questions, test code, public MCP schema fields, or provider traffic.
 
 Existing phase completion rows and implementation are historical work produced against earlier design revisions. They must not be read as proof that the current code satisfies Revision 4; the implementation remains a prototype until it is explicitly reconciled and revalidated against the final target contract.
 
@@ -312,7 +323,7 @@ Existing phase completion rows and implementation are historical work produced a
 | 11 | done | `/root` | Yes — accepted Phase 09/10 boundaries, prior Phase 11 R4 evidence, live vector scan/evaluation code, five-profile evidence, and retired-profile contract inspected | Current request-local int8 scan, nonpersistent serving-f32 reference, fallback/RRF/body behavior, retired comparison removal, and focused boundary accepted | [Current evidence](evidence/phase-11/int8-only-query-search-reconciliation.md), historical [R4 evidence](evidence/phase-11/revision-4.md), and [retired-profile contract](RETIRED-VECTOR-PROFILES.md) | Hand the current evaluation arms to Phase 12 |
 | 12 | blocked | `/root` | Yes — accepted current Phase 11 boundary, prior Phase 12 R4 evidence, evaluation contract, current schemas/adapters, relation completion authority, retired-profile contract, closed Stage E/F, and adopted packaging contract inspected | Corpus-independent adapter accepted; packaging/no-policy authority is now frozen evaluation-only sibling 4/4096; official `core_retrieval` still lacks independent confirmation | [Remaining-work handoff](evidence/revision-4/remaining-work-review-handoff-r4.md), [adopted sibling contract](../../testdata/retrieval/relation-sibling-packaging-adopted-v1.json), [current evidence](evidence/phase-12/int8-only-evaluation-reconciliation.md), and [R4 accounting evidence](evidence/phase-12/revision-4.md) | After owner-selected unexposed confirmation, seal margins and run official core evaluation; assistant V3 remains separate non-promotion evidence |
 | 13 | done | `/root` | Yes — execution guide, index, status, evaluation contract, full Phase 13/14 documents, current Phase 13 evidence, live MCP handlers/schema, frozen V3 artifacts, and accepted response-contract review inspected | Structured-only is the product default; search emits only nine-field deduplicated locators, requests zero source bytes, and preserves caller-selected ranking. Focused normal/race/static checks, 0/12000/65537 byte-identical server responses, and a real Codex search-to-read journey passed | [Locator-only completion](evidence/phase-13/locator-only-mcp-reconciliation.md), [reducer v2](evidence/phase-13/assistant-reducer-v2.md), [Codex representation probe](evidence/phase-13/codex-result-representation-probe.md), and existing [int8-only evidence](evidence/phase-13/int8-only-cli-mcp-reconciliation.md) | Preserve the nine-field locator and source-only `read_span`; reopen only for the separately authorized neutral-description validation |
-| 14 | in_progress | `/root`; Step 2 Terra high implementation agent; independent Sol/Terra high question review; independent Terra high code review; independent Terra high grading-procedure review; ChatGPT/Grok result review; main-agent validation | Yes — Step 3 clean commit `b334aa7`, execution entry commit `500fe27`, execution guide, implementation index, status, evaluation contract, full Phase 14 and accepted search-to-evidence design/review, Phase 01/02/13 prerequisite evidence, current MCP schema, runner, reducer, and preserved V3–V6 artifacts inspected | Step 2 is complete at `143b578`; Step 3 is complete at `b334aa7`. The frozen Step 4 run completed 60/60 valid turns with cidx selected in 0/30 treatment turns. Arm-blind packets and journeys are frozen. Two grader invocations per corpus stopped before model output because the response-format endpoint rejects the canonical schema's `uniqueItems` and then `allOf`; no grade or aggregate exists. External review agrees this is a neutral-exposure adoption result, not retrieval failure, and accepts an output-only v2 grading adapter. The selected later design is a fresh informed two-arm A/B with unchanged questions and tool descriptions | [Result external review](evidence/phase-14/assistant-availability-v1-result-external-review.md), [Step 4 execution checkpoint](evidence/phase-14/assistant-availability-v1-step-4-execution-and-grading-block.md), [Step 3 freeze evidence](evidence/phase-14/assistant-availability-v1-step-3-freeze.md), [evaluation design](ASSISTANT-AVAILABILITY-EVALUATION-V1.md), and [Step 2 implementation evidence](evidence/phase-14/assistant-search-evidence-flow-step-2-implementation.md) | First complete current blind grading through the supported-keyword output-only v2 adapter and aggregate once; only then freeze the informed optional-use A/B version |
+| 14 | in_progress | `/root`; Step 2 Terra high implementation agent; independent Sol/Terra high question review; independent Terra high code review; independent Terra high grading-procedure review; ChatGPT/Grok result review; main-agent validation | Yes — Step 3 clean commit `b334aa7`, execution entry commit `500fe27`, execution guide, implementation index, status, evaluation contract, full Phase 14 and accepted search-to-evidence design/review, Phase 01/02/13 prerequisite evidence, current MCP schema, runner, reducer, and preserved V3–V6 artifacts inspected | Step 2 is complete at `143b578`; Step 3 is complete at `b334aa7`. The frozen neutral Step 4 run completed 60/60 valid turns with cidx selected in 0/30 treatment turns. Arm-blind packets and journeys are frozen. Two grader invocations per corpus stopped before model output because the response-format endpoint rejects `uniqueItems` and then `allOf`; no grade or aggregate exists. The owner has separately authorized a same-tools neutral-versus-directed cidx prompt diagnostic as non-promotion evidence | [Forced prompt diagnostic](ASSISTANT-FORCED-CIDX-PROMPT-EVALUATION-V1.md), [result external review](evidence/phase-14/assistant-availability-v1-result-external-review.md), [Step 4 execution checkpoint](evidence/phase-14/assistant-availability-v1-step-4-execution-and-grading-block.md), [Step 3 freeze evidence](evidence/phase-14/assistant-availability-v1-step-3-freeze.md), and [Step 2 implementation evidence](evidence/phase-14/assistant-search-evidence-flow-step-2-implementation.md) | Complete current blind grading through the output-only v2 adapter; then implement and freeze the same-tools prompt-policy run before execution |
 
 ## Resume note template
 

@@ -1,7 +1,8 @@
 # cidx v1 Evaluation and Promotion Contract
 
 - Status: normative; natural-language lexical admission revised 2026-08-20;
-  assistant locator/evidence accounting revised 2026-08-22
+  assistant locator/evidence accounting revised 2026-08-22; owner-directed
+  non-promotion prompt diagnostics clarified 2026-08-23
 - Applies to: Phases 00 through 14 wherever evidence, comparison, or promotion is required
 - Canonical product design: [Revision 4](../../local-code-search-mcp-v1-design-r4.md)
 - Phase index: [README](README.md)
@@ -22,7 +23,11 @@ The contract adapts lessons from the sibling `knowledge-system` project after an
 2. Product usefulness is measured as the marginal effect of making cidx
    available beside the unchanged existing tools, not by forcing an assistant
    to use cidx. All treatment tasks, including no-use, remain in the primary
-   intent-to-treat denominator; cidx-user-only slices are descriptive.
+   intent-to-treat denominator; cidx-user-only slices are descriptive. An
+   explicitly owner-directed forced-use prompt may run only as a separately
+   versioned, non-promotion mechanism diagnostic with a simultaneous neutral
+   cidx-available control. Its noncompliant turns remain in the denominator,
+   and its result cannot replace optional-use product evidence.
 3. FTS and dense retrieval are parallel provider lanes. They must be measured separately before RRF.
 4. cidx scans every eligible stored vector. Int8 differences from serving-dimension f32 are representation and codec losses, not ANN recall losses. Historical Binary/256 results are evidence-only.
 5. Frozen source-backed relevance truth and serving-dimension f32 ranking are independent references:
@@ -261,7 +266,9 @@ A paired delta requires identical:
 - reducer/version and serving dimension unless that field is the declared arm difference;
 - candidate limits, collapse policy, RRF policy, body budget, and MCP schema;
 - code commit and platform; latency additionally requires equivalent hardware/load;
-- assistant model, prompt, tools, and budgets for end-to-end comparison.
+- assistant model, prompt, tools, and budgets for end-to-end comparison,
+  except for the single explicitly declared prompt-policy intervention in a
+  non-promotion prompt diagnostic.
 
 Within one current-profile run, serving f32 and active int8 reuse the same
 in-memory query f32 and the same serving-dimension document f32. Persist only
@@ -563,7 +570,10 @@ No numeric performance SLA is a v1 default or implied by these observations.
 - Do not label only one span when several implementations are valid.
 - Do not accept generated no-answer labels without corpus-wide evidence and explicit agreement from both independent AI review passes.
 - Do not average missing observations as zero or omit failed calls from latency/cost.
-- Do not force assistant use of cidx.
+- Do not force assistant use of cidx in product-usefulness or promotion arms.
+  A separately owner-authorized forced-use prompt diagnostic must retain a
+  neutral cidx-available control, preserve noncompliance, and remain explicitly
+  non-promotion evidence.
 - Do not treat a 12–20 query smoke set as promotion evidence.
 - Do not use global mean improvement to hide a language or critical-cohort regression.
 

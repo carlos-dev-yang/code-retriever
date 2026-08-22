@@ -7,8 +7,11 @@
   search-to-evidence direction; its documentation and 30-question/60-turn,
   FTS-only evaluation design received matching ChatGPT and Grok
   `FINAL_ACCEPT`. The neutral-interface and passive harness trace/reducer
-  implementation checkpoint is now complete. Question construction, scored
-  execution, new test code, and paid provider work remain unopened.
+  implementation checkpoint is now complete. Its neutral 30-pair run completed
+  with zero cidx adoption and is awaiting recovered blind grading. The owner
+  has now separately authorized a non-promotion prompt diagnostic in which
+  both arms expose cidx and only one arm directs repository search away from
+  `rg` and through cidx. New test code and paid provider work remain unopened.
   Official Phase 12 and release-candidate promotion remain blocked.
 
 ## 2026-08-22 V4 freeze checkpoint
@@ -164,6 +167,24 @@ probes, and independent code review are recorded in the
 [Step 2 implementation evidence](evidence/phase-14/assistant-search-evidence-flow-step-2-implementation.md).
 Step 3 remains a separate owner decision.
 
+## 2026-08-23 Forced cidx prompt diagnostic entry
+
+The owner explicitly opened a separate paired mechanism diagnostic after the
+neutral availability run selected cidx in zero of 30 treatment turns. Both new
+arms expose the same four cidx tools and frozen FTS state. The sole paired
+difference is one exact prompt paragraph: the directed arm must locate code
+through `cidx.search` and inspect selected locators through `cidx.read_span`
+instead of using `rg` or equivalent ordinary repository-search commands.
+
+This does not change the product role or reopen V4-V6. Prompt noncompliance is
+retained as an outcome rather than an invalid or retried turn. The result may
+measure cidx behavior under explicit host policy, but it cannot establish
+voluntary adoption, optional-use marginal value, or promotion. The exact arms,
+prompt, metrics, controls, and stop rules are in the
+[Forced cidx Prompt Diagnostic V1](ASSISTANT-FORCED-CIDX-PROMPT-EVALUATION-V1.md).
+Current execution first recovers the already frozen blind grading through an
+output-only v2 response-format adapter; no previous assistant turn is rerun.
+
 - Prerequisite: reconciled locator-only `13-cli-and-mcp`
 - Followed by: v1 release-candidate validation
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 1–3 and 7–10
@@ -184,9 +205,13 @@ Read the [implementation index](README.md), [execution guide](EXECUTION-GUIDE.md
   [search-to-evidence design](ASSISTANT-SEARCH-EVIDENCE-FLOW-DESIGN.md) and its
   [external review](evidence/phase-14/assistant-search-evidence-flow-external-review.md)
   before changing an assistant interface, harness, question set, or metric.
-- Preserve host choice: cidx may be first, main, occasional, or unused. In the
+- Preserve product host choice: cidx may be first, main, occasional, or unused. In the
   initial availability study, no-use treatment turns remain in the primary
   denominator and cidx-user-only slices are descriptive.
+- Treat the 2026-08-23 directed-cidx experiment as a bounded non-promotion
+  prompt-policy diagnostic only. Both arms must expose cidx, prompt violations
+  remain in the denominator, and its result cannot replace optional-use
+  evidence.
 - Keep the first live session ledger passive, non-model-facing, absent from
   product/SQLite/server state, and unable to alter ranking, tool calls, prompts,
   or MCP behavior. Retain only a truth-free, body-free snapshot in ignored
@@ -299,7 +324,9 @@ Do not add provider plugins, vector import formats, model bundles, or speculativ
 9. Release `serve` neither creates nor opens `.cidx/db/embeddings.db` or any `.cidx/test/` evaluation state.
 10. Unsupported schema/config/profile fails clearly rather than being silently migrated or ignored.
 11. Bad checksum, corrupt archive, or missing execute permission is never reported as success.
-12. Assistant usefulness runs do not require or force a cidx call; no-use is a valid observed outcome.
+12. Product-usefulness and promotion runs do not require or force a cidx call;
+    no-use is a valid observed outcome. A separately owner-authorized forced
+    prompt diagnostic remains non-promotion and preserves noncompliance.
 13. Required assistant task failures and timeouts remain in denominators, and an unexecuted optional arm is `NOT_OBSERVED`, not zero.
 14. Paired assistant claims require the same assistant model/version, prompt, existing tools, task order policy, context/tool budgets, corpus snapshot, and expected outcomes except for the declared cidx arm.
 15. MCP body and `read_span` byte limits retain the Phase 13 64 KiB default and 1 MiB absolute ceiling; there is no separate read-span line-count limit.
@@ -525,6 +552,7 @@ If operational feedback establishes a real requirement for permanent model pinni
 
 | Decision | Rationale | Revisit when |
 | --- | --- | --- |
+| Permit one owner-directed forced-cidx prompt diagnostic outside promotion | Zero adoption left locator/evidence behavior unobserved; a same-tools neutral-versus-directed pair isolates prompt policy while preserving noncompliance and does not redefine the product role | The diagnostic is complete or an optional-use product comparison is prepared |
 | Bundle FTS5 and grammars | Keep the free core independent of system installs and runtime downloads | Platform constraints block real distribution |
 | Officially document project scope only | Reduce wrong-root and multi-repository confusion | Safe user-scope root routing is designed |
 | Require explicit `--root` | Avoid accidental host cwd | Core v1 invariant |
