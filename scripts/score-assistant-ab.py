@@ -14,6 +14,7 @@ import statistics
 from typing import Any
 
 import assistant_session_trace as session_trace
+import assistant_session_policy_trace as policy_trace
 
 
 ARMS = ("baseline", "cidx_fts")
@@ -125,7 +126,7 @@ def load_context(args: argparse.Namespace) -> dict[str, Any]:
             raise ScoreError(f"question source digest mismatch: {path}")
         payload = read_json(path)
         sources.append({case["id"]: case for case in payload["cases"]})
-    return {
+    context = {
         "project_root": project_root,
         "manifest": manifest,
         "manifest_path": manifest_path,
@@ -134,6 +135,9 @@ def load_context(args: argparse.Namespace) -> dict[str, Any]:
         "bindings": bindings,
         "sources": sources,
     }
+    if policy_trace_enabled(manifest):
+        validate_policy_trace_identity(context)
+    return context
 
 
 def safe_source_path(root: Path, relative: str) -> Path:
@@ -429,14 +433,121 @@ def passive_trace_enabled(manifest: dict[str, Any]) -> bool:
     return trace_protocol(manifest) == session_trace.PASSIVE_TRACE_PROTOCOL
 
 
+def policy_trace_enabled(manifest: dict[str, Any]) -> bool:
+    return trace_protocol(manifest) == policy_trace.POLICY_TRACE_PROTOCOL
+
+
 def trace_protocol(manifest: dict[str, Any]) -> str:
+    controls = manifest.get("controls")
+    configured = (
+        controls.get("session_trace_protocol")
+        if isinstance(controls, dict)
+        else None
+    )
+    if configured == policy_trace.POLICY_TRACE_PROTOCOL:
+        return configured
     try:
         return session_trace.resolve_trace_protocol(manifest)
     except ValueError as exc:
         raise ScoreError(str(exc)) from exc
 
 
+def policy_arms(manifest: dict[str, Any]) -> tuple[list[str], str, str]:
+    """Resolve the policy-v2 pair from its manifest, never legacy constants."""
+    configured = manifest.get("arms")
+    if isinstance(configured, dict):
+        items = []
+        for arm_id, arm in configured.items():
+            if not isinstance(arm, dict):
+                raise ScoreError("policy-v2 arm must be an object")
+            if "id" in arm and arm["id"] != arm_id:
+                raise ScoreError("policy-v2 arm id does not match its manifest key")
+            items.append({"id": arm_id, **arm})
+    elif isinstance(configured, list):
+        items = configured
+    else:
+        raise ScoreError("policy-v2 manifest must define two arms")
+    if len(items) != 2 or any(not isinstance(item, dict) for item in items):
+        raise ScoreError("policy-v2 manifest must define exactly two arm objects")
+    arm_ids: list[str] = []
+    reference: str | None = None
+    treatment: str | None = None
+    for arm in items:
+        arm_id = arm.get("id")
+        suffix = arm.get("prompt_suffix")
+        if not isinstance(arm_id, str) or not arm_id or arm_id in arm_ids:
+            raise ScoreError("policy-v2 arm IDs must be distinct non-empty strings")
+        if arm.get("cidx_exposed") is not True or not isinstance(suffix, str):
+            raise ScoreError("policy-v2 arms must expose cidx and declare prompt_suffix")
+        arm_ids.append(arm_id)
+        if suffix:
+            if treatment is not None:
+                raise ScoreError("policy-v2 requires exactly one directed prompt arm")
+            treatment = arm_id
+        else:
+            if reference is not None:
+                raise ScoreError("policy-v2 requires exactly one neutral prompt arm")
+            reference = arm_id
+    if reference is None or treatment is None:
+        raise ScoreError("policy-v2 arms must resolve to neutral reference and directed treatment")
+    if reference != "neutral_cidx" or treatment != "directed_cidx":
+        raise ScoreError(
+            "policy-v2 arms must be neutral_cidx and directed_cidx"
+        )
+    return arm_ids, reference, treatment
+
+
+def validate_policy_trace_identity(context: dict[str, Any]) -> None:
+    """Fail closed unless the run binds this exact policy trace implementation."""
+    run_manifest = context["run_manifest"]
+    trace_path = Path(__file__).resolve().with_name("assistant_session_policy_trace.py")
+    delegated_path = Path(__file__).resolve().with_name("assistant_session_trace.py")
+    if (
+        run_manifest.get("session_trace_protocol")
+        != policy_trace.POLICY_TRACE_PROTOCOL
+        or run_manifest.get("session_trace_schema_version")
+        != policy_trace.TRACE_SCHEMA_VERSION
+        or run_manifest.get("session_trace_builder_module") != trace_path.name
+        or run_manifest.get("session_trace_builder_sha256") != sha256_file(trace_path)
+        or run_manifest.get("session_trace_delegated_builder_module")
+        != delegated_path.name
+        or run_manifest.get("session_trace_delegated_builder_schema_version")
+        != session_trace.TRACE_SCHEMA_VERSION
+        or run_manifest.get("session_trace_delegated_builder_sha256")
+        != sha256_file(delegated_path)
+    ):
+        raise ScoreError("policy-v2 trace identity does not match the runner manifest")
+    arm_ids, _, _ = policy_arms(context["manifest"])
+    if run_manifest.get("arm_ids") != arm_ids:
+        raise ScoreError("policy-v2 run arm IDs do not match the experiment manifest")
+    snapshots = run_manifest.get("arms")
+    if (
+        not isinstance(snapshots, list)
+        or [item.get("id") for item in snapshots if isinstance(item, dict)] != arm_ids
+        or any(not isinstance(item, dict) or item.get("cidx_exposed") is not True for item in snapshots)
+    ):
+        raise ScoreError("policy-v2 run arm snapshots do not prove equal cidx exposure")
+
+
+def policy_output_adapter_identity(manifest: dict[str, Any]) -> dict[str, str]:
+    """Record the frozen generation adapter without treating it as a grade authority."""
+    identity = manifest.get("blind_grade_output_adapter")
+    if (
+        not isinstance(identity, dict)
+        or not isinstance(identity.get("path"), str)
+        or not isinstance(identity.get("sha256"), str)
+    ):
+        raise ScoreError("policy-v2 manifest must record blind_grade_output_adapter identity")
+    adapter_path = resolve(Path(__file__).resolve().parent.parent, identity["path"])
+    if not adapter_path.is_file() or sha256_file(adapter_path) != identity["sha256"]:
+        raise ScoreError("policy-v2 blind grade output adapter digest mismatch")
+    return {"path": identity["path"], "sha256": identity["sha256"]}
+
+
 def prepare(context: dict[str, Any]) -> None:
+    if policy_trace_enabled(context["manifest"]):
+        prepare_policy(context)
+        return
     manifest = context["manifest"]
     run_root = context["run_root"]
     run_manifest = context["run_manifest"]
@@ -604,6 +715,164 @@ def prepare(context: dict[str, Any]) -> None:
             encoding="utf-8",
         )
     print(f"prepared blind grading packets in {grading_root}")
+
+
+def prepare_policy(context: dict[str, Any]) -> None:
+    """Freeze arm-blind packets and independently rebuild every policy-v2 trace."""
+    manifest = context["manifest"]
+    policy_output_adapter_identity(manifest)
+    run_root = context["run_root"]
+    run_manifest = context["run_manifest"]
+    sources = context["sources"]
+    bindings = context["bindings"]
+    arm_ids, _, _ = policy_arms(manifest)
+    grading_root = run_root / "grading"
+    if grading_root.exists():
+        raise ScoreError(f"grading directory already exists: {grading_root}")
+    seed = run_manifest["experiment_manifest_sha256"] + run_manifest["run_id"]
+    packets: dict[str, list[dict[str, Any]]] = {}
+    key: dict[str, Any] = {
+        "schema_version": 1,
+        "run_id": run_manifest["run_id"],
+        "entries": {},
+    }
+    journey_records: list[dict[str, Any]] = []
+    for task in manifest["tasks"]:
+        task_id = task["task_id"]
+        corpus_id = task["corpus_id"]
+        root = bindings[corpus_id]
+        case = sources[task["question_source_index"]][task_id]
+        for arm in arm_ids:
+            final_path = run_root / task_id / arm / "final.json"
+            events_path = run_root / task_id / arm / "events.jsonl"
+            trace_path = run_root / task_id / arm / "session-trace.json"
+            identifier = blind_id(seed, task_id, arm)
+            if not trace_path.is_file():
+                raise ScoreError(f"policy-v2 run is missing stored trace: {trace_path}")
+            trace = read_json(trace_path)
+            rebuilt = policy_trace.build_policy_trace(
+                events_path, final_path, root, frozen_fts_default=True
+            )
+            if trace != rebuilt:
+                raise ScoreError(
+                    f"stored policy-v2 trace differs from deterministic rebuild: {identifier}"
+                )
+            if (
+                trace.get("protocol") != policy_trace.POLICY_TRACE_PROTOCOL
+                or trace.get("schema_version") != policy_trace.TRACE_SCHEMA_VERSION
+            ):
+                raise ScoreError(f"unsupported policy-v2 trace schema for {identifier}")
+            answer = read_json(final_path)
+            observation = read_json(run_root / task_id / arm / "observation.json")
+            journey_records.append({"blind_id": identifier, **trace})
+            key["entries"][identifier] = {
+                "task_id": task_id,
+                "arm": arm,
+                "corpus_id": corpus_id,
+            }
+            required_groups = []
+            for group in case["required_groups"]:
+                required_groups.append(
+                    {
+                        "group_id": group["id"],
+                        "alternatives": [
+                            {"spans": [byte_span(root, span) for span in alternative["spans"]]}
+                            for alternative in group["alternatives"]
+                        ],
+                    }
+                )
+            packets.setdefault(corpus_id, []).append(
+                {
+                    "blind_id": identifier,
+                    "task_id": task_id,
+                    "question": case["text"],
+                    "language": case["language"],
+                    "cohorts": case["cohorts"],
+                    "assistant_output": answer,
+                    "frozen_truth": {
+                        "required_groups": required_groups,
+                        "hard_negatives": [
+                            {"reason": item["reason"], "span": byte_span(root, item["span"])}
+                            for item in case.get("hard_negatives", [])
+                        ],
+                    },
+                    "cited_source_excerpts": [
+                        {"evidence_index": index, **line_excerpt(root, evidence)}
+                        for index, evidence in enumerate(answer.get("evidence", []))
+                    ],
+                    "operationally_gradable": bool(
+                        observation.get("valid_execution")
+                        and observation.get("final_error") is None
+                    ),
+                }
+            )
+    grading_root.mkdir(parents=True)
+    journey_records.sort(key=lambda item: item["blind_id"])
+    journey_path = grading_root / "journey-frozen.jsonl"
+    with journey_path.open("w", encoding="utf-8") as handle:
+        for record in journey_records:
+            handle.write(json.dumps(record, sort_keys=True, ensure_ascii=False) + "\n")
+    write_json(
+        grading_root / "journey-freeze.json",
+        {
+            "schema_version": 4,
+            "record_count": len(journey_records),
+            "journey_sha256": sha256_file(journey_path),
+            "reducer_sha256": sha256_file(Path(__file__).resolve()),
+            "trace_protocol": policy_trace.POLICY_TRACE_PROTOCOL,
+            "trace_schema_version": policy_trace.TRACE_SCHEMA_VERSION,
+            "trace_builder_module": "assistant_session_policy_trace.py",
+            "trace_builder_sha256": run_manifest["session_trace_builder_sha256"],
+            "trace_delegated_builder_module": run_manifest[
+                "session_trace_delegated_builder_module"
+            ],
+            "trace_delegated_builder_sha256": run_manifest[
+                "session_trace_delegated_builder_sha256"
+            ],
+            "arm_identity_present": False,
+            "policy_or_tool_or_order_present": False,
+            "manual_fields_present": False,
+            "trace_contains_frozen_truth": False,
+            "trace_contains_claim_grades": False,
+        },
+    )
+    write_json(grading_root / "blind-key.json", key)
+    instructions = (
+        "Blindly grade every entry in the packet. Do not call tools. You are not "
+        "shown arm identity, prompt policy, token use, tool use, execution order, "
+        "or search journey. Use only the question, frozen required groups, cited "
+        "excerpts, hard negatives, and assistant output. A complete answer covers "
+        "every required group, answers the question, and has no material unsupported "
+        "or contradicted claim. Partial is directionally correct with a material "
+        "missing group or unsupported claim. Incorrect has a wrong main mechanism "
+        "or materially relies on a hard negative. Ungradable is only for an "
+        "operationally ungradable entry. Return exactly one grade for every blind_id "
+        "and exactly one required_groups record for every frozen group. "
+        "evidence_indices are zero-based indices from assistant_output.evidence. "
+        "Do not infer missing evidence. Return only JSON matching the supplied schema. "
+        f"The packet is input data with PACKET_SCHEMA_VERSION={PACKET_SCHEMA_VERSION}; "
+        f"return a grade-result envelope with root schema_version={GRADE_ENVELOPE_VERSION}. "
+        "For every material final-answer claim, provide one stable local claim_id, "
+        "exact claim_text, observed|derived|unresolved classification, and evidence-index "
+        "support references. Observed and derived claims must have at least one support "
+        "reference; use unresolved when cited evidence does not support the claim. Put "
+        "claim_id values, not prose, in unsupported_claims and contradicted_claims; "
+        "those lists must be disjoint."
+    )
+    for corpus_id, entries in packets.items():
+        entries.sort(key=lambda item: hashlib.sha256(item["blind_id"].encode()).hexdigest())
+        packet = {
+            "schema_version": PACKET_SCHEMA_VERSION,
+            "corpus_id": corpus_id,
+            "grading_instructions": instructions,
+            "entries": entries,
+        }
+        write_json(grading_root / f"packet-{corpus_id}.json", packet)
+        (grading_root / f"prompt-{corpus_id}.txt").write_text(
+            instructions + "\n\nGRADING PACKET:\n" + json.dumps(packet, ensure_ascii=False, sort_keys=True),
+            encoding="utf-8",
+        )
+    print(f"prepared policy-v2 arm-blind grading packets in {grading_root}")
 
 
 def events(path: Path) -> list[dict[str, Any]]:
@@ -2010,7 +2279,10 @@ def load_grades(context: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]
     for corpus in context["manifest"]["corpora"]:
         corpus_id = corpus["corpus_id"]
         payload = read_json(grading_root / f"grades-{corpus_id}.json")
-        allowed_versions = {2} if passive_trace_enabled(context["manifest"]) else {1}
+        strict_v2 = passive_trace_enabled(context["manifest"]) or policy_trace_enabled(
+            context["manifest"]
+        )
+        allowed_versions = {2} if strict_v2 else {1}
         if (
             payload.get("schema_version") not in allowed_versions
             or payload.get("corpus_id") != corpus_id
@@ -2030,7 +2302,471 @@ def load_grades(context: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]
     return key, grades
 
 
+def policy_truth_shapes(context: dict[str, Any]) -> dict[str, str]:
+    """Load only the frozen task-to-question-shape mapping for reporting."""
+    spec = context["manifest"].get("truth_source")
+    if not isinstance(spec, dict) or not isinstance(spec.get("path"), str):
+        raise ScoreError("policy-v2 manifest is missing its frozen truth source")
+    path = resolve(context["project_root"], spec["path"])
+    if not isinstance(spec.get("sha256"), str) or sha256_file(path) != spec["sha256"]:
+        raise ScoreError("policy-v2 truth source digest mismatch")
+    payload = read_json(path)
+    shapes: dict[str, str] = {}
+    for entry in payload.get("entries", []):
+        if not isinstance(entry, dict):
+            continue
+        task_id, shape = entry.get("task_id"), entry.get("primary_shape")
+        if not isinstance(task_id, str) or not isinstance(shape, str) or task_id in shapes:
+            raise ScoreError("invalid policy-v2 truth shape entry")
+        shapes[task_id] = shape
+    return shapes
+
+
+def policy_claim_summary(grades: list[dict[str, Any]]) -> dict[str, Any]:
+    claims = [
+        claim
+        for grade in grades
+        for claim in grade.get("material_claims", [])
+        if isinstance(claim, dict)
+    ]
+    unsupported = sum(len(grade.get("unsupported_claims", [])) for grade in grades)
+    contradicted = sum(len(grade.get("contradicted_claims", [])) for grade in grades)
+    return {
+        "material_claim_count": len(claims),
+        "observed_count": sum(claim.get("classification") == "observed" for claim in claims),
+        "derived_count": sum(claim.get("classification") == "derived" for claim in claims),
+        "unresolved_count": sum(claim.get("classification") == "unresolved" for claim in claims),
+        "claims_with_support_references": sum(
+            bool(claim.get("support_references")) for claim in claims
+        ),
+        "support_reference_count": sum(
+            len(claim.get("support_references", [])) for claim in claims
+        ),
+        "unsupported_claim_count": unsupported,
+        "contradicted_claim_count": contradicted,
+        "unsupported_claim_rate": ratio_or_none(unsupported, len(claims)),
+    }
+
+
+def policy_required_group_summary(grades: list[dict[str, Any]]) -> dict[str, Any]:
+    groups = [
+        group
+        for grade in grades
+        for group in grade.get("required_groups", [])
+        if isinstance(group, dict)
+    ]
+    covered = sum(group.get("status") == "covered" for group in groups)
+    return {
+        "group_count": len(groups),
+        "covered_count": covered,
+        "missing_count": sum(group.get("status") == "missing" for group in groups),
+        "invalid_evidence_count": sum(
+            group.get("status") == "invalid_evidence" for group in groups
+        ),
+        "coverage": ratio_or_none(covered, len(groups)),
+        "complete_task_count": sum(
+            all(group.get("status") == "covered" for group in grade["required_groups"])
+            for grade in grades
+        ),
+    }
+
+
+def policy_tool_summary(journeys: list[dict[str, Any]]) -> dict[str, Any]:
+    stages = [journey["policy_stage"] for journey in journeys]
+    actions = [
+        action
+        for journey in journeys
+        for action in journey.get("policy_actions", [])
+        if isinstance(action, dict)
+    ]
+    families = sorted(
+        {
+            family
+            for stage in stages
+            for family in stage.get("ordinary_discovery_by_family", {})
+        }
+    )
+    ambiguous_families = sorted(
+        {
+            family
+            for stage in stages
+            for family in stage.get("ambiguous_discovery_by_family", {})
+        }
+    )
+    return {
+        "task_count": len(journeys),
+        "cidx_tool_call_count": sum(
+            isinstance(action.get("kind"), str)
+            and action["kind"].startswith("cidx_")
+            for action in actions
+        ),
+        "cidx_other_tool_call_count": sum(
+            action.get("kind") == "cidx_other" for action in actions
+        ),
+        "cidx_search_count": sum(int(stage.get("cidx_search_count", 0)) for stage in stages),
+        "cidx_search_attempt_count": sum(
+            int(stage.get("cidx_search_attempt_count", 0)) for stage in stages
+        ),
+        "incomplete_cidx_search_attempt_count": sum(
+            int(stage.get("incomplete_cidx_search_attempt_count", 0))
+            for stage in stages
+        ),
+        "cidx_read_span_count": sum(int(stage.get("cidx_read_span_count", 0)) for stage in stages),
+        "cidx_read_span_attempt_count": sum(
+            int(stage.get("cidx_read_span_attempt_count", 0)) for stage in stages
+        ),
+        "incomplete_cidx_read_span_attempt_count": sum(
+            int(stage.get("incomplete_cidx_read_span_attempt_count", 0))
+            for stage in stages
+        ),
+        "cidx_search_task_count": sum(bool(stage.get("cidx_search_count")) for stage in stages),
+        "cidx_read_span_task_count": sum(bool(stage.get("cidx_read_span_count")) for stage in stages),
+        "selected_locator_read_span_count": sum(
+            int(stage.get("selected_locator_read_span_count", 0)) for stage in stages
+        ),
+        "exact_cidx_read_span_count": sum(
+            int(stage.get("exact_cidx_read_span_count", 0)) for stage in stages
+        ),
+        "overlapping_successful_cidx_read_count": sum(
+            int(stage.get("overlapping_successful_cidx_read_count", 0)) for stage in stages
+        ),
+        "ordinary_discovery_action_count": sum(
+            int(stage.get("ordinary_discovery_action_count", 0)) for stage in stages
+        ),
+        "ordinary_discovery_by_family": {
+            family: sum(
+                int(stage.get("ordinary_discovery_by_family", {}).get(family, 0))
+                for stage in stages
+            )
+            for family in families
+        },
+        "ambiguous_discovery_action_count": sum(
+            int(stage.get("ambiguous_discovery_action_count", 0)) for stage in stages
+        ),
+        "ambiguous_discovery_by_family": {
+            family: sum(
+                int(stage.get("ambiguous_discovery_by_family", {}).get(family, 0))
+                for stage in stages
+            )
+            for family in ambiguous_families
+        },
+        "known_file_read_action_count": sum(
+            int(stage.get("known_file_read_action_count", 0)) for stage in stages
+        ),
+        "non_search_repository_action_count": sum(
+            int(stage.get("non_search_repository_action_count", 0)) for stage in stages
+        ),
+        "ordinary_discovery_before_first_cidx_search_count": sum(
+            int(stage.get("ordinary_discovery_before_first_cidx_search_count") or 0)
+            for stage in stages
+        ),
+        "ordinary_discovery_after_first_cidx_search_count": sum(
+            int(stage.get("ordinary_discovery_after_first_cidx_search_count") or 0)
+            for stage in stages
+        ),
+        "ordinary_discovery_without_cidx_search_count": sum(
+            int(stage.get("ordinary_discovery_without_cidx_search_count", 0))
+            for stage in stages
+        ),
+        "ambiguous_discovery_without_cidx_search_count": sum(
+            int(stage.get("ambiguous_discovery_without_cidx_search_count", 0))
+            for stage in stages
+        ),
+        "cidx_unique_source_bytes": sum(
+            int(stage.get("cidx_unique_source_bytes", 0)) for stage in stages
+        ),
+        "ordinary_unique_source_bytes": sum(
+            int(stage.get("ordinary_unique_source_bytes", 0)) for stage in stages
+        ),
+        "combined_unique_source_bytes": sum(
+            int(stage.get("combined_unique_source_bytes", 0)) for stage in stages
+        ),
+        "cidx_ordinary_reacquired_source_bytes": sum(
+            int(stage.get("cidx_ordinary_reacquired_source_bytes", 0))
+            for stage in stages
+        ),
+        "cidx_ordinary_overlap_source_bytes": sum(
+            int(stage.get("cidx_ordinary_overlap_source_bytes", 0))
+            for stage in stages
+        ),
+    }
+
+
+def policy_slice_summary(
+    pairs: list[dict[str, Any]], reference_arm: str, treatment_arm: str
+) -> dict[str, Any]:
+    reference_grades = [pair["arms"][reference_arm]["grade"] for pair in pairs]
+    treatment_grades = [pair["arms"][treatment_arm]["grade"] for pair in pairs]
+    dual_complete = [
+        pair
+        for pair in pairs
+        if pair["arms"][reference_arm]["grade"]["outcome"] == "complete"
+        and pair["arms"][treatment_arm]["grade"]["outcome"] == "complete"
+    ]
+    ratios = [
+        pair["paired"]["model_total_ratio"]
+        for pair in dual_complete
+        if pair["paired"]["model_total_ratio"] is not None
+    ]
+    all_ratios = [
+        pair["paired"]["model_total_ratio"]
+        for pair in pairs
+        if pair["paired"]["model_total_ratio"] is not None
+    ]
+    return {
+        "task_count": len(pairs),
+        "outcomes": {
+            arm: {
+                outcome: sum(pair["arms"][arm]["grade"]["outcome"] == outcome for pair in pairs)
+                for outcome in sorted(OUTCOMES)
+            }
+            for arm in (reference_arm, treatment_arm)
+        },
+        "required_groups": {
+            reference_arm: policy_required_group_summary(reference_grades),
+            treatment_arm: policy_required_group_summary(treatment_grades),
+        },
+        "paired": {
+            "conversions_to_complete": sum(
+                pair["arms"][reference_arm]["grade"]["outcome"] != "complete"
+                and pair["arms"][treatment_arm]["grade"]["outcome"] == "complete"
+                for pair in pairs
+            ),
+            "regressions_from_complete": sum(
+                pair["arms"][reference_arm]["grade"]["outcome"] == "complete"
+                and pair["arms"][treatment_arm]["grade"]["outcome"] != "complete"
+                for pair in pairs
+            ),
+            "dual_complete_count": len(dual_complete),
+            "all_pair_model_total_ratio_median": median(all_ratios),
+            "all_pair_model_total_non_increasing_count": sum(
+                value <= 1 for value in all_ratios
+            ),
+            "model_total_ratio_median": median(ratios),
+            "model_total_non_increasing_count": sum(value <= 1 for value in ratios),
+        },
+    }
+
+
+def aggregate_policy(context: dict[str, Any]) -> None:
+    """Aggregate forced-cidx-policy-v2 without importing legacy arm semantics."""
+    run_root = context["run_root"]
+    manifest = context["manifest"]
+    sources = context["sources"]
+    arm_ids, reference_arm, treatment_arm = policy_arms(manifest)
+    key, blind_grades = load_grades(context)
+    frozen_journey = load_frozen_journey(run_root)
+    freeze = read_json(run_root / "grading" / "journey-freeze.json")
+    if (
+        set(frozen_journey) != set(key["entries"])
+        or freeze.get("trace_protocol") != policy_trace.POLICY_TRACE_PROTOCOL
+        or freeze.get("trace_schema_version") != policy_trace.TRACE_SCHEMA_VERSION
+        or freeze.get("trace_builder_sha256")
+        != context["run_manifest"].get("session_trace_builder_sha256")
+        or freeze.get("trace_delegated_builder_sha256")
+        != context["run_manifest"].get("session_trace_delegated_builder_sha256")
+    ):
+        raise ScoreError("policy-v2 journey freeze does not match the bound trace")
+    shapes = policy_truth_shapes(context)
+    journeys: dict[tuple[str, str], dict[str, Any]] = {}
+    grades: dict[tuple[str, str], dict[str, Any]] = {}
+    for identifier, mapping in key["entries"].items():
+        task_matches = [task for task in manifest["tasks"] if task["task_id"] == mapping["task_id"]]
+        if len(task_matches) != 1 or mapping["arm"] not in arm_ids:
+            raise ScoreError(f"policy-v2 blind entry does not map to one scheduled cell: {identifier}")
+        task = task_matches[0]
+        case = sources[task["question_source_index"]][task["task_id"]]
+        grade = blind_grades[identifier]
+        if {group["group_id"] for group in grade["required_groups"]} != {
+            group["id"] for group in case["required_groups"]
+        }:
+            raise ScoreError(f"policy-v2 grade group mismatch for {identifier}")
+        trace = frozen_journey[identifier]
+        if (
+            trace.get("protocol") != policy_trace.POLICY_TRACE_PROTOCOL
+            or trace.get("schema_version") != policy_trace.TRACE_SCHEMA_VERSION
+            or not isinstance(trace.get("policy_stage"), dict)
+        ):
+            raise ScoreError(f"invalid frozen policy-v2 trace: {identifier}")
+        journey = reduce_frozen_trace(trace, context["bindings"][mapping["corpus_id"]], case, require_first_cidx_search=False)
+        journey["policy_stage"] = trace["policy_stage"]
+        journey["policy_actions"] = trace["actions"]
+        journeys[(mapping["task_id"], mapping["arm"])] = journey
+        grades[(mapping["task_id"], mapping["arm"])] = grade
+    pairs: list[dict[str, Any]] = []
+    for task in manifest["tasks"]:
+        task_id = task["task_id"]
+        case = sources[task["question_source_index"]][task_id]
+        if task_id not in shapes:
+            raise ScoreError(f"policy-v2 truth lacks question shape for {task_id}")
+        cells: dict[str, Any] = {}
+        for arm in arm_ids:
+            observation = read_json(run_root / task_id / arm / "observation.json")
+            usage = observation.get("usage")
+            if not isinstance(usage, dict):
+                raise ScoreError(f"policy-v2 observation lacks usage: {task_id}/{arm}")
+            cells[arm] = {
+                "grade": grades[(task_id, arm)],
+                "usage": usage,
+                "elapsed_seconds": observation.get("elapsed_seconds"),
+                "command_count": observation.get("command_count"),
+                "mcp_call_count": observation.get("mcp_call_count"),
+                "journey": journeys[(task_id, arm)],
+            }
+        reference = cells[reference_arm]
+        treatment = cells[treatment_arm]
+        reference_usage, treatment_usage = reference["usage"], treatment["usage"]
+        reference_total = int(reference_usage.get("model_total_tokens", 0))
+        treatment_total = int(treatment_usage.get("model_total_tokens", 0))
+        pairs.append(
+            {
+                "sequence": task["sequence"],
+                "task_id": task_id,
+                "corpus_id": task["corpus_id"],
+                "language": case["language"],
+                "cohorts": case["cohorts"],
+                "question_shape": shapes[task_id],
+                "reference_arm": reference_arm,
+                "treatment_arm": treatment_arm,
+                "arms": cells,
+                "paired": {
+                    "input_difference": int(treatment_usage.get("input_tokens", 0)) - int(reference_usage.get("input_tokens", 0)),
+                    "input_ratio": ratio(int(treatment_usage.get("input_tokens", 0)), int(reference_usage.get("input_tokens", 0))),
+                    "uncached_input_difference": int(treatment_usage.get("uncached_input_tokens", 0)) - int(reference_usage.get("uncached_input_tokens", 0)),
+                    "uncached_input_ratio": ratio(int(treatment_usage.get("uncached_input_tokens", 0)), int(reference_usage.get("uncached_input_tokens", 0))),
+                    "model_total_difference": treatment_total - reference_total,
+                    "model_total_ratio": ratio(treatment_total, reference_total),
+                },
+            }
+        )
+    with (run_root / "paired-results.jsonl").open("w", encoding="utf-8") as handle:
+        for pair in pairs:
+            handle.write(json.dumps(pair, sort_keys=True, ensure_ascii=False) + "\n")
+    arm_grades = {
+        arm: [pair["arms"][arm]["grade"] for pair in pairs] for arm in arm_ids
+    }
+    arm_journeys = {
+        arm: [pair["arms"][arm]["journey"] for pair in pairs] for arm in arm_ids
+    }
+    token_fields = ("input_tokens", "cached_input_tokens", "uncached_input_tokens", "output_tokens", "model_total_tokens")
+    policy_summary = policy_slice_summary(pairs, reference_arm, treatment_arm)
+    directed_stages = [journey["policy_stage"]["directed_policy"] for journey in arm_journeys[treatment_arm]]
+    failure_reasons = sorted(
+        {reason for stage in directed_stages for reason in stage.get("failure_reasons", [])}
+    )
+    aggregate_value = {
+        "schema_version": 1,
+        "run_id": context["run_manifest"]["run_id"],
+        "manifest_sha256": context["run_manifest"]["experiment_manifest_sha256"],
+        "trace_protocol": policy_trace.POLICY_TRACE_PROTOCOL,
+        "scope": "non_promotion_forced_cidx_prompt_diagnostic",
+        "promotion_inference": "NOT_APPLICABLE",
+        "arm_ids": arm_ids,
+        "reference_arm": reference_arm,
+        "treatment_arm": treatment_arm,
+        "task_count": len(pairs),
+        "answer_quality": {
+            "outcomes": policy_summary["outcomes"],
+            "required_groups": policy_summary["required_groups"],
+            "material_claims": {arm: policy_claim_summary(arm_grades[arm]) for arm in arm_ids},
+            "paired": policy_summary["paired"],
+        },
+        "strict_output_adapter_identity": policy_output_adapter_identity(manifest),
+        "grade_semantic_authority": "validate_passive_grade",
+        "official_tokens": {
+            arm: {
+                field: {
+                    "sum": sum(int(pair["arms"][arm]["usage"].get(field, 0)) for pair in pairs),
+                    "median": median([int(pair["arms"][arm]["usage"].get(field, 0)) for pair in pairs]),
+                }
+                for field in token_fields
+            }
+            for arm in arm_ids
+        },
+        "cidx_and_ordinary_behavior": {arm: policy_tool_summary(arm_journeys[arm]) for arm in arm_ids},
+        "directed_policy_compliance": {
+            "arm": treatment_arm,
+            "task_count": len(directed_stages),
+            "fully_compliant_count": sum(bool(stage.get("would_mechanically_comply_if_directed")) for stage in directed_stages),
+            "failure_reasons": {
+                reason: sum(reason in stage.get("failure_reasons", []) for stage in directed_stages)
+                for reason in failure_reasons
+            },
+        },
+        "stage_metrics": {
+            arm: {
+                "locator": {
+                    key: value
+                    for key, value in policy_tool_summary(arm_journeys[arm]).items()
+                    if key.startswith("cidx_") or key.startswith("selected_locator") or key.startswith("exact_") or key.startswith("overlapping_")
+                },
+                "evidence": {
+                    "complete_evidence_hit_count": sum(bool(journey["evidence_stage"]["complete_evidence_hit"]) for journey in arm_journeys[arm]),
+                    "evidence_requirement_coverage_macro": mean_present([journey["evidence_stage"]["evidence_requirement_coverage"] for journey in arm_journeys[arm]]),
+                    "read_span_precision_macro": mean_present([journey["evidence_stage"]["read_span_precision"] for journey in arm_journeys[arm]]),
+                    "gross_source_bytes": sum(journey["evidence_stage"]["gross_source_bytes"] for journey in arm_journeys[arm]),
+                    "unique_source_bytes": sum(journey["evidence_stage"]["unique_source_bytes"] for journey in arm_journeys[arm]),
+                },
+            }
+            for arm in arm_ids
+        },
+        "by_language": {
+            label: policy_slice_summary([pair for pair in pairs if pair["language"] == label], reference_arm, treatment_arm)
+            for label in sorted({pair["language"] for pair in pairs})
+        },
+        "by_question_shape": {
+            label: policy_slice_summary([pair for pair in pairs if pair["question_shape"] == label], reference_arm, treatment_arm)
+            for label in sorted({pair["question_shape"] for pair in pairs})
+        },
+        "journey_freeze": freeze,
+        "weighted_score": "NOT_REPORTED",
+    }
+    write_json(run_root / "aggregate.json", aggregate_value)
+    report_lines = [
+        "# Forced cidx Prompt Diagnostic V1 — Paired Result",
+        "",
+        f"- Run: `{aggregate_value['run_id']}`",
+        f"- Arms: reference `{reference_arm}`, directed treatment `{treatment_arm}`",
+        "- Scope: non-promotion prompt-policy diagnostic; no promotion inference.",
+        "- Answer quality, policy compliance, navigation, evidence, source volume, and tokens are separate surfaces; no weighted score is reported.",
+        "",
+        "## Answer quality",
+        "",
+        "| Arm | Complete | Partial | Incorrect | Ungradable | Required groups covered | Unsupported claims | Contradicted claims |",
+        "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+    ]
+    for arm in arm_ids:
+        outcomes = aggregate_value["answer_quality"]["outcomes"][arm]
+        groups = aggregate_value["answer_quality"]["required_groups"][arm]
+        claims = aggregate_value["answer_quality"]["material_claims"][arm]
+        report_lines.append(f"| {arm} | {outcomes['complete']} | {outcomes['partial']} | {outcomes['incorrect']} | {outcomes['ungradable']} | {groups['covered_count']}/{groups['group_count']} | {claims['unsupported_claim_count']} | {claims['contradicted_claim_count']} |")
+    compliance = aggregate_value["directed_policy_compliance"]
+    report_lines.extend([
+        "", "## Directed-policy compliance", "",
+        f"- Full mechanical compliance: {compliance['fully_compliant_count']}/{compliance['task_count']}.",
+        f"- Failure reasons: {json.dumps(compliance['failure_reasons'], sort_keys=True)}.",
+        "", "## Paired outcomes", "",
+        f"- Conversions to complete: {policy_summary['paired']['conversions_to_complete']}; regressions from complete: {policy_summary['paired']['regressions_from_complete']}; dual-complete pairs: {policy_summary['paired']['dual_complete_count']}.",
+        f"- All-pair model-total ratio median: {display_number(policy_summary['paired']['all_pair_model_total_ratio_median'])}; non-increasing pairs: {policy_summary['paired']['all_pair_model_total_non_increasing_count']}/{len(pairs)}.",
+        f"- Dual-complete model-total ratio median: {display_number(policy_summary['paired']['model_total_ratio_median'])}.",
+        "", "## Tool and source behavior", "",
+    ])
+    for arm in arm_ids:
+        values = aggregate_value["cidx_and_ordinary_behavior"][arm]
+        report_lines.append(f"- `{arm}`: {values['cidx_search_count']} cidx searches, {values['cidx_read_span_count']} reads, {values['selected_locator_read_span_count']} exact selected-locator reads, {values['ordinary_discovery_action_count']} ordinary discovery actions, {values['cidx_ordinary_reacquired_source_bytes']} reacquired source bytes, and {values['combined_unique_source_bytes']} combined unique source bytes.")
+    report_lines.extend([
+        "", "## Interpretation boundary", "",
+        "This measures behavior under an explicit host prompt policy. It preserves noncompliance in every denominator and does not establish voluntary adoption, optional-use marginal value, a mandatory role, or promotion readiness.",
+        "", f"Frozen journey: `{run_root / 'grading' / 'journey-frozen.jsonl'}`", f"Blind grading key: `{run_root / 'grading' / 'blind-key.json'}`",
+    ])
+    (run_root / "report.md").write_text("\n".join(report_lines) + "\n", encoding="utf-8")
+    print(f"wrote policy-v2 aggregate and report in {run_root}")
+
+
 def aggregate(context: dict[str, Any]) -> None:
+    if policy_trace_enabled(context["manifest"]):
+        aggregate_policy(context)
+        return
     run_root = context["run_root"]
     manifest = context["manifest"]
     sources = context["sources"]
