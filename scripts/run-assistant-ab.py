@@ -469,6 +469,38 @@ def verify_frozen_trace_builder_hashes(
     return declared
 
 
+def verify_frozen_execution_code(
+    manifest: dict[str, Any], project_root: Path
+) -> dict[str, dict[str, str]]:
+    """Bind the policy diagnostic to its committed runner and scorer bytes."""
+    freeze = manifest.get("freeze")
+    configured = freeze.get("execution_code") if isinstance(freeze, dict) else None
+    if not isinstance(configured, dict):
+        raise ExperimentError("policy manifest requires freeze.execution_code")
+    expected_paths = {
+        "runner": Path(__file__).resolve(),
+        "scorer": Path(__file__).resolve().with_name("score-assistant-ab.py"),
+    }
+    result: dict[str, dict[str, str]] = {}
+    for role, expected_path in expected_paths.items():
+        identity = configured.get(role)
+        if (
+            not isinstance(identity, dict)
+            or not isinstance(identity.get("path"), str)
+        ):
+            raise ExperimentError(f"policy manifest requires {role} execution identity")
+        declared_path = resolve_project_path(project_root, identity["path"])
+        declared_hash = require_sha256(
+            identity.get("sha256"), f"freeze.execution_code.{role}.sha256"
+        )
+        if declared_path != expected_path or not expected_path.is_file():
+            raise ExperimentError(f"frozen {role} path is not the expected execution file")
+        if sha256_file(expected_path) != declared_hash:
+            raise ExperimentError(f"frozen {role} hash differs from the live file")
+        result[role] = {"path": identity["path"], "sha256": declared_hash}
+    return result
+
+
 def trace_builder_identity(session_trace_protocol: str) -> dict[str, Any]:
     if session_trace_protocol == PASSIVE_TRACE_PROTOCOL:
         trace_path = Path(__file__).resolve().with_name("assistant_session_trace.py")
@@ -1624,6 +1656,11 @@ def main() -> int:
     frozen_trace_hashes = verify_frozen_trace_builder_hashes(
         manifest, session_trace_protocol, trace_identity
     )
+    frozen_execution_code = (
+        verify_frozen_execution_code(manifest, project_root)
+        if session_trace_protocol == POLICY_TRACE_PROTOCOL
+        else None
+    )
     manifest_status = manifest.get("status")
     if manifest_status != "frozen_for_execution" and not (
         args.preflight_only and manifest_status == "frozen_for_external_review"
@@ -1789,6 +1826,7 @@ def main() -> int:
                     "delegated_module"
                 ],
                 "frozen_trace_builder_hashes": frozen_trace_hashes,
+                "frozen_execution_code": frozen_execution_code,
             }
         )
     if not legacy_arms_mode:

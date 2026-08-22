@@ -20,6 +20,8 @@ must bind the same ordered arm IDs and the exact
 `assistant_session_policy_trace.py` module name, schema version, and SHA-256,
 plus the delegated `assistant_session_trace.py` module/schema/SHA-256. The
 scorer validates both live files before packet preparation or aggregation.
+It also validates the manifest-frozen runner/scorer identities and proves that
+the captured run used that runner hash.
 
 Before blind packet creation, every stored policy-v2 trace is rebuilt from its
 events and final response with the frozen policy trace builder. A byte-different

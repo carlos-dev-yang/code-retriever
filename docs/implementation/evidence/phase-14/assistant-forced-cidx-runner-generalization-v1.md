@@ -63,6 +63,11 @@ by the runner to discard or retry a valid execution. In particular, a
 `shell_cidx_attempt` is retained as policy noncompliance while legacy runs
 retain their existing invalidating-control behavior.
 
+The policy manifest must also freeze `execution_code.runner` and
+`execution_code.scorer` path/SHA-256 identities. Preflight verifies both live
+files and records the identities in the run manifest; the scorer independently
+rechecks both files and requires the run's runner hash to equal the freeze.
+
 ## Focused checks run
 
 - `python3 -m py_compile scripts/run-assistant-ab.py scripts/assistant_session_trace.py scripts/assistant_session_policy_trace.py`

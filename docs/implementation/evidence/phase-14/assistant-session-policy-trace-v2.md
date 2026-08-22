@@ -34,7 +34,8 @@ upstream producer cannot be proven to be either of those is
 than being allowed to create false compliance.
 
 Invoking `cidx` itself through a shell executable (including a path-qualified
-binary or `command -v`/`which`/`type` probe) is a separate
+binary, `command -v`/`which`/`type` probe, `xargs`, or recognized
+`env`/`exec`/`nohup`/`nice`/`sudo`/`time`/`timeout` wrapper) is a separate
 `shell_cidx_attempt`. Merely printing the word `cidx` is not. This action is
 retained as policy noncompliance even if proper MCP search/read calls also
 occur, preventing a mixed path from being reported as fully compliant.
@@ -100,9 +101,10 @@ select and hash the unmodified v1 builder for the earlier frozen run.
 - an unknown producer piped to `grep` classified as ambiguous discovery.
 - `find . | grep term` classified as ordinary discovery with a path-list
   contract.
-- direct, path-qualified, and executable-probe shell cidx calls classified as
-  `shell_cidx_attempt`, while `echo cidx` did not; a trace containing both a
-  proper selected cidx read and a shell cidx call remained noncompliant.
+- direct, path-qualified, executable-probe, `xargs`, and common wrapper shell
+  cidx calls classified as `shell_cidx_attempt`, while `echo cidx` and
+  `xargs echo cidx` did not; a trace containing both a proper selected cidx
+  read and a shell cidx call remained noncompliant.
 - an incomplete read followed by a completed read retained both attempts and
   mapped the completed observation to the correct event ordinal.
 - a read occurring before its matching search was not credited and its locator

@@ -136,6 +136,7 @@ def load_context(args: argparse.Namespace) -> dict[str, Any]:
         "sources": sources,
     }
     if policy_trace_enabled(manifest):
+        validate_policy_execution_code_identity(context)
         validate_policy_trace_identity(context)
     return context
 
@@ -527,6 +528,39 @@ def validate_policy_trace_identity(context: dict[str, Any]) -> None:
         or any(not isinstance(item, dict) or item.get("cidx_exposed") is not True for item in snapshots)
     ):
         raise ScoreError("policy-v2 run arm snapshots do not prove equal cidx exposure")
+
+
+def validate_policy_execution_code_identity(context: dict[str, Any]) -> None:
+    """Reject grading when the frozen runner or scorer bytes have drifted."""
+    manifest = context["manifest"]
+    freeze = manifest.get("freeze")
+    configured = freeze.get("execution_code") if isinstance(freeze, dict) else None
+    if not isinstance(configured, dict):
+        raise ScoreError("policy-v2 manifest is missing freeze.execution_code")
+    expected_paths = {
+        "runner": Path(__file__).resolve().with_name("run-assistant-ab.py"),
+        "scorer": Path(__file__).resolve(),
+    }
+    for role, expected_path in expected_paths.items():
+        identity = configured.get(role)
+        if (
+            not isinstance(identity, dict)
+            or not isinstance(identity.get("path"), str)
+            or not isinstance(identity.get("sha256"), str)
+        ):
+            raise ScoreError(f"policy-v2 manifest lacks frozen {role} identity")
+        declared_path = resolve(context["project_root"], identity["path"])
+        if (
+            declared_path != expected_path
+            or not expected_path.is_file()
+            or sha256_file(expected_path) != identity["sha256"]
+        ):
+            raise ScoreError(f"policy-v2 frozen {role} identity mismatch")
+    if (
+        context["run_manifest"].get("runner_sha256")
+        != configured["runner"]["sha256"]
+    ):
+        raise ScoreError("policy-v2 run did not use the frozen runner")
 
 
 def policy_output_adapter_identity(manifest: dict[str, Any]) -> dict[str, str]:

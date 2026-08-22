@@ -25,7 +25,58 @@ TRACE_SCHEMA_VERSION = 2
 _TEXT_SEARCH = {"rg", "grep", "ag", "ack", "pt"}
 _FILE_SEARCH = {"find", "fd", "fdfind", "locate", "ls", "tree"}
 _KNOWN_FILE_READ = {"sed", "cat", "head", "tail", "awk", "nl", "less", "more"}
-_PREFIX_COMMANDS = {"command", "env", "nice", "time", "sudo"}
+_PREFIX_COMMANDS = {
+    "command",
+    "env",
+    "exec",
+    "nice",
+    "nohup",
+    "sudo",
+    "time",
+    "timeout",
+}
+_WRAPPER_VALUE_OPTIONS = {
+    "env": {"-C", "--chdir", "-S", "--split-string", "-u", "--unset"},
+    "nice": {"-n", "--adjustment"},
+    "sudo": {
+        "-C",
+        "--close-from",
+        "-g",
+        "--group",
+        "-h",
+        "--host",
+        "-p",
+        "--prompt",
+        "-r",
+        "--role",
+        "-t",
+        "--type",
+        "-T",
+        "--command-timeout",
+        "-u",
+        "--user",
+    },
+    "time": {"-f", "--format", "-o", "--output"},
+    "timeout": {"-k", "--kill-after", "-s", "--signal"},
+}
+_XARGS_VALUE_OPTIONS = {
+    "-a",
+    "--arg-file",
+    "-d",
+    "--delimiter",
+    "-E",
+    "--eof",
+    "-I",
+    "--replace",
+    "-L",
+    "--max-lines",
+    "-n",
+    "--max-args",
+    "-P",
+    "--max-procs",
+    "-s",
+    "--max-chars",
+}
 _VERIFICATION_PRODUCERS = {
     "bun",
     "cargo",
@@ -71,6 +122,27 @@ def _command_sha256(command: str) -> str:
     return hashlib.sha256(command.encode("utf-8")).hexdigest()
 
 
+def _after_wrapper_options(
+    arguments: list[str], value_options: set[str]
+) -> list[str]:
+    index = 0
+    while index < len(arguments):
+        token = arguments[index]
+        if token == "--":
+            return arguments[index + 1 :]
+        if token in value_options:
+            index += 2
+            continue
+        if any(token.startswith(option + "=") for option in value_options):
+            index += 1
+            continue
+        if token.startswith("-"):
+            index += 1
+            continue
+        break
+    return arguments[index:]
+
+
 def _stage_program(stage: list[str]) -> tuple[str | None, list[str]]:
     """Return the executable and remaining arguments for one shell pipeline stage."""
     index = 0
@@ -81,12 +153,21 @@ def _stage_program(stage: list[str]) -> tuple[str | None, list[str]]:
             index += 1
             continue
         if executable in _PREFIX_COMMANDS:
-            index += 1
-            while index < len(stage) and stage[index].startswith("-"):
-                index += 1
+            remaining = _after_wrapper_options(
+                stage[index + 1 :], _WRAPPER_VALUE_OPTIONS.get(executable, set())
+            )
+            if executable == "timeout" and remaining:
+                remaining = remaining[1:]
+            stage = remaining
+            index = 0
             continue
         return executable, stage[index + 1 :]
     return None, []
+
+
+def _xargs_program(arguments: list[str]) -> str | None:
+    remaining = _after_wrapper_options(arguments, _XARGS_VALUE_OPTIONS)
+    return Path(remaining[0]).name if remaining else None
 
 
 def is_shell_cidx_attempt(command: str) -> bool:
@@ -101,6 +182,8 @@ def is_shell_cidx_attempt(command: str) -> bool:
         for stage in passive_v1._pipeline_stages(segment):
             executable, arguments = _stage_program(stage)
             if executable == "cidx":
+                return True
+            if executable == "xargs" and _xargs_program(arguments) == "cidx":
                 return True
             if executable in {"which", "type"} and any(
                 Path(argument).name == "cidx" for argument in arguments
