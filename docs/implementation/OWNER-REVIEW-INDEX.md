@@ -1,6 +1,6 @@
 # Owner Review Index — Packaging, FTS, Assistant Evaluation, and Remaining Work
 
-- Date: 2026-08-21
+- Date: 2026-08-23
 - Language: Korean (owner review). File names and identifiers stay English.
 - Status: evaluation-only freeze; not `core_retrieval`, not `release_candidate`
 - Authoritative ledger: [`STATUS.md`](STATUS.md)
@@ -21,8 +21,11 @@ Do not treat this index as promotion evidence. If it disagrees with
 planner 교정과 동일 v2 재실행도 끝났다. 후보 0건은 `32/44 -> 0/44`, 완전
 정답@5는 `10/44 -> 30/44`가 됐다. 동일 chi/RHF paired assistant A/B V3도
 완료했다. 정확도는 baseline `11 complete + 1 partial`에서 cidx `12 complete`로
-유지·개선됐지만 모델 토큰은 `37.2%` 늘었다. 다음 순서는 새 저장소나 동일
-A/B 반복이 아니라 MCP 검색 응답량을 계측하고 줄이는 것이다.
+유지·개선됐지만 모델 토큰은 `37.2%` 늘었다. 이후 30질문 forced-cidx prompt
+실험도 끝났다. 양쪽 모두 `29 complete + 1 partial`이며 cidx는 코드 범위를
+63.1% 줄였지만, 도구 행동을 104회에서 254회로 늘려 paired token 중앙값이
+1.404가 됐다. 다음 순서는 새 저장소나 동일 A/B 반복이 아니라 후보 선정부터
+최종 근거까지의 왕복 계약을 결정하는 것이다.
 
 ---
 
@@ -38,7 +41,8 @@ A/B 반복이 아니라 MCP 검색 응답량을 계측하고 줄이는 것이다
 | Phase 12 `core_retrieval` | `blocked` |
 | Phase 14 `release_candidate` | `blocked` (로컬 darwin/arm64 패키지는 있음) |
 | Assistant A/B V3 | 완료 — cidx 12/12 complete, 모델 토큰 +37.2%, unchanged rerun 기각 |
-| 정확한 다음 작업 | MCP search 응답의 text/structured/metadata/body 비용 분리 계측과 compact contract 제안 |
+| Forced cidx prompt V1 | 완료 — 양쪽 29 complete/1 partial, 코드 범위 -63.1%, paired token median 1.404 |
+| 정확한 다음 작업 | 후보 수·중단 규칙·선택 locator 전달·근거 묶음·negative 검색 계약의 제품 인터페이스 결정 |
 | 라이브 패키징 판정 | `CONTINUE_SIBLING_PACKAGING` |
 | Voyage | 이번 작업에서 0회 |
 
@@ -89,6 +93,30 @@ taxonomy 버전/digest를 직접 기록한다.
   결과와 반복 `search/read_span`이 우선 조사 대상이다.
 - ChatGPT와 Grok 모두 unchanged rerun을 기각했다. 응답량 교정이 1순위,
   도구 가이드가 2순위, lexical/semantic routing은 그 이후다.
+
+### 2.3 Forced cidx prompt V1 결과
+
+- 같은 cidx 도구를 양쪽에 노출하고, directed arm에만 `rg` 대신
+  `cidx.search`/`cidx.read_span`을 쓰라는 문단을 추가했다.
+- neutral은 cidx `0/30`, directed는 `30/30` 사용했다. 60/60 실행이
+  유효했고 timeout, 소스/DB 변경, provider 호출은 없었다.
+- 블라인드 결과는 양쪽 모두 `29 complete + 1 partial`, required group은
+  `39/39`다. unsupported claim은 `4 -> 1`로 줄었다.
+- directed의 unique source는 `532,030 -> 196,476`바이트로 63.1% 줄었다.
+- 반면 repository action은 `104 -> 254`, cidx 호출은 229회였고 paired
+  model-total ratio 중앙값은 `1.404`다. 30쌍 중 6쌍만 감소/동률이다.
+- 답변 가능한 27건은 모두 필요한 locator와 read evidence를 얻었다.
+  따라서 이 패널의 첫 손실은 검색 누락이 아니라, 유효 후보 이후 80회
+  추가 검색, 119회 분할 읽기, 이미 읽은 코드 39,416바이트 재획득이다.
+- 결론은 cidx를 보조 전용으로 낮추는 것이 아니다. 좁은 후보와 충분한
+  근거라는 목표는 유효하지만, 현 `search -> 여러 read` 왕복 계약은
+  토큰 경제성이 없다. 다음 제품 결정은 작은 기본 후보, refinement 중단
+  조건, locator handoff, bounded multi-span/주변 근거, negative/exhaustive
+  검색 경계를 함께 다루되 ranking/dense/provider 변경과 섞지 않는 것이다.
+
+상세 수치와 artifact digest는
+[forced cidx prompt result](evidence/phase-14/assistant-forced-cidx-prompt-result-v1.md)에
+있다.
 
 ---
 
@@ -164,7 +192,7 @@ env -u VOYAGE_API_KEY go run ./cmd/cidx dev relations packaging \
 - 검색 순위, RRF, FTS, MCP 스키마 변경
 - 닫힌 32케이스·40쿼리 결과 덮어쓰기. 질문·코호트를 바꾸면 새 질문
   세트 버전과 새 run으로 남긴다.
-- 어시스턴트 최종답 A/B
+- 닫힌 V4–V6를 동일 조건으로 반복하는 어시스턴트 A/B
 
 닫아서 confirmation에 쓰면 안 되는 세트:
 

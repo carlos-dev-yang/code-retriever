@@ -182,8 +182,16 @@ measure cidx behavior under explicit host policy, but it cannot establish
 voluntary adoption, optional-use marginal value, or promotion. The exact arms,
 prompt, metrics, controls, and stop rules are in the
 [Forced cidx Prompt Diagnostic V1](ASSISTANT-FORCED-CIDX-PROMPT-EVALUATION-V1.md).
-Current execution first recovers the already frozen blind grading through an
-output-only v2 response-format adapter; no previous assistant turn is rerun.
+Execution is complete. All 60 scored turns were valid, cidx use moved from
+0/30 in the neutral arm to 30/30 in the directed arm, and blind outcomes were
+29 complete plus one partial in each arm. Directed cidx reduced combined
+unique source bytes from 532,030 to 196,476 and unsupported claims from four
+to one, but repository actions rose from 104 to 254 and the paired model-total
+ratio median was 1.404. The first measured loss is repeated search/read and
+source reacquisition after useful locators, not missing positive targets. See
+the immutable
+[result](evidence/phase-14/assistant-forced-cidx-prompt-result-v1.md). No
+previous assistant turn or grade was repaired or rerun.
 
 - Prerequisite: reconciled locator-only `13-cli-and-mcp`
 - Followed by: v1 release-candidate validation
@@ -223,7 +231,7 @@ Read the [implementation index](README.md), [execution guide](EXECUTION-GUIDE.md
 - Treat the forced first cidx call in diagnostic V3 as a bounded causal
   intervention only. It does not override the non-forced release-candidate
   assistant protocol above.
-- Before the 30-question study, freeze the current configured default `k=10`
+- Before the 30-question study, freeze the current configured default `k=5`
   and maximum 20, source-first questions, execution identities, pure-capability
   tool descriptions, provider-free enforcement, and metric authorities. Do
   not call transcript envelope bytes model-visible unless the host proves

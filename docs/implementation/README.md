@@ -43,10 +43,15 @@
   Documentation is reconciled, and the neutral-interface plus passive
   trace/reducer Step 2 boundary is implemented and validated. Its source-first
   30-question neutral-availability run completed 60/60 valid turns with zero
-  cidx adoption; blind grading is blocked only on response-format schema
-  compatibility. The owner has now opened a separate non-promotion prompt
-  diagnostic with cidx exposed in both arms and directed use instead of `rg`
-  as the sole intervention. New test code and paid provider work remain gated.
+  cidx adoption; its quality result is closed as `NOT_OBSERVED` after the
+  canonical grader contract rejected a noncanonical status. The separate
+  non-promotion same-tools prompt diagnostic is now complete: directed cidx
+  preserved aggregate blind outcomes at 29 complete/1 partial, reduced unique
+  source bytes 63.1% and unsupported claims 4 to 1, but increased the paired
+  model-total median to 1.404 while repository actions rose 104 to 254. The
+  measured next boundary is search-to-evidence turn economics, not a new
+  ranking or provider experiment. Public interface changes, new test code, and
+  paid provider work remain gated.
   Official Phase 12 and release-candidate evidence remain separately gated
 - Canonical design: [Local Code Search MCP v1 Final Target Contract — Revision 4](../../local-code-search-mcp-v1-design-r4.md)
 - Earlier designs: [original](../../local-code-search-mcp-v1-design.md), [r1](../../local-code-search-mcp-v1-design-r1.md), [r2](../../local-code-search-mcp-v1-design-r2.md), [r3](../../local-code-search-mcp-v1-design-r3.md)
@@ -80,7 +85,7 @@
 - Reviewed next assistant design: [host-decided search-to-evidence flow](ASSISTANT-SEARCH-EVIDENCE-FLOW-DESIGN.md)
 - Next-design external review: [matching ChatGPT and Grok final acceptance](evidence/phase-14/assistant-search-evidence-flow-external-review.md)
 - Completed next-design Step 2: [neutral interface and passive trace/reducer implementation](evidence/phase-14/assistant-search-evidence-flow-step-2-implementation.md)
-- Current prompt-policy diagnostic: [Forced cidx Prompt Diagnostic V1](ASSISTANT-FORCED-CIDX-PROMPT-EVALUATION-V1.md)
+- Completed prompt-policy diagnostic: [plan](ASSISTANT-FORCED-CIDX-PROMPT-EVALUATION-V1.md), [result](evidence/phase-14/assistant-forced-cidx-prompt-result-v1.md), and [external review packet](evidence/phase-14/assistant-forced-cidx-prompt-review-packet-v1.md)
 - Remaining-work handoff: [remaining-work-review-handoff-r4.md](evidence/revision-4/remaining-work-review-handoff-r4.md)
 - Final corpus-independent review: [int8/source-profile implementation-to-design review](evidence/revision-4/int8-source-profile-final-review.md)
 - Last updated: 2026-08-23
@@ -165,7 +170,7 @@ Allowed states are `planned | in_progress | blocked | done`. A phase becomes `do
 | 11 | done | [Vector and hybrid search](11-vector-and-hybrid-search.md) | reconciled 02/09/10, existing 06 | Int8-only request-local scan, RRF, fallback, and body packaging | [Current evidence](evidence/phase-11/int8-only-query-search-reconciliation.md) and [historical R4 evidence](evidence/phase-11/revision-4.md) |
 | 12 | blocked | [Retrieval evaluation](12-retrieval-evaluation.md) | 07, reconciled 08, 09, 11 | Accepted int8-only corpus-independent adapter; official corpus evaluation and promotion remain externally gated | [Current evidence](evidence/phase-12/int8-only-evaluation-reconciliation.md) and [accepted R4 accounting evidence](evidence/phase-12/revision-4.md) |
 | 13 | done | [CLI and MCP](13-cli-and-mcp.md) | reconciled 02/08/11 and existing Phase 12 core | Four-tool structured-only MCP with locator-only search, source-only `read_span`, and retained compatibility input independent of result identity | [Locator-only completion](evidence/phase-13/locator-only-mcp-reconciliation.md), [reducer v2](evidence/phase-13/assistant-reducer-v2.md), [Codex representation probe](evidence/phase-13/codex-result-representation-probe.md), and existing [int8-only evidence](evidence/phase-13/int8-only-cli-mcp-reconciliation.md) |
-| 14 | in_progress | [Packaging and host integration](14-packaging-and-host-integration.md) | 13 | Neutral availability execution is complete and blind grading awaits an output-only schema adapter. A separately authorized same-tools neutral-versus-directed cidx prompt diagnostic follows as non-promotion evidence; new tests, public MCP schema expansion, and provider traffic remain gated | [Forced prompt diagnostic](ASSISTANT-FORCED-CIDX-PROMPT-EVALUATION-V1.md), [neutral result review](evidence/phase-14/assistant-availability-v1-result-external-review.md), [Step 2 implementation](evidence/phase-14/assistant-search-evidence-flow-step-2-implementation.md), and historical [V4–V6 closure](evidence/phase-14/assistant-ab-v4-v6-closure.md) |
+| 14 | in_progress | [Packaging and host integration](14-packaging-and-host-integration.md) | 13 | Neutral availability is closed at 0/30 adoption and quality `NOT_OBSERVED`. The separately authorized 30-pair same-tools prompt diagnostic is complete: directed cidx preserved aggregate quality and narrowed code, but multiplied tool turns and raised model-total tokens. Any public interface change or optional-use follow-up remains an owner decision | [Forced prompt result](evidence/phase-14/assistant-forced-cidx-prompt-result-v1.md), [diagnostic contract](ASSISTANT-FORCED-CIDX-PROMPT-EVALUATION-V1.md), [neutral result review](evidence/phase-14/assistant-availability-v1-result-external-review.md), [Step 2 implementation](evidence/phase-14/assistant-search-evidence-flow-step-2-implementation.md), and historical [V4–V6 closure](evidence/phase-14/assistant-ab-v4-v6-closure.md) |
 
 `STATUS.md` is the operational ledger. Keep this summary table synchronized with it whenever a phase changes state.
 
@@ -427,6 +432,7 @@ Do not introduce a deferred item implicitly for implementation convenience.
 
 | Date | Change | Reason |
 | --- | --- | --- |
+| 2026-08-23 | Completed the 30-pair same-tools forced-cidx prompt diagnostic | Isolate actual cidx search/read behavior: code scope fell 63.1% and answer outcomes held, while action multiplication raised paired model-total usage; defer interface change to an explicit owner decision |
 | 2026-08-23 | Opened a same-tools neutral-versus-directed cidx prompt diagnostic as non-promotion evidence | Measure cidx search/read behavior after zero spontaneous adoption without redefining the product role or selecting compliant turns after the fact |
 | 2026-08-22 | Completed the neutral four-tool interface and passive assistant trace/reducer Step 2 boundary | Measure voluntary adoption, exact evidence, ordinary-tool overlap, exploration scope, and blind claim support without changing retrieval, public schemas, or server/SQLite authority |
 | 2026-08-22 | Accepted a host-decided, stage-separated search-to-evidence design for the next assistant study without reopening V4–V6 | Measure candidate narrowing, selected evidence, dependency acquisition, exploration scope, claim support, and voluntary cidx adoption separately before adding metadata or another intervention |

@@ -1,6 +1,6 @@
 # Forced cidx Prompt Diagnostic V1
 
-- Status: `frozen_for_execution`; schema probes and execution pending
+- Status: `completed`; immutable run and result recorded 2026-08-23
 - Date: 2026-08-23
 - Phase: 14
 - Experiment class: paired, non-promotion prompt-policy diagnostic
@@ -214,3 +214,8 @@ Required before result interpretation:
 - aggregate, paired results, policy-compliance report, artifact checksums, and
   an explicit checks-run/checks-not-run record; and
 - a separate statement of what the diagnostic does and does not establish.
+
+All required execution and grading evidence now exists. The measured result,
+artifact identities, checks, causal boundary, and next design constraints are
+recorded in
+[Forced cidx Prompt Diagnostic V1 Result](evidence/phase-14/assistant-forced-cidx-prompt-result-v1.md).

@@ -773,3 +773,87 @@ Next: complete the frozen current grading through one supported-keyword v2
 output adapter, aggregate once, and only then prepare the new informed optional-
 use A/B version. No new run or product change is implicitly opened by this
 review record.
+
+## 25. 2026-08-23 Availability grading closure and directed diagnostic freeze
+
+The supported-keyword adapter reached the endpoint, but the one canonical
+availability aggregate attempt rejected a grader-produced required-group
+status outside the frozen canonical semantics. The neutral run is therefore
+closed with its valid `0/30` adoption observation and quality
+`NOT_OBSERVED`. No grade was edited, repaired, or requested again. A later
+stricter output-only adapter constrained both the root envelope and canonical
+enum values and passed one isolated no-tool schema probe; it did not reopen the
+closed availability result.
+
+The owner then explicitly superseded the immediate optional-use follow-up with
+one bounded same-tools prompt diagnostic. Both arms expose identical cidx MCP
+tools and FTS state. The only prompt difference tells the directed arm to use
+`cidx.search` instead of ordinary repository discovery and then
+`cidx.read_span` for selected locators. Noncompliance remains in the full
+denominator.
+
+The policy-v2 trace, generalized runner, generalized scorer, exact shell-cidx
+classification, execution-identity seals, and mandatory dual-trace bindings
+were implemented in separate commits and independently reviewed to `ACCEPT`.
+The final 30-task schedule has 15 neutral-first and 15 directed-first pairs,
+uses the unchanged availability questions, freezes server default `k=5` and
+maximum 20, and makes no product, schema, retrieval, corpus, or provider
+change. Exact hashes and checks are in the
+[freeze evidence](evidence/phase-14/assistant-forced-cidx-prompt-freeze-v1.md).
+
+## 26. 2026-08-23 Forced cidx prompt execution and grading
+
+The frozen preflight and both output-only schema probes passed. The scored run
+then completed all 60 turns exactly once: 60/60 valid, no timeout, nonzero
+exit, control violation, source mutation, state mutation, provider credential,
+or paid request. Each turn used a fresh source and cidx-state copy, and every
+copy was removed after evidence capture.
+
+The neutral arm made zero cidx calls. The directed arm used cidx in 30/30
+tasks, with 110 searches and 119 successful reads. It made no ordinary
+repository discovery action. Four tasks failed only the narrow exact-selected-
+locator read rule; all four still used `read_span`, and none had a failed read,
+hash omission, or ordinary-search escape.
+
+Arm-blind packet generation covered 20 Go and 40 React Hook Form answers. One
+tool-free `gpt-5.6-sol` grader call per corpus produced exact 20/20 and 40/40
+blind-ID coverage. No grader call was retried or repaired. After both documents
+passed identity and no-tool checks, the canonical aggregate ran exactly once.
+
+## 27. 2026-08-23 Forced cidx prompt result and first loss
+
+Both arms blindly grade 29 complete and one partial, cover all 39 required
+groups, and have no incorrect or contradicted result. Directed cidx reduces
+unsupported claims from four to one. One Go throttle answer converts partial
+to complete, while one Go route-outcome answer regresses complete to partial
+because its cited ranges omit lines required for one internal-mechanism claim.
+
+cidx materially narrows source: combined unique bytes fall
+`532,030 -> 196,476` (-63.1%) and repository-output proxy bytes fall
+`1,251,377 -> 641,426` (-48.7%). It also finds all positive target groups:
+23/27 answerable tasks have complete locator coverage in the first search,
+all 27 eventually do, and all 27 acquire complete cidx-read evidence. Median
+first useful rank is 1.
+
+The source saving does not become a token saving. Repository actions rise
+`104 -> 254`; the directed arm makes 229 MCP calls, including 80 searches
+after the first search. Its model-total sum rises
+`2,736,827 -> 4,178,972`, the paired ratio median is 1.404, and only 6/30
+pairs are non-increasing. Cached input rises 71.2% while uncached input rises
+only 1.8%, locating the loss in repeated inference/tool turns over accumulated
+context rather than raw source dumping alone. Fifteen directed tasks also make
+25 known-file reads; 39,416 of their 41,875 unique source bytes overlap cidx
+source already acquired.
+
+This diagnostic therefore rejects the current blanket prompt as a token-
+efficiency policy without demoting cidx to a secondary-only product role. The
+candidate-narrowing and complete-evidence goal remains valid. The next owner
+decision is the public interaction boundary: small default candidate depth and
+refinement stop semantics, direct selected-locator handoff, complete bounded
+line-addressable evidence, session-only range deduplication, optional bounded
+multi-span reads, and an honest exhaustive/negative-query contract. Do not
+combine that decision with ranking, dense, corpus, or provider changes and do
+not run another assistant version implicitly.
+
+The complete metrics, artifacts, checks, and interpretation limits are in the
+[forced cidx prompt result](evidence/phase-14/assistant-forced-cidx-prompt-result-v1.md).
