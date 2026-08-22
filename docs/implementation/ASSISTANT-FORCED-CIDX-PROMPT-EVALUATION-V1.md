@@ -1,6 +1,6 @@
 # Forced cidx Prompt Diagnostic V1
 
-- Status: `owner_authorized_design`; implementation and freeze pending
+- Status: `implementation_validated`; manifest freeze and execution pending
 - Date: 2026-08-23
 - Phase: 14
 - Experiment class: paired, non-promotion prompt-policy diagnostic
@@ -92,8 +92,11 @@ file and from compilation, tests, formatting, or other non-search work.
 
 ## 6. Trace and historical compatibility
 
-The frozen neutral run binds the current `passive-v1` trace-builder bytes and
-has not yet completed grading. Those bytes must not change.
+The frozen neutral run binds the current `passive-v1` trace-builder bytes. Its
+quality grading is closed as `NOT_OBSERVED` after the one canonical aggregate
+attempt rejected a noncanonical required-group status; its separate 0/30
+spontaneous-use observation remains valid. Those artifacts and builder bytes
+must not change.
 
 The directed experiment therefore uses a new trace protocol and a separate v2
 policy trace module. It records, without showing anything to the model:
@@ -111,10 +114,10 @@ state or changes a tool call.
 
 ## 7. Execution and grading sequence
 
-1. Add a supported-keyword output-only blind-grade v2 adapter. Do not change
-   the canonical schema or scorer semantics.
-2. Make exactly one new grader call per corpus for the already frozen neutral
-   run, then aggregate it exactly once. Do not rerun its 60 assistant turns.
+1. Preserve the closed neutral-availability result and make no further grader,
+   aggregate, repair, or assistant calls against it.
+2. Use the already validated supported-keyword output-only blind-grade v2
+   adapter without changing canonical scorer semantics.
 3. Generalize the runner and reducer to manifest-defined arms, equal cidx
    exposure, per-arm prompts, and the v2 policy trace without modifying v1
    replay behavior.
@@ -206,7 +209,7 @@ Required before result interpretation:
 - reconciled evaluation/Phase 14 contract and status entry;
 - output-only grader adapter plus canonical/scorer hashes;
 - frozen experiment manifest and preflight identities committed before turns;
-- 60 complete execution cells with passive traces and source/state checks;
+- 60 complete execution cells with policy-v2 traces and source/state checks;
 - two arm-blind grade documents covering all 60 blind IDs;
 - aggregate, paired results, policy-compliance report, artifact checksums, and
   an explicit checks-run/checks-not-run record; and
