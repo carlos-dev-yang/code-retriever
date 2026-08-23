@@ -77,9 +77,16 @@ This ledger is the authoritative resumable state for implementation work. Update
   The owner rejected and hard-reset the subsequent overbuilt awareness/trust
   implementation before any new scored turn. The required plan was then
   restored without that infrastructure and passed bounded ChatGPT/Grok review.
-  The minimal successor implementation and failure-safe paired denominators
-  are now frozen for execution. No successor scored turn has run yet; semantic
-  review and mandatory self-report remain out of scope.
+  The minimal successor was frozen at
+  `caa57f906d9a3e6219d24c8fe71914bf82bd22ec` and its one-time 60-turn run is
+  complete. Trust-priority produced 30/30 complete answers versus aware-choice
+  28 complete, one partial, and one timed-out ungradable answer. On 29 valid
+  comparable pairs it cut unique source to median 0.546, but raised repository
+  actions to median 1.300 and model-total usage to median 1.189. The measured
+  next boundary is evidence acquisition after useful locator selection, not a
+  retrieval retune. ChatGPT and Grok accepted this interpretation with the
+  correction that the run does not isolate stopping from legitimate dependency
+  expansion. No public interface successor is authorized yet.
 - Active owner: `/root`
 - 2026-08-23 Phase 14 execution entry: `/root` re-read the execution guide,
   implementation index, status ledger, evaluation contract, full Phase 14,
@@ -100,9 +107,20 @@ This ledger is the authoritative resumable state for implementation work. Update
   [`assistant-cidx-awareness-trust-freeze-v1.md`](evidence/phase-14/assistant-cidx-awareness-trust-freeze-v1.md).
   Focused Go, race, vet, Python, synthetic denominator, legacy V3-V6 context,
   and provider-free preflight checks pass. The implementation stays at the
-  500-line non-documentation boundary including the manifest. The next action
-  is the two arm probes followed by the one-time 60-turn run; scored-cell
-  retries, semantic sidecars, and provider work remain prohibited.
+  500-line non-documentation boundary including the manifest.
+- 2026-08-23 Phase 14 awareness/trust result: both arm probes passed and all 60
+  primary cells ran exactly once. One aware-choice cell timed out and remains
+  ungradable without retry; blind grading and one canonical aggregate are
+  complete. Trust-priority improved complete answers from 28/30 to 30/30 and
+  required-group coverage from 37/39 to 39/39, while paired unique source fell
+  to median 0.546. It also increased cidx calls from 102 to 220, paired actions
+  to median 1.300, and paired model-total usage to median 1.189. Exact results
+  and artifact seals are in
+  [`assistant-cidx-awareness-trust-result-v1.md`](evidence/phase-14/assistant-cidx-awareness-trust-result-v1.md);
+  the adopted interpretation and unapproved bounded multi-locator candidate are
+  in the [external review](evidence/phase-14/assistant-cidx-awareness-trust-result-external-review-v1.md).
+  Semantic sidecars, provider work, retrieval changes, and public MCP changes
+  remain prohibited without a new owner decision.
 - Completed bounded work: the final provider-free graph-only Pareto admission
   diagnostic is complete at clean commit
   `497c000bf0d3e9452fd8ff1ce9f570a3df144525`. It reuses the
@@ -395,7 +413,7 @@ Existing phase completion rows and implementation are historical work produced a
 | 11 | done | `/root` | Yes — accepted Phase 09/10 boundaries, prior Phase 11 R4 evidence, live vector scan/evaluation code, five-profile evidence, and retired-profile contract inspected | Current request-local int8 scan, nonpersistent serving-f32 reference, fallback/RRF/body behavior, retired comparison removal, and focused boundary accepted | [Current evidence](evidence/phase-11/int8-only-query-search-reconciliation.md), historical [R4 evidence](evidence/phase-11/revision-4.md), and [retired-profile contract](RETIRED-VECTOR-PROFILES.md) | Hand the current evaluation arms to Phase 12 |
 | 12 | blocked | `/root` | Yes — accepted current Phase 11 boundary, prior Phase 12 R4 evidence, evaluation contract, current schemas/adapters, relation completion authority, retired-profile contract, closed Stage E/F, and adopted packaging contract inspected | Corpus-independent adapter accepted; packaging/no-policy authority is now frozen evaluation-only sibling 4/4096; official `core_retrieval` still lacks independent confirmation | [Remaining-work handoff](evidence/revision-4/remaining-work-review-handoff-r4.md), [adopted sibling contract](../../testdata/retrieval/relation-sibling-packaging-adopted-v1.json), [current evidence](evidence/phase-12/int8-only-evaluation-reconciliation.md), and [R4 accounting evidence](evidence/phase-12/revision-4.md) | After owner-selected unexposed confirmation, seal margins and run official core evaluation; assistant V3 remains separate non-promotion evidence |
 | 13 | done | `/root` | Yes — execution guide, index, status, evaluation contract, full Phase 13/14 documents, current Phase 13 evidence, live MCP handlers/schema, frozen V3 artifacts, and accepted response-contract review inspected | Structured-only is the product default; search emits only nine-field deduplicated locators, requests zero source bytes, and preserves caller-selected ranking. Focused normal/race/static checks, 0/12000/65537 byte-identical server responses, and a real Codex search-to-read journey passed | [Locator-only completion](evidence/phase-13/locator-only-mcp-reconciliation.md), [reducer v2](evidence/phase-13/assistant-reducer-v2.md), [Codex representation probe](evidence/phase-13/codex-result-representation-probe.md), and existing [int8-only evidence](evidence/phase-13/int8-only-cli-mcp-reconciliation.md) | Preserve the nine-field locator and source-only `read_span`; reopen only for the separately authorized neutral-description validation |
-| 14 | in_progress | `/root` | Yes — Step 3 clean commit `b334aa7`, execution entry commit `500fe27`, execution guide, implementation index, status, evaluation contract, full Phase 14 and accepted search-to-evidence design/review, Phase 01/02/13 prerequisite evidence, current MCP schema, runner, reducer, and preserved V3–V6 artifacts inspected | The neutral run remains closed with 0/30 cidx selection and quality `NOT_OBSERVED`. The same-tools forced prompt run completed 60/60 valid turns, two no-tool blind grader calls, and one canonical aggregate. Both arms grade 29 complete/1 partial and cover 39/39 groups. Directed cidx cuts unique source 63.1% and unsupported claims 4 to 1, but makes 229 MCP calls, raises total repository actions 104 to 254, and has paired model-total ratio median 1.404. The overbuilt successor was hard-reset before any new scored turn; its owner-required experiment plan has been restored without the rejected infrastructure and passed bounded ChatGPT/Grok review | [Forced prompt result](evidence/phase-14/assistant-forced-cidx-prompt-result-v1.md), [accepted successor plan](ASSISTANT-CIDX-AWARENESS-TRUST-EVALUATION-V1.md), [bounded plan review](evidence/phase-14/assistant-cidx-awareness-trust-plan-review-v1.md), [overbuild incident](evidence/phase-14/assistant-cidx-followup-overbuild-incident.md), [diagnostic contract](ASSISTANT-FORCED-CIDX-PROMPT-EVALUATION-V1.md), [freeze evidence](evidence/phase-14/assistant-forced-cidx-prompt-freeze-v1.md), [policy trace](evidence/phase-14/assistant-session-policy-trace-v2.md), [runner generalization](evidence/phase-14/assistant-forced-cidx-runner-generalization-v1.md), and [scorer generalization](evidence/phase-14/assistant-forced-cidx-scorer-generalization-v1.md) | Implement only the accepted minimal description/prompt/session support, run focused checks, and freeze before any scored turn |
+| 14 | in_progress | `/root` | Yes — Step 3 clean commit `b334aa7`, awareness/trust freeze `caa57f9`, execution guide, implementation index, status, evaluation contract, full Phase 14 and accepted search-to-evidence design/review, Phase 01/02/13 prerequisite evidence, current MCP schema, runner, reducer, and preserved V3–V6 artifacts inspected | The same-tools forced prompt diagnostic and the minimal awareness/trust successor are complete. In the successor, trust-priority grades 30/30 complete versus aware-choice 28 complete, one partial, and one timeout; paired unique source median is 0.546, but paired action and model-total medians are 1.300 and 1.189. Post-result reviewers agree that evidence-acquisition/orchestration after useful locator selection is the measured boundary and that stopping versus legitimate dependency expansion is not isolated | [Awareness/trust result](evidence/phase-14/assistant-cidx-awareness-trust-result-v1.md), [post-result review](evidence/phase-14/assistant-cidx-awareness-trust-result-external-review-v1.md), [execution freeze](evidence/phase-14/assistant-cidx-awareness-trust-freeze-v1.md), [accepted plan](ASSISTANT-CIDX-AWARENESS-TRUST-EVALUATION-V1.md), [forced prompt result](evidence/phase-14/assistant-forced-cidx-prompt-result-v1.md), and [overbuild incident](evidence/phase-14/assistant-cidx-followup-overbuild-incident.md) | Await an explicit owner decision on the bounded multi-locator evidence-request contract; no retrieval/provider/public-interface change is authorized |
 
 ## Resume note template
 

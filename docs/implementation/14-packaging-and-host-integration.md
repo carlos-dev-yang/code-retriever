@@ -8,11 +8,15 @@
   FTS-only evaluation design received matching ChatGPT and Grok
   `FINAL_ACCEPT`. The neutral-interface and passive harness trace/reducer
   implementation checkpoint is now complete. Its neutral 30-pair run completed
-  with zero cidx adoption and is awaiting recovered blind grading. The owner
-  has now separately authorized a non-promotion prompt diagnostic in which
-  both arms expose cidx and only one arm directs repository search away from
-  `rg` and through cidx. New test code and paid provider work remain unopened.
-  Official Phase 12 and release-candidate promotion remain blocked.
+  with zero cidx adoption. The forced prompt diagnostic and its restored
+  awareness-versus-trust successor are complete. Trust-priority improved blind
+  completeness and narrowed source but increased repository actions and model
+  usage. External review identifies evidence acquisition/orchestration after
+  useful locator selection as the measured next boundary without isolating
+  stopping from legitimate dependency expansion. A bounded multi-locator
+  evidence request remains an unapproved owner decision. New test code, paid
+  provider work, and public MCP changes remain unopened. Official Phase 12 and
+  release-candidate promotion remain blocked.
 
 ## 2026-08-22 V4 freeze checkpoint
 
@@ -211,6 +215,36 @@ documents the removed scope and prevention rules. The restored plan has now
 passed its bounded external review and authorizes only the minimal existing-
 path implementation and preflight before a scored-run freeze. It must reuse
 the existing runner, trace, and grading paths by default.
+
+## 2026-08-23 awareness/trust result checkpoint
+
+The restored experiment was frozen at
+`caa57f906d9a3e6219d24c8fe71914bf82bd22ec`. Both schema probes passed and 60
+primary cells ran exactly once. One aware-choice task timed out at the frozen
+600-second boundary and remains ungradable without retry. Blind grading and
+the single canonical aggregate are complete.
+
+Trust-priority produced 30/30 complete answers, 39/39 required groups, and no
+unsupported claim. Aware-choice produced 28 complete, one partial, one
+ungradable timeout, 37/39 groups, and one unsupported claim. On the 29 valid
+paired efficiency records, trust-priority reduced unique source to median
+0.546 but raised repository actions to median 1.300 and model-total usage to
+median 1.189. cidx calls increased from 102 to 220, including 95 searches and
+125 reads in the trust arm.
+
+The [result](evidence/phase-14/assistant-cidx-awareness-trust-result-v1.md)
+therefore accepts a quality and code-scope benefit but rejects an overall
+efficiency claim. The [post-result review](evidence/phase-14/assistant-cidx-awareness-trust-result-external-review-v1.md)
+agrees that the dominant measured loss after useful locator selection is
+evidence acquisition/orchestration. It corrects any stronger stopping claim:
+the trace does not separate unnecessary continuation from legitimate
+dependency expansion.
+
+The smallest reviewed successor candidate is one bounded request over a small
+set of already returned locators, returning separate line-addressable evidence
+units. This is not implemented or authorized because it changes the public MCP
+contract. Retrieval, ranking, provider work, new repositories, and semantic
+review remain outside this result.
 
 - Prerequisite: reconciled locator-only `13-cli-and-mcp`
 - Followed by: v1 release-candidate validation
@@ -547,12 +581,13 @@ accepted in [current int8 package evidence](evidence/phase-14/int8-profile-packa
 The separately bounded assistant interface/trace Step 2 implementation is
 accepted in the
 [search-to-evidence Step 2 evidence](evidence/phase-14/assistant-search-evidence-flow-step-2-implementation.md).
-The owner-authorized awareness-versus-trust-priority successor is frozen before
-any scored turn in the
-[awareness/trust execution freeze](evidence/phase-14/assistant-cidx-awareness-trust-freeze-v1.md).
-It reuses the existing 30 questions, four tools, FTS state, runner, passive
-trace, and blind grading path; it is non-promotion evidence and does not close
-the release gates below.
+The owner-authorized awareness-versus-trust-priority successor is complete.
+Its [execution freeze](evidence/phase-14/assistant-cidx-awareness-trust-freeze-v1.md),
+[result](evidence/phase-14/assistant-cidx-awareness-trust-result-v1.md), and
+[post-result review](evidence/phase-14/assistant-cidx-awareness-trust-result-external-review-v1.md)
+reuse the existing 30 questions, four tools, FTS state, runner, passive trace,
+and blind grading path. This is non-promotion evidence and does not close the
+release gates below.
 The remaining items below are promotion/release gates, so the phase stays
 open rather than `done`.
 
@@ -585,7 +620,8 @@ If operational feedback establishes a real requirement for permanent model pinni
 
 | Decision | Rationale | Revisit when |
 | --- | --- | --- |
-| Compare concise awareness with cidx priority and bounded trust on the existing 30-pair panel | The forced prompt narrowed code but multiplied tool turns; identical tools with a sole short suffix isolate whether informed choice and stopping guidance reduce the total journey without assigning cidx a permanent product role | The frozen run and bounded post-result interpretation are complete |
+| Compare concise awareness with cidx priority and bounded trust on the existing 30-pair panel | The completed run shows better completeness and source narrowing but more actions and model usage; it measures evidence-acquisition/orchestration loss without isolating stopping from legitimate dependency expansion | Complete; preserve as non-promotion evidence |
+| Keep a bounded multi-locator evidence request as the next candidate, not an authorized change | The trust arm made 125 individual reads with more duplicates and overlap after useful locators; one bounded request targets round trips while preserving separate line-addressable evidence units | The owner chooses the bound and versioned public-interface shape |
 | Permit one owner-directed forced-cidx prompt diagnostic outside promotion | Zero adoption left locator/evidence behavior unobserved; a same-tools neutral-versus-directed pair isolates prompt policy while preserving noncompliance and does not redefine the product role | The diagnostic is complete or an optional-use product comparison is prepared |
 | Bundle FTS5 and grammars | Keep the free core independent of system installs and runtime downloads | Platform constraints block real distribution |
 | Officially document project scope only | Reduce wrong-root and multi-repository confusion | Safe user-scope root routing is designed |

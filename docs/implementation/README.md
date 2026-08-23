@@ -49,9 +49,14 @@
   preserved aggregate blind outcomes at 29 complete/1 partial, reduced unique
   source bytes 63.1% and unsupported claims 4 to 1, but increased the paired
   model-total median to 1.404 while repository actions rose 104 to 254. The
-  measured next boundary is search-to-evidence turn economics, not a new
-  ranking or provider experiment. Public interface changes, new test code, and
-  paid provider work remain gated.
+  minimal awareness-versus-trust successor is also complete. Trust-priority
+  improved blind outcomes from 28 complete, one partial, and one timeout to
+  30/30 complete and reduced paired unique source to median 0.546. It did not
+  simplify the full journey: paired actions rose to 1.300 and model-total usage
+  to 1.189. The measured next boundary is evidence acquisition and
+  orchestration after useful locator selection, not a new ranking or provider
+  experiment. Public interface changes, new test code, and paid provider work
+  remain gated.
   Official Phase 12 and release-candidate evidence remain separately gated
 - Canonical design: [Local Code Search MCP v1 Final Target Contract — Revision 4](../../local-code-search-mcp-v1-design-r4.md)
 - Earlier designs: [original](../../local-code-search-mcp-v1-design.md), [r1](../../local-code-search-mcp-v1-design-r1.md), [r2](../../local-code-search-mcp-v1-design-r2.md), [r3](../../local-code-search-mcp-v1-design-r3.md)
@@ -89,6 +94,8 @@
 - Restored successor plan after owner-directed reset: [awareness vs trust-priority evaluation](ASSISTANT-CIDX-AWARENESS-TRUST-EVALUATION-V1.md)
 - Successor plan review: [bounded ChatGPT and Grok `PROCEED`](evidence/phase-14/assistant-cidx-awareness-trust-plan-review-v1.md)
 - Frozen successor execution: [awareness vs trust-priority freeze](evidence/phase-14/assistant-cidx-awareness-trust-freeze-v1.md)
+- Completed successor result: [awareness vs trust-priority result](evidence/phase-14/assistant-cidx-awareness-trust-result-v1.md)
+- Successor result review: [bounded ChatGPT and Grok interpretation](evidence/phase-14/assistant-cidx-awareness-trust-result-external-review-v1.md)
 - Rejected follow-up implementation record: [overbuild incident](evidence/phase-14/assistant-cidx-followup-overbuild-incident.md)
 - Remaining-work handoff: [remaining-work-review-handoff-r4.md](evidence/revision-4/remaining-work-review-handoff-r4.md)
 - Final corpus-independent review: [int8/source-profile implementation-to-design review](evidence/revision-4/int8-source-profile-final-review.md)
@@ -174,7 +181,7 @@ Allowed states are `planned | in_progress | blocked | done`. A phase becomes `do
 | 11 | done | [Vector and hybrid search](11-vector-and-hybrid-search.md) | reconciled 02/09/10, existing 06 | Int8-only request-local scan, RRF, fallback, and body packaging | [Current evidence](evidence/phase-11/int8-only-query-search-reconciliation.md) and [historical R4 evidence](evidence/phase-11/revision-4.md) |
 | 12 | blocked | [Retrieval evaluation](12-retrieval-evaluation.md) | 07, reconciled 08, 09, 11 | Accepted int8-only corpus-independent adapter; official corpus evaluation and promotion remain externally gated | [Current evidence](evidence/phase-12/int8-only-evaluation-reconciliation.md) and [accepted R4 accounting evidence](evidence/phase-12/revision-4.md) |
 | 13 | done | [CLI and MCP](13-cli-and-mcp.md) | reconciled 02/08/11 and existing Phase 12 core | Four-tool structured-only MCP with locator-only search, source-only `read_span`, and retained compatibility input independent of result identity | [Locator-only completion](evidence/phase-13/locator-only-mcp-reconciliation.md), [reducer v2](evidence/phase-13/assistant-reducer-v2.md), [Codex representation probe](evidence/phase-13/codex-result-representation-probe.md), and existing [int8-only evidence](evidence/phase-13/int8-only-cli-mcp-reconciliation.md) |
-| 14 | in_progress | [Packaging and host integration](14-packaging-and-host-integration.md) | 13 | Neutral availability is closed at 0/30 adoption and quality `NOT_OBSERVED`. The separately authorized forced prompt diagnostic is complete: directed cidx preserved aggregate quality and narrowed code, but multiplied tool turns and model tokens. Its overbuilt successor was reset; the restored two-arm awareness/trust successor is now minimally implemented, reviewed, provider-free preflighted, and frozen before any scored turn | [Awareness/trust freeze](evidence/phase-14/assistant-cidx-awareness-trust-freeze-v1.md), [accepted plan](ASSISTANT-CIDX-AWARENESS-TRUST-EVALUATION-V1.md), [bounded plan review](evidence/phase-14/assistant-cidx-awareness-trust-plan-review-v1.md), [forced prompt result](evidence/phase-14/assistant-forced-cidx-prompt-result-v1.md), [overbuild incident](evidence/phase-14/assistant-cidx-followup-overbuild-incident.md), [Step 2 implementation](evidence/phase-14/assistant-search-evidence-flow-step-2-implementation.md), and historical [V4–V6 closure](evidence/phase-14/assistant-ab-v4-v6-closure.md) |
+| 14 | in_progress | [Packaging and host integration](14-packaging-and-host-integration.md) | 13 | Neutral availability and the forced prompt diagnostic remain closed. The restored awareness/trust successor completed its frozen 60-turn run: trust-priority improved quality and narrowed source, but increased actions and model-total usage. External review accepts evidence-acquisition/orchestration as the measured next boundary without claiming that stopping alone improved or failed. A bounded multi-locator evidence request is only an owner-decision candidate, not an implemented contract | [Awareness/trust result](evidence/phase-14/assistant-cidx-awareness-trust-result-v1.md), [result review](evidence/phase-14/assistant-cidx-awareness-trust-result-external-review-v1.md), [execution freeze](evidence/phase-14/assistant-cidx-awareness-trust-freeze-v1.md), [accepted plan](ASSISTANT-CIDX-AWARENESS-TRUST-EVALUATION-V1.md), [forced prompt result](evidence/phase-14/assistant-forced-cidx-prompt-result-v1.md), [overbuild incident](evidence/phase-14/assistant-cidx-followup-overbuild-incident.md), [Step 2 implementation](evidence/phase-14/assistant-search-evidence-flow-step-2-implementation.md), and historical [V4–V6 closure](evidence/phase-14/assistant-ab-v4-v6-closure.md) |
 
 `STATUS.md` is the operational ledger. Keep this summary table synchronized with it whenever a phase changes state.
 
@@ -436,6 +443,7 @@ Do not introduce a deferred item implicitly for implementation convenience.
 
 | Date | Change | Reason |
 | --- | --- | --- |
+| 2026-08-23 | Completed and externally reviewed the 30-pair awareness versus trust-priority experiment | Trust-priority improved completeness and source narrowing but increased cidx evidence turns and model usage; the next decision is a bounded evidence-handoff experiment, not retrieval retuning |
 | 2026-08-23 | Froze the 30-pair cidx awareness versus trust-priority experiment | Compare informed free choice with concise cidx priority/bounded trust while preserving identical tools, questions, FTS state, blind quality grading, and explicit failure-safe efficiency denominators |
 | 2026-08-23 | Hard-reset the overbuilt awareness/trust follow-up and retained only a minimal design boundary | The non-promotion diagnostic had expanded into predecessor re-audit, semantic-review, and dedicated runner/scorer infrastructure before any successor primary turn ran |
 | 2026-08-23 | Completed the 30-pair same-tools forced-cidx prompt diagnostic | Isolate actual cidx search/read behavior: code scope fell 63.1% and answer outcomes held, while action multiplication raised paired model-total usage; defer interface change to an explicit owner decision |

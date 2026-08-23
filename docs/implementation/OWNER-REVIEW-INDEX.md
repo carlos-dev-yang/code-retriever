@@ -24,9 +24,12 @@ planner 교정과 동일 v2 재실행도 끝났다. 후보 0건은 `32/44 -> 0/4
 유지·개선됐지만 모델 토큰은 `37.2%` 늘었다. 이후 30질문 forced-cidx prompt
 실험도 끝났다. 양쪽 모두 `29 complete + 1 partial`이며 cidx는 코드 범위를
 63.1% 줄였지만, 도구 행동을 104회에서 254회로 늘려 paired token 중앙값이
-1.404가 됐다. 이후 준비한 awareness/trust 후속 실험은 실행 전에 과도한
-재감사·semantic-review·전용 runner/scorer로 확장돼 hard reset했다. 후속
-실험은 현재 열려 있지 않으며, 남긴 최소 경계를 오너가 다시 승인해야 한다.
+1.404가 됐다. 과도하게 확장된 첫 후속 구현은 hard reset했지만, 남긴 최소
+awareness/trust 계획으로 다시 동결하고 30쌍/60턴을 완료했다. 적극 안내 arm은
+30/30 complete로 자유 선택 arm의 28 complete·1 partial·1 timeout보다 품질이
+좋았고, paired 고유 소스는 중앙값 0.546으로 줄었다. 반면 행동은 1.300,
+model-total은 1.189로 늘었다. 지금 확인된 병목은 유용한 locator를 찾은 뒤의
+근거 획득/오케스트레이션이며, 검색 랭킹 교정으로 결론내리지 않는다.
 
 ---
 
@@ -43,7 +46,8 @@ planner 교정과 동일 v2 재실행도 끝났다. 후보 0건은 `32/44 -> 0/4
 | Phase 14 `release_candidate` | `blocked` (로컬 darwin/arm64 패키지는 있음) |
 | Assistant A/B V3 | 완료 — cidx 12/12 complete, 모델 토큰 +37.2%, unchanged rerun 기각 |
 | Forced cidx prompt V1 | 완료 — 양쪽 29 complete/1 partial, 코드 범위 -63.1%, paired token median 1.404 |
-| 정확한 다음 작업 | [확정된 awareness/trust 평가 계획](ASSISTANT-CIDX-AWARENESS-TRUST-EVALUATION-V1.md)의 최소 변경만 구현·검증한 뒤 scored run 전 freeze |
+| Awareness/trust V1 | 완료 — trust 30/30 complete, paired source 0.546, actions 1.300, model-total 1.189 |
+| 정확한 다음 결정 | 작은 locator 묶음을 한 번에 읽되 개별 line-addressable 근거로 돌려주는 bounded evidence request의 최대 개수와 versioned interface 형태를 오너가 결정 |
 | 라이브 패키징 판정 | `CONTINUE_SIBLING_PACKAGING` |
 | Voyage | 이번 작업에서 0회 |
 
@@ -118,6 +122,32 @@ taxonomy 버전/digest를 직접 기록한다.
 상세 수치와 artifact digest는
 [forced cidx prompt result](evidence/phase-14/assistant-forced-cidx-prompt-result-v1.md)에
 있다.
+
+### 2.4 Awareness vs trust-priority V1 결과
+
+- 두 arm 모두 cidx의 존재와 기본 인터페이스를 알았다. 자유 선택 arm은
+  필요할 때 쓰도록 했고, trust arm만 일반 저장소 탐색보다 cidx를 우선하며
+  반환 locator와 exact `read_span`을 신뢰하라는 짧은 문장을 받았다.
+- 60개 primary cell은 정확히 한 번 실행했다. 자유 선택 arm 한 건이 600초에
+  timeout되어 재시도 없이 ungradable로 남았고, paired 효율은 나머지 29쌍만
+  계산했다.
+- 품질은 `28 complete + 1 partial + 1 ungradable -> 30 complete`이고,
+  required group은 `37/39 -> 39/39`, unsupported claim은 `1 -> 0`이다.
+- paired 고유 소스 중앙값은 `0.546`이고 27/29가 감소/동률이다. 즉 AI가
+  실제로 검토한 코드 범위는 크게 줄었다.
+- 그러나 cidx 호출은 `102 -> 220`, repository action 중앙값은 `1.300`,
+  model-total 중앙값은 `1.189`다. 정확한 후보를 얻은 뒤 검색·개별 read를
+  반복하면서 좁아진 소스 이익을 왕복과 cached-context replay가 상쇄했다.
+- 따라서 다음 후보는 검색식·랭킹 변경이 아니라, 이미 선택한 소수 locator를
+  한 요청으로 읽고 각각을 line-addressable 근거로 반환하는 bounded evidence
+  handoff다. 이것은 외부 MCP 계약 변경이므로 아직 구현하지 않았다.
+- ChatGPT와 Grok은 결과를 `ACCEPT_WITH_CORRECTIONS`로 검토했다. “stopping이
+  문제”라고 단정하지 않고, 불필요한 반복과 정당한 dependency 확장을 이
+  실험이 분리하지 못했다는 제한을 유지한다.
+
+[실험 결과](evidence/phase-14/assistant-cidx-awareness-trust-result-v1.md)와
+[외부 검토](evidence/phase-14/assistant-cidx-awareness-trust-result-external-review-v1.md)에
+분모, 질문 유형별 결과, trace, artifact digest가 있다.
 
 ---
 
@@ -214,7 +244,10 @@ env -u VOYAGE_API_KEY go run ./cmd/cidx dev relations packaging \
 | 4 | [packaging experiment](evidence/phase-07/relation-packaging-experiment-r4.md) | 라이브 40쿼리 숫자 |
 | 5 | [accepted awareness/trust plan](ASSISTANT-CIDX-AWARENESS-TRUST-EVALUATION-V1.md) | 롤백 후 다시 반영한 MCP 문구·두 프롬프트·질문별 채점·기계적 trace·선택적 사후 질문 |
 | 6 | [bounded plan review](evidence/phase-14/assistant-cidx-awareness-trust-plan-review-v1.md) | ChatGPT/Grok의 최초 blocker, 최소 교정, 최종 `PROCEED` |
-| 7 | [overbuild incident](evidence/phase-14/assistant-cidx-followup-overbuild-incident.md) | 제거한 범위와 재발 방지 규칙 |
+| 7 | [awareness/trust freeze](evidence/phase-14/assistant-cidx-awareness-trust-freeze-v1.md) | exact prompt·도구 설명·30쌍·실행 코드·분모를 clean commit에 동결 |
+| 8 | [awareness/trust result](evidence/phase-14/assistant-cidx-awareness-trust-result-v1.md) | blind quality, paired 효율, trace, 질문 유형, artifact seal |
+| 9 | [post-result review](evidence/phase-14/assistant-cidx-awareness-trust-result-external-review-v1.md) | ChatGPT/Grok 교정, 금지 주장, 다음 owner-decision 후보 |
+| 10 | [overbuild incident](evidence/phase-14/assistant-cidx-followup-overbuild-incident.md) | 제거한 범위와 재발 방지 규칙 |
 
 ### 6.2 계약과 산출물
 
