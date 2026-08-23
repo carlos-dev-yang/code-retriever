@@ -24,8 +24,9 @@ planner 교정과 동일 v2 재실행도 끝났다. 후보 0건은 `32/44 -> 0/4
 유지·개선됐지만 모델 토큰은 `37.2%` 늘었다. 이후 30질문 forced-cidx prompt
 실험도 끝났다. 양쪽 모두 `29 complete + 1 partial`이며 cidx는 코드 범위를
 63.1% 줄였지만, 도구 행동을 104회에서 254회로 늘려 paired token 중앙값이
-1.404가 됐다. 다음 순서는 새 저장소나 동일 A/B 반복이 아니라 후보 선정부터
-최종 근거까지의 왕복 계약을 결정하는 것이다.
+1.404가 됐다. 이후 준비한 awareness/trust 후속 실험은 실행 전에 과도한
+재감사·semantic-review·전용 runner/scorer로 확장돼 hard reset했다. 후속
+실험은 현재 열려 있지 않으며, 남긴 최소 경계를 오너가 다시 승인해야 한다.
 
 ---
 
@@ -42,7 +43,7 @@ planner 교정과 동일 v2 재실행도 끝났다. 후보 0건은 `32/44 -> 0/4
 | Phase 14 `release_candidate` | `blocked` (로컬 darwin/arm64 패키지는 있음) |
 | Assistant A/B V3 | 완료 — cidx 12/12 complete, 모델 토큰 +37.2%, unchanged rerun 기각 |
 | Forced cidx prompt V1 | 완료 — 양쪽 29 complete/1 partial, 코드 범위 -63.1%, paired token median 1.404 |
-| 정확한 다음 작업 | 후보 수·중단 규칙·선택 locator 전달·근거 묶음·negative 검색 계약의 제품 인터페이스 결정 |
+| 정확한 다음 작업 | [최소 후속 경계](ASSISTANT-CIDX-NEXT-EXPERIMENT-BOUNDARY.md)를 기준으로 실행 여부와 범위를 오너가 다시 결정. 현재 활성 후속 실험 없음 |
 | 라이브 패키징 판정 | `CONTINUE_SIBLING_PACKAGING` |
 | Voyage | 이번 작업에서 0회 |
 
@@ -211,6 +212,8 @@ env -u VOYAGE_API_KEY go run ./cmd/cidx dev relations packaging \
 | 2 | [STATUS.md](STATUS.md) | 페이즈 상태의 권위 장부 |
 | 3 | [remaining-work handoff](evidence/revision-4/remaining-work-review-handoff-r4.md) | 재개 체크리스트, 오너 결정 목록 |
 | 4 | [packaging experiment](evidence/phase-07/relation-packaging-experiment-r4.md) | 라이브 40쿼리 숫자 |
+| 5 | [minimal successor boundary](ASSISTANT-CIDX-NEXT-EXPERIMENT-BOUNDARY.md) | 롤백 후 남긴 MCP 문구·두 프롬프트·선택적 사후 질문 |
+| 6 | [overbuild incident](evidence/phase-14/assistant-cidx-followup-overbuild-incident.md) | 제거한 범위와 재발 방지 규칙 |
 
 ### 6.2 계약과 산출물
 

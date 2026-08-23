@@ -193,6 +193,22 @@ the immutable
 [result](evidence/phase-14/assistant-forced-cidx-prompt-result-v1.md). No
 previous assistant turn or grade was repaired or rerun.
 
+## 2026-08-23 awareness/trust follow-up reset
+
+The owner rejected and hard-reset the follow-up work that attempted to add a
+predecessor re-audit, semantic packet/reviewer pipeline, dedicated runner,
+large scorer expansion, mandatory 60-session self-report, and another
+60-context semantic pass. No successor primary turn ran, and no product or
+retrieval behavior from that work remains active.
+
+Only the [minimal next-experiment boundary](ASSISTANT-CIDX-NEXT-EXPERIMENT-BOUNDARY.md)
+is retained. It preserves concise MCP descriptions, the two prompt paragraphs,
+and selective post-run diagnostic questions without authorizing execution.
+The [incident record](evidence/phase-14/assistant-cidx-followup-overbuild-incident.md)
+documents the removed scope and prevention rules. Any new assistant experiment
+requires a fresh owner decision and must reuse the existing runner, trace, and
+grading paths by default.
+
 - Prerequisite: reconciled locator-only `13-cli-and-mcp`
 - Followed by: v1 release-candidate validation
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 1–3 and 7–10
