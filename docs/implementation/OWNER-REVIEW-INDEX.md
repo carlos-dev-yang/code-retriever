@@ -43,7 +43,7 @@ planner 교정과 동일 v2 재실행도 끝났다. 후보 0건은 `32/44 -> 0/4
 | Phase 14 `release_candidate` | `blocked` (로컬 darwin/arm64 패키지는 있음) |
 | Assistant A/B V3 | 완료 — cidx 12/12 complete, 모델 토큰 +37.2%, unchanged rerun 기각 |
 | Forced cidx prompt V1 | 완료 — 양쪽 29 complete/1 partial, 코드 범위 -63.1%, paired token median 1.404 |
-| 정확한 다음 작업 | [최소 후속 경계](ASSISTANT-CIDX-NEXT-EXPERIMENT-BOUNDARY.md)를 기준으로 실행 여부와 범위를 오너가 다시 결정. 현재 활성 후속 실험 없음 |
+| 정확한 다음 작업 | [확정된 awareness/trust 평가 계획](ASSISTANT-CIDX-AWARENESS-TRUST-EVALUATION-V1.md)의 최소 변경만 구현·검증한 뒤 scored run 전 freeze |
 | 라이브 패키징 판정 | `CONTINUE_SIBLING_PACKAGING` |
 | Voyage | 이번 작업에서 0회 |
 
@@ -212,8 +212,9 @@ env -u VOYAGE_API_KEY go run ./cmd/cidx dev relations packaging \
 | 2 | [STATUS.md](STATUS.md) | 페이즈 상태의 권위 장부 |
 | 3 | [remaining-work handoff](evidence/revision-4/remaining-work-review-handoff-r4.md) | 재개 체크리스트, 오너 결정 목록 |
 | 4 | [packaging experiment](evidence/phase-07/relation-packaging-experiment-r4.md) | 라이브 40쿼리 숫자 |
-| 5 | [minimal successor boundary](ASSISTANT-CIDX-NEXT-EXPERIMENT-BOUNDARY.md) | 롤백 후 남긴 MCP 문구·두 프롬프트·선택적 사후 질문 |
-| 6 | [overbuild incident](evidence/phase-14/assistant-cidx-followup-overbuild-incident.md) | 제거한 범위와 재발 방지 규칙 |
+| 5 | [accepted awareness/trust plan](ASSISTANT-CIDX-AWARENESS-TRUST-EVALUATION-V1.md) | 롤백 후 다시 반영한 MCP 문구·두 프롬프트·질문별 채점·기계적 trace·선택적 사후 질문 |
+| 6 | [bounded plan review](evidence/phase-14/assistant-cidx-awareness-trust-plan-review-v1.md) | ChatGPT/Grok의 최초 blocker, 최소 교정, 최종 `PROCEED` |
+| 7 | [overbuild incident](evidence/phase-14/assistant-cidx-followup-overbuild-incident.md) | 제거한 범위와 재발 방지 규칙 |
 
 ### 6.2 계약과 산출물
 

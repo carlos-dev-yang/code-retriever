@@ -16,9 +16,10 @@ before the new primary experiment began.
 
 The expansion was not proportionate to a non-promotion assistant diagnostic.
 The owner rejected it and directed a hard reset rather than a revert series or
-incremental repair. Only the concise MCP descriptions, two prompt paragraphs,
-and optional post-run questions survive in
-[the next-experiment boundary](../../ASSISTANT-CIDX-NEXT-EXPERIMENT-BOUNDARY.md).
+incremental repair. The owner later clarified that the experiment plan itself
+also contained required decisions and must survive. Those decisions were
+restored in [the awareness/trust evaluation plan](../../ASSISTANT-CIDX-AWARENESS-TRUST-EVALUATION-V1.md)
+without restoring the rejected audit or semantic-review implementation.
 
 ## Removed work
 
@@ -94,9 +95,15 @@ No successor primary A/B turn was executed despite this work.
 
 The hard reset restored the repository to the immutable forced-prompt result.
 No product code, public MCP contract, ranking, corpus, embedding, or provider
-operation from the rejected work remains active. The next experiment is not
-authorized merely by the retained design note; implementation resumes only
-after the owner approves its minimal execution boundary.
+operation from the rejected work remains active. The owner-required experiment
+plan was subsequently reconstructed from Git history and the owner's 17
+annotated decisions. It retains question-level grading, deterministic journey
+facts, and selected original-agent follow-up while explicitly excluding the
+removed predecessor audit, semantic sidecar, dedicated runner, and large
+scorer expansion. Implementation does not start before its bounded external
+review is reconciled. That bounded review is now recorded as `PROCEED` from
+both reviewers in
+[the plan review](assistant-cidx-awareness-trust-plan-review-v1.md).
 
 ## Checks performed
 
