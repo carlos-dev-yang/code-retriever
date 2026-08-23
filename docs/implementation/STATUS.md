@@ -77,9 +77,32 @@ This ledger is the authoritative resumable state for implementation work. Update
   The owner rejected and hard-reset the subsequent overbuilt awareness/trust
   implementation before any new scored turn. The required plan was then
   restored without that infrastructure and passed bounded ChatGPT/Grok review.
-  Minimal implementation is authorized; no successor scored turn, semantic
-  review, scorer expansion, or mandatory self-report workflow is active.
+  The minimal successor implementation and failure-safe paired denominators
+  are now frozen for execution. No successor scored turn has run yet; semantic
+  review and mandatory self-report remain out of scope.
 - Active owner: `/root`
+- 2026-08-23 Phase 14 execution entry: `/root` re-read the execution guide,
+  implementation index, status ledger, evaluation contract, full Phase 14,
+  accepted awareness/trust plan and review, Phase 13 locator completion, Step
+  2 implementation evidence, and the closed forced-prompt result. The clean
+  entry commit is `f47563a`. The existing 30-question runner, policy/passive
+  trace, blind grader, scorer, approved corpus bindings, and FTS-only state are
+  reusable without a new runner or schema family. Authorized edits are limited
+  to a new frozen manifest, the two reviewed MCP description strings, this
+  checkpoint/freeze documentation, and only a small failure-denominator fix if
+  focused probes prove it necessary. No successor scored turn may run before a
+  clean freeze commit and passing provider-free preflight plus both arm schema
+  probes.
+- 2026-08-23 Phase 14 awareness/trust freeze: the exact 30-pair manifest,
+  shared awareness prompt, sole trust-priority suffix, two concise MCP
+  descriptions, existing runner/trace/grade path, and failure-safe efficiency
+  denominators are frozen in
+  [`assistant-cidx-awareness-trust-freeze-v1.md`](evidence/phase-14/assistant-cidx-awareness-trust-freeze-v1.md).
+  Focused Go, race, vet, Python, synthetic denominator, legacy V3-V6 context,
+  and provider-free preflight checks pass. The implementation stays at the
+  500-line non-documentation boundary including the manifest. The next action
+  is the two arm probes followed by the one-time 60-turn run; scored-cell
+  retries, semantic sidecars, and provider work remain prohibited.
 - Completed bounded work: the final provider-free graph-only Pareto admission
   diagnostic is complete at clean commit
   `497c000bf0d3e9452fd8ff1ce9f570a3df144525`. It reuses the

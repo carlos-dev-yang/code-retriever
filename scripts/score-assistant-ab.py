@@ -498,6 +498,24 @@ def policy_arms(manifest: dict[str, Any]) -> tuple[list[str], str, str]:
     return arm_ids, reference, treatment
 
 
+def policy_arm_semantic_labels(
+    manifest: dict[str, Any], arm_ids: list[str]
+) -> dict[str, str]:
+    configured = manifest.get("arm_semantic_labels")
+    if configured is None:
+        return {arm_id: arm_id for arm_id in arm_ids}
+    if (
+        not isinstance(configured, dict)
+        or set(configured) != set(arm_ids)
+        or any(
+            not isinstance(configured[arm_id], str) or not configured[arm_id]
+            for arm_id in arm_ids
+        )
+    ):
+        raise ScoreError("policy-v2 arm semantic labels are incomplete or invalid")
+    return {arm_id: configured[arm_id] for arm_id in arm_ids}
+
+
 def validate_policy_trace_identity(context: dict[str, Any]) -> None:
     """Fail closed unless the run binds this exact policy trace implementation."""
     run_manifest = context["run_manifest"]
@@ -799,6 +817,12 @@ def prepare_policy(context: dict[str, Any]) -> None:
             final_path = run_root / task_id / arm / "final.json"
             events_path = run_root / task_id / arm / "events.jsonl"
             trace_path = run_root / task_id / arm / "session-trace.json"
+            observation = read_json(run_root / task_id / arm / "observation.json")
+            operationally_gradable = bool(
+                observation.get("valid_execution")
+                and observation.get("final_error") is None
+                and final_path.is_file()
+            )
             identifier = blind_id(seed, task_id, arm)
             if not trace_path.is_file():
                 raise ScoreError(f"policy-v2 run is missing stored trace: {trace_path}")
@@ -815,13 +839,13 @@ def prepare_policy(context: dict[str, Any]) -> None:
                 or trace.get("schema_version") != policy_trace.TRACE_SCHEMA_VERSION
             ):
                 raise ScoreError(f"unsupported policy-v2 trace schema for {identifier}")
-            answer = read_json(final_path)
-            observation = read_json(run_root / task_id / arm / "observation.json")
+            answer = read_json(final_path) if operationally_gradable else None
             journey_records.append({"blind_id": identifier, **trace})
             key["entries"][identifier] = {
                 "task_id": task_id,
                 "arm": arm,
                 "corpus_id": corpus_id,
+                "operationally_gradable": operationally_gradable,
             }
             required_groups = []
             for group in case["required_groups"]:
@@ -851,12 +875,11 @@ def prepare_policy(context: dict[str, Any]) -> None:
                     },
                     "cited_source_excerpts": [
                         {"evidence_index": index, **line_excerpt(root, evidence)}
-                        for index, evidence in enumerate(answer.get("evidence", []))
+                        for index, evidence in enumerate(
+                            answer.get("evidence", []) if answer is not None else []
+                        )
                     ],
-                    "operationally_gradable": bool(
-                        observation.get("valid_execution")
-                        and observation.get("final_error") is None
-                    ),
+                    "operationally_gradable": operationally_gradable,
                 }
             )
     grading_root.mkdir(parents=True)
@@ -2200,12 +2223,18 @@ def validate_passive_grade(
         raise ScoreError(f"missing material claims for {identifier}")
 
     mapping = key["entries"][identifier]
-    answer_evidence = read_json(
-        context["run_root"]
-        / mapping["task_id"]
-        / mapping["arm"]
-        / "final.json"
-    ).get("evidence", [])
+    operationally_gradable = mapping.get("operationally_gradable", True)
+    if not isinstance(operationally_gradable, bool):
+        raise ScoreError(f"invalid operational gradeability for {identifier}")
+    if operationally_gradable:
+        answer_evidence = read_json(
+            context["run_root"]
+            / mapping["task_id"]
+            / mapping["arm"]
+            / "final.json"
+        ).get("evidence", [])
+    else:
+        answer_evidence = []
     if not isinstance(answer_evidence, list):
         raise ScoreError(f"invalid final evidence for {identifier}")
     valid_evidence = valid_source_evidence_indices(
@@ -2260,6 +2289,16 @@ def validate_passive_grade(
     }
     if group_ids != expected_group_ids:
         raise ScoreError(f"grade group mismatch for {identifier}")
+    if not operationally_gradable and (
+        grade.get("outcome") != "ungradable"
+        or any(
+            group.get("status") == "covered" or group.get("evidence_indices")
+            for group in required_groups
+        )
+    ):
+        raise ScoreError(
+            f"operationally ungradable cell received positive credit: {identifier}"
+        )
 
     claim_ids: set[str] = set()
     for claim in claims:
@@ -2322,6 +2361,10 @@ def validate_passive_grade(
     ):
         raise ScoreError(
             f"claim finding does not map to material claims for {identifier}"
+        )
+    if not operationally_gradable and (claims or unsupported or contradicted):
+        raise ScoreError(
+            f"operationally ungradable cell received material claims: {identifier}"
         )
 
 
@@ -2421,6 +2464,60 @@ def policy_required_group_summary(grades: list[dict[str, Any]]) -> dict[str, Any
             all(group.get("status") == "covered" for group in grade["required_groups"])
             for grade in grades
         ),
+    }
+
+
+def policy_official_usage_valid(usage: dict[str, Any]) -> bool:
+    fields = (
+        "input_tokens",
+        "cached_input_tokens",
+        "uncached_input_tokens",
+        "output_tokens",
+        "model_total_tokens",
+    )
+    if not all(type(usage.get(field)) is int and usage[field] >= 0 for field in fields):
+        return False
+    return (
+        usage["cached_input_tokens"] <= usage["input_tokens"]
+        and usage["uncached_input_tokens"]
+        == usage["input_tokens"] - usage["cached_input_tokens"]
+        and usage["model_total_tokens"]
+        == usage["input_tokens"] + usage["output_tokens"]
+    )
+
+
+def policy_trace_incomplete_reasons(
+    observation: dict[str, Any], journey: dict[str, Any]
+) -> list[str]:
+    reasons: list[str] = []
+    if observation.get("invalid_event_lines") != 0:
+        reasons.append("invalid_event_lines")
+    stage = journey.get("policy_stage", {})
+    if int(stage.get("incomplete_cidx_search_attempt_count") or 0) != 0:
+        reasons.append("incomplete_cidx_search_attempt")
+    if int(stage.get("incomplete_cidx_read_span_attempt_count") or 0) != 0:
+        reasons.append("incomplete_cidx_read_span_attempt")
+    if any(
+        not isinstance(action, dict) or action.get("completed") is not True
+        for action in journey.get("policy_actions", [])
+    ):
+        reasons.append("incomplete_policy_action")
+    return reasons
+
+
+def policy_exclusion_reason_counts(
+    pairs: list[dict[str, Any]], field: str
+) -> dict[str, int]:
+    reasons = sorted(
+        {
+            reason
+            for pair in pairs
+            for reason in pair["paired"].get(field, [])
+        }
+    )
+    return {
+        reason: sum(reason in pair["paired"].get(field, []) for pair in pairs)
+        for reason in reasons
     }
 
 
@@ -2569,6 +2666,28 @@ def policy_slice_summary(
         for pair in pairs
         if pair["paired"]["model_total_ratio"] is not None
     ]
+    action_source_pairs = [
+        pair for pair in pairs if pair["paired"]["action_source_comparable"]
+    ]
+    token_pairs = [pair for pair in pairs if pair["paired"]["token_comparable"]]
+    action_ratios = [
+        pair["paired"]["repository_tool_action_ratio"]
+        for pair in action_source_pairs
+        if pair["paired"]["repository_tool_action_ratio"] is not None
+    ]
+    source_ratios = [
+        pair["paired"]["combined_unique_source_bytes_ratio"]
+        for pair in action_source_pairs
+        if pair["paired"]["combined_unique_source_bytes_ratio"] is not None
+    ]
+    action_differences = [
+        pair["paired"]["repository_tool_action_difference"]
+        for pair in action_source_pairs
+    ]
+    source_differences = [
+        pair["paired"]["combined_unique_source_bytes_difference"]
+        for pair in action_source_pairs
+    ]
     return {
         "task_count": len(pairs),
         "outcomes": {
@@ -2583,6 +2702,20 @@ def policy_slice_summary(
             treatment_arm: policy_required_group_summary(treatment_grades),
         },
         "paired": {
+            "scheduled_pair_count": len(pairs),
+            "action_source_pair_count": len(action_source_pairs),
+            "token_pair_count": len(token_pairs),
+            "token_ratio_pair_count": len(all_ratios),
+            "repository_tool_action_ratio_pair_count": len(action_ratios),
+            "combined_unique_source_bytes_ratio_pair_count": len(source_ratios),
+            "action_source_excluded_pair_count": len(pairs) - len(action_source_pairs),
+            "token_excluded_pair_count": len(pairs) - len(token_pairs),
+            "action_source_exclusion_reasons": policy_exclusion_reason_counts(
+                pairs, "action_source_exclusion_reasons"
+            ),
+            "token_exclusion_reasons": policy_exclusion_reason_counts(
+                pairs, "token_exclusion_reasons"
+            ),
             "conversions_to_complete": sum(
                 pair["arms"][reference_arm]["grade"]["outcome"] != "complete"
                 and pair["arms"][treatment_arm]["grade"]["outcome"] == "complete"
@@ -2594,12 +2727,24 @@ def policy_slice_summary(
                 for pair in pairs
             ),
             "dual_complete_count": len(dual_complete),
-            "all_pair_model_total_ratio_median": median(all_ratios),
-            "all_pair_model_total_non_increasing_count": sum(
+            "token_comparable_model_total_ratio_median": median(all_ratios),
+            "token_comparable_model_total_non_increasing_count": sum(
                 value <= 1 for value in all_ratios
             ),
             "model_total_ratio_median": median(ratios),
             "model_total_non_increasing_count": sum(value <= 1 for value in ratios),
+            "repository_tool_action_ratio_median": median(action_ratios),
+            "repository_tool_action_difference_median": median(action_differences),
+            "repository_tool_action_non_increasing_count": sum(
+                value <= 1 for value in action_ratios
+            ),
+            "combined_unique_source_bytes_ratio_median": median(source_ratios),
+            "combined_unique_source_bytes_difference_median": median(
+                source_differences
+            ),
+            "combined_unique_source_bytes_non_increasing_count": sum(
+                value <= 1 for value in source_ratios
+            ),
         },
     }
 
@@ -2610,6 +2755,7 @@ def aggregate_policy(context: dict[str, Any]) -> None:
     manifest = context["manifest"]
     sources = context["sources"]
     arm_ids, reference_arm, treatment_arm = policy_arms(manifest)
+    semantic_labels = policy_arm_semantic_labels(manifest, arm_ids)
     key, blind_grades = load_grades(context)
     frozen_journey = load_frozen_journey(run_root)
     freeze = read_json(run_root / "grading" / "journey-freeze.json")
@@ -2661,19 +2807,67 @@ def aggregate_policy(context: dict[str, Any]) -> None:
             usage = observation.get("usage")
             if not isinstance(usage, dict):
                 raise ScoreError(f"policy-v2 observation lacks usage: {task_id}/{arm}")
+            operationally_gradable = bool(
+                observation.get("valid_execution")
+                and observation.get("final_error") is None
+                and (run_root / task_id / arm / "final.json").is_file()
+            )
+            journey = journeys[(task_id, arm)]
+            trace_incomplete_reasons = policy_trace_incomplete_reasons(
+                observation, journey
+            )
             cells[arm] = {
                 "grade": grades[(task_id, arm)],
                 "usage": usage,
+                "operationally_gradable": operationally_gradable,
+                "trace_intact": not trace_incomplete_reasons,
+                "trace_incomplete_reasons": trace_incomplete_reasons,
+                "official_usage_valid": policy_official_usage_valid(usage),
                 "elapsed_seconds": observation.get("elapsed_seconds"),
                 "command_count": observation.get("command_count"),
                 "mcp_call_count": observation.get("mcp_call_count"),
-                "journey": journeys[(task_id, arm)],
+                "journey": journey,
             }
         reference = cells[reference_arm]
         treatment = cells[treatment_arm]
         reference_usage, treatment_usage = reference["usage"], treatment["usage"]
         reference_total = int(reference_usage.get("model_total_tokens", 0))
         treatment_total = int(treatment_usage.get("model_total_tokens", 0))
+        action_source_exclusion_reasons: list[str] = []
+        for arm, cell in ((reference_arm, reference), (treatment_arm, treatment)):
+            if not cell["operationally_gradable"]:
+                action_source_exclusion_reasons.append(
+                    f"{arm}:operationally_ungradable"
+                )
+            if cell["grade"]["outcome"] == "ungradable":
+                action_source_exclusion_reasons.append(f"{arm}:ungradable_outcome")
+            for reason in cell["trace_incomplete_reasons"]:
+                action_source_exclusion_reasons.append(f"{arm}:{reason}")
+        action_source_comparable = not action_source_exclusion_reasons and all(
+            cell["operationally_gradable"]
+            and cell["grade"]["outcome"] != "ungradable"
+            and cell["trace_intact"]
+            for cell in (reference, treatment)
+        )
+        token_exclusion_reasons = list(action_source_exclusion_reasons)
+        for arm, cell in ((reference_arm, reference), (treatment_arm, treatment)):
+            if not cell["official_usage_valid"]:
+                token_exclusion_reasons.append(f"{arm}:official_usage_invalid")
+        token_comparable = not token_exclusion_reasons
+        reference_exploration = reference["journey"]["exploration_stage"]
+        treatment_exploration = treatment["journey"]["exploration_stage"]
+        reference_actions = int(
+            reference_exploration.get("total_repository_tool_actions", 0)
+        )
+        treatment_actions = int(
+            treatment_exploration.get("total_repository_tool_actions", 0)
+        )
+        reference_source_bytes = int(
+            reference_exploration.get("combined_unique_source_bytes", 0)
+        )
+        treatment_source_bytes = int(
+            treatment_exploration.get("combined_unique_source_bytes", 0)
+        )
         pairs.append(
             {
                 "sequence": task["sequence"],
@@ -2686,12 +2880,54 @@ def aggregate_policy(context: dict[str, Any]) -> None:
                 "treatment_arm": treatment_arm,
                 "arms": cells,
                 "paired": {
-                    "input_difference": int(treatment_usage.get("input_tokens", 0)) - int(reference_usage.get("input_tokens", 0)),
-                    "input_ratio": ratio(int(treatment_usage.get("input_tokens", 0)), int(reference_usage.get("input_tokens", 0))),
-                    "uncached_input_difference": int(treatment_usage.get("uncached_input_tokens", 0)) - int(reference_usage.get("uncached_input_tokens", 0)),
-                    "uncached_input_ratio": ratio(int(treatment_usage.get("uncached_input_tokens", 0)), int(reference_usage.get("uncached_input_tokens", 0))),
-                    "model_total_difference": treatment_total - reference_total,
-                    "model_total_ratio": ratio(treatment_total, reference_total),
+                    "action_source_comparable": action_source_comparable,
+                    "token_comparable": token_comparable,
+                    "action_source_exclusion_reasons": sorted(
+                        set(action_source_exclusion_reasons)
+                    ),
+                    "token_exclusion_reasons": sorted(
+                        set(token_exclusion_reasons)
+                    ),
+                    "repository_tool_action_difference": (
+                        treatment_actions - reference_actions
+                        if action_source_comparable
+                        else None
+                    ),
+                    "repository_tool_action_ratio": (
+                        ratio(treatment_actions, reference_actions)
+                        if action_source_comparable
+                        else None
+                    ),
+                    "combined_unique_source_bytes_difference": (
+                        treatment_source_bytes - reference_source_bytes
+                        if action_source_comparable
+                        else None
+                    ),
+                    "combined_unique_source_bytes_ratio": (
+                        ratio(treatment_source_bytes, reference_source_bytes)
+                        if action_source_comparable
+                        else None
+                    ),
+                    "input_difference": (
+                        int(treatment_usage.get("input_tokens", 0))
+                        - int(reference_usage.get("input_tokens", 0))
+                        if token_comparable
+                        else None
+                    ),
+                    "input_ratio": ratio(int(treatment_usage.get("input_tokens", 0)), int(reference_usage.get("input_tokens", 0))) if token_comparable else None,
+                    "uncached_input_difference": (
+                        int(treatment_usage.get("uncached_input_tokens", 0))
+                        - int(reference_usage.get("uncached_input_tokens", 0))
+                        if token_comparable
+                        else None
+                    ),
+                    "uncached_input_ratio": ratio(int(treatment_usage.get("uncached_input_tokens", 0)), int(reference_usage.get("uncached_input_tokens", 0))) if token_comparable else None,
+                    "model_total_difference": (
+                        treatment_total - reference_total
+                        if token_comparable
+                        else None
+                    ),
+                    "model_total_ratio": ratio(treatment_total, reference_total) if token_comparable else None,
                 },
             }
         )
@@ -2710,14 +2946,20 @@ def aggregate_policy(context: dict[str, Any]) -> None:
     failure_reasons = sorted(
         {reason for stage in directed_stages for reason in stage.get("failure_reasons", [])}
     )
+    result_scope = manifest.get(
+        "result_scope", "non_promotion_forced_cidx_prompt_diagnostic"
+    )
+    if not isinstance(result_scope, str) or not result_scope:
+        raise ScoreError("policy-v2 result_scope must be a non-empty string")
     aggregate_value = {
         "schema_version": 1,
         "run_id": context["run_manifest"]["run_id"],
         "manifest_sha256": context["run_manifest"]["experiment_manifest_sha256"],
         "trace_protocol": policy_trace.POLICY_TRACE_PROTOCOL,
-        "scope": "non_promotion_forced_cidx_prompt_diagnostic",
+        "scope": result_scope,
         "promotion_inference": "NOT_APPLICABLE",
         "arm_ids": arm_ids,
+        "arm_semantic_labels": semantic_labels,
         "reference_arm": reference_arm,
         "treatment_arm": treatment_arm,
         "task_count": len(pairs),
@@ -2778,11 +3020,16 @@ def aggregate_policy(context: dict[str, Any]) -> None:
         "weighted_score": "NOT_REPORTED",
     }
     write_json(run_root / "aggregate.json", aggregate_value)
+    report_title = manifest.get(
+        "report_title", "Forced cidx Prompt Diagnostic V1 — Paired Result"
+    )
+    if not isinstance(report_title, str) or not report_title:
+        raise ScoreError("policy-v2 report_title must be a non-empty string")
     report_lines = [
-        "# Forced cidx Prompt Diagnostic V1 — Paired Result",
+        f"# {report_title}",
         "",
         f"- Run: `{aggregate_value['run_id']}`",
-        f"- Arms: reference `{reference_arm}`, directed treatment `{treatment_arm}`",
+        f"- Arms: reference `{reference_arm}` (`{semantic_labels[reference_arm]}`), treatment `{treatment_arm}` (`{semantic_labels[treatment_arm]}`)",
         "- Scope: non-promotion prompt-policy diagnostic; no promotion inference.",
         "- Answer quality, policy compliance, navigation, evidence, source volume, and tokens are separate surfaces; no weighted score is reported.",
         "",
@@ -2795,24 +3042,47 @@ def aggregate_policy(context: dict[str, Any]) -> None:
         outcomes = aggregate_value["answer_quality"]["outcomes"][arm]
         groups = aggregate_value["answer_quality"]["required_groups"][arm]
         claims = aggregate_value["answer_quality"]["material_claims"][arm]
-        report_lines.append(f"| {arm} | {outcomes['complete']} | {outcomes['partial']} | {outcomes['incorrect']} | {outcomes['ungradable']} | {groups['covered_count']}/{groups['group_count']} | {claims['unsupported_claim_count']} | {claims['contradicted_claim_count']} |")
+        report_lines.append(f"| {arm} ({semantic_labels[arm]}) | {outcomes['complete']} | {outcomes['partial']} | {outcomes['incorrect']} | {outcomes['ungradable']} | {groups['covered_count']}/{groups['group_count']} | {claims['unsupported_claim_count']} | {claims['contradicted_claim_count']} |")
     compliance = aggregate_value["directed_policy_compliance"]
+    compliance_section_title = manifest.get(
+        "report_policy_section_title", "Directed-policy compliance"
+    )
+    compliance_metric_label = manifest.get(
+        "report_policy_metric_label", "Full mechanical compliance"
+    )
+    if (
+        not isinstance(compliance_section_title, str)
+        or not compliance_section_title
+        or not isinstance(compliance_metric_label, str)
+        or not compliance_metric_label
+    ):
+        raise ScoreError("policy-v2 report policy labels must be non-empty strings")
     report_lines.extend([
-        "", "## Directed-policy compliance", "",
-        f"- Full mechanical compliance: {compliance['fully_compliant_count']}/{compliance['task_count']}.",
+        "", f"## {compliance_section_title}", "",
+        f"- {compliance_metric_label}: {compliance['fully_compliant_count']}/{compliance['task_count']}.",
         f"- Failure reasons: {json.dumps(compliance['failure_reasons'], sort_keys=True)}.",
         "", "## Paired outcomes", "",
         f"- Conversions to complete: {policy_summary['paired']['conversions_to_complete']}; regressions from complete: {policy_summary['paired']['regressions_from_complete']}; dual-complete pairs: {policy_summary['paired']['dual_complete_count']}.",
-        f"- All-pair model-total ratio median: {display_number(policy_summary['paired']['all_pair_model_total_ratio_median'])}; non-increasing pairs: {policy_summary['paired']['all_pair_model_total_non_increasing_count']}/{len(pairs)}.",
+        f"- Paired action/source denominator: {policy_summary['paired']['action_source_pair_count']}/{policy_summary['paired']['scheduled_pair_count']}; official-token denominator: {policy_summary['paired']['token_pair_count']}/{policy_summary['paired']['scheduled_pair_count']}.",
+        f"- Token-comparable model-total ratio median: {display_number(policy_summary['paired']['token_comparable_model_total_ratio_median'])}; non-increasing pairs: {policy_summary['paired']['token_comparable_model_total_non_increasing_count']}/{policy_summary['paired']['token_ratio_pair_count']}.",
         f"- Dual-complete model-total ratio median: {display_number(policy_summary['paired']['model_total_ratio_median'])}.",
+        f"- Action-comparable repository-action difference / ratio medians: {display_number(policy_summary['paired']['repository_tool_action_difference_median'])} / {display_number(policy_summary['paired']['repository_tool_action_ratio_median'])}; non-increasing ratios: {policy_summary['paired']['repository_tool_action_non_increasing_count']}/{policy_summary['paired']['repository_tool_action_ratio_pair_count']}.",
+        f"- Action-comparable unique-source-byte difference / ratio medians: {display_number(policy_summary['paired']['combined_unique_source_bytes_difference_median'])} / {display_number(policy_summary['paired']['combined_unique_source_bytes_ratio_median'])}; non-increasing ratios: {policy_summary['paired']['combined_unique_source_bytes_non_increasing_count']}/{policy_summary['paired']['combined_unique_source_bytes_ratio_pair_count']}.",
+        f"- Action/source exclusions: {json.dumps(policy_summary['paired']['action_source_exclusion_reasons'], sort_keys=True)}; token exclusions: {json.dumps(policy_summary['paired']['token_exclusion_reasons'], sort_keys=True)}.",
         "", "## Tool and source behavior", "",
     ])
     for arm in arm_ids:
         values = aggregate_value["cidx_and_ordinary_behavior"][arm]
-        report_lines.append(f"- `{arm}`: {values['cidx_search_count']} cidx searches, {values['cidx_read_span_count']} reads, {values['selected_locator_read_span_count']} exact selected-locator reads, {values['ordinary_discovery_action_count']} ordinary discovery actions, {values['cidx_ordinary_reacquired_source_bytes']} reacquired source bytes, and {values['combined_unique_source_bytes']} combined unique source bytes.")
+        report_lines.append(f"- `{arm}` (`{semantic_labels[arm]}`): {values['cidx_search_count']} cidx searches, {values['cidx_read_span_count']} reads, {values['selected_locator_read_span_count']} exact selected-locator reads, {values['ordinary_discovery_action_count']} ordinary discovery actions, {values['cidx_ordinary_reacquired_source_bytes']} reacquired source bytes, and {values['combined_unique_source_bytes']} combined unique source bytes.")
+    interpretation_boundary = manifest.get(
+        "report_interpretation_boundary",
+        "This measures behavior under an explicit host prompt policy. It preserves noncompliance in every denominator and does not establish voluntary adoption, optional-use marginal value, a mandatory role, or promotion readiness.",
+    )
+    if not isinstance(interpretation_boundary, str) or not interpretation_boundary:
+        raise ScoreError("policy-v2 report interpretation boundary must be non-empty")
     report_lines.extend([
         "", "## Interpretation boundary", "",
-        "This measures behavior under an explicit host prompt policy. It preserves noncompliance in every denominator and does not establish voluntary adoption, optional-use marginal value, a mandatory role, or promotion readiness.",
+        interpretation_boundary,
         "", f"Frozen journey: `{run_root / 'grading' / 'journey-frozen.jsonl'}`", f"Blind grading key: `{run_root / 'grading' / 'blind-key.json'}`",
     ])
     (run_root / "report.md").write_text("\n".join(report_lines) + "\n", encoding="utf-8")

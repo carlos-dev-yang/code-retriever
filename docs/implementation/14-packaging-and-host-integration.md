@@ -547,6 +547,12 @@ accepted in [current int8 package evidence](evidence/phase-14/int8-profile-packa
 The separately bounded assistant interface/trace Step 2 implementation is
 accepted in the
 [search-to-evidence Step 2 evidence](evidence/phase-14/assistant-search-evidence-flow-step-2-implementation.md).
+The owner-authorized awareness-versus-trust-priority successor is frozen before
+any scored turn in the
+[awareness/trust execution freeze](evidence/phase-14/assistant-cidx-awareness-trust-freeze-v1.md).
+It reuses the existing 30 questions, four tools, FTS state, runner, passive
+trace, and blind grading path; it is non-promotion evidence and does not close
+the release gates below.
 The remaining items below are promotion/release gates, so the phase stays
 open rather than `done`.
 
@@ -579,6 +585,7 @@ If operational feedback establishes a real requirement for permanent model pinni
 
 | Decision | Rationale | Revisit when |
 | --- | --- | --- |
+| Compare concise awareness with cidx priority and bounded trust on the existing 30-pair panel | The forced prompt narrowed code but multiplied tool turns; identical tools with a sole short suffix isolate whether informed choice and stopping guidance reduce the total journey without assigning cidx a permanent product role | The frozen run and bounded post-result interpretation are complete |
 | Permit one owner-directed forced-cidx prompt diagnostic outside promotion | Zero adoption left locator/evidence behavior unobserved; a same-tools neutral-versus-directed pair isolates prompt policy while preserving noncompliance and does not redefine the product role | The diagnostic is complete or an optional-use product comparison is prepared |
 | Bundle FTS5 and grammars | Keep the free core independent of system installs and runtime downloads | Platform constraints block real distribution |
 | Officially document project scope only | Reduce wrong-root and multi-repository confusion | Safe user-scope root routing is designed |

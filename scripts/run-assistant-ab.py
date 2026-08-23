@@ -1490,12 +1490,18 @@ def control_violations(
 
 
 def invalidating_control_violations(
-    violations: list[str], session_trace_protocol: str
+    violations: list[str],
+    session_trace_protocol: str,
+    *,
+    reindex_call_invalidates_execution: bool,
 ) -> list[str]:
-    """Keep a policy shell invocation observable without discarding its turn."""
+    """Keep declared diagnostic-only violations without discarding their turn."""
+    ignored: set[str] = set()
     if session_trace_protocol == POLICY_TRACE_PROTOCOL:
-        return [violation for violation in violations if violation != "shell_cidx_attempt"]
-    return violations
+        ignored.add("shell_cidx_attempt")
+    if not reindex_call_invalidates_execution:
+        ignored.add("reindex_call")
+    return [violation for violation in violations if violation not in ignored]
 
 
 def policy_noncompliance_violations(observation: dict[str, Any]) -> list[str]:
@@ -1565,8 +1571,17 @@ def execute_isolated(
             if session_trace_protocol == POLICY_TRACE_PROTOCOL
             else []
         )
+        reindex_call_invalidates_execution = controls.get(
+            "reindex_call_invalidates_execution", True
+        )
+        if not isinstance(reindex_call_invalidates_execution, bool):
+            raise ExperimentError(
+                "controls.reindex_call_invalidates_execution must be boolean"
+            )
         invalidating_violations = invalidating_control_violations(
-            violations, session_trace_protocol
+            violations,
+            session_trace_protocol,
+            reindex_call_invalidates_execution=reindex_call_invalidates_execution,
         )
         updates = {
             "source_before": source_before,
