@@ -135,6 +135,19 @@ This ledger is the authoritative resumable state for implementation work. Update
   inventory digest is `e8a4ae4d…0e51d`. Primary answers remain ungraded. The
   next action is the unchanged blind-grade preparation and calls, followed by
   exactly one aggregate and the terminal retain/reject disposition.
+- Blind preparation produced 60 arm-hidden rows and two deterministic journey
+  packets. One Go grader call returned 20 rows and one RHF call returned 40.
+  The sole aggregate invocation failed before output on two symmetric
+  `avail-tsx-multihop-field-array` rows: line-cap-free `read_span` allowed the
+  cited 509-line function, while the historical grading excerpt rule rejects
+  ranges over 500 lines; the grader named the invalid index and the frozen
+  validator disallows it. No grade was edited or recalled and no second
+  aggregate ran. Independently valid evidence also contains one batch-arm
+  complete-to-partial regression. Mechanically, batch was used on 19/30 tasks
+  and reduced read invocations `132→75`, cidx calls `239→187`, and repository
+  actions `263→203`, but duplicate and overlap rates increased. The conjunctive
+  terminal gates therefore reject batch-v2. Scalar restoration and focused
+  revalidation are now the only remaining Phase 13 work.
 - 2026-08-23 Phase 14 execution entry: `/root` re-read the execution guide,
   implementation index, status ledger, evaluation contract, full Phase 14,
   accepted awareness/trust plan and review, Phase 13 locator completion, Step

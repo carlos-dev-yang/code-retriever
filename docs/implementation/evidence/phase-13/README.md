@@ -8,6 +8,8 @@ review is recorded in
 [`bounded-multi-locator-plan-review-v1.md`](bounded-multi-locator-plan-review-v1.md).
 The one-time, still-ungraded 60-cell primary run is frozen in
 [`bounded-multi-locator-execution-v1.md`](bounded-multi-locator-execution-v1.md).
+Its terminal result rejects batch-v2 and retains scalar-v1; see
+[`bounded-multi-locator-result-v1.md`](bounded-multi-locator-result-v1.md).
 
 The revised Phase 13 search-result wire is accepted in
 [`locator-only-mcp-reconciliation.md`](locator-only-mcp-reconciliation.md).
