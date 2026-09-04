@@ -1,6 +1,6 @@
 # 14. Packaging and MCP Host Integration
 
-- Status: `in_progress` — the default-1024/int8 package checkpoint and Phase
+- Status: `blocked` — the default-1024/int8 package checkpoint and Phase
   13's structured-only locator search/source-only `read_span` contract remain
   accepted. Assistant V4–V6 is closed without an efficiency claim and is not
   reopened. The owner selected a new host-decided, stage-separated
@@ -13,10 +13,11 @@
   completeness and narrowed source but increased repository actions and model
   usage. External review identifies evidence acquisition/orchestration after
   useful locator selection as the measured next boundary without isolating
-  stopping from legitimate dependency expansion. A bounded multi-locator
-  evidence request remains an unapproved owner decision. New test code, paid
-  provider work, and public MCP changes remain unopened. Official Phase 12 and
-  release-candidate promotion remain blocked.
+  stopping from legitimate dependency expansion. The owner has authorized one
+  terminal, provider-free bounded multi-locator compatibility experiment in
+  reopened Phase 13. Phase 14 does not run concurrently and resumes only after
+  that branch is retained or rejected. Paid provider work remains unopened;
+  official Phase 12 and release-candidate promotion remain separately blocked.
 
 ## 2026-08-22 V4 freeze checkpoint
 

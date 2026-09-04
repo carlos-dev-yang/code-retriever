@@ -359,6 +359,17 @@ Assistant diagnostics separate candidate navigation from source acquisition.
 and `read_span` source does not become used evidence merely because it entered
 the context. Do not combine these stages into one precision score.
 
+For the bounded multi-locator compatibility experiment, distinguish an MCP
+invocation from the evidence units it returns. One scalar or v2 `read_span`
+invocation is one evidence-read round trip. Each ordered v2 `evidence` member
+is independently flattened for range, coverage, byte, overlap, and citation
+accounting. Batch eligibility is a task-level diagnostic whose denominator is
+every task where at least two distinct valid locator tuples were exposed before
+source acquisition; it never forces tool use or removes failures, timeouts,
+non-adoption, or noncompliance from their declared denominators. The frozen
+retain/reject gates are owned by
+[READ-SPAN-MULTI-LOCATOR-EXPERIMENT-V1.md](READ-SPAN-MULTI-LOCATOR-EXPERIMENT-V1.md).
+
 For assistant task `q`, let:
 
 - `Gq` be its frozen required evidence groups;

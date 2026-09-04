@@ -1,10 +1,11 @@
 # 13. CLI and MCP Surface Integration
 
-- Status: `done` — default 1024, explicit compact 512, fixed int8,
-  source-bank reuse, and exactly four tools remain accepted. The revised
-  search-result wire is locator-only and structured-only by default; its
-  corrected reducer, budget invariance, adapter projection, and real Codex
-  search-to-read journey are recorded.
+- Status: `in_progress` — the accepted scalar contract remains intact while
+  one owner-authorized, provider-free compatibility amendment tests an
+  explicit two-to-four-locator `read_span` v2 branch. Exactly four tools,
+  locator-only search, the product scalar default, and all retrieval behavior
+  remain fixed. Stable adoption depends on the terminal gates in
+  [the bounded experiment plan](READ-SPAN-MULTI-LOCATOR-EXPERIMENT-V1.md).
 - Prerequisites: reconciled `05-worktree-index-pipeline`, `10-embedding-orchestration-and-reconciliation`, and `11-vector-and-hybrid-search`; completed `06-fts-search`; Phase 12 corpus-independent core/API
 - Followed by: `14-packaging-and-host-integration`
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 3, 4, 8, and 10
@@ -42,6 +43,19 @@ locators; `read_span` remains the only source-bearing cidx tool. This
 supersedes the source-bearing search-response statements below wherever they
 conflict, without changing the four tool names, search input fields, ranking,
 caller-selected `k`, paid-query guard, or `read_span` safety contract.
+
+## 2026-09-04 bounded multi-locator compatibility entry
+
+The owner authorized one narrow experiment against the measured evidence-read
+round-trip loss. Scalar `read_span` stays byte-compatible. An evaluation-only
+batch-capable mode may additionally accept explicit `input_version: 2` with
+two through four unique, caller-selected locators, return ordered separate
+evidence units, and apply the existing hard maximum to their aggregate source
+bytes. It adds no tool, automatic context expansion, server session state,
+retrieval change, provider action, or product configuration. Phase 13 is
+reopened until the focused compatibility evidence and terminal experiment
+either retain or reject this branch. The full frozen boundary is
+[READ-SPAN-MULTI-LOCATOR-EXPERIMENT-V1.md](READ-SPAN-MULTI-LOCATOR-EXPERIMENT-V1.md).
 
 ## Revision 4 initialization checkpoint
 
@@ -290,6 +304,14 @@ Return the complete requested range only when it fits the server hard maximum; n
 
 There is no read-span line-count cap. The complete requested range is governed only by the byte limit and remains all-or-nothing.
 
+The stable product contract remains the scalar form above during the bounded
+experiment. The evaluation launcher may expose the explicit v2 branch defined
+in [the experiment plan](READ-SPAN-MULTI-LOCATOR-EXPERIMENT-V1.md). That branch
+buffers two through four complete scalar-validated ranges, preserves request
+order and separate line-addressable bodies, and fails without returning any
+body if one item or the aggregate source-byte ceiling fails. Product adoption
+is not implied by code presence or experiment activation.
+
 ### 6.6 MCP `reindex`
 
 Input has one optional `dry_run` boolean. It calls the same Phase 05 `IndexService` and no external API.
@@ -487,3 +509,4 @@ Phase 14 receives one `cidx` binary and public help, the `cidx serve --root <rep
 | Do not estimate token budgets | Caller owns tokenizer and host-context composition | Host provides a standard token contract |
 | Init discovers Git before config | A new repository has no config yet, while normal serving still needs a configured worktree root | Repository ownership becomes multi-root |
 | Search is locator-only; read_span owns source | V3 preserved correctness but expanded 176 source-bearing candidates before 29 selected reads; compact navigation isolates recall from evidence volume | A measured compact assistant run shows source-bearing search is necessary |
+| Test bounded multi-locator reads without a fifth tool | The accepted locator search narrowed source, while repeated evidence acquisition remained the first measured loss | The one terminal scalar-vs-batch comparison retains or rejects the v2 branch |
