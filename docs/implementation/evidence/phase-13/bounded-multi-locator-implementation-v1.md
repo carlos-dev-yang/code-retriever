@@ -3,6 +3,7 @@
 - Date: 2026-09-04
 - Phase: 13
 - Implementation commit: `6737494c74c1235eb32b2eeb25c5f7d7f6d89730`
+- Preflight variable-shadow correction: `3447758425bdec6dd3e708d0708a77e56b9c0f11`
 - Disposition: `READY_TO_FREEZE`
 
 ## Implemented boundary
@@ -54,5 +55,9 @@ schema and functional response.
 The derived manifest is
 [`assistant-read-span-multi-locator-chi-rhf-v1.json`](../../../../testdata/retrieval/assistant-read-span-multi-locator-chi-rhf-v1.json).
 It preserves the prior 30 tasks, questions, truth, corpora, schedule, model,
-FTS state, grading path, and trust prompt. Its pre-commit SHA-256 is
-`44dbb7577a6bc32f092a761071afeacf9c865bd13ea88e8d7362cd512d7f9935`.
+FTS state, grading path, and trust prompt. The first frozen preflight exposed
+one runner-local variable shadow: the per-arm tool schema replaced the answer
+schema path after MCP validation. No scored turn ran. The correction only
+renamed that local value and the manifest was re-frozen before retrying the
+unscored preflight. The corrected manifest SHA-256 is
+`e75ff8ecec219ab421725aa2b4dea4859e51e44c59a7c66cd585d94b46938322`.

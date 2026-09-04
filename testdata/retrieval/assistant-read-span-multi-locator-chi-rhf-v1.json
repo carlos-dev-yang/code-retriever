@@ -13,7 +13,7 @@
   "freeze": {
     "protocol": "assistant-read-span-multi-locator-freeze-v1",
     "prepared_at": "2026-09-04",
-    "frozen_at": "2026-09-04T14:22:56Z",
+    "frozen_at": "2026-09-04T14:26:21Z",
     "scored_turns_observed": false,
     "bounded_plan_review": {"reviewers": ["chatgpt-pro", "grok"], "disposition": "PROCEED_ONCE", "blocking_findings": 0, "evidence": "docs/implementation/evidence/phase-13/bounded-multi-locator-plan-review-v1.md"},
     "bounded_implementation_review": {"reviewer": "/root/multiloc_scope", "disposition": "PASS", "blocking_findings": 0, "scope": "scalar compatibility; bounded atomic batch contract; per-arm provider-free preflight; invocation/evidence accounting; retained four-tool boundary"},
@@ -23,7 +23,7 @@
       "passive": {"path": "scripts/assistant_session_trace.py", "sha256": "fcf3b98364250f8ba633d5491c4637318cdca744759779da26be10086a954396"}
     },
     "execution_code": {
-      "runner": {"path": "scripts/run-assistant-ab.py", "sha256": "389415144496478a8b798ff85a1b4cd9ae50beba923bf18eace49088c39d1a60"},
+      "runner": {"path": "scripts/run-assistant-ab.py", "sha256": "0852613e2d2c6839eaded80e46d7cb04857cf735b44fa480a60da24bd396ee88"},
       "scorer": {"path": "scripts/score-assistant-ab.py", "sha256": "078806bb759f8447f874aecb7c0135c8047e6772674a52a0a14270f47605169f"}
     },
     "tool_contract_preflight": {

@@ -115,6 +115,11 @@ This ledger is the authoritative resumable state for implementation work. Update
   `scalar-v1` versus optional `batch-v2` differs. After this clean freeze,
   execute the provider-free runner preflight and both unscored Codex schema
   probes before any scored turn.
+- The first unscored frozen preflight stopped after successful per-arm MCP
+  validation because a runner-local tool-schema value shadowed the answer
+  schema path. No model or scored cell ran. Commit `3447758` performs only the
+  local rename; the manifest is re-frozen against that exact runner before the
+  preflight resumes.
 - 2026-08-23 Phase 14 execution entry: `/root` re-read the execution guide,
   implementation index, status ledger, evaluation contract, full Phase 14,
   accepted awareness/trust plan and review, Phase 13 locator completion, Step
