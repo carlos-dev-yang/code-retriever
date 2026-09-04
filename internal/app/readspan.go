@@ -17,22 +17,18 @@ import (
 )
 
 type ReadSpanError struct {
-	Code         string
-	MaxBytes     int
-	LocatorIndex *int
+	Code     string
+	MaxBytes int
 }
 
 func (value ReadSpanError) Error() string { return value.Code }
 
 const (
-	ReadSpanFileNotFound        = "FILE_NOT_FOUND"
-	ReadSpanFileStale           = "FILE_STALE"
-	ReadSpanTooLarge            = "SPAN_TOO_LARGE"
-	ReadSpanInvalidPath         = "INVALID_PATH"
-	ReadSpanInvalidRange        = "INVALID_RANGE"
-	ReadSpanInvalidLocatorCount = "INVALID_LOCATOR_COUNT"
-	ReadSpanDuplicateLocator    = "DUPLICATE_LOCATOR"
-	ReadSpanBatchTooLarge       = "BATCH_TOO_LARGE"
+	ReadSpanFileNotFound = "FILE_NOT_FOUND"
+	ReadSpanFileStale    = "FILE_STALE"
+	ReadSpanTooLarge     = "SPAN_TOO_LARGE"
+	ReadSpanInvalidPath  = "INVALID_PATH"
+	ReadSpanInvalidRange = "INVALID_RANGE"
 )
 
 type ReadSpanRequest struct {
@@ -46,17 +42,6 @@ type ReadSpanResponse struct {
 	EndLine       int    `json:"end_line"`
 	Body          []byte `json:"body"`
 	IndexedSHA256 string `json:"indexed_sha256"`
-}
-
-// ReadSpanBatchRequest is deliberately limited to the evaluation-only v2
-// read_span contract. It contains caller-selected scalar requests only; it
-// does not perform dependency discovery or expand any requested range.
-type ReadSpanBatchRequest struct {
-	Locators []ReadSpanRequest
-}
-
-type ReadSpanBatchResponse struct {
-	Evidence []ReadSpanResponse
 }
 type ReadSpanService struct {
 	Root     string
@@ -105,46 +90,6 @@ func (service ReadSpanService) Read(ctx context.Context, request ReadSpanRequest
 		return ReadSpanResponse{}, ReadSpanError{Code: ReadSpanTooLarge, MaxBytes: service.Resolved.MCP.HardMaxInlineBytes}
 	}
 	return ReadSpanResponse{Path: request.Path, StartLine: request.StartLine, EndLine: request.EndLine, Body: body, IndexedSHA256: hash}, nil
-}
-
-// ReadBatch buffers complete scalar responses before returning any evidence.
-// The scalar read method remains the authority for every locator's path,
-// freshness, range, and individual body-limit checks.
-func (service ReadSpanService) ReadBatch(ctx context.Context, request ReadSpanBatchRequest) (ReadSpanBatchResponse, error) {
-	if len(request.Locators) < 2 || len(request.Locators) > 4 {
-		return ReadSpanBatchResponse{}, ReadSpanError{Code: ReadSpanInvalidLocatorCount}
-	}
-	type locatorKey struct {
-		path, digest string
-		start, end   int
-	}
-	seen := make(map[locatorKey]struct{}, len(request.Locators))
-	for locatorIndex, locator := range request.Locators {
-		key := locatorKey{path: locator.Path, digest: locator.ExpectedSHA256, start: locator.StartLine, end: locator.EndLine}
-		if _, exists := seen[key]; exists {
-			return ReadSpanBatchResponse{}, ReadSpanError{Code: ReadSpanDuplicateLocator, LocatorIndex: &locatorIndex}
-		}
-		seen[key] = struct{}{}
-	}
-	evidence := make([]ReadSpanResponse, 0, len(request.Locators))
-	totalBytes := 0
-	for locatorIndex, locator := range request.Locators {
-		response, err := service.Read(ctx, locator)
-		if err != nil {
-			var span ReadSpanError
-			if errors.As(err, &span) {
-				span.LocatorIndex = &locatorIndex
-				return ReadSpanBatchResponse{}, span
-			}
-			return ReadSpanBatchResponse{}, err
-		}
-		totalBytes += len(response.Body)
-		if totalBytes > service.Resolved.MCP.HardMaxInlineBytes {
-			return ReadSpanBatchResponse{}, ReadSpanError{Code: ReadSpanBatchTooLarge, MaxBytes: service.Resolved.MCP.HardMaxInlineBytes, LocatorIndex: &locatorIndex}
-		}
-		evidence = append(evidence, response)
-	}
-	return ReadSpanBatchResponse{Evidence: evidence}, nil
 }
 
 func validReadPath(path string) bool {

@@ -36,7 +36,6 @@ type Services interface {
 	Status(context.Context) (app.StatusResponse, error)
 	Search(context.Context, app.SearchRequest) (any, error)
 	ReadSpan(context.Context, app.ReadSpanRequest) (app.ReadSpanResponse, error)
-	ReadSpanBatch(context.Context, app.ReadSpanBatchRequest) (app.ReadSpanBatchResponse, error)
 	Reindex(context.Context, bool) (any, error)
 }
 type ApplicationServices struct{ Application *app.Application }
@@ -54,9 +53,6 @@ func (value ApplicationServices) Search(ctx context.Context, request app.SearchR
 func (value ApplicationServices) ReadSpan(ctx context.Context, request app.ReadSpanRequest) (app.ReadSpanResponse, error) {
 	return value.Application.ReadSpan.Read(ctx, request)
 }
-func (value ApplicationServices) ReadSpanBatch(ctx context.Context, request app.ReadSpanBatchRequest) (app.ReadSpanBatchResponse, error) {
-	return value.Application.ReadSpan.ReadBatch(ctx, request)
-}
 func (value ApplicationServices) Reindex(ctx context.Context, dry bool) (any, error) {
 	result, err := value.Application.Reindex(ctx, dry, index.ReasonMCP)
 	if err != nil {
@@ -70,14 +66,10 @@ func (value ApplicationServices) Reindex(ctx context.Context, dry bool) (any, er
 }
 
 func callTool(ctx context.Context, services Services, raw json.RawMessage) (any, *Error) {
-	return callToolWithContract(ctx, services, raw, ResultRepresentationDefault, ReadSpanContractScalarV1)
+	return callToolWithRepresentation(ctx, services, raw, ResultRepresentationDefault)
 }
 
 func callToolWithRepresentation(ctx context.Context, services Services, raw json.RawMessage, representation ResultRepresentation) (any, *Error) {
-	return callToolWithContract(ctx, services, raw, representation, ReadSpanContractScalarV1)
-}
-
-func callToolWithContract(ctx context.Context, services Services, raw json.RawMessage, representation ResultRepresentation, contract ReadSpanContract) (any, *Error) {
 	call, failure := decodeObject(raw, "name", "arguments", "_meta")
 	if failure != nil {
 		return nil, failure
@@ -120,7 +112,16 @@ func callToolWithContract(ctx context.Context, services Services, raw json.RawMe
 		result, callErr := services.Search(ctx, request)
 		return toolOutcome(wireSearch(result), applicationError(callErr), representation), nil
 	case "read_span":
-		return callReadSpan(ctx, services, args, representation, contract)
+		value, err := decodeObject(args, "path", "start_line", "end_line", "expected_sha256")
+		if err != nil {
+			return nil, err
+		}
+		var request app.ReadSpanRequest
+		if !requiredString(value, "path", &request.Path) || !requiredLowerSHA256(value, "expected_sha256", &request.ExpectedSHA256) || !requiredInteger(value, "start_line", &request.StartLine) || !requiredInteger(value, "end_line", &request.EndLine) || request.StartLine < 1 || request.EndLine < request.StartLine {
+			return nil, &Error{Code: invalidParams, Message: "INVALID_READ_SPAN_REQUEST"}
+		}
+		result, callErr := services.ReadSpan(ctx, request)
+		return toolOutcome(wireReadSpan(result), applicationError(callErr), representation), nil
 	case "reindex":
 		value, err := decodeObject(args, "dry_run")
 		if err != nil {
@@ -135,83 +136,6 @@ func callToolWithContract(ctx context.Context, services Services, raw json.RawMe
 	default:
 		return nil, &Error{Code: invalidParams, Message: "UNKNOWN_TOOL"}
 	}
-}
-
-func callReadSpan(ctx context.Context, services Services, raw json.RawMessage, representation ResultRepresentation, contract ReadSpanContract) (any, *Error) {
-	allowed := []string{"path", "start_line", "end_line", "expected_sha256"}
-	if contract == ReadSpanContractBatchV2 {
-		allowed = append(allowed, "input_version", "locators")
-	}
-	value, err := decodeObject(raw, allowed...)
-	if err != nil {
-		return nil, err
-	}
-	_, hasVersion := value["input_version"]
-	_, hasLocators := value["locators"]
-	if hasVersion || hasLocators {
-		if contract != ReadSpanContractBatchV2 {
-			return nil, &Error{Code: invalidParams, Message: "INVALID_READ_SPAN_REQUEST"}
-		}
-		for _, field := range []string{"path", "start_line", "end_line", "expected_sha256"} {
-			if _, exists := value[field]; exists {
-				return nil, &Error{Code: invalidParams, Message: "INVALID_READ_SPAN_REQUEST"}
-			}
-		}
-		var inputVersion int
-		if !hasVersion || !hasLocators || !requiredInteger(value, "input_version", &inputVersion) || inputVersion != 2 {
-			return nil, &Error{Code: invalidParams, Message: "INVALID_READ_SPAN_REQUEST"}
-		}
-		locators, failure := decodeReadSpanLocators(value["locators"])
-		if failure != nil {
-			return nil, failure
-		}
-		result, callErr := services.ReadSpanBatch(ctx, app.ReadSpanBatchRequest{Locators: locators})
-		return toolOutcome(wireReadSpanBatch(result), applicationError(callErr), representation), nil
-	}
-	request, failure := decodeReadSpanRequest(value)
-	if failure != nil {
-		return nil, failure
-	}
-	result, callErr := services.ReadSpan(ctx, request)
-	return toolOutcome(wireReadSpan(result), applicationError(callErr), representation), nil
-}
-
-func decodeReadSpanLocators(raw json.RawMessage) ([]app.ReadSpanRequest, *Error) {
-	var values []json.RawMessage
-	if err := json.Unmarshal(raw, &values); err != nil || values == nil {
-		return nil, &Error{Code: invalidParams, Message: "INVALID_READ_SPAN_REQUEST"}
-	}
-	locators := make([]app.ReadSpanRequest, 0, len(values))
-	for locatorIndex, rawLocator := range values {
-		value, err := decodeObject(rawLocator, "path", "start_line", "end_line", "expected_sha256")
-		if err != nil {
-			return nil, readSpanLocatorError(err, locatorIndex)
-		}
-		locator, failure := decodeReadSpanRequest(value)
-		if failure != nil {
-			return nil, readSpanLocatorError(failure, locatorIndex)
-		}
-		locators = append(locators, locator)
-	}
-	return locators, nil
-}
-
-func readSpanLocatorError(failure *Error, locatorIndex int) *Error {
-	data := map[string]any{"locator_index": locatorIndex}
-	if existing, ok := failure.Data.(map[string]string); ok {
-		for key, value := range existing {
-			data[key] = value
-		}
-	}
-	return &Error{Code: failure.Code, Message: failure.Message, Data: data}
-}
-
-func decodeReadSpanRequest(value map[string]json.RawMessage) (app.ReadSpanRequest, *Error) {
-	var request app.ReadSpanRequest
-	if !requiredString(value, "path", &request.Path) || !requiredLowerSHA256(value, "expected_sha256", &request.ExpectedSHA256) || !requiredInteger(value, "start_line", &request.StartLine) || !requiredInteger(value, "end_line", &request.EndLine) || request.StartLine < 1 || request.EndLine < request.StartLine {
-		return app.ReadSpanRequest{}, &Error{Code: invalidParams, Message: "INVALID_READ_SPAN_REQUEST"}
-	}
-	return request, nil
 }
 
 func toolOutcome(value any, failure *Error, representation ResultRepresentation) callToolResult {
@@ -279,13 +203,6 @@ func wireReindex(value any) any {
 
 func wireReadSpan(value app.ReadSpanResponse) map[string]any {
 	return map[string]any{"path": value.Path, "start_line": value.StartLine, "end_line": value.EndLine, "body": string(value.Body), "indexed_sha256": value.IndexedSHA256}
-}
-func wireReadSpanBatch(value app.ReadSpanBatchResponse) map[string]any {
-	evidence := make([]map[string]any, 0, len(value.Evidence))
-	for _, item := range value.Evidence {
-		evidence = append(evidence, wireReadSpan(item))
-	}
-	return map[string]any{"input_version": 2, "evidence": evidence}
 }
 func wireSearch(value any) any {
 	response, ok := value.(search.Response)

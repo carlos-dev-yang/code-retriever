@@ -805,55 +805,36 @@ def build_session_trace(
             )
             continue
 
+        requested_path = arguments.get("path")
+        start = arguments.get("start_line")
+        end = arguments.get("end_line")
+        expected_digest = arguments.get("expected_sha256")
+        delivered_path = payload.get("path") if isinstance(payload, dict) else None
+        delivered_start = payload.get("start_line") if isinstance(payload, dict) else None
+        delivered_end = payload.get("end_line") if isinstance(payload, dict) else None
+        delivered_digest = (
+            payload.get("indexed_sha256") if isinstance(payload, dict) else None
+        )
+        body = payload.get("body") if isinstance(payload, dict) else None
         result = item.get("result")
         no_error = isinstance(result, dict) and not result.get(
             "isError", result.get("is_error", False)
         )
-        invocation_id = (
-            str(item_id)
-            if isinstance(item_id, str) and item_id
-            else f"read_span:{action_ordinal}"
+        success, conformance_error, delivered_source_bytes = _read_conformance(
+            source_root,
+            requested_path=requested_path,
+            start=start,
+            end=end,
+            expected_digest=expected_digest,
+            delivered_path=delivered_path,
+            delivered_start=delivered_start,
+            delivered_end=delivered_end,
+            delivered_digest=delivered_digest,
+            body=body,
+            no_error=no_error,
         )
-        input_version = arguments.get("input_version")
-        batch_locators = arguments.get("locators")
-        batch_evidence = payload.get("evidence") if isinstance(payload, dict) else None
-        is_batch = input_version == 2
-        if is_batch and isinstance(batch_locators, list) and isinstance(batch_evidence, list):
-            read_units = list(zip(batch_locators, batch_evidence, strict=False))
-            if len(batch_locators) != len(batch_evidence):
-                read_units = [(None, None)]
-        elif is_batch:
-            # A rejected batch has one invocation but no source-bearing unit.
-            read_units = [(None, None)]
-        else:
-            read_units = [(arguments, payload)]
-
-        for evidence_unit_index, (requested, delivered) in enumerate(read_units):
-            requested = requested if isinstance(requested, dict) else {}
-            delivered = delivered if isinstance(delivered, dict) else {}
-            requested_path = requested.get("path")
-            start = requested.get("start_line")
-            end = requested.get("end_line")
-            expected_digest = requested.get("expected_sha256")
-            delivered_path = delivered.get("path")
-            delivered_start = delivered.get("start_line")
-            delivered_end = delivered.get("end_line")
-            delivered_digest = delivered.get("indexed_sha256")
-            body = delivered.get("body")
-            success, conformance_error, delivered_source_bytes = _read_conformance(
-                source_root,
-                requested_path=requested_path,
-                start=start,
-                end=end,
-                expected_digest=expected_digest,
-                delivered_path=delivered_path,
-                delivered_start=delivered_start,
-                delivered_end=delivered_end,
-                delivered_digest=delivered_digest,
-                body=body,
-                no_error=no_error,
-            )
-            read_observation = {
+        reads.append(
+            {
                 "ordinal": action_ordinal,
                 "requested": {
                     "path": requested_path,
@@ -871,24 +852,10 @@ def build_session_trace(
                 "conformance_error": conformance_error,
                 "result_code": payload.get("code") if isinstance(payload, dict) else None,
                 "delivered_source_bytes": delivered_source_bytes,
-                # A batch response is one model-visible MCP result, not one per unit.
-                "payload_bytes": payload_bytes if evidence_unit_index == 0 else {
-                    "structured": 0,
-                    "text": 0,
-                    "event_result": 0,
-                },
+                "payload_bytes": payload_bytes,
                 "overlaps_prior_successful_read_keys": [],
             }
-            if is_batch:
-                read_observation.update(
-                    {
-                        "invocation_id": invocation_id,
-                        "input_version": 2,
-                        "evidence_unit_index": evidence_unit_index,
-                        "is_first_evidence_unit": evidence_unit_index == 0,
-                    }
-                )
-            reads.append(read_observation)
+        )
 
     prior: list[dict[str, Any]] = []
     for read in reads:

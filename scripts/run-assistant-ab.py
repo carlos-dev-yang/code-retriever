@@ -51,12 +51,6 @@ CIDX_ARM = "cidx_fts"
 POLICY_NEUTRAL_ARM = "neutral_cidx"
 POLICY_DIRECTED_ARM = "directed_cidx"
 POLICY_ARM_IDS = (POLICY_NEUTRAL_ARM, POLICY_DIRECTED_ARM)
-READ_SPAN_CONTRACT_SCALAR_V1 = "scalar-v1"
-READ_SPAN_CONTRACT_BATCH_V2 = "batch-v2"
-READ_SPAN_CONTRACTS = {
-    READ_SPAN_CONTRACT_SCALAR_V1,
-    READ_SPAN_CONTRACT_BATCH_V2,
-}
 ARM_ID_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]*")
 SHA256_PATTERN = re.compile(r"[0-9a-f]{64}")
 SHELL_CIDX_PATTERN = re.compile(
@@ -201,7 +195,7 @@ def manifest_arms(manifest: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], 
     return arms, False
 
 
-def arm_mcp_config(arm: dict[str, Any]) -> tuple[str, str, str]:
+def arm_mcp_config(arm: dict[str, Any]) -> tuple[str, str]:
     """Resolve the cidx server name and approval mode from one arm's config."""
     mcp = arm["mcp"]
     unknown_fields = set(mcp) - {
@@ -209,7 +203,6 @@ def arm_mcp_config(arm: dict[str, Any]) -> tuple[str, str, str]:
         "server_name",
         "approval_mode",
         "default_tools_approval_mode",
-        "read_span_contract",
     }
     if unknown_fields:
         raise ExperimentError(
@@ -223,19 +216,7 @@ def arm_mcp_config(arm: dict[str, Any]) -> tuple[str, str, str]:
         raise ExperimentError("only the frozen cidx MCP server may be exposed")
     if not isinstance(approval_mode, str) or not approval_mode:
         raise ExperimentError(f"manifest arm {arm['id']} has invalid MCP approval mode")
-    read_span_contract = mcp.get(
-        "read_span_contract", READ_SPAN_CONTRACT_SCALAR_V1
-    )
-    if read_span_contract not in READ_SPAN_CONTRACTS:
-        raise ExperimentError(
-            f"manifest arm {arm['id']} has invalid read_span_contract"
-        )
-    return server_name, approval_mode, read_span_contract
-
-
-def mcp_without_read_span_contract(mcp: dict[str, Any]) -> dict[str, Any]:
-    """Return the invariant MCP launcher settings for the interface experiment."""
-    return {key: value for key, value in mcp.items() if key != "read_span_contract"}
+    return server_name, approval_mode
 
 
 def rendered_prompt(template: str, task_id: str, question: str, arm: dict[str, Any]) -> str:
@@ -272,54 +253,6 @@ def policy_manifest_contract(
         )
     neutral = arms[neutral_id]
     directed = arms[directed_id]
-    sole_intervention = prompt_policy.get("sole_intervention")
-    if sole_intervention == "read_span_contract_v1":
-        if not neutral["prompt_suffix"] or neutral["prompt_suffix"] != directed["prompt_suffix"]:
-            raise ExperimentError(
-                "read_span_contract_v1 requires identical non-empty trust prompts"
-            )
-        declared_suffix_hash = require_sha256(
-            prompt_policy.get("trust_suffix_sha256"),
-            "prompt_policy.trust_suffix_sha256",
-        )
-        if sha256_text(neutral["prompt_suffix"]) != declared_suffix_hash:
-            raise ExperimentError("trust prompt suffix differs from declared digest")
-        if mcp_without_read_span_contract(neutral["mcp"]) != mcp_without_read_span_contract(directed["mcp"]):
-            raise ExperimentError(
-                "read_span_contract_v1 arms differ in MCP fields other than read_span_contract"
-            )
-        neutral_mcp = arm_mcp_config(neutral)
-        directed_mcp = arm_mcp_config(directed)
-        if (
-            neutral_mcp[:2] != directed_mcp[:2]
-            or neutral_mcp[2] != READ_SPAN_CONTRACT_SCALAR_V1
-            or directed_mcp[2] != READ_SPAN_CONTRACT_BATCH_V2
-        ):
-            raise ExperimentError(
-                "read_span_contract_v1 requires neutral_cidx=scalar-v1 and "
-                "directed_cidx=batch-v2"
-            )
-        return {
-            "neutral_arm_id": neutral_id,
-            "directed_arm_id": directed_id,
-            "sole_intervention": sole_intervention,
-            "trust_suffix_sha256": declared_suffix_hash,
-            "mcp_invariant_sha256": canonical_json_sha256(
-                mcp_without_read_span_contract(neutral["mcp"])
-            ),
-            "read_span_contracts": {
-                neutral_id: neutral_mcp[2],
-                directed_id: directed_mcp[2],
-            },
-            "mcp_server_name": neutral_mcp[0],
-            "mcp_approval_mode": neutral_mcp[1],
-        }
-
-    if sole_intervention not in {
-        "append_exact_priority_and_bounded_trust_suffix",
-        "append_exact_directed_suffix",
-    }:
-        raise ExperimentError("unsupported prompt_policy.sole_intervention")
     if neutral["prompt_suffix"] != "":
         raise ExperimentError("neutral_cidx prompt_suffix must be empty")
     if not directed["prompt_suffix"]:
@@ -443,10 +376,9 @@ def policy_prompt_rendering_hashes(
     sources: list[dict[str, dict[str, Any]]],
     policy_contract: dict[str, Any],
 ) -> dict[str, dict[str, Any]]:
-    """Prove the frozen prompt relation for the selected sole intervention."""
+    """Prove the directed suffix is the sole rendered-prompt difference."""
     neutral = arms[policy_contract["neutral_arm_id"]]
     directed = arms[policy_contract["directed_arm_id"]]
-    interface_experiment = policy_contract.get("sole_intervention") == "read_span_contract_v1"
     suffix = directed["prompt_suffix"]
     renderings: dict[str, dict[str, Any]] = {}
     for task in manifest["tasks"]:
@@ -454,17 +386,6 @@ def policy_prompt_rendering_hashes(
         question = sources[task["question_source_index"]][task_id]["text"]
         neutral_prompt = rendered_prompt(manifest["prompt_template"], task_id, question, neutral)
         directed_prompt = rendered_prompt(manifest["prompt_template"], task_id, question, directed)
-        if interface_experiment:
-            if neutral_prompt != directed_prompt:
-                raise ExperimentError(
-                    f"read_span contract arms have different prompts: {task_id}"
-                )
-            renderings[task_id] = {
-                "neutral_rendered_prompt_sha256": sha256_text(neutral_prompt),
-                "directed_rendered_prompt_sha256": sha256_text(directed_prompt),
-                "prompts_identical": True,
-            }
-            continue
         if not directed_prompt.endswith(suffix):
             raise ExperimentError(f"directed prompt does not end in its exact suffix: {task_id}")
         directed_without_suffix = directed_prompt[: -len(suffix)]
@@ -888,8 +809,9 @@ def verify_corpus(
 
 
 def verify_frozen_tool_contract(
-    frozen: dict[str, Any], tool_schema: dict[str, Any]
+    manifest: dict[str, Any], tool_schema: dict[str, Any]
 ) -> None:
+    frozen = manifest.get("freeze", {}).get("tool_contract_preflight", {})
     comparisons = {
         "tool_names": tool_schema["names"],
         "definition_sha256": tool_schema["sha256"],
@@ -917,10 +839,7 @@ def verify_mcp_tools(
     state_root: Path,
     result_representation: str,
     probe_query: str,
-    read_span_contract: str = READ_SPAN_CONTRACT_SCALAR_V1,
 ) -> dict[str, Any]:
-    if read_span_contract not in READ_SPAN_CONTRACTS:
-        raise ExperimentError("invalid read_span contract for MCP preflight")
     preflight_environment = isolated_environment()
     if "VOYAGE_API_KEY" in preflight_environment:
         raise ExperimentError("FTS preflight must not expose VOYAGE_API_KEY")
@@ -933,8 +852,6 @@ def verify_mcp_tools(
             str(state_root),
             "--result-representation",
             result_representation,
-            "--read-span-contract",
-            read_span_contract,
         ],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
@@ -992,45 +909,6 @@ def verify_mcp_tools(
     except json.JSONDecodeError as exc:
         process.kill()
         raise ExperimentError("invalid cidx tools/list response") from exc
-
-    raw_tools = tools_response.get("result", {}).get("tools")
-    if not isinstance(raw_tools, list):
-        process.kill()
-        raise ExperimentError("cidx tools/list response lacks tool definitions")
-    input_schemas_at_list = {
-        tool.get("name"): tool.get("inputSchema")
-        for tool in raw_tools
-        if isinstance(tool, dict) and isinstance(tool.get("name"), str)
-    }
-    read_span_schema = input_schemas_at_list.get("read_span")
-    if not isinstance(read_span_schema, dict):
-        process.kill()
-        raise ExperimentError("cidx read_span must expose an object input schema")
-
-    def schema_has_key(value: Any, key: str) -> bool:
-        if isinstance(value, dict):
-            return key in value or any(schema_has_key(child, key) for child in value.values())
-        if isinstance(value, list):
-            return any(schema_has_key(child, key) for child in value)
-        return False
-
-    read_span_schema_contract = {
-        "has_input_version": schema_has_key(read_span_schema, "input_version"),
-        "has_locators": schema_has_key(read_span_schema, "locators"),
-        "has_one_of": schema_has_key(read_span_schema, "oneOf"),
-    }
-    if read_span_contract == READ_SPAN_CONTRACT_SCALAR_V1:
-        if any(read_span_schema_contract.values()):
-            process.kill()
-            raise ExperimentError(
-                "scalar-v1 read_span schema must not expose batch-v2 oneOf, "
-                "input_version, or locators"
-            )
-    elif not all(read_span_schema_contract.values()):
-        process.kill()
-        raise ExperimentError(
-            "batch-v2 read_span schema must expose oneOf, input_version, and locators"
-        )
 
     def call_tool(call_id: int, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         process.stdin.write(
@@ -1140,12 +1018,7 @@ def verify_mcp_tools(
     search_response = call_tool(
         4,
         "search",
-        {
-            "query": probe_query,
-            "k": 2 if read_span_contract == READ_SPAN_CONTRACT_BATCH_V2 else 1,
-            "mode": "fts",
-            "max_inline_bytes": 0,
-        },
+        {"query": probe_query, "k": 1, "mode": "fts", "max_inline_bytes": 0},
     )
     search_result = structured_result(search_response, "search")
     if set(search_result) != {"results"} or not isinstance(
@@ -1201,16 +1074,15 @@ def verify_mcp_tools(
         )
     ):
         raise ExperimentError(f"cidx search match_sources mismatch: {locator}")
-    scalar_read_request = {
-        "path": locator["path"],
-        "start_line": locator["start_line"],
-        "end_line": locator["end_line"],
-        "expected_sha256": locator["indexed_sha256"],
-    }
     read_response = call_tool(
         5,
         "read_span",
-        scalar_read_request,
+        {
+            "path": locator["path"],
+            "start_line": locator["start_line"],
+            "end_line": locator["end_line"],
+            "expected_sha256": locator["indexed_sha256"],
+        },
     )
     read_result = structured_result(read_response, "read_span")
     read_fields = {"path", "start_line", "end_line", "body", "indexed_sha256"}
@@ -1225,69 +1097,7 @@ def verify_mcp_tools(
         for field in ("path", "start_line", "end_line", "indexed_sha256")
     ):
         raise ExperimentError("cidx read_span output identity differs from locator")
-    batch_probe_fields: list[str] | None = None
-    if read_span_contract == READ_SPAN_CONTRACT_BATCH_V2:
-        batch_candidates = [
-            result
-            for result in search_result["results"]
-            if isinstance(result, dict)
-            and (
-                result.get("path"),
-                result.get("start_line"),
-                result.get("end_line"),
-                result.get("indexed_sha256"),
-            )
-            != (
-                locator["path"],
-                locator["start_line"],
-                locator["end_line"],
-                locator["indexed_sha256"],
-            )
-        ]
-        if not batch_candidates:
-            raise ExperimentError("batch read_span probe requires two unique locators")
-        batch_locator = batch_candidates[0]
-        batch_response = call_tool(
-            6,
-            "read_span",
-            {
-                "input_version": 2,
-                "locators": [
-                    scalar_read_request,
-                    {
-                        "path": batch_locator["path"],
-                        "start_line": batch_locator["start_line"],
-                        "end_line": batch_locator["end_line"],
-                        "expected_sha256": batch_locator["indexed_sha256"],
-                    },
-                ],
-            },
-        )
-        batch_result = structured_result(batch_response, "read_span")
-        if set(batch_result) != {"input_version", "evidence"} or batch_result.get("input_version") != 2:
-            raise ExperimentError(f"cidx batch read_span output contract mismatch: {batch_result}")
-        evidence = batch_result.get("evidence")
-        if not isinstance(evidence, list) or len(evidence) != 2:
-            raise ExperimentError("cidx batch read_span output must contain two evidence units")
-        for index, expected in enumerate((locator, batch_locator)):
-            unit = evidence[index]
-            if (
-                not isinstance(unit, dict)
-                or set(unit) != read_fields
-                or not isinstance(unit.get("body"), str)
-                or not unit["body"]
-                or any(
-                    unit[field] != expected[field]
-                    for field in ("path", "start_line", "end_line", "indexed_sha256")
-                )
-            ):
-                raise ExperimentError("cidx batch evidence ordering or identity mismatch")
-        batch_probe_fields = sorted(batch_result)
-    reindex_response = call_tool(
-        7 if read_span_contract == READ_SPAN_CONTRACT_BATCH_V2 else 6,
-        "reindex",
-        {"dry_run": True},
-    )
+    reindex_response = call_tool(6, "reindex", {"dry_run": True})
     reindex_result = structured_result(reindex_response, "reindex")
     reindex_fields = {
         "dry_run",
@@ -1363,14 +1173,6 @@ def verify_mcp_tools(
         "status_fields": sorted(status_fields),
         "reindex_dry_run_fields": sorted(reindex_fields),
     }
-    if read_span_contract == READ_SPAN_CONTRACT_BATCH_V2:
-        functional_probe.update(
-            {
-                "read_span_contract": read_span_contract,
-                "read_span_schema_contract": read_span_schema_contract,
-                "batch_read_span_fields": batch_probe_fields,
-            }
-        )
     return {
         "names": tools,
         "tools": sorted(raw_tools, key=lambda item: item["name"]),
@@ -1386,7 +1188,6 @@ def verify_mcp_tools(
         "isolated_status": status,
         "functional_output_probe": functional_probe,
         "functional_output_probe_sha256": canonical_json_sha256(functional_probe),
-        "read_span_contract": read_span_contract,
         "result_representation": result_representation,
     }
 
@@ -1428,7 +1229,7 @@ def codex_command(
     if arm["cidx_exposed"]:
         if state_root is None:
             raise ExperimentError(f"cidx state root is required for arm {arm['id']}")
-        server_name, approval_mode, read_span_contract = arm_mcp_config(arm)
+        server_name, approval_mode = arm_mcp_config(arm)
         command.extend(
             [
                 "--config",
@@ -1443,8 +1244,6 @@ def codex_command(
                         str(state_root),
                         "--result-representation",
                         result_representation,
-                        "--read-span-contract",
-                        read_span_contract,
                     ]
                 ),
                 "--config",
@@ -1624,9 +1423,6 @@ def execute_one(
             final_path,
             root,
             frozen_fts_default=True,
-            include_batch_diagnostics=(
-                "read_span_contract" in arm.get("mcp", {})
-            ),
         )
     else:
         trace = build_session_trace(
@@ -1938,67 +1734,24 @@ def main() -> int:
             )
     preflight_source: Path | None = None
     preflight_state: Path | None = None
-    tool_schemas_by_arm: dict[str, dict[str, Any]] = {}
     try:
         first_corpus_id = manifest["tasks"][0]["corpus_id"]
         preflight_source = copy_source_worktree(bindings[first_corpus_id])
         verify_isolated_source(preflight_source, corpus_specs[first_corpus_id])
         preflight_state, _ = copy_cidx_state(bindings[first_corpus_id])
-        frozen_tool_contract = manifest.get("freeze", {}).get(
-            "tool_contract_preflight", {}
+        tool_schema = verify_mcp_tools(
+            mcp_binary,
+            preflight_source,
+            preflight_state,
+            args.mcp_result_representation,
+            sources[manifest["tasks"][0]["question_source_index"]][
+                manifest["tasks"][0]["task_id"]
+            ]["text"],
         )
-        per_arm_contracts = (
-            frozen_tool_contract
-            if isinstance(frozen_tool_contract, dict)
-            and set(frozen_tool_contract) == set(arms)
-            and all(isinstance(value, dict) for value in frozen_tool_contract.values())
-            else None
-        )
-        if (
-            policy_contract is not None
-            and policy_contract.get("sole_intervention") == "read_span_contract_v1"
-            and per_arm_contracts is None
-        ):
-            raise ExperimentError(
-                "read_span_contract_v1 requires freeze.tool_contract_preflight by arm"
-            )
-        probe_query = sources[manifest["tasks"][0]["question_source_index"]][
-            manifest["tasks"][0]["task_id"]
-        ]["text"]
-        for arm_id, arm in arms.items():
-            _, _, read_span_contract = arm_mcp_config(arm)
-            if (
-                read_span_contract == READ_SPAN_CONTRACT_SCALAR_V1
-                and tool_schemas_by_arm
-                and all(
-                    candidate_schema["read_span_contract"]
-                    == READ_SPAN_CONTRACT_SCALAR_V1
-                    for candidate_schema in tool_schemas_by_arm.values()
-                )
-            ):
-                # Historical same-contract arms reuse the one provider-free probe.
-                arm_tool_schema = next(iter(tool_schemas_by_arm.values()))
-            else:
-                arm_tool_schema = verify_mcp_tools(
-                    mcp_binary,
-                    preflight_source,
-                    preflight_state,
-                    args.mcp_result_representation,
-                    probe_query,
-                    read_span_contract,
-                )
-            tool_schemas_by_arm[arm_id] = arm_tool_schema
-            verify_frozen_tool_contract(
-                per_arm_contracts[arm_id]
-                if per_arm_contracts is not None
-                else frozen_tool_contract,
-                arm_tool_schema,
-            )
+        verify_frozen_tool_contract(manifest, tool_schema)
     finally:
         cleanup_isolated(preflight_source, "cidx-ab-source-")
         cleanup_isolated(preflight_state, "cidx-ab-state-")
-
-    tool_schema = next(iter(tool_schemas_by_arm.values()))
 
     codex_version = run_checked([args.codex_binary, "--version"])
     codex_path_value = shutil.which(args.codex_binary)
@@ -2037,10 +1790,6 @@ def main() -> int:
     if run_root.exists():
         raise ExperimentError(f"run directory already exists: {run_root}")
     run_root.mkdir(parents=True)
-    interface_experiment = (
-        policy_contract is not None
-        and policy_contract.get("sole_intervention") == "read_span_contract_v1"
-    )
     run_manifest = {
         "schema_version": 1,
         "run_id": run_id,
@@ -2075,20 +1824,6 @@ def main() -> int:
         "controls": controls,
         "corpora": corpus_records,
     }
-    if interface_experiment:
-        run_manifest["cidx_tool_contracts_by_arm"] = {
-            arm_id: {
-                "definition_sha256": schema["sha256"],
-                "description_sha256": schema["description_sha256"],
-                "input_schema_sha256": schema["input_schema_sha256"],
-                "functional_output_probe_sha256": schema[
-                    "functional_output_probe_sha256"
-                ],
-                "functional_output_probe": schema["functional_output_probe"],
-                "read_span_contract": schema["read_span_contract"],
-            }
-            for arm_id, schema in tool_schemas_by_arm.items()
-        }
     if session_trace_protocol == PASSIVE_TRACE_PROTOCOL:
         run_manifest["session_trace_protocol"] = session_trace_protocol
         run_manifest["session_trace_schema_version"] = trace_identity["schema_version"]
@@ -2142,21 +1877,12 @@ def main() -> int:
             }
             for task_id, values in prompt_renderings.items()
         }
-        if interface_experiment:
-            run_manifest["base_prompt_sha256"] = {
-                task_id: values["neutral_rendered_prompt_sha256"]
-                for task_id, values in prompt_renderings.items()
-            }
-        else:
-            run_manifest["base_prompt_sha256"] = {
-                task_id: values["directed_without_suffix_sha256"]
-                for task_id, values in prompt_renderings.items()
-            }
+        run_manifest["base_prompt_sha256"] = {
+            task_id: values["directed_without_suffix_sha256"]
+            for task_id, values in prompt_renderings.items()
+        }
     write_json(run_root / "run-manifest.json", run_manifest)
-    write_json(
-        run_root / "tool-schema.json",
-        tool_schemas_by_arm if interface_experiment else tool_schema,
-    )
+    write_json(run_root / "tool-schema.json", tool_schema)
     print(f"preflight passed; run={run_id}", flush=True)
     if args.preflight_only:
         return 0

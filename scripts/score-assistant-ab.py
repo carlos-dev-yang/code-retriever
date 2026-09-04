@@ -471,11 +471,6 @@ def policy_arms(manifest: dict[str, Any]) -> tuple[list[str], str, str]:
     if len(items) != 2 or any(not isinstance(item, dict) for item in items):
         raise ScoreError("policy-v2 manifest must define exactly two arm objects")
     arm_ids: list[str] = []
-    prompt_policy = manifest.get("prompt_policy")
-    interface_experiment = (
-        isinstance(prompt_policy, dict)
-        and prompt_policy.get("sole_intervention") == "read_span_contract_v1"
-    )
     reference: str | None = None
     treatment: str | None = None
     for arm in items:
@@ -486,20 +481,7 @@ def policy_arms(manifest: dict[str, Any]) -> tuple[list[str], str, str]:
         if arm.get("cidx_exposed") is not True or not isinstance(suffix, str):
             raise ScoreError("policy-v2 arms must expose cidx and declare prompt_suffix")
         arm_ids.append(arm_id)
-        if interface_experiment:
-            mcp = arm.get("mcp")
-            contract = mcp.get("read_span_contract") if isinstance(mcp, dict) else None
-            if contract == "scalar-v1":
-                if reference is not None:
-                    raise ScoreError("read_span contract experiment has duplicate scalar arm")
-                reference = arm_id
-            elif contract == "batch-v2":
-                if treatment is not None:
-                    raise ScoreError("read_span contract experiment has duplicate batch arm")
-                treatment = arm_id
-            else:
-                raise ScoreError("read_span contract experiment has invalid arm contract")
-        elif suffix:
+        if suffix:
             if treatment is not None:
                 raise ScoreError("policy-v2 requires exactly one directed prompt arm")
             treatment = arm_id
@@ -508,18 +490,11 @@ def policy_arms(manifest: dict[str, Any]) -> tuple[list[str], str, str]:
                 raise ScoreError("policy-v2 requires exactly one neutral prompt arm")
             reference = arm_id
     if reference is None or treatment is None:
-        raise ScoreError("policy-v2 arms must resolve to reference and treatment")
+        raise ScoreError("policy-v2 arms must resolve to neutral reference and directed treatment")
     if reference != "neutral_cidx" or treatment != "directed_cidx":
         raise ScoreError(
-            "policy-v2 arms must use neutral_cidx and directed_cidx IDs"
+            "policy-v2 arms must be neutral_cidx and directed_cidx"
         )
-    if interface_experiment:
-        neutral = next(item for item in items if item["id"] == reference)
-        directed = next(item for item in items if item["id"] == treatment)
-        if not neutral["prompt_suffix"] or neutral["prompt_suffix"] != directed["prompt_suffix"]:
-            raise ScoreError(
-                "read_span contract experiment requires identical non-empty trust prompts"
-            )
     return arm_ids, reference, treatment
 
 
@@ -822,11 +797,6 @@ def prepare_policy(context: dict[str, Any]) -> None:
     sources = context["sources"]
     bindings = context["bindings"]
     arm_ids, _, _ = policy_arms(manifest)
-    prompt_policy = manifest.get("prompt_policy")
-    include_batch_diagnostics = (
-        isinstance(prompt_policy, dict)
-        and prompt_policy.get("sole_intervention") == "read_span_contract_v1"
-    )
     grading_root = run_root / "grading"
     if grading_root.exists():
         raise ScoreError(f"grading directory already exists: {grading_root}")
@@ -858,11 +828,7 @@ def prepare_policy(context: dict[str, Any]) -> None:
                 raise ScoreError(f"policy-v2 run is missing stored trace: {trace_path}")
             trace = read_json(trace_path)
             rebuilt = policy_trace.build_policy_trace(
-                events_path,
-                final_path,
-                root,
-                frozen_fts_default=True,
-                include_batch_diagnostics=include_batch_diagnostics,
+                events_path, final_path, root, frozen_fts_default=True
             )
             if trace != rebuilt:
                 raise ScoreError(
@@ -1498,22 +1464,7 @@ def trace_read_item(read: dict[str, Any]) -> dict[str, Any] | None:
     start, end = requested.get("start_line"), requested.get("end_line")
     if not isinstance(start, int) or not isinstance(end, int) or start < 1 or end < start:
         return None
-    return {
-        "path": delivered["path"],
-        "start_line": delivered.get("start_line"),
-        "end_line": delivered.get("end_line"),
-        "expected_sha256": delivered.get("indexed_sha256"),
-        "ordinal": read.get("ordinal"),
-        "invocation_id": read.get("invocation_id"),
-    }
-
-
-def trace_read_invocation_key(read: dict[str, Any], fallback_index: int) -> str:
-    """Treat flattened v2 evidence as one read_span call at its source event."""
-    value = read.get("invocation_id")
-    if isinstance(value, str) and value:
-        return value
-    return f"ordinal:{read.get('ordinal')}:{fallback_index}"
+    return {"path": delivered["path"], "start_line": delivered.get("start_line"), "end_line": delivered.get("end_line"), "expected_sha256": delivered.get("indexed_sha256"), "ordinal": read.get("ordinal")}
 
 
 def reduce_frozen_trace(
@@ -1544,17 +1495,6 @@ def reduce_frozen_trace(
             if isinstance(locator, dict) and isinstance(locator.get("key"), str) and locator["key"] not in first_seen:
                 first_seen.add(locator["key"])
                 first_locators.append(locator)
-    read_invocation_ids = [
-        trace_read_invocation_key(read, index) for index, read in enumerate(reads)
-    ]
-    read_invocation_count = len(set(read_invocation_ids))
-    successful_read_invocation_count = len(
-        {
-            invocation_id
-            for invocation_id, read in zip(read_invocation_ids, reads)
-            if read.get("success")
-        }
-    )
     read_attempts = [item for item in (trace_read_item(read) for read in reads) if item is not None]
     successful_reads = []
     for raw in reads:
@@ -1679,8 +1619,7 @@ def reduce_frozen_trace(
         "repository_inspection_action_count": len(actions),
         "shell_inspection_action_count": sum(item.get("kind") == "shell_repository_inspection" for item in actions),
         "cidx_search_count": len(searches),
-        "cidx_read_span_count": read_invocation_count,
-        "cidx_evidence_unit_count": len(reads),
+        "cidx_read_span_count": len(reads),
         "cidx_structured_bytes": cidx_structured,
         "cidx_text_bytes": cidx_text,
         "cidx_event_result_bytes": cidx_result,
@@ -1693,8 +1632,7 @@ def reduce_frozen_trace(
             "first_cidx_search_policy_met": first_search_policy_met,
             "repeated_search_query_count": len(search_query_keys) - len(set(search_query_keys)),
             "duplicate_search_argument_count": len(search_argument_keys) - len(set(search_argument_keys)),
-            "read_attempt_count": read_invocation_count,
-            "evidence_unit_attempt_count": len(read_attempts),
+            "read_attempt_count": len(read_attempts),
             "duplicate_read_range_count": len(read_range_keys) - len(set(read_range_keys)),
             "overlapping_successful_read_count": sum(bool(read.get("overlaps_prior_successful_read_keys")) for read in reads if read.get("success")),
             "effective_fts_search_count": sum(search.get("effective_mode") == "fts" for search in searches),
@@ -1740,10 +1678,8 @@ def reduce_frozen_trace(
             "source_bytes": 0,
         },
         "evidence_stage": {
-            "read_span_count": read_invocation_count,
-            "successful_read_span_count": successful_read_invocation_count,
-            "evidence_unit_count": len(reads),
-            "successful_evidence_unit_count": len(successful_reads),
+            "read_span_count": len(reads),
+            "successful_read_span_count": len(successful_reads),
             "unique_read_range_count": len(unique_reads),
             "evidence_requirement_coverage": group_coverage(unique_reads, groups),
             "complete_evidence_hit": group_coverage(unique_reads, groups) == 1.0,
@@ -2587,8 +2523,6 @@ def policy_exclusion_reason_counts(
 
 def policy_tool_summary(journeys: list[dict[str, Any]]) -> dict[str, Any]:
     stages = [journey["policy_stage"] for journey in journeys]
-    orchestration_stages = [journey["orchestration_stage"] for journey in journeys]
-    evidence_stages = [journey["evidence_stage"] for journey in journeys]
     actions = [
         action
         for journey in journeys
@@ -2609,22 +2543,6 @@ def policy_tool_summary(journeys: list[dict[str, Any]]) -> dict[str, Any]:
             for family in stage.get("ambiguous_discovery_by_family", {})
         }
     )
-    duplicate_read_range_count = sum(
-        int(stage.get("duplicate_read_range_count", 0))
-        for stage in orchestration_stages
-    )
-    evidence_unit_attempt_count = sum(
-        int(stage.get("evidence_unit_attempt_count", 0))
-        for stage in orchestration_stages
-    )
-    overlapping_successful_read_count = sum(
-        int(stage.get("overlapping_successful_cidx_read_count", 0))
-        for stage in stages
-    )
-    successful_evidence_unit_count = sum(
-        int(stage.get("successful_evidence_unit_count", 0))
-        for stage in evidence_stages
-    )
     return {
         "task_count": len(journeys),
         "cidx_tool_call_count": sum(
@@ -2644,20 +2562,6 @@ def policy_tool_summary(journeys: list[dict[str, Any]]) -> dict[str, Any]:
             for stage in stages
         ),
         "cidx_read_span_count": sum(int(stage.get("cidx_read_span_count", 0)) for stage in stages),
-        "cidx_evidence_unit_count": sum(
-            int(stage.get("cidx_evidence_unit_count", stage.get("cidx_read_span_count", 0)))
-            for stage in stages
-        ),
-        "batch_read_span_invocation_count": sum(
-            int(stage.get("batch_read_span_invocation_count", 0)) for stage in stages
-        ),
-        "batch_eligible_task_count": sum(
-            bool(stage.get("batch_eligible_before_first_source_acquisition"))
-            for stage in stages
-        ),
-        "batch_eligible_locator_count": sum(
-            int(stage.get("batch_eligible_locator_count", 0)) for stage in stages
-        ),
         "cidx_read_span_attempt_count": sum(
             int(stage.get("cidx_read_span_attempt_count", 0)) for stage in stages
         ),
@@ -2675,14 +2579,6 @@ def policy_tool_summary(journeys: list[dict[str, Any]]) -> dict[str, Any]:
         ),
         "overlapping_successful_cidx_read_count": sum(
             int(stage.get("overlapping_successful_cidx_read_count", 0)) for stage in stages
-        ),
-        "duplicate_read_range_count": duplicate_read_range_count,
-        "evidence_unit_attempt_count": evidence_unit_attempt_count,
-        "duplicate_read_range_rate": ratio_or_none(
-            duplicate_read_range_count, evidence_unit_attempt_count
-        ),
-        "overlapping_successful_cidx_read_rate": ratio_or_none(
-            overlapping_successful_read_count, successful_evidence_unit_count
         ),
         "ordinary_discovery_action_count": sum(
             int(stage.get("ordinary_discovery_action_count", 0)) for stage in stages
@@ -2773,14 +2669,6 @@ def policy_slice_summary(
     action_source_pairs = [
         pair for pair in pairs if pair["paired"]["action_source_comparable"]
     ]
-    dual_complete_action_pairs = [
-        pair for pair in dual_complete if pair["paired"]["action_source_comparable"]
-    ]
-    batch_eligible_pairs = [
-        pair
-        for pair in action_source_pairs
-        if pair["paired"].get("batch_eligible_from_reference")
-    ]
     token_pairs = [pair for pair in pairs if pair["paired"]["token_comparable"]]
     action_ratios = [
         pair["paired"]["repository_tool_action_ratio"]
@@ -2799,15 +2687,6 @@ def policy_slice_summary(
     source_differences = [
         pair["paired"]["combined_unique_source_bytes_difference"]
         for pair in action_source_pairs
-    ]
-    dual_complete_action_ratios = [
-        pair["paired"]["repository_tool_action_ratio"]
-        for pair in dual_complete_action_pairs
-        if pair["paired"]["repository_tool_action_ratio"] is not None
-    ]
-    eligible_read_differences = [
-        pair["paired"]["evidence_read_action_difference"]
-        for pair in batch_eligible_pairs
     ]
     return {
         "task_count": len(pairs),
@@ -2848,7 +2727,6 @@ def policy_slice_summary(
                 for pair in pairs
             ),
             "dual_complete_count": len(dual_complete),
-            "dual_complete_action_pair_count": len(dual_complete_action_pairs),
             "token_comparable_model_total_ratio_median": median(all_ratios),
             "token_comparable_model_total_non_increasing_count": sum(
                 value <= 1 for value in all_ratios
@@ -2859,19 +2737,6 @@ def policy_slice_summary(
             "repository_tool_action_difference_median": median(action_differences),
             "repository_tool_action_non_increasing_count": sum(
                 value <= 1 for value in action_ratios
-            ),
-            "dual_complete_repository_tool_action_ratio_median": median(
-                dual_complete_action_ratios
-            ),
-            "dual_complete_repository_tool_action_non_increasing_count": sum(
-                value <= 1 for value in dual_complete_action_ratios
-            ),
-            "batch_eligible_pair_count": len(batch_eligible_pairs),
-            "batch_eligible_roundtrip_elimination_count": sum(
-                difference <= -1 for difference in eligible_read_differences
-            ),
-            "batch_eligible_evidence_read_action_difference_median": median(
-                eligible_read_differences
             ),
             "combined_unique_source_bytes_ratio_median": median(source_ratios),
             "combined_unique_source_bytes_difference_median": median(
@@ -3003,17 +2868,6 @@ def aggregate_policy(context: dict[str, Any]) -> None:
         treatment_source_bytes = int(
             treatment_exploration.get("combined_unique_source_bytes", 0)
         )
-        reference_read_actions = int(
-            reference["journey"]["evidence_stage"].get("read_span_count", 0)
-        )
-        treatment_read_actions = int(
-            treatment["journey"]["evidence_stage"].get("read_span_count", 0)
-        )
-        batch_eligible_from_reference = bool(
-            reference["journey"]["policy_stage"].get(
-                "batch_eligible_before_first_source_acquisition"
-            )
-        )
         pairs.append(
             {
                 "sequence": task["sequence"],
@@ -3041,12 +2895,6 @@ def aggregate_policy(context: dict[str, Any]) -> None:
                     ),
                     "repository_tool_action_ratio": (
                         ratio(treatment_actions, reference_actions)
-                        if action_source_comparable
-                        else None
-                    ),
-                    "batch_eligible_from_reference": batch_eligible_from_reference,
-                    "evidence_read_action_difference": (
-                        treatment_read_actions - reference_read_actions
                         if action_source_comparable
                         else None
                     ),
@@ -3148,11 +2996,7 @@ def aggregate_policy(context: dict[str, Any]) -> None:
                 "locator": {
                     key: value
                     for key, value in policy_tool_summary(arm_journeys[arm]).items()
-                    if key.startswith("cidx_")
-                    or key.startswith("batch_")
-                    or key.startswith("selected_locator")
-                    or key.startswith("exact_")
-                    or key.startswith("overlapping_")
+                    if key.startswith("cidx_") or key.startswith("selected_locator") or key.startswith("exact_") or key.startswith("overlapping_")
                 },
                 "evidence": {
                     "complete_evidence_hit_count": sum(bool(journey["evidence_stage"]["complete_evidence_hit"]) for journey in arm_journeys[arm]),
@@ -3223,15 +3067,13 @@ def aggregate_policy(context: dict[str, Any]) -> None:
         f"- Token-comparable model-total ratio median: {display_number(policy_summary['paired']['token_comparable_model_total_ratio_median'])}; non-increasing pairs: {policy_summary['paired']['token_comparable_model_total_non_increasing_count']}/{policy_summary['paired']['token_ratio_pair_count']}.",
         f"- Dual-complete model-total ratio median: {display_number(policy_summary['paired']['model_total_ratio_median'])}.",
         f"- Action-comparable repository-action difference / ratio medians: {display_number(policy_summary['paired']['repository_tool_action_difference_median'])} / {display_number(policy_summary['paired']['repository_tool_action_ratio_median'])}; non-increasing ratios: {policy_summary['paired']['repository_tool_action_non_increasing_count']}/{policy_summary['paired']['repository_tool_action_ratio_pair_count']}.",
-        f"- Dual-complete repository-action ratio median: {display_number(policy_summary['paired']['dual_complete_repository_tool_action_ratio_median'])}; non-increasing pairs: {policy_summary['paired']['dual_complete_repository_tool_action_non_increasing_count']}/{policy_summary['paired']['dual_complete_action_pair_count']}.",
-        f"- Reference-defined batch-eligible pairs: {policy_summary['paired']['batch_eligible_pair_count']}; pairs eliminating at least one evidence-read round trip: {policy_summary['paired']['batch_eligible_roundtrip_elimination_count']}; paired evidence-read action difference median: {display_number(policy_summary['paired']['batch_eligible_evidence_read_action_difference_median'])}.",
         f"- Action-comparable unique-source-byte difference / ratio medians: {display_number(policy_summary['paired']['combined_unique_source_bytes_difference_median'])} / {display_number(policy_summary['paired']['combined_unique_source_bytes_ratio_median'])}; non-increasing ratios: {policy_summary['paired']['combined_unique_source_bytes_non_increasing_count']}/{policy_summary['paired']['combined_unique_source_bytes_ratio_pair_count']}.",
         f"- Action/source exclusions: {json.dumps(policy_summary['paired']['action_source_exclusion_reasons'], sort_keys=True)}; token exclusions: {json.dumps(policy_summary['paired']['token_exclusion_reasons'], sort_keys=True)}.",
         "", "## Tool and source behavior", "",
     ])
     for arm in arm_ids:
         values = aggregate_value["cidx_and_ordinary_behavior"][arm]
-        report_lines.append(f"- `{arm}` (`{semantic_labels[arm]}`): {values['cidx_search_count']} cidx searches, {values['cidx_read_span_count']} read_span calls / {values['cidx_evidence_unit_count']} evidence units, {values['batch_read_span_invocation_count']} batch read_span calls across {values['batch_eligible_task_count']} eligible tasks ({values['batch_eligible_locator_count']} eligible locators), duplicate/overlap rates {display_number(values['duplicate_read_range_rate'])}/{display_number(values['overlapping_successful_cidx_read_rate'])}, {values['selected_locator_read_span_count']} exact selected-locator evidence units, {values['ordinary_discovery_action_count']} ordinary discovery actions, {values['cidx_ordinary_reacquired_source_bytes']} reacquired source bytes, and {values['combined_unique_source_bytes']} combined unique source bytes.")
+        report_lines.append(f"- `{arm}` (`{semantic_labels[arm]}`): {values['cidx_search_count']} cidx searches, {values['cidx_read_span_count']} reads, {values['selected_locator_read_span_count']} exact selected-locator reads, {values['ordinary_discovery_action_count']} ordinary discovery actions, {values['cidx_ordinary_reacquired_source_bytes']} reacquired source bytes, and {values['combined_unique_source_bytes']} combined unique source bytes.")
     interpretation_boundary = manifest.get(
         "report_interpretation_boundary",
         "This measures behavior under an explicit host prompt policy. It preserves noncompliance in every denominator and does not establish voluntary adoption, optional-use marginal value, a mandatory role, or promotion readiness.",

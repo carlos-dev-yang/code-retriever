@@ -22,9 +22,6 @@ func (fakeServices) Search(context.Context, app.SearchRequest) (any, error) { re
 func (fakeServices) ReadSpan(context.Context, app.ReadSpanRequest) (app.ReadSpanResponse, error) {
 	return app.ReadSpanResponse{}, nil
 }
-func (fakeServices) ReadSpanBatch(context.Context, app.ReadSpanBatchRequest) (app.ReadSpanBatchResponse, error) {
-	return app.ReadSpanBatchResponse{}, nil
-}
 func (fakeServices) Reindex(context.Context, bool) (any, error) { return nil, nil }
 
 type shortWriter struct{}
@@ -62,9 +59,6 @@ func (service *blockingServices) Search(ctx context.Context, request app.SearchR
 }
 func (service *blockingServices) ReadSpan(context.Context, app.ReadSpanRequest) (app.ReadSpanResponse, error) {
 	return app.ReadSpanResponse{}, nil
-}
-func (service *blockingServices) ReadSpanBatch(context.Context, app.ReadSpanBatchRequest) (app.ReadSpanBatchResponse, error) {
-	return app.ReadSpanBatchResponse{}, nil
 }
 func (service *blockingServices) Reindex(context.Context, bool) (any, error) {
 	return map[string]any{}, nil
@@ -302,23 +296,6 @@ func (spanFailureServices) ReadSpan(context.Context, app.ReadSpanRequest) (app.R
 	return app.ReadSpanResponse{}, app.ReadSpanError{Code: app.ReadSpanTooLarge, MaxBytes: 64}
 }
 
-type batchCaptureServices struct {
-	fakeServices
-	request app.ReadSpanBatchRequest
-	err     error
-}
-
-func (service *batchCaptureServices) ReadSpanBatch(_ context.Context, request app.ReadSpanBatchRequest) (app.ReadSpanBatchResponse, error) {
-	service.request = request
-	if service.err != nil {
-		return app.ReadSpanBatchResponse{}, service.err
-	}
-	return app.ReadSpanBatchResponse{Evidence: []app.ReadSpanResponse{
-		{Path: request.Locators[0].Path, StartLine: request.Locators[0].StartLine, EndLine: request.Locators[0].EndLine, Body: []byte("first\n"), IndexedSHA256: request.Locators[0].ExpectedSHA256},
-		{Path: request.Locators[1].Path, StartLine: request.Locators[1].StartLine, EndLine: request.Locators[1].EndLine, Body: []byte("second\n"), IndexedSHA256: request.Locators[1].ExpectedSHA256},
-	}}, nil
-}
-
 func TestToolErrorPreservesReadSpanTypedData(t *testing.T) {
 	result, failure := callTool(context.Background(), spanFailureServices{}, json.RawMessage(`{"name":"read_span","arguments":{"path":"a.go","start_line":1,"end_line":1,"expected_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}`))
 	if failure != nil {
@@ -330,91 +307,6 @@ func TestToolErrorPreservesReadSpanTypedData(t *testing.T) {
 		t.Fatalf("tool error=%#v", tool)
 	}
 }
-
-func TestBatchReadSpanIsEvaluationOnlyAndKeepsOrderedEvidenceUnits(t *testing.T) {
-	digest := "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-	batch := json.RawMessage(`{"name":"read_span","arguments":{"input_version":2,"locators":[{"path":"a.go","start_line":1,"end_line":2,"expected_sha256":"` + digest + `"},{"path":"b.go","start_line":3,"end_line":4,"expected_sha256":"` + digest + `"}]}}`)
-	scalarServer := Server{Services: fakeServices{}, lifecycle: &lifecycle{initialized: true, ready: true}}
-	if _, failure := scalarServer.dispatch(context.Background(), request{Method: "tools/call", Params: batch}); failure == nil || failure.Code != invalidParams || failure.Message != "UNKNOWN_FIELD" {
-		t.Fatalf("scalar accepted batch=%v", failure)
-	}
-	scalarListed, failure := scalarServer.dispatch(context.Background(), request{Method: "tools/list"})
-	if failure != nil {
-		t.Fatal(failure)
-	}
-	if _, ok := scalarListed.(map[string]any)["tools"].([]ToolDefinition)[2].InputSchema.(map[string]any)["oneOf"]; ok {
-		t.Fatalf("default server schema exposes batch=%#v", scalarListed)
-	}
-	service := &batchCaptureServices{}
-	server := Server{Services: service, ReadSpanContract: ReadSpanContractBatchV2, lifecycle: &lifecycle{initialized: true, ready: true}}
-	result, failure := server.dispatch(context.Background(), request{Method: "tools/call", Params: batch})
-	if failure != nil {
-		t.Fatalf("batch protocol failure=%v", failure)
-	}
-	if len(service.request.Locators) != 2 || service.request.Locators[0].Path != "a.go" || service.request.Locators[1].Path != "b.go" {
-		t.Fatalf("batch request=%#v", service.request)
-	}
-	tool := result.(callToolResult)
-	payload, ok := tool.StructuredContent.(map[string]any)
-	if !ok || tool.IsError || payload["input_version"] != 2 {
-		t.Fatalf("batch result=%#v", tool)
-	}
-	evidence, ok := payload["evidence"].([]map[string]any)
-	if !ok || len(evidence) != 2 || evidence[0]["path"] != "a.go" || evidence[1]["path"] != "b.go" || evidence[0]["body"] != "first\n" || evidence[1]["body"] != "second\n" {
-		t.Fatalf("batch evidence=%#v", payload["evidence"])
-	}
-	for _, arguments := range []string{
-		`{"input_version":1,"locators":[]}`,
-		`{"input_version":2,"path":"a.go","start_line":1,"end_line":1,"expected_sha256":"` + digest + `","locators":[]}`,
-	} {
-		_, failure := server.dispatch(context.Background(), request{Method: "tools/call", Params: json.RawMessage(`{"name":"read_span","arguments":` + arguments + `}`)})
-		if failure == nil || failure.Code != invalidParams || (failure.Message != "INVALID_READ_SPAN_REQUEST" && failure.Message != "UNKNOWN_FIELD") {
-			t.Fatalf("arguments=%s failure=%v", arguments, failure)
-		}
-	}
-	_, failure = server.dispatch(context.Background(), request{Method: "tools/call", Params: json.RawMessage(`{"name":"read_span","arguments":{"input_version":2,"locators":[{"path":"a.go","start_line":1,"end_line":1,"expected_sha256":"` + digest + `","unexpected":true},{"path":"b.go","start_line":1,"end_line":1,"expected_sha256":"` + digest + `"}]}}`)})
-	if failure == nil || failure.Code != invalidParams || failure.Message != "UNKNOWN_FIELD" {
-		t.Fatalf("nested failure=%v", failure)
-	}
-	data, ok := failure.Data.(map[string]any)
-	if !ok || data["locator_index"] != 0 || data["field"] != "unexpected" {
-		t.Fatalf("nested locator error data=%#v", failure.Data)
-	}
-	listed, failure := server.dispatch(context.Background(), request{Method: "tools/list"})
-	if failure != nil {
-		t.Fatal(failure)
-	}
-	tools := listed.(map[string]any)["tools"].([]ToolDefinition)
-	if _, ok := tools[2].InputSchema.(map[string]any)["oneOf"]; !ok {
-		t.Fatalf("batch schema=%#v", tools[2].InputSchema)
-	}
-	if _, ok := toolRegistry()[2].InputSchema.(map[string]any)["oneOf"]; ok {
-		t.Fatalf("default schema exposes batch=%#v", toolRegistry()[2].InputSchema)
-	}
-}
-
-func TestBatchReadSpanErrorIncludesLocatorIndexWithoutScalarLeak(t *testing.T) {
-	digest := "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-	service := &batchCaptureServices{err: app.ReadSpanError{Code: app.ReadSpanBatchTooLarge, MaxBytes: 64, LocatorIndex: intPointer(1)}}
-	result, failure := callToolWithContract(context.Background(), service, json.RawMessage(`{"name":"read_span","arguments":{"input_version":2,"locators":[{"path":"a.go","start_line":1,"end_line":1,"expected_sha256":"`+digest+`"},{"path":"b.go","start_line":1,"end_line":1,"expected_sha256":"`+digest+`"}]}}`), ResultRepresentationStructured, ReadSpanContractBatchV2)
-	if failure != nil {
-		t.Fatalf("protocol failure=%v", failure)
-	}
-	payload := result.(callToolResult).StructuredContent.(map[string]any)
-	if payload["code"] != app.ReadSpanBatchTooLarge || payload["max_bytes"] != 64 || payload["locator_index"] != 1 {
-		t.Fatalf("batch typed error=%#v", payload)
-	}
-	result, failure = callTool(context.Background(), spanFailureServices{}, json.RawMessage(`{"name":"read_span","arguments":{"path":"a.go","start_line":1,"end_line":1,"expected_sha256":"`+digest+`"}}`))
-	if failure != nil {
-		t.Fatalf("scalar protocol failure=%v", failure)
-	}
-	payload = result.(callToolResult).StructuredContent.(map[string]any)
-	if _, exists := payload["locator_index"]; exists {
-		t.Fatalf("scalar error leaked locator index=%#v", payload)
-	}
-}
-
-func intPointer(value int) *int { return &value }
 
 func TestToolResultRepresentationsDoNotDuplicatePayload(t *testing.T) {
 	value := map[string]any{"location": "a.go:1"}

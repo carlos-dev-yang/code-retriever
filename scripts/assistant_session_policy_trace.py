@@ -568,7 +568,7 @@ def _sanitized_search(search: dict[str, Any], ordinal: int) -> dict[str, Any]:
 
 
 def _sanitized_read(read: dict[str, Any], ordinal: int) -> dict[str, Any]:
-    result = {
+    return {
         "ordinal": ordinal,
         "key": read.get("key"),
         "requested": read.get("requested"),
@@ -582,16 +582,6 @@ def _sanitized_read(read: dict[str, Any], ordinal: int) -> dict[str, Any]:
             "overlaps_prior_successful_read_keys"
         ),
     }
-    if "invocation_id" in read:
-        result.update(
-            {
-                "invocation_id": read.get("invocation_id"),
-                "input_version": read.get("input_version"),
-                "evidence_unit_index": read.get("evidence_unit_index"),
-                "is_first_evidence_unit": read.get("is_first_evidence_unit"),
-            }
-        )
-    return result
 
 
 def _locator_identity(locator: dict[str, Any]) -> tuple[str, int, int, str] | None:
@@ -627,46 +617,12 @@ def _requested_read_identity(read: dict[str, Any]) -> tuple[str, int, int, str] 
     return path, start, end, digest
 
 
-def _read_invocation_key(read: dict[str, Any], fallback_index: int) -> str:
-    """Keep one MCP call distinct from each flattened batch evidence unit."""
-    value = read.get("invocation_id")
-    if isinstance(value, str) and value:
-        return value
-    return f"ordinal:{read.get('ordinal')}:{fallback_index}"
-
-
-def _batch_eligibility_before_first_source_acquisition(
-    searches: list[dict[str, Any]], reads: list[dict[str, Any]]
-) -> tuple[bool, int]:
-    """Return whether two distinct valid locators preceded the first delivered source."""
-    first_source_ordinal = min(
-        (
-            read["ordinal"]
-            for read in reads
-            if read.get("success") and _requested_read_identity(read) is not None
-        ),
-        default=None,
-    )
-    if first_source_ordinal is None:
-        return False, 0
-    exposed = {
-        identity
-        for search in searches
-        if search["ordinal"] < first_source_ordinal
-        for locator in search.get("locators", [])
-        if isinstance(locator, dict)
-        and (identity := _locator_identity(locator)) is not None
-    }
-    return len(exposed) >= 2, len(exposed)
-
-
 def build_policy_trace(
     events_path: Path,
     final_path: Path,
     source_root: Path,
     *,
     frozen_fts_default: bool,
-    include_batch_diagnostics: bool = False,
 ) -> dict[str, Any]:
     """Build the independently-versioned, body-free forced-policy trace."""
     base = passive_v1.build_session_trace(
@@ -902,20 +858,6 @@ def build_policy_trace(
         path: cidx_intervals.get(path, []) + ordinary_intervals.get(path, [])
         for path in set(cidx_intervals) | set(ordinary_intervals)
     }
-    read_invocation_count = len(
-        {_read_invocation_key(read, index) for index, read in enumerate(reads)}
-    )
-    batch_read_span_invocation_count = len(
-        {
-            _read_invocation_key(read, index)
-            for index, read in enumerate(reads)
-            if read.get("input_version") == 2
-        }
-    )
-    (
-        batch_eligible_before_first_source_acquisition,
-        batch_eligible_locator_count,
-    ) = _batch_eligibility_before_first_source_acquisition(searches, reads)
     cidx_overlap_count = sum(
         bool(read.get("overlaps_prior_successful_read_keys"))
         for read in reads
@@ -1006,8 +948,7 @@ def build_policy_trace(
             "cidx_search_count": len(searches),
             "cidx_search_attempt_count": len(cidx_search_actions),
             "incomplete_cidx_search_attempt_count": incomplete_search_count,
-            "cidx_read_span_count": read_invocation_count,
-            "cidx_evidence_unit_count": len(reads),
+            "cidx_read_span_count": len(reads),
             "cidx_read_span_attempt_count": len(cidx_read_actions),
             "incomplete_cidx_read_span_attempt_count": incomplete_read_count,
             "selected_locator_read_span_count": selected_locator_reads,
@@ -1037,18 +978,5 @@ def build_policy_trace(
             },
         },
     }
-    if not include_batch_diagnostics and not any("invocation_id" in read for read in reads):
-        # Preserve the frozen scalar-v1 trace shape for historical replays.
-        trace["policy_stage"].pop("cidx_evidence_unit_count")
-    else:
-        trace["policy_stage"].update(
-            {
-                "batch_read_span_invocation_count": batch_read_span_invocation_count,
-                "batch_eligible_before_first_source_acquisition": (
-                    batch_eligible_before_first_source_acquisition
-                ),
-                "batch_eligible_locator_count": batch_eligible_locator_count,
-            }
-        )
     _assert_body_free(trace)
     return trace

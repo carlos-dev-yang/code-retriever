@@ -36,9 +36,6 @@ func applicationError(err error) *Error {
 		if span.MaxBytes > 0 {
 			data["max_bytes"] = span.MaxBytes
 		}
-		if span.LocatorIndex != nil {
-			data["locator_index"] = *span.LocatorIndex
-		}
 		return &Error{Code: -32010, Message: span.Code, Data: data}
 	}
 	return &Error{Code: -32000, Message: "APPLICATION_ERROR"}
