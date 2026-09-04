@@ -4,7 +4,7 @@
 - Phase: 13
 - Implementation commit: `6737494c74c1235eb32b2eeb25c5f7d7f6d89730`
 - Preflight variable-shadow correction: `3447758425bdec6dd3e708d0708a77e56b9c0f11`
-- Disposition: `READY_TO_FREEZE`
+- Disposition: `FROZEN_FOR_EXECUTION`
 
 ## Implemented boundary
 
@@ -44,11 +44,32 @@ frozen definition, description, schema, and functional-output hashes. The v2
 probe exposed the same four tool names and a distinct versioned `read_span`
 schema and functional response.
 
+## Frozen host preflight
+
+After the corrected manifest was committed, clean binaries were built from
+`b324ed53e85595ff4e169fd30370bfba68e16bf7`.
+
+- Provider-free runner preflight:
+  `assistant-read-span-multi-locator-v1-preflight-002` (`PASS`)
+- Preflight run-manifest SHA-256:
+  `e8b6a4988cbd8c1a2586df1811e4973654e12a5df6656fe077597e1a21486890`
+- Codex host schema probes:
+  `assistant-read-span-multi-locator-v1-schema-probes-001` (`2/2 PASS`)
+- Schema-probe run-manifest SHA-256:
+  `e3a3d4e02e5a5197ca90d4828f23de4a78d5b6847ec7ab19a8c7c6e40ea66611`
+
+The scalar arm exposed no v2 discriminator and retained its historical tool
+contract hashes. The batch-capable arm exposed `oneOf`, `input_version`, and
+`locators`; its ordered two-locator functional probe passed. Both arms exposed
+exactly `read_span`, `reindex`, `search`, and `status`, and neither process
+received provider credentials. Actual Codex CLI sessions accepted both tool
+schemas and returned the required answer envelope without invoking a scored
+task.
+
 ## Not run at this checkpoint
 
 - No scored assistant turn or blind-grade call has run.
-- The actual Codex host schema probes and frozen runner preflight remain the
-  next unscored checks.
+- No primary 30-pair execution, blind grade, or aggregate has run.
 - No full-project suite, paid embedding, dense/hybrid query, reindex, product
   promotion, or packaging check was run.
 

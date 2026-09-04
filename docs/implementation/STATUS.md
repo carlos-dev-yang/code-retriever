@@ -120,6 +120,14 @@ This ledger is the authoritative resumable state for implementation work. Update
   schema path. No model or scored cell ran. Commit `3447758` performs only the
   local rename; the manifest is re-frozen against that exact runner before the
   preflight resumes.
+- Corrected clean-commit preflight
+  `assistant-read-span-multi-locator-v1-preflight-002` passed, followed by
+  `2/2` actual Codex host schema probes in
+  `assistant-read-span-multi-locator-v1-schema-probes-001`. Scalar retained
+  the historical schema/output hashes; batch-v2 exposed the explicit
+  discriminator and passed an ordered two-locator functional read. No scored
+  task has run. The next action is the single 30-pair execution with no cell
+  retry, followed by the existing blind-grade path and one aggregate.
 - 2026-08-23 Phase 14 execution entry: `/root` re-read the execution guide,
   implementation index, status ledger, evaluation contract, full Phase 14,
   accepted awareness/trust plan and review, Phase 13 locator completion, Step
