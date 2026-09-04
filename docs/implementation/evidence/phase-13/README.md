@@ -1,5 +1,12 @@
 # Phase 13 CLI and MCP Evidence
 
+The active narrow compatibility amendment is recorded in
+[`bounded-multi-locator-implementation-v1.md`](bounded-multi-locator-implementation-v1.md).
+It preserves scalar v1 and the four-tool default while freezing one
+evaluation-only, two-to-four-locator v2 comparison. The bounded external plan
+review is recorded in
+[`bounded-multi-locator-plan-review-v1.md`](bounded-multi-locator-plan-review-v1.md).
+
 The revised Phase 13 search-result wire is accepted in
 [`locator-only-mcp-reconciliation.md`](locator-only-mcp-reconciliation.md).
 It records the structured-only default, nine-field locator projection,

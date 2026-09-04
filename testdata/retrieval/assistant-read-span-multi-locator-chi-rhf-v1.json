@@ -1,0 +1,218 @@
+{
+  "schema_version": 1,
+  "manifest_id": "assistant-read-span-multi-locator-chi-rhf-v1",
+  "status": "frozen_for_execution",
+  "plan": "docs/implementation/READ-SPAN-MULTI-LOCATOR-EXPERIMENT-V1.md",
+  "purpose": "Paired non-promotion diagnostic of scalar versus optional bounded multi-locator read_span under identical trust-priority prompts and retrieval behavior.",
+  "result_scope": "non_promotion_read_span_multi_locator_diagnostic",
+  "report_title": "Bounded Multi-Locator read_span V1 — Paired Result",
+  "report_policy_section_title": "Batch contract mechanics (descriptive)",
+  "report_policy_metric_label": "Batch-capable arm trace; batch use is optional",
+  "report_interpretation_boundary": "This isolates one provider-free evidence-acquisition contract capability on the same frozen panel. Both arms receive the same trust-priority prompt, FTS-only retrieval, ranking, ordinary tools, grading, and budgets. The result can retain or reject only the bounded batch branch; it does not establish retrieval promotion or a permanent product role.",
+  "historical_boundary": "successor_to_closed_cidx_awareness_trust_diagnostic",
+  "freeze": {
+    "protocol": "assistant-read-span-multi-locator-freeze-v1",
+    "prepared_at": "2026-09-04",
+    "frozen_at": "2026-09-04T14:22:56Z",
+    "scored_turns_observed": false,
+    "bounded_plan_review": {"reviewers": ["chatgpt-pro", "grok"], "disposition": "PROCEED_ONCE", "blocking_findings": 0, "evidence": "docs/implementation/evidence/phase-13/bounded-multi-locator-plan-review-v1.md"},
+    "bounded_implementation_review": {"reviewer": "/root/multiloc_scope", "disposition": "PASS", "blocking_findings": 0, "scope": "scalar compatibility; bounded atomic batch contract; per-arm provider-free preflight; invocation/evidence accounting; retained four-tool boundary"},
+    "source_manifest": {"path": "testdata/retrieval/assistant-cidx-awareness-trust-chi-rhf-v1.json", "sha256": "42bd09a18fa9a54c21e88c0620396f780e07dc6b305ce90a3d70d14097e8188f"},
+    "trace_builders": {
+      "policy": {"path": "scripts/assistant_session_policy_trace.py", "sha256": "be0bfd3e494f4e31119066b0ce557f0267406bccf0ecfed06a97ae83c61dfdcb"},
+      "passive": {"path": "scripts/assistant_session_trace.py", "sha256": "fcf3b98364250f8ba633d5491c4637318cdca744759779da26be10086a954396"}
+    },
+    "execution_code": {
+      "runner": {"path": "scripts/run-assistant-ab.py", "sha256": "389415144496478a8b798ff85a1b4cd9ae50beba923bf18eace49088c39d1a60"},
+      "scorer": {"path": "scripts/score-assistant-ab.py", "sha256": "078806bb759f8447f874aecb7c0135c8047e6772674a52a0a14270f47605169f"}
+    },
+    "tool_contract_preflight": {
+      "neutral_cidx": {"tool_names": ["read_span", "reindex", "search", "status"], "definition_sha256": "7a8857c154da49063a4c84c3dc7ddb869a7d483629e1865bcdb9c16b6b45ac26", "description_sha256": "b7ad68fac11da0761252c2ab428ac0f3556f676a87e4c27d997cced36d99370b", "input_schema_sha256": "c06571f982f38f1e274d79d1e1c3d46624066d56e98c8e73f441e59bd358b27d", "functional_output_probe_sha256": "6441f100d0fb69d558011314ae9aa34076b1fb0823d604edfbb5651379c4a266", "provider_credentials_present": false, "result_representation": "structured"},
+      "directed_cidx": {"tool_names": ["read_span", "reindex", "search", "status"], "definition_sha256": "9248cd1bf2318e3c7c45c2fe0049f90a65d5e66b75690623c6639abd017c0b69", "description_sha256": "18d2fb41424bd9748a06e4cb71585f3a9c9a2651f3856b22e38ae4216c2d42f0", "input_schema_sha256": "64c02f1b8968d1538878ded5fa294e2bc43e5961ee46e092dfcab1ad799046be", "functional_output_probe_sha256": "074d16d5539b03352f8261befeb88a799b1bed0d82019a069a966c590a79311e", "provider_credentials_present": false, "result_representation": "structured"}
+    },
+    "predecessor_result": {"run_id": "assistant-cidx-awareness-trust-chi-rhf-v1-run-001", "scalar_contract": "scalar-v1", "batch_contract": "not_available", "reused_as_scored_result": false}
+  },
+  "sole_treatment_change": "expose_optional_bounded_multi_locator_read_span_v2_branch",
+  "controls": {
+    "assistant": "codex-cli",
+    "model": "gpt-5.6-sol",
+    "reasoning_effort": "high",
+    "sandbox": "read-only",
+    "ephemeral": true,
+    "ignore_user_config": true,
+    "ignore_rules": true,
+    "network": "model_generated_actions_prohibited",
+    "disabled_features": ["apps", "browser_use", "browser_use_external", "computer_use", "image_generation", "multi_agent", "multi_agent_v2", "standalone_web_search"],
+    "timeout_seconds": 600,
+    "output_schema": "schemas/evaluation/assistant-answer.schema.json",
+    "baseline_mcp_servers": ["cidx"],
+    "treatment_mcp_servers": ["cidx"],
+    "treatment_mcp_approval_mode": "approve",
+    "treatment_cidx_mode": "fts",
+    "treatment_result_representation": "structured",
+    "treatment_search_contract": "locator-v1",
+    "session_trace_protocol": "forced-cidx-policy-v2",
+    "require_first_cidx_search": false,
+    "paid_query_embedding": false,
+    "provider_credential_exposed": false,
+    "search_default_k": 5,
+    "search_absolute_max_k": 20,
+    "mcp_hard_max_inline_bytes": 65536,
+    "explicit_model_token_cap": "none_codex_cli_default_equal_both_arms",
+    "isolated_source_workspace_per_execution": true,
+    "isolated_cidx_state_per_treatment_execution": true,
+    "treatment_state_outside_assistant_cwd": true,
+    "grading_truth_outside_assistant_cwd": true,
+    "isolated_cidx_state_per_execution": true,
+    "prompt_policy_noncompliance_invalidates_execution": false,
+    "reindex_call_invalidates_execution": false,
+    "selected_original_session_followup": "omitted_if_ephemeral_cell_lifecycle_cannot_be_reliably_resumed_without_new_infrastructure"
+  },
+  "arm_semantic_labels": {
+    "neutral_cidx": "scalar_v1",
+    "directed_cidx": "batch_v2"
+  },
+  "taxonomy": {"path": "testdata/retrieval/assistant-availability-question-shapes-v1.json", "sha256": "7989919031881a6a44062a52304dd14eb1955883a508fe47bda2c128d04bd986", "version": "assistant-availability-question-shapes-v1"},
+  "question_set_identity": {
+    "id": "assistant-availability-chi-rhf",
+    "version": "assistant-availability-chi-rhf-v1",
+    "sha256": "c0cece49865c0d27773129ce373b801ed0187a3df830a1867dff6935d9a72947",
+    "case_count": 30,
+    "language_slice_counts": {"go": 10, "typescript": 10, "tsx": 10}
+  },
+  "truth_source": {
+    "path": "testdata/retrieval/assistant-availability-chi-rhf-v1-truth.json",
+    "sha256": "d73cd8aeeeda9a549744560ba6814e1a91abc6e50ea2ec32ae71351745a11e57",
+    "assistant_visible": false
+  },
+  "question_sources": [
+    {
+      "path": "testdata/retrieval/question-set-go-chi-v5.3.1-assistant-availability-v1.json",
+      "sha256": "b773a57540d07283463859f6824990aa2308119ad6490dadb9f399326fdbc737"
+    },
+    {
+      "path": "testdata/retrieval/question-set-react-hook-form-v7.85.0-assistant-availability-v1.json",
+      "sha256": "229cf8588cf5bb9ad6c4f2dce3fe26d1b3839f4c6e931a063e0df3956117da9c"
+    }
+  ],
+  "corpora": [
+    {
+      "corpus_id": "go-chi-chi-v5.3.1",
+      "manifest": "testdata/retrieval/corpora/go-chi-chi-v5.3.1.json",
+      "upstream_url": "https://github.com/go-chi/chi.git",
+      "pinned_commit": "8b258c7bb28f97a5f2a856ff7ef962578fec9215",
+      "expected_tree_hash": "7ccb2269b57183ac3a741f269c0da31fd03ad035",
+      "evaluation_state": {
+        "config_sha256": "cc1f566ddb5f5e4776572b2f431c2c05d934e7701eabfbeabed8fcdda7db52e3",
+        "index_db_sha256": "4d82c7539a013e9c34f63d95be7d591d7d607b91a273410dc1a178398bfcb5bc",
+        "search": {
+          "default_mode": "fts",
+          "allow_paid_query_embedding": false,
+          "return_k": 5,
+          "candidate_k": 20,
+          "rrf_k": 60,
+          "max_query_bytes": 8192,
+          "max_query_tokens": 64,
+          "max_query_token_runes": 128,
+          "fts_weights": {"symbols": 5, "body": 1}
+        },
+        "mcp": {"hard_max_inline_bytes": 65536}
+      }
+    },
+    {
+      "corpus_id": "react-hook-form-v7.85.0",
+      "manifest": "testdata/retrieval/corpora/react-hook-form-v7.85.0.json",
+      "upstream_url": "https://github.com/react-hook-form/react-hook-form.git",
+      "pinned_commit": "371432c39271aab739358d19c406793771565ab3",
+      "expected_tree_hash": "688906c5842a0d71051154343e993adb525e688f",
+      "evaluation_state": {
+        "config_sha256": "cc1f566ddb5f5e4776572b2f431c2c05d934e7701eabfbeabed8fcdda7db52e3",
+        "index_db_sha256": "196dd590396a1f123304e8dc399b4f6d21fd02d4ad65e20b7dc09ab7ef78a43d",
+        "search": {
+          "default_mode": "fts",
+          "allow_paid_query_embedding": false,
+          "return_k": 5,
+          "candidate_k": 20,
+          "rrf_k": 60,
+          "max_query_bytes": 8192,
+          "max_query_tokens": 64,
+          "max_query_token_runes": 128,
+          "fts_weights": {"symbols": 5, "body": 1}
+        },
+        "mcp": {"hard_max_inline_bytes": 65536}
+      }
+    }
+  ],
+  "prompt_template": "You are investigating the local source repository in the current working directory.\n\nTask ID: {{TASK_ID}}\nQuestion: {{QUESTION}}\n\nFind the source-backed answer using the available local repository tools as you judge appropriate. Do not assume that every exposed tool is necessary. Work only inside the current repository. Do not modify files, run network requests, inspect hidden evaluation state, or rely on undocumented behavior. Stop once you have enough direct evidence to answer; avoid unrelated repository tours.\n\n`cidx.search` and `cidx.read_span` are available for repository code discovery. `cidx.search` locates ranked functions, methods, and types from natural-language, identifier, or path queries; `cidx.read_span` returns the current source for selected locators. Use cidx when it helps narrow the code to inspect, and use ordinary repository tools when they better fit the task.\n\nReturn only JSON matching the supplied output schema. Explain the mechanism concisely. Support every material claim with repository-relative file, symbol, and line-range evidence. If the repository does not establish a claim, state that uncertainty instead of guessing.",
+  "schedule": {
+    "policy": "fixed_alternating_first_arm_v1",
+    "pair_count": 30,
+    "neutral_first_pairs": 15,
+    "directed_first_pairs": 15,
+    "pair_execution": "first_arm_then_other_arm_consecutively",
+    "selective_retry_or_replacement": false
+  },
+  "tasks": [
+    {"sequence": 1, "task_id": "avail-go-exact-new-router", "corpus_id": "go-chi-chi-v5.3.1", "question_source_index": 0, "question_digest": "98dbd768b33c2191f1c444380b664f4565cfc8af3351611bdaf577db3a2a585b", "first_arm": "neutral_cidx"},
+    {"sequence": 2, "task_id": "avail-ts-semantic-event-value", "corpus_id": "react-hook-form-v7.85.0", "question_source_index": 1, "question_digest": "3877c335cd1a42d117d9e47da8931735baa7051f756f908c40cc23f69e14f89e", "first_arm": "directed_cidx"},
+    {"sequence": 3, "task_id": "avail-tsx-multihop-context", "corpus_id": "react-hook-form-v7.85.0", "question_source_index": 1, "question_digest": "4e66eb6187d635abd09323224ef00a1ca91dc4e2f98a0dea3665222eb067636c", "first_arm": "neutral_cidx"},
+    {"sequence": 4, "task_id": "avail-go-contract-throttle", "corpus_id": "go-chi-chi-v5.3.1", "question_source_index": 0, "question_digest": "0da13b9e16255329366593bc43a230b76b65043165769f07ea79e7b21ecba6b7", "first_arm": "directed_cidx"},
+    {"sequence": 5, "task_id": "avail-ts-exact-use-form-return", "corpus_id": "react-hook-form-v7.85.0", "question_source_index": 1, "question_digest": "78968c62cf6e40e651d5e731ef6e9fadd26271f3d101439df4b6af2216705ef6", "first_arm": "neutral_cidx"},
+    {"sequence": 6, "task_id": "avail-tsx-semantic-watch", "corpus_id": "react-hook-form-v7.85.0", "question_source_index": 1, "question_digest": "c56378bfeaca0c07dc9e5ffce8776aee53e86c8e4480ccb2bfcc2ec47ef1f545", "first_arm": "directed_cidx"},
+    {"sequence": 7, "task_id": "avail-go-multihop-real-ip", "corpus_id": "go-chi-chi-v5.3.1", "question_source_index": 0, "question_digest": "d993f0632c0369831423ea14d66136eacc0c6e50c2a06f2bb16e04dce3d524bd", "first_arm": "neutral_cidx"},
+    {"sequence": 8, "task_id": "avail-ts-contract-use-form-lifecycle", "corpus_id": "react-hook-form-v7.85.0", "question_source_index": 1, "question_digest": "cafb14448536aac43f0cecc6ae77710df5540e382533805157e31ae445ae6a06", "first_arm": "directed_cidx"},
+    {"sequence": 9, "task_id": "avail-tsx-exact-controller", "corpus_id": "react-hook-form-v7.85.0", "question_source_index": 1, "question_digest": "e10793eeda1e730d2b70d1a2b395c1fe1f5963d51711673f5f024fddae1cccf2", "first_arm": "neutral_cidx"},
+    {"sequence": 10, "task_id": "avail-go-semantic-timeout", "corpus_id": "go-chi-chi-v5.3.1", "question_source_index": 0, "question_digest": "f27f82c57f1bd2dfe0dec47dfbf216703fe3ca02c8570c570e68abc16a4d0a23", "first_arm": "directed_cidx"},
+    {"sequence": 11, "task_id": "avail-ts-ambiguous-form-state", "corpus_id": "react-hook-form-v7.85.0", "question_source_index": 1, "question_digest": "af9889d16ea3b452491cdc37319f3ce5baba50c61330f0f0fb1c3751fdac93af", "first_arm": "neutral_cidx"},
+    {"sequence": 12, "task_id": "avail-tsx-contract-form-submit", "corpus_id": "react-hook-form-v7.85.0", "question_source_index": 1, "question_digest": "cf89b446d637b5ef7300b96520474ff1134ccc1d0d9c90bf1ff3804675552b19", "first_arm": "directed_cidx"},
+    {"sequence": 13, "task_id": "avail-go-exact-router-contract", "corpus_id": "go-chi-chi-v5.3.1", "question_source_index": 0, "question_digest": "5cc24fd8b0467b40c5b362ef61ef7ee62c61ed3ed1763645e41abc2d7091fbde", "first_arm": "neutral_cidx"},
+    {"sequence": 14, "task_id": "avail-ts-multihop-subject-contract", "corpus_id": "react-hook-form-v7.85.0", "question_source_index": 1, "question_digest": "746a78451f937e8fb30edd94924e4284c6ffb5af138e97097869e3b521d7ba25", "first_arm": "directed_cidx"},
+    {"sequence": 15, "task_id": "avail-tsx-negative-websocket", "corpus_id": "react-hook-form-v7.85.0", "question_source_index": 1, "question_digest": "94865053149bc3b48d8c73afb06822a70b9fcd54e3fda635cb0b5ac644355821", "first_arm": "neutral_cidx"},
+    {"sequence": 16, "task_id": "avail-go-ambiguous-request-id", "corpus_id": "go-chi-chi-v5.3.1", "question_source_index": 0, "question_digest": "6fbb6af8ee23a605d4178fd4c3810ebc8c8d43359e21e73266d653722e5845cb", "first_arm": "directed_cidx"},
+    {"sequence": 17, "task_id": "avail-ts-exact-field-value-as", "corpus_id": "react-hook-form-v7.85.0", "question_source_index": 1, "question_digest": "d21121a21faaa448061cc372a034a5a0a16139c4b1680e5ac7965faca7b6140d", "first_arm": "neutral_cidx"},
+    {"sequence": 18, "task_id": "avail-tsx-exact-form-provider", "corpus_id": "react-hook-form-v7.85.0", "question_source_index": 1, "question_digest": "3e74e0bc8ed651ddb48f041ceeca4dc010dc5c8a17453183fcbea13ffb5e8a41", "first_arm": "directed_cidx"},
+    {"sequence": 19, "task_id": "avail-go-multihop-compression", "corpus_id": "go-chi-chi-v5.3.1", "question_source_index": 0, "question_digest": "a5123f8f87a82bc8de42676abba11fdbf518a722ab8916f4dd65c6f26781f543", "first_arm": "neutral_cidx"},
+    {"sequence": 20, "task_id": "avail-ts-semantic-name-subscription", "corpus_id": "react-hook-form-v7.85.0", "question_source_index": 1, "question_digest": "452e0d96eaa776102e05a27356a217c79e7765506a63b866fc1a3b20c4abec6b", "first_arm": "directed_cidx"},
+    {"sequence": 21, "task_id": "avail-tsx-ambiguous-form-mode", "corpus_id": "react-hook-form-v7.85.0", "question_source_index": 1, "question_digest": "5f0d9f089dfee9d150869aa419493fdd3aa9ccdddd56618d552f218ea93d0ba4", "first_arm": "neutral_cidx"},
+    {"sequence": 22, "task_id": "avail-go-contract-route-outcome", "corpus_id": "go-chi-chi-v5.3.1", "question_source_index": 0, "question_digest": "898d0e4d8db11d4762af5b7a14a696bca0cfc34f1614e056095d12580e452c9e", "first_arm": "directed_cidx"},
+    {"sequence": 23, "task_id": "avail-ts-contract-dotted-paths", "corpus_id": "react-hook-form-v7.85.0", "question_source_index": 1, "question_digest": "a534bc60811a11cd74db820cd942818374361959aaeb6f5865c4d81f0fa75d1d", "first_arm": "neutral_cidx"},
+    {"sequence": 24, "task_id": "avail-tsx-multihop-field-array", "corpus_id": "react-hook-form-v7.85.0", "question_source_index": 1, "question_digest": "b9e93af4e0c59a26960f3e3ceeead327f1e7abd6421df68998872b15661063c4", "first_arm": "directed_cidx"},
+    {"sequence": 25, "task_id": "avail-go-semantic-route-context", "corpus_id": "go-chi-chi-v5.3.1", "question_source_index": 0, "question_digest": "8bdc7b5920be061b2a5786c0db10dc0457a1a1b1a9b48ddca8904fa0f2667213", "first_arm": "neutral_cidx"},
+    {"sequence": 26, "task_id": "avail-ts-negative-local-storage", "corpus_id": "react-hook-form-v7.85.0", "question_source_index": 1, "question_digest": "45acf338df33f8dd90c33d6545edff26b2fa4b69a718c046fd6a17a296dd8650", "first_arm": "directed_cidx"},
+    {"sequence": 27, "task_id": "avail-tsx-semantic-form-state", "corpus_id": "react-hook-form-v7.85.0", "question_source_index": 1, "question_digest": "5e55bf8211d844f331addf8d33862e46d0588e0634b70a03c330db32f443379a", "first_arm": "neutral_cidx"},
+    {"sequence": 28, "task_id": "avail-go-negative-json-binding", "corpus_id": "go-chi-chi-v5.3.1", "question_source_index": 0, "question_digest": "9e77e5f58ca1fa571684330b5401dc9b8772f185033ab6ff8ba0863294b3329c", "first_arm": "directed_cidx"},
+    {"sequence": 29, "task_id": "avail-ts-multihop-controller-subscriptions", "corpus_id": "react-hook-form-v7.85.0", "question_source_index": 1, "question_digest": "40cbc5d30d178231a8278c667a54b68d34b73bbb14fbe5931a0e104ce66fb794", "first_arm": "neutral_cidx"},
+    {"sequence": 30, "task_id": "avail-tsx-contract-form-state-props", "corpus_id": "react-hook-form-v7.85.0", "question_source_index": 1, "question_digest": "6a736b20acba107d0f364ce46b0b4f0f2257c02ffdee22759904760d1f172be5", "first_arm": "directed_cidx"}
+  ],
+  "arms": {
+    "neutral_cidx": {
+      "id": "neutral_cidx",
+      "cidx_exposed": true,
+      "prompt_suffix": "\n\nWhen locating repository code, prefer `cidx.search` over `rg` or equivalent text search. When `cidx.read_span` succeeds, trust its exact path, range, and indexed hash instead of reacquiring the same or overlapping source merely for reassurance. Start with the recommended default candidate count. Refine only for a missing answer requirement or a concrete ambiguity, dependency, context gap, or exhaustive check. Ordinary tools remain available when they are a better fit.",
+      "prompt_suffix_sha256": "dcff85d3b54704d342aa702287988277cacf91912cfd1688f05f66602b7c1855",
+      "mcp": {"server_name": "cidx", "approval_mode": "approve", "read_span_contract": "scalar-v1"}
+    },
+    "directed_cidx": {
+      "id": "directed_cidx",
+      "cidx_exposed": true,
+      "prompt_suffix": "\n\nWhen locating repository code, prefer `cidx.search` over `rg` or equivalent text search. When `cidx.read_span` succeeds, trust its exact path, range, and indexed hash instead of reacquiring the same or overlapping source merely for reassurance. Start with the recommended default candidate count. Refine only for a missing answer requirement or a concrete ambiguity, dependency, context gap, or exhaustive check. Ordinary tools remain available when they are a better fit.",
+      "prompt_suffix_sha256": "dcff85d3b54704d342aa702287988277cacf91912cfd1688f05f66602b7c1855",
+      "mcp": {"server_name": "cidx", "approval_mode": "approve", "read_span_contract": "batch-v2"}
+    }
+  },
+  "prompt_policy": {
+    "neutral_arm_id": "neutral_cidx",
+    "directed_arm_id": "directed_cidx",
+    "trust_suffix_sha256": "dcff85d3b54704d342aa702287988277cacf91912cfd1688f05f66602b7c1855",
+    "sole_intervention": "read_span_contract_v1",
+    "noncompliance_disposition": "retain_in_denominator"
+  },
+  "blind_grade_output_adapter": {
+    "path": "schemas/evaluation/assistant-blind-grade-v2-strict-output.schema.json",
+    "sha256": "0bda4226b9fba3b82e3d7503ab83acfaf9ae8c8cea8e9f81f6124d97244261cd"
+  },
+  "canonical_blind_grade_schema": {
+    "path": "schemas/evaluation/assistant-blind-grade.schema.json",
+    "sha256": "2d9729b3f38454ac863ec5898bb04148c97813deb17cd19ce8958fecceba0253"
+  }
+}
