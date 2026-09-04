@@ -6,6 +6,8 @@ It preserves scalar v1 and the four-tool default while freezing one
 evaluation-only, two-to-four-locator v2 comparison. The bounded external plan
 review is recorded in
 [`bounded-multi-locator-plan-review-v1.md`](bounded-multi-locator-plan-review-v1.md).
+The one-time, still-ungraded 60-cell primary run is frozen in
+[`bounded-multi-locator-execution-v1.md`](bounded-multi-locator-execution-v1.md).
 
 The revised Phase 13 search-result wire is accepted in
 [`locator-only-mcp-reconciliation.md`](locator-only-mcp-reconciliation.md).

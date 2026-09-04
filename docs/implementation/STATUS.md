@@ -128,6 +128,13 @@ This ledger is the authoritative resumable state for implementation work. Update
   discriminator and passed an ordered two-locator functional read. No scored
   task has run. The next action is the single 30-pair execution with no cell
   retry, followed by the existing blind-grade path and one aggregate.
+- The frozen primary run
+  `assistant-read-span-multi-locator-chi-rhf-v1-run-001` is complete: all
+  `60/60` scored cells are valid, none timed out, and no cell was retried or
+  replaced. Its run-manifest digest is `c8963397…74bba`; the 436-file raw
+  inventory digest is `e8a4ae4d…0e51d`. Primary answers remain ungraded. The
+  next action is the unchanged blind-grade preparation and calls, followed by
+  exactly one aggregate and the terminal retain/reject disposition.
 - 2026-08-23 Phase 14 execution entry: `/root` re-read the execution guide,
   implementation index, status ledger, evaluation contract, full Phase 14,
   accepted awareness/trust plan and review, Phase 13 locator completion, Step
