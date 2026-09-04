@@ -1971,14 +1971,15 @@ def main() -> int:
                 read_span_contract == READ_SPAN_CONTRACT_SCALAR_V1
                 and tool_schemas_by_arm
                 and all(
-                    schema["read_span_contract"] == READ_SPAN_CONTRACT_SCALAR_V1
-                    for schema in tool_schemas_by_arm.values()
+                    candidate_schema["read_span_contract"]
+                    == READ_SPAN_CONTRACT_SCALAR_V1
+                    for candidate_schema in tool_schemas_by_arm.values()
                 )
             ):
                 # Historical same-contract arms reuse the one provider-free probe.
-                schema = next(iter(tool_schemas_by_arm.values()))
+                arm_tool_schema = next(iter(tool_schemas_by_arm.values()))
             else:
-                schema = verify_mcp_tools(
+                arm_tool_schema = verify_mcp_tools(
                     mcp_binary,
                     preflight_source,
                     preflight_state,
@@ -1986,12 +1987,12 @@ def main() -> int:
                     probe_query,
                     read_span_contract,
                 )
-            tool_schemas_by_arm[arm_id] = schema
+            tool_schemas_by_arm[arm_id] = arm_tool_schema
             verify_frozen_tool_contract(
                 per_arm_contracts[arm_id]
                 if per_arm_contracts is not None
                 else frozen_tool_contract,
-                schema,
+                arm_tool_schema,
             )
     finally:
         cleanup_isolated(preflight_source, "cidx-ab-source-")
