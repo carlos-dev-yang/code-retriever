@@ -1,23 +1,13 @@
 # 14. Packaging and MCP Host Integration
 
-- Status: `blocked` — the default-1024/int8 package checkpoint and Phase
-  13's structured-only locator search/source-only `read_span` contract remain
-  accepted. Assistant V4–V6 is closed without an efficiency claim and is not
-  reopened. The owner selected a new host-decided, stage-separated
-  search-to-evidence direction; its documentation and 30-question/60-turn,
-  FTS-only evaluation design received matching ChatGPT and Grok
-  `FINAL_ACCEPT`. The neutral-interface and passive harness trace/reducer
-  implementation checkpoint is now complete. Its neutral 30-pair run completed
-  with zero cidx adoption. The forced prompt diagnostic and its restored
-  awareness-versus-trust successor are complete. Trust-priority improved blind
-  completeness and narrowed source but increased repository actions and model
-  usage. External review identifies evidence acquisition/orchestration after
-  useful locator selection as the measured next boundary without isolating
-  stopping from legitimate dependency expansion. The owner has authorized one
-  terminal, provider-free bounded multi-locator compatibility experiment in
-  reopened Phase 13. Phase 14 does not run concurrently and resumes only after
-  that branch is retained or rejected. Paid provider work remains unopened;
-  official Phase 12 and release-candidate promotion remain separately blocked.
+- Status: `blocked` — Phase 13 is complete with structured-only locator search
+  and scalar source-only `read_span`. Its terminal bounded multi-locator
+  experiment reduced evidence round trips but failed the frozen quality and
+  duplicate/overlap gates; batch-v2 was rejected and removed. No further
+  assistant-interface iteration is authorized by that result. Phase 14 now
+  waits on the owner-gated immutable Phase 12 `core_retrieval` confirmation,
+  after which packaging, host integration, and final assistant evidence can
+  establish or reject `release_candidate`. Paid provider work remains unopened.
 
 ## 2026-08-22 V4 freeze checkpoint
 
@@ -241,14 +231,16 @@ evidence acquisition/orchestration. It corrects any stronger stopping claim:
 the trace does not separate unnecessary continuation from legitimate
 dependency expansion.
 
-The smallest reviewed successor candidate is one bounded request over a small
+The smallest reviewed successor candidate was one bounded request over a small
 set of already returned locators, returning separate line-addressable evidence
-units. This is not implemented or authorized because it changes the public MCP
-contract. Retrieval, ranking, provider work, new repositories, and semantic
-review remain outside this result.
+units. Its terminal experiment reduced round trips but failed the frozen
+quality and duplicate/overlap gates. Batch-v2 is rejected and removed; scalar
+v1 remains the current contract. Retrieval, ranking, provider work, and a new
+assistant-interface variant remain outside this closed result.
 
-- Prerequisite: reconciled locator-only `13-cli-and-mcp`
-- Followed by: v1 release-candidate validation
+- Prerequisites: completed scalar locator-only `13-cli-and-mcp` and an
+  immutable Phase 12 `core_retrieval` confirmation result
+- Followed by: v1 release-candidate disposition
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 1–3 and 7–10
 - Evaluation authority: [EVALUATION-CONTRACT.md](EVALUATION-CONTRACT.md)
 
@@ -622,7 +614,7 @@ If operational feedback establishes a real requirement for permanent model pinni
 | Decision | Rationale | Revisit when |
 | --- | --- | --- |
 | Compare concise awareness with cidx priority and bounded trust on the existing 30-pair panel | The completed run shows better completeness and source narrowing but more actions and model usage; it measures evidence-acquisition/orchestration loss without isolating stopping from legitimate dependency expansion | Complete; preserve as non-promotion evidence |
-| Keep a bounded multi-locator evidence request as the next candidate, not an authorized change | The trust arm made 125 individual reads with more duplicates and overlap after useful locators; one bounded request targets round trips while preserving separate line-addressable evidence units | The owner chooses the bound and versioned public-interface shape |
+| Reject the bounded multi-locator candidate and keep scalar `read_span` | The terminal candidate reduced round trips but worsened duplicate/overlap discipline and included one valid complete-to-partial treatment regression | A new measured need and explicit post-v1 contract decision exist; do not reopen during Phase 12/14 |
 | Permit one owner-directed forced-cidx prompt diagnostic outside promotion | Zero adoption left locator/evidence behavior unobserved; a same-tools neutral-versus-directed pair isolates prompt policy while preserving noncompliance and does not redefine the product role | The diagnostic is complete or an optional-use product comparison is prepared |
 | Bundle FTS5 and grammars | Keep the free core independent of system installs and runtime downloads | Platform constraints block real distribution |
 | Officially document project scope only | Reduce wrong-root and multi-repository confusion | Safe user-scope root routing is designed |

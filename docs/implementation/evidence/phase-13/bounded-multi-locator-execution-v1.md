@@ -43,3 +43,8 @@ Use the existing scorer `prepare` path, existing strict blind-grade adapter,
 and existing canonical grade schema. Do not alter questions, truth, required
 groups, or primary answers. After blind grades are complete, run one aggregate
 and apply the predeclared terminal retain/reject gates.
+
+This section records the action that followed this immutable primary-execution
+checkpoint. The later grading boundary and terminal disposition are recorded
+separately in [`bounded-multi-locator-result-v1.md`](bounded-multi-locator-result-v1.md);
+batch-v2 was rejected and scalar-v1 restored.

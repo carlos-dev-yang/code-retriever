@@ -1,8 +1,9 @@
 # Owner Review Index — Packaging, FTS, Assistant Evaluation, and Remaining Work
 
-- Date: 2026-08-23
+- Date: 2026-09-05
 - Language: Korean (owner review). File names and identifiers stay English.
-- Status: evaluation-only freeze; not `core_retrieval`, not `release_candidate`
+- Status: Phase 13 closed on scalar-v1; Phase 12 owner gate remains; not
+  `core_retrieval`, not `release_candidate`
 - Authoritative ledger: [`STATUS.md`](STATUS.md)
 - This file is the owner entry point for the packaging work, natural-language
   FTS correction, paired assistant diagnostic, and remaining work.
@@ -29,7 +30,12 @@ awareness/trust 계획으로 다시 동결하고 30쌍/60턴을 완료했다. �
 30/30 complete로 자유 선택 arm의 28 complete·1 partial·1 timeout보다 품질이
 좋았고, paired 고유 소스는 중앙값 0.546으로 줄었다. 반면 행동은 1.300,
 model-total은 1.189로 늘었다. 지금 확인된 병목은 유용한 locator를 찾은 뒤의
-근거 획득/오케스트레이션이며, 검색 랭킹 교정으로 결론내리지 않는다.
+근거 획득/오케스트레이션이며, 검색 랭킹 교정으로 결론내리지 않는다. 이를
+직접 확인한 마지막 30쌍 scalar-vs-batch 실험에서 batch-capable arm은 read를
+`132→75`, 전체 저장소 행동을 `263→203`으로 줄였지만, 질문별 중복·겹침
+비율이 늘고 유효한 complete→partial 역전 한 건이 발생했다. 따라서 frozen
+게이트대로 batch-v2를 기각하고 scalar-v1을 복원했다. 이 인터페이스 실험은
+종료했고 다음 제품 작업은 오너가 고르는 미노출 Phase 12 confirmation이다.
 
 ---
 
@@ -47,7 +53,8 @@ model-total은 1.189로 늘었다. 지금 확인된 병목은 유용한 locator�
 | Assistant A/B V3 | 완료 — cidx 12/12 complete, 모델 토큰 +37.2%, unchanged rerun 기각 |
 | Forced cidx prompt V1 | 완료 — 양쪽 29 complete/1 partial, 코드 범위 -63.1%, paired token median 1.404 |
 | Awareness/trust V1 | 완료 — trust 30/30 complete, paired source 0.546, actions 1.300, model-total 1.189 |
-| 정확한 다음 결정 | 작은 locator 묶음을 한 번에 읽되 개별 line-addressable 근거로 돌려주는 bounded evidence request의 최대 개수와 versioned interface 형태를 오너가 결정 |
+| Bounded multi-locator V1 | 완료 — 21/30에서 read 왕복 감소, batch-v2 기각, scalar-v1 복원 |
+| 정확한 다음 결정 | 미노출 Phase 12 confirmation 코퍼스와 질문·cohort floor·margin·source-bank coverage·필요한 paid-query 범위를 오너가 동결 |
 | 라이브 패키징 판정 | `CONTINUE_SIBLING_PACKAGING` |
 | Voyage | 이번 작업에서 0회 |
 
@@ -148,6 +155,31 @@ taxonomy 버전/digest를 직접 기록한다.
 [실험 결과](evidence/phase-14/assistant-cidx-awareness-trust-result-v1.md)와
 [외부 검토](evidence/phase-14/assistant-cidx-awareness-trust-result-external-review-v1.md)에
 분모, 질문 유형별 결과, trace, artifact digest가 있다.
+
+### 2.5 Bounded multi-locator `read_span` V1 결과
+
+- 같은 30질문·FTS·랭킹·프롬프트·모델·채점을 유지하고 scalar-v1과 optional
+  batch-v2만 비교했다. 60/60 primary cell이 한 번씩 유효하게 끝났다.
+- batch request는 19/30 질문에서 실제 사용됐다. `read_span` 호출은
+  `132→75`, cidx 호출은 `239→187`, 전체 저장소 행동은 `263→203`이었다.
+- frozen 적격 정의의 30질문 중 21질문에서 read 왕복을 하나 이상 줄였고,
+  중앙 차이는 `-2`라 mechanism gate는 통과했다.
+- 반면 질문별 duplicate는 `8/132→12/137`, overlap은
+  `8/132→13/137`으로 증가했다. validator를 통과한 29쌍 중 유효한
+  complete→partial 역전도 한 건 있어 conjunctive retain gate를 실패했다.
+- 별도의 한 질문은 양 arm 모두 product-valid 509줄 범위를 인용했지만 기존
+  grader가 500줄 초과를 거부해 공식 aggregate가 생성되지 않았다. 이는 제품
+  실패가 아니라 향후 실험 전에 고칠 grader-contract 불일치다. 닫힌 run은
+  재채점하거나 재실행하지 않는다.
+- 결론은 `REJECT_BATCH_V2 / RETAIN_SCALAR_V1`이다. `ff9d4e8`에서 scalar
+  기준을 정확히 복원했고 focused test/race/vet/build와 60 trace replay를
+  통과했다. 이 결과는 batching이 쓸모없다는 일반 결론이나 aggregate 품질·
+  토큰 개선 주장을 허용하지 않는다.
+
+[terminal result](evidence/phase-13/bounded-multi-locator-result-v1.md),
+[independent review](evidence/phase-13/bounded-multi-locator-terminal-review-v1.md),
+[scalar restoration](evidence/phase-13/bounded-multi-locator-scalar-restoration-v1.md)에
+정확한 분모와 검증 내역이 있다.
 
 ---
 
@@ -319,9 +351,10 @@ env -u VOYAGE_API_KEY go run ./cmd/cidx dev relations packaging \
 
 | 작업 | 이유 |
 | --- | --- |
-| 새 confirmation 코퍼스 | 현재 순서에서는 하지 않음. Phase 12 promotion 확인은 별도 후속 |
+| 새 confirmation 코퍼스 | 오너가 코퍼스·핀·라이선스·질문 계약을 동결하기 전에는 선택·복제·실행하지 않음 |
 | Phase 12 공식 프로모션 | confirmation 없이 `core_retrieval` 불가 |
 | Phase 14 출시 후보 | 12 + 호스트/어시스턴트 증거 필요 |
+| batch `read_span`을 MCP에 유지하기 | terminal frozen gate 실패로 기각하고 scalar-v1 복원 |
 | 형제를 MCP에 올리기 | 별도 제품 설계 전까지 평가 계약만 |
 | 한 홉을 순위/role로 다시 맞추기 | 닫힌 세트 튜닝 |
 | unchanged 어시스턴트 A/B 반복 | V3에서 정확도 보존과 구조적 응답량 증가가 이미 확인됨. 먼저 응답량을 교정해야 함 |
@@ -332,25 +365,25 @@ env -u VOYAGE_API_KEY go run ./cmd/cidx dev relations packaging \
 
 핸드오프 [§5](evidence/revision-4/remaining-work-review-handoff-r4.md#5-owner-decisions-required-before-work-resumes)와 같다.
 
-현재 lexical 교정과 assistant A/B V3에는 남은 오너 결정이 없다. 다음 작업은
-retrieval 정책을 다시 바꾸거나 새 저장소를 추가하는 것이 아니라, 현재 MCP
-`search` 응답에서 text/structured content/metadata/inline body가 각각 얼마나
-모델 입력을 늘리는지 계측하는 것이다. 공개 MCP 응답 스키마 변경이 필요하면
-설계·Phase 13/14·호환성 계획을 먼저 갱신하고 오너 결정을 받아야 한다.
+Lexical 교정, locator-only 응답, assistant 실험, 마지막 bounded interface
+비교까지 모두 닫혔다. 다음 작업은 retrieval 정책·프롬프트·MCP wire를 다시
+바꾸는 것이 아니라 Phase 12 confirmation 입력을 오너가 동결하는 것이다.
+기존 chi/RHF 질문과 결과는 calibration evidence로 보존하며 confirmation으로
+재사용하지 않는다.
 
-응답량 교정 후에는 새 V4 manifest로 전체 24-turn paired batch를 실행한다.
-V1–V3 결과는 보존하며 selective rerun을 하지 않는다. 작은 `k`, 작은 inline
-budget, 호출 횟수 제한은 실험 후보이지 아직 제품 기본값이 아니다.
-
-아래 결정은 assistant A/B 이후의 별도 Phase 12/14 범위로 남는다.
+재개 전에 필요한 오너 결정은 다음과 같다.
 
 1. confirmation 저장소, 핀된 커밋, 라이선스
-2. 90쿼리 플로어(Go/TS/TSX 각 30 + hard-negative 18) 유지 여부
-3. 형제 4/4096을 나중에 MCP에 넣을지 (기본: 아니오)
+2. confirmation 질문 버전, critical/general cohort와 hard-negative 분모
+3. 통과 floor와 비교 margin
+4. 선택 profile의 source-bank coverage와 dense/hybrid paid-query 승인 범위
+5. 형제 4/4096을 나중에 MCP에 넣을지 (기본: 아니오, confirmation과 분리)
 
-위 Phase 12/14 결정은 assistant A/B의 선행조건이 아니다. 다만 그 결정을
-받기 전에는 새 confirmation 질문 작성, 코퍼스 클론, Voyage 실행, 추가
-검색 정책 튜닝을 시작하지 않는다.
+이 결정을 받기 전에는 confirmation 질문 작성, 코퍼스 선택·복제·임베딩,
+Voyage 실행, 추가 검색 정책 튜닝을 시작하지 않는다. 향후 assistant 평가를
+다시 열기 전에는 product-valid 긴 span과 grader의 500줄 제한도 먼저
+prospective하게 일치시켜야 하며, 닫힌 multi-locator run에는 소급 적용하지
+않는다.
 
 Confirmation을 돌리게 되면 절차는 핸드오프
 [§6](evidence/revision-4/remaining-work-review-handoff-r4.md#6-confirmation-intake-do-not-execute-yet).

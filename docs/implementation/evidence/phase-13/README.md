@@ -1,15 +1,19 @@
 # Phase 13 CLI and MCP Evidence
 
-The active narrow compatibility amendment is recorded in
+The closed narrow compatibility amendment is recorded in
 [`bounded-multi-locator-implementation-v1.md`](bounded-multi-locator-implementation-v1.md).
 It preserves scalar v1 and the four-tool default while freezing one
 evaluation-only, two-to-four-locator v2 comparison. The bounded external plan
 review is recorded in
 [`bounded-multi-locator-plan-review-v1.md`](bounded-multi-locator-plan-review-v1.md).
-The one-time, still-ungraded 60-cell primary run is frozen in
+The one-time 60-cell primary-execution checkpoint is frozen in
 [`bounded-multi-locator-execution-v1.md`](bounded-multi-locator-execution-v1.md).
 Its terminal result rejects batch-v2 and retains scalar-v1; see
 [`bounded-multi-locator-result-v1.md`](bounded-multi-locator-result-v1.md).
+The independent terminal review and exact scalar restoration are recorded in
+[`bounded-multi-locator-terminal-review-v1.md`](bounded-multi-locator-terminal-review-v1.md)
+and
+[`bounded-multi-locator-scalar-restoration-v1.md`](bounded-multi-locator-scalar-restoration-v1.md).
 
 The revised Phase 13 search-result wire is accepted in
 [`locator-only-mcp-reconciliation.md`](locator-only-mcp-reconciliation.md).

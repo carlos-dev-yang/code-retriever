@@ -53,11 +53,12 @@
   improved blind outcomes from 28 complete, one partial, and one timeout to
   30/30 complete and reduced paired unique source to median 0.546. It did not
   simplify the full journey: paired actions rose to 1.300 and model-total usage
-  to 1.189. The measured next boundary is evidence acquisition and
-  orchestration after useful locator selection, not a new ranking or provider
-  experiment. Public interface changes, new test code, and paid provider work
-  remain gated.
-  Official Phase 12 and release-candidate evidence remain separately gated
+  to 1.189. The terminal bounded multi-locator experiment then reduced
+  evidence-read round trips and repository actions, but failed its frozen
+  quality and duplicate/overlap gates. Batch-v2 is rejected, scalar-v1 is
+  restored, and assistant-interface iteration is closed. The next product
+  dependency is the owner-gated Phase 12 confirmation; release-candidate
+  evidence remains blocked on its immutable result.
 - Canonical design: [Local Code Search MCP v1 Final Target Contract — Revision 4](../../local-code-search-mcp-v1-design-r4.md)
 - Earlier designs: [original](../../local-code-search-mcp-v1-design.md), [r1](../../local-code-search-mcp-v1-design-r1.md), [r2](../../local-code-search-mcp-v1-design-r2.md), [r3](../../local-code-search-mcp-v1-design-r3.md)
 - Execution protocol: [Implementation Execution and Context-Recovery Guide](EXECUTION-GUIDE.md)
@@ -97,12 +98,14 @@
 - Completed successor result: [awareness vs trust-priority result](evidence/phase-14/assistant-cidx-awareness-trust-result-v1.md)
 - Successor result review: [bounded ChatGPT and Grok interpretation](evidence/phase-14/assistant-cidx-awareness-trust-result-external-review-v1.md)
 - Rejected follow-up implementation record: [overbuild incident](evidence/phase-14/assistant-cidx-followup-overbuild-incident.md)
-- Active bounded contract experiment: [multi-locator `read_span` V1](READ-SPAN-MULTI-LOCATOR-EXPERIMENT-V1.md)
+- Closed bounded contract experiment: [multi-locator `read_span` V1](READ-SPAN-MULTI-LOCATOR-EXPERIMENT-V1.md)
 - Bounded implementation checkpoint: [scalar-compatible v2 implementation](evidence/phase-13/bounded-multi-locator-implementation-v1.md)
 - Terminal bounded result: [reject batch-v2; retain scalar-v1](evidence/phase-13/bounded-multi-locator-result-v1.md)
+- Terminal bounded review: [independent gate and claim-boundary review](evidence/phase-13/bounded-multi-locator-terminal-review-v1.md)
+- Scalar restoration: [exact baseline restoration and focused validation](evidence/phase-13/bounded-multi-locator-scalar-restoration-v1.md)
 - Remaining-work handoff: [remaining-work-review-handoff-r4.md](evidence/revision-4/remaining-work-review-handoff-r4.md)
 - Final corpus-independent review: [int8/source-profile implementation-to-design review](evidence/revision-4/int8-source-profile-final-review.md)
-- Last updated: 2026-09-04
+- Last updated: 2026-09-05
 
 This directory is the executable implementation plan for cidx v1. It decomposes the canonical product contract into phase-owned packages, schemas, CLIs, validation work, and completion evidence. A design change must update this index, every affected phase, the dependency graph, the change-impact table, and the persistent status ledger together.
 
@@ -183,8 +186,8 @@ Allowed states are `planned | in_progress | blocked | done`. A phase becomes `do
 | 10 | done | [Embedding orchestration and reconciliation](10-embedding-orchestration-and-reconciliation.md) | reconciled 02/09, existing 05/08 | Source-bank-first Voyage document publication, provider-free source reuse, and provider-only request accounting | [Current evidence](evidence/phase-10/source-bank-first-document-publication.md) and [historical R4 evidence](evidence/phase-10/revision-4.md) |
 | 11 | done | [Vector and hybrid search](11-vector-and-hybrid-search.md) | reconciled 02/09/10, existing 06 | Int8-only request-local scan, RRF, fallback, and body packaging | [Current evidence](evidence/phase-11/int8-only-query-search-reconciliation.md) and [historical R4 evidence](evidence/phase-11/revision-4.md) |
 | 12 | blocked | [Retrieval evaluation](12-retrieval-evaluation.md) | 07, reconciled 08, 09, 11 | Accepted int8-only corpus-independent adapter; official corpus evaluation and promotion remain externally gated | [Current evidence](evidence/phase-12/int8-only-evaluation-reconciliation.md) and [accepted R4 accounting evidence](evidence/phase-12/revision-4.md) |
-| 13 | in_progress | [CLI and MCP](13-cli-and-mcp.md) | reconciled 02/08/11 and existing Phase 12 core | The terminal run rejects batch-v2: round trips fell, but quality and duplicate/overlap gates failed and the frozen aggregate exposed a separate symmetric 500-line grader mismatch. Scalar restoration and focused revalidation remain | [Terminal result](evidence/phase-13/bounded-multi-locator-result-v1.md), [bounded plan](READ-SPAN-MULTI-LOCATOR-EXPERIMENT-V1.md), and [implementation checkpoint](evidence/phase-13/bounded-multi-locator-implementation-v1.md) |
-| 14 | blocked | [Packaging and host integration](14-packaging-and-host-integration.md) | 13 | Awareness/trust remains closed. Packaging and assistant execution wait for the single Phase 13 scalar-versus-batch compatibility disposition; no parallel Phase 14 work is authorized | [Awareness/trust result](evidence/phase-14/assistant-cidx-awareness-trust-result-v1.md), [result review](evidence/phase-14/assistant-cidx-awareness-trust-result-external-review-v1.md), and [bounded experiment plan](READ-SPAN-MULTI-LOCATOR-EXPERIMENT-V1.md) |
+| 13 | done | [CLI and MCP](13-cli-and-mcp.md) | reconciled 02/08/11 and existing Phase 12 core | Terminal batch-v2 candidate rejected; exact scalar-v1 four-tool contract restored and focused test/race/vet/build plus 60-trace replay passed | [Terminal result](evidence/phase-13/bounded-multi-locator-result-v1.md), [terminal review](evidence/phase-13/bounded-multi-locator-terminal-review-v1.md), and [restoration evidence](evidence/phase-13/bounded-multi-locator-scalar-restoration-v1.md) |
+| 14 | blocked | [Packaging and host integration](14-packaging-and-host-integration.md) | 13 plus immutable Phase 12 core result | Phase 13 is stable; packaging, host integration, and final assistant evidence wait on owner-gated Phase 12 confirmation | [Awareness/trust result](evidence/phase-14/assistant-cidx-awareness-trust-result-v1.md), [bounded terminal result](evidence/phase-13/bounded-multi-locator-result-v1.md), and [Phase 12 handoff](evidence/revision-4/remaining-work-review-handoff-r4.md) |
 
 `STATUS.md` is the operational ledger. Keep this summary table synchronized with it whenever a phase changes state.
 
@@ -446,6 +449,7 @@ Do not introduce a deferred item implicitly for implementation convenience.
 
 | Date | Change | Reason |
 | --- | --- | --- |
+| 2026-09-05 | Rejected batch-v2, restored scalar `read_span`, and closed Phase 13 | The terminal mechanism reduced round trips but failed frozen quality and duplicate/overlap gates; further assistant-interface iteration would not address the owner-gated core-confirmation dependency |
 | 2026-09-04 | Opened one terminal bounded multi-locator `read_span` compatibility experiment | Preserve scalar-v1 and all retrieval behavior; test whether two-to-four selected locators can reduce evidence round trips under the existing aggregate byte ceiling before retaining or rejecting the branch |
 | 2026-08-23 | Completed and externally reviewed the 30-pair awareness versus trust-priority experiment | Trust-priority improved completeness and source narrowing but increased cidx evidence turns and model usage; the next decision is a bounded evidence-handoff experiment, not retrieval retuning |
 | 2026-08-23 | Froze the 30-pair cidx awareness versus trust-priority experiment | Compare informed free choice with concise cidx priority/bounded trust while preserving identical tools, questions, FTS state, blind quality grading, and explicit failure-safe efficiency denominators |

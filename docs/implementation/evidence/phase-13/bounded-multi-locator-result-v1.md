@@ -76,9 +76,15 @@ official quality aggregate.
 | Overlapping successful evidence units | 8/132 (6.1%) | 13/137 (9.5%) |
 
 All 30 scalar tasks met the predeclared reference eligibility rule: at least
-two distinct valid locators were available before the corresponding source
-acquisitions and were later read. The batch arm eliminated one or more evidence
-round trips on 21/30 and the eligible median read difference was `-2`.
+two distinct valid locators were available before the first successful source
+acquisition. The rule does not require every exposed locator to be read later;
+11 tasks later read only one of those initially available locators. The
+batch-capable arm eliminated one or more evidence round trips on 21/30 and the
+eligible median read difference was `-2`.
+
+Duplicate and overlap numerators above are computed within each task. They do
+not count reuse of the same source range by separate questions, which is not a
+duplicate acquisition within one assistant journey.
 
 Across all 30 operationally comparable pairs:
 
@@ -134,12 +140,21 @@ Ignored local artifacts remain the detailed authority.
 
 ## Handoff
 
-Remove the evaluation-only batch-v2 implementation while keeping this plan,
-manifest, and result as historical evidence. Re-run the focused scalar MCP,
-runner legacy-replay, and build checks, then mark Phase 13 complete again.
+The evaluation-only batch-v2 implementation was removed in `ff9d4e8` while
+the plan, frozen manifest, raw artifacts, and this result remain preserved.
+Focused scalar MCP tests, race/static/build checks, and byte-equivalent replay
+of all 60 historical scalar policy traces passed. Phase 13 is complete again;
+the exact restoration evidence is in
+[`bounded-multi-locator-scalar-restoration-v1.md`](bounded-multi-locator-scalar-restoration-v1.md).
 
 Before any future assistant evaluation, prospectively reconcile the
 line-cap-free product source contract with the grader's 500-line excerpt
 validator. Do not apply that correction to this closed run. No further
 assistant prompt/orchestration experiment is authorized here; the next product
 dependency is the owner-gated Phase 12 confirmation corpus and freeze.
+
+The arithmetic, denominators, terminal gate application, and minimal handoff
+were independently rechecked. That review also limits causal language to the
+batch-capable treatment: this experiment does not prove that batching caused
+the isolated unsupported claim. See
+[`bounded-multi-locator-terminal-review-v1.md`](bounded-multi-locator-terminal-review-v1.md).

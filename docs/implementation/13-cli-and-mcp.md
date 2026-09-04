@@ -1,13 +1,15 @@
 # 13. CLI and MCP Surface Integration
 
-- Status: `in_progress` — the accepted scalar contract remains intact while
-  one owner-authorized, provider-free compatibility amendment tests an
-  explicit two-to-four-locator `read_span` v2 branch. Exactly four tools,
-  locator-only search, the product scalar default, and all retrieval behavior
-  remain fixed. Stable adoption depends on the terminal gates in
-  [the bounded experiment plan](READ-SPAN-MULTI-LOCATOR-EXPERIMENT-V1.md).
+- Status: `done` — the provider-free bounded multi-locator compatibility
+  amendment is closed. Its mechanism reduced evidence round trips, but the
+  frozen quality and duplicate/overlap gates failed, so batch-v2 was rejected
+  and scalar-v1 restored at `ff9d4e8`. Exactly four tools, locator-only search,
+  scalar `read_span`, and all retrieval behavior remain the accepted product
+  boundary. See the [terminal result](evidence/phase-13/bounded-multi-locator-result-v1.md)
+  and [restoration evidence](evidence/phase-13/bounded-multi-locator-scalar-restoration-v1.md).
 - Prerequisites: reconciled `05-worktree-index-pipeline`, `10-embedding-orchestration-and-reconciliation`, and `11-vector-and-hybrid-search`; completed `06-fts-search`; Phase 12 corpus-independent core/API
-- Followed by: `14-packaging-and-host-integration`
+- Followed by: owner-gated Phase 12 confirmation, then
+  `14-packaging-and-host-integration`
 - Design source: `local-code-search-mcp-v1-design-r4.md` sections 3, 4, 8, and 10
 - Evaluation authority: [EVALUATION-CONTRACT.md](EVALUATION-CONTRACT.md)
 
@@ -56,6 +58,23 @@ retrieval change, provider action, or product configuration. Phase 13 is
 reopened until the focused compatibility evidence and terminal experiment
 either retain or reject this branch. The full frozen boundary is
 [READ-SPAN-MULTI-LOCATOR-EXPERIMENT-V1.md](READ-SPAN-MULTI-LOCATOR-EXPERIMENT-V1.md).
+
+## 2026-09-05 bounded multi-locator closure
+
+The one frozen 30-pair comparison is complete. The batch-capable arm passed
+the predeclared round-trip mechanism gate, reducing individual `read_span`
+calls from 132 to 75 and total repository actions from 263 to 203. It failed
+the conjunctive retention rule because per-task duplicate/overlap rates rose
+and one independently valid blind pair regressed from complete to partial.
+The official aggregate remains `NOT_OBSERVED` after a symmetric, pre-existing
+500-line grader-contract mismatch; no grade was repaired and no rerun occurred.
+
+The evaluation-only branch was removed in `ff9d4e8`. Scalar-focused tests,
+race/static/build checks, and byte-equivalent replay of all 60 historical
+scalar policy traces passed. The experiment remains immutable historical
+evidence and does not authorize another prompt, orchestration, retrieval, or
+wire variant. Phase 13 is complete; the next product dependency is the
+owner-gated Phase 12 confirmation.
 
 ## Revision 4 initialization checkpoint
 
@@ -304,13 +323,12 @@ Return the complete requested range only when it fits the server hard maximum; n
 
 There is no read-span line-count cap. The complete requested range is governed only by the byte limit and remains all-or-nothing.
 
-The stable product contract remains the scalar form above during the bounded
-experiment. The evaluation launcher may expose the explicit v2 branch defined
-in [the experiment plan](READ-SPAN-MULTI-LOCATOR-EXPERIMENT-V1.md). That branch
-buffers two through four complete scalar-validated ranges, preserves request
-order and separate line-addressable bodies, and fails without returning any
-body if one item or the aggregate source-byte ceiling fails. Product adoption
-is not implied by code presence or experiment activation.
+The stable product and evaluation-launcher contract is the scalar form above.
+The closed [bounded experiment](READ-SPAN-MULTI-LOCATOR-EXPERIMENT-V1.md)
+temporarily exposed an explicit v2 branch over two through four locators. Its
+retention gates failed, so commit `ff9d4e8` removed that branch. Current code
+does not accept `input_version` or `locators` and does not return batched
+evidence.
 
 ### 6.6 MCP `reindex`
 
@@ -509,4 +527,4 @@ Phase 14 receives one `cidx` binary and public help, the `cidx serve --root <rep
 | Do not estimate token budgets | Caller owns tokenizer and host-context composition | Host provides a standard token contract |
 | Init discovers Git before config | A new repository has no config yet, while normal serving still needs a configured worktree root | Repository ownership becomes multi-root |
 | Search is locator-only; read_span owns source | V3 preserved correctness but expanded 176 source-bearing candidates before 29 selected reads; compact navigation isolates recall from evidence volume | A measured compact assistant run shows source-bearing search is necessary |
-| Test bounded multi-locator reads without a fifth tool | The accepted locator search narrowed source, while repeated evidence acquisition remained the first measured loss | The one terminal scalar-vs-batch comparison retains or rejects the v2 branch |
+| Reject bounded multi-locator reads and retain scalar v1 | The terminal comparison reduced round trips but increased duplicate/overlap rates and contained one valid complete-to-partial treatment regression | Complete; preserve the plan/result and revisit only after a new measured need and explicit contract decision |

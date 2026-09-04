@@ -4,13 +4,17 @@ This ledger is the authoritative resumable state for implementation work. Update
 
 ## Current state
 
-- Active phase: 13 — Phase 13 is reopened for one owner-authorized,
-  provider-free bounded multi-locator `read_span` compatibility experiment.
-  The accepted structured-only locator search and scalar source contract remain
-  the product defaults; only the existing evaluation launcher may expose an
-  explicit two-to-four-locator v2 branch. Phase 14 is blocked until the single
-  frozen scalar-versus-batch comparison retains or rejects that branch. Before
-  this entry, Phase 13 was complete with structured-only locator search,
+- Active phase: 12 (`blocked`) — the next product dependency is an
+  owner-selected, genuinely unexposed confirmation corpus plus frozen
+  questions, cohort floors, margins, source-bank coverage, and any paid-query
+  authorization required by the approved evaluation arms. Phase 13 is again
+  `done`: its terminal provider-free multi-locator experiment rejected
+  batch-v2, and scalar `read_span` was restored at `ff9d4e8` with focused
+  test/race/vet/build and 60-trace replay evidence. Phase 14 remains blocked
+  until Phase 12 produces an immutable `core_retrieval` result. The following
+  indented narrative preserves the historical Phase 13/14 assistant-evaluation
+  chronology; its intermediate `now` states are not the active phase status.
+  Before the bounded entry, Phase 13 was complete with structured-only locator search,
   source-only `read_span`, reducer v2, real Codex conformance, and
   byte-identical locator output across compatibility-budget values. Paired V4
   is complete: both arms blindly graded 12/12 complete; locator search emitted
@@ -95,8 +99,21 @@ This ledger is the authoritative resumable state for implementation work. Update
   expansion. The owner has now authorized the bounded successor described in
   [`READ-SPAN-MULTI-LOCATOR-EXPERIMENT-V1.md`](READ-SPAN-MULTI-LOCATOR-EXPERIMENT-V1.md),
   without authorizing retrieval, provider, corpus, SQLite, product-config, or
-  automatic-context expansion changes.
+  automatic-context expansion changes. That comparison is now closed:
+  batch-v2 reduced round trips but failed the quality and duplicate/overlap
+  gates, so no further assistant-interface variant is authorized.
 - Active owner: `/root`
+- 2026-09-05 Phase 13 terminal closure: the frozen 60-turn run, blind-grade
+  failure boundary, and deterministic journey diagnostics are sealed in
+  [`bounded-multi-locator-result-v1.md`](evidence/phase-13/bounded-multi-locator-result-v1.md).
+  A terra/high read-only review and an independent ChatGPT review reproduced
+  the arithmetic and required `REJECT_BATCH_V2 / RETAIN_SCALAR_V1`; they also
+  corrected eligibility wording and bounded causal claims. Commit `ff9d4e8`
+  restored all 12 affected implementation/runner paths byte-for-byte to the
+  accepted scalar baseline. Main-agent inspection plus focused normal/race,
+  vet, build, Python compile, and 60 historical scalar-trace replay checks
+  passed. Phase 13 is `done`; Phase 12 is the active blocked dependency and
+  Phase 14 waits on its immutable core result.
 - 2026-09-04 Phase 13 compatibility entry: `/root` re-read the execution guide,
   index, status, evaluation contract, full Phase 13/14 documents, prerequisite
   completion evidence, awareness/trust plan/result/review, and overbuild
@@ -146,8 +163,9 @@ This ledger is the authoritative resumable state for implementation work. Update
   complete-to-partial regression. Mechanically, batch was used on 19/30 tasks
   and reduced read invocations `132→75`, cidx calls `239→187`, and repository
   actions `263→203`, but duplicate and overlap rates increased. The conjunctive
-  terminal gates therefore reject batch-v2. Scalar restoration and focused
-  revalidation are now the only remaining Phase 13 work.
+  terminal gates therefore reject batch-v2. At that checkpoint, scalar
+  restoration and focused revalidation were the only remaining Phase 13 work;
+  the 2026-09-05 closure entry above records their completion.
 - 2026-08-23 Phase 14 execution entry: `/root` re-read the execution guide,
   implementation index, status ledger, evaluation contract, full Phase 14,
   accepted awareness/trust plan and review, Phase 13 locator completion, Step
@@ -217,7 +235,7 @@ This ledger is the authoritative resumable state for implementation work. Update
   graph-only branch was useful in `1/7`; bridge, Pareto, and their combined
   rule are rejected for product use. The full sidecar remains evaluation-only.
 - Phase 07 simple-control implementation owner: `/root/phase07_simple_control` (store/eval/devlab only; no corpus, provider, or production-ranking mutation)
-- Last updated: 2026-08-23
+- Last updated: 2026-09-05
 - Owner review index: [`OWNER-REVIEW-INDEX.md`](OWNER-REVIEW-INDEX.md) — single
   entry for packaging freeze, live results, adopted contract, and remaining
   gated work
@@ -472,8 +490,8 @@ Existing phase completion rows and implementation are historical work produced a
 | 10 | done | `/root` | Yes — accepted Phase 09 boundary, prior Phase 10 R4 evidence, active embedding path, source-bank decision, and retired-profile contract inspected | Source-bank-first provider success handling, compatible local reuse, public source/Voyage plan split, provider-only request accounting, and final offline boundary accepted | [Current evidence](evidence/phase-10/source-bank-first-document-publication.md), historical [R4 evidence](evidence/phase-10/revision-4.md), and [source-bank decision](SOURCE-VECTOR-BANK-DECISION.md) | Hand current int8 coverage/profile state to Phase 11 |
 | 11 | done | `/root` | Yes — accepted Phase 09/10 boundaries, prior Phase 11 R4 evidence, live vector scan/evaluation code, five-profile evidence, and retired-profile contract inspected | Current request-local int8 scan, nonpersistent serving-f32 reference, fallback/RRF/body behavior, retired comparison removal, and focused boundary accepted | [Current evidence](evidence/phase-11/int8-only-query-search-reconciliation.md), historical [R4 evidence](evidence/phase-11/revision-4.md), and [retired-profile contract](RETIRED-VECTOR-PROFILES.md) | Hand the current evaluation arms to Phase 12 |
 | 12 | blocked | `/root` | Yes — accepted current Phase 11 boundary, prior Phase 12 R4 evidence, evaluation contract, current schemas/adapters, relation completion authority, retired-profile contract, closed Stage E/F, and adopted packaging contract inspected | Corpus-independent adapter accepted; packaging/no-policy authority is now frozen evaluation-only sibling 4/4096; official `core_retrieval` still lacks independent confirmation | [Remaining-work handoff](evidence/revision-4/remaining-work-review-handoff-r4.md), [adopted sibling contract](../../testdata/retrieval/relation-sibling-packaging-adopted-v1.json), [current evidence](evidence/phase-12/int8-only-evaluation-reconciliation.md), and [R4 accounting evidence](evidence/phase-12/revision-4.md) | After owner-selected unexposed confirmation, seal margins and run official core evaluation; assistant V3 remains separate non-promotion evidence |
-| 13 | in_progress | `/root`; terra/high implementation agent; main-agent validation | Yes — execution guide, index, status, evaluation contract, full Phase 13/14 documents, prerequisite evidence, current MCP/runner/trace code, awareness/trust result/review, and overbuild incident inspected | Scalar-compatible v2 and per-arm experiment support are implemented at `6737494`; the unchanged 30-question derived manifest and exact code/tool identities are frozen | [Bounded experiment plan](READ-SPAN-MULTI-LOCATOR-EXPERIMENT-V1.md), [implementation checkpoint](evidence/phase-13/bounded-multi-locator-implementation-v1.md), and [locator-only completion](evidence/phase-13/locator-only-mcp-reconciliation.md) | Pass frozen provider-free preflight and both host schema probes, then execute and adjudicate the comparison exactly once |
-| 14 | blocked | `/root` | Yes — prior Phase 14 entry and completed awareness/trust evidence remain valid | Awareness/trust is closed; Phase 13 now owns the only authorized compatibility experiment | [Awareness/trust result](evidence/phase-14/assistant-cidx-awareness-trust-result-v1.md), [post-result review](evidence/phase-14/assistant-cidx-awareness-trust-result-external-review-v1.md), and [bounded experiment plan](READ-SPAN-MULTI-LOCATOR-EXPERIMENT-V1.md) | Resume only after Phase 13 records a terminal retain/reject disposition |
+| 13 | done | `/root`; terra/high implementation/review agents; main-agent validation | Yes — execution guide, index, status, evaluation contract, full Phase 13/14 documents, prerequisite evidence, current MCP/runner/trace code, awareness/trust result/review, and overbuild incident inspected | One terminal comparison rejected batch-v2; commit `ff9d4e8` restored the exact scalar baseline and focused normal/race/vet/build/Python plus 60-trace replay checks passed | [Terminal result](evidence/phase-13/bounded-multi-locator-result-v1.md), [terminal review](evidence/phase-13/bounded-multi-locator-terminal-review-v1.md), [restoration](evidence/phase-13/bounded-multi-locator-scalar-restoration-v1.md), and [locator-only completion](evidence/phase-13/locator-only-mcp-reconciliation.md) | Preserve scalar v1 and closed artifacts; do not reopen during Phase 12/14 without a new measured need and explicit contract decision |
+| 14 | blocked | `/root` | Yes — completed Phase 13 scalar contract, awareness/trust evidence, and bounded terminal disposition are recorded | Stable four-tool contract is ready; official release-candidate evidence lacks an immutable Phase 12 core result | [Awareness/trust result](evidence/phase-14/assistant-cidx-awareness-trust-result-v1.md), [bounded terminal result](evidence/phase-13/bounded-multi-locator-result-v1.md), and [Phase 12 handoff](evidence/revision-4/remaining-work-review-handoff-r4.md) | Resume after owner-gated Phase 12 confirmation produces an immutable `core_retrieval` result |
 
 ## Resume note template
 

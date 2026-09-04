@@ -1,10 +1,11 @@
 # Bounded Multi-Locator `read_span` Experiment V1
 
-- Status: `in_progress`
+- Status: `complete` — `REJECT_BATCH_V2 / RETAIN_SCALAR_V1`
 - Owner: `/root`; implementation assistance: `gpt-5.6-terra` at high effort
 - Affected phase: Phase 13 compatibility amendment; Phase 14 execution waits
 - Provider/corpus impact: none; this experiment is FTS-only and provider-free
-- Product disposition: undecided until the single frozen comparison completes
+- Product disposition: scalar-v1 restored at `ff9d4e8`; batch-v2 preserved
+  only as closed experiment evidence
 
 ## 1. Purpose
 
@@ -271,3 +272,17 @@ result.
 | Buffer then fail closed | Partial evidence would make retries and accounting ambiguous | Never for this experiment |
 | Evaluation-launcher mode only | A true A/B needs different visible schemas, but an unproven product flag is not justified | The retain gate passes |
 | One terminal comparison | Prevent another prompt/orchestration tuning loop | Never on this exposed dataset |
+
+## 12. Terminal Outcome
+
+The one frozen comparison completed on 2026-09-05. The batch-capable arm
+passed the round-trip mechanism gate but failed the no-regression and
+duplicate/overlap gates. The existing aggregate also exposed a symmetric
+grader-contract mismatch for a product-valid 509-line span, so official full
+quality and dual-complete efficiency remain `NOT_OBSERVED`. No grade was
+changed and no second aggregate or prompt/orchestration variant ran.
+
+The evaluation-only batch implementation was removed and scalar-v1 restored.
+See the [terminal result](evidence/phase-13/bounded-multi-locator-result-v1.md),
+[independent review](evidence/phase-13/bounded-multi-locator-terminal-review-v1.md),
+and [restoration evidence](evidence/phase-13/bounded-multi-locator-scalar-restoration-v1.md).
