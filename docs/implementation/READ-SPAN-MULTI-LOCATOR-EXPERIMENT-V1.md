@@ -198,8 +198,10 @@ For the mechanism analysis:
 - each returned member of `evidence` is one evidence unit;
 - unique/gross source bytes, overlap, locator exposure, and final citations
   are computed from flattened evidence units;
-- batch eligibility means at least two distinct, valid locator tuples were
-  exposed before source acquisition; eligibility does not force batch use;
+- paired batch eligibility is fixed from the scalar reference arm: at least
+  two distinct, valid locator tuples were exposed before its first successful
+  source acquisition. This avoids defining the opportunity from treatment
+  adoption; eligibility does not force batch use;
 - duplicate and overlapping reads are reported separately; and
 - failed, timed-out, non-adopting, and noncompliant tasks remain in their
   stated denominators.

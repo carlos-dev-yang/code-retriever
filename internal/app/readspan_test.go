@@ -77,6 +77,52 @@ func TestReadSpanOversizeReturnsTypedErrorWithoutPartialBody(t *testing.T) {
 	}
 }
 
+func TestReadSpanBatchBuffersOrderedEvidenceAndFailsAtomically(t *testing.T) {
+	ctx, root := context.Background(), t.TempDir()
+	runGit(t, root, "init")
+	mustWriteFile(t, filepath.Join(root, ".cidx", "config.json"), "{}")
+	first := []byte("package first\nfunc First() {}\n")
+	second := []byte("package second\nfunc Second() {}\n")
+	mustWriteFile(t, filepath.Join(root, "first.go"), string(first))
+	mustWriteFile(t, filepath.Join(root, "second.go"), string(second))
+	runGit(t, root, "add", "first.go", "second.go")
+	firstRequest := ReadSpanRequest{Path: "first.go", StartLine: 1, EndLine: 2, ExpectedSHA256: fmt.Sprintf("%x", sha256.Sum256(first))}
+	secondRequest := ReadSpanRequest{Path: "second.go", StartLine: 1, EndLine: 2, ExpectedSHA256: fmt.Sprintf("%x", sha256.Sum256(second))}
+	service := ReadSpanService{Root: root, Resolved: materializeResolved(t)}
+	response, err := service.ReadBatch(ctx, ReadSpanBatchRequest{Locators: []ReadSpanRequest{secondRequest, firstRequest}})
+	if err != nil || len(response.Evidence) != 2 || response.Evidence[0].Path != "second.go" || response.Evidence[1].Path != "first.go" {
+		t.Fatalf("ordered batch=%#v err=%v", response, err)
+	}
+	for _, locators := range [][]ReadSpanRequest{
+		{firstRequest},
+		{firstRequest, secondRequest, firstRequest, secondRequest, firstRequest},
+	} {
+		_, err = service.ReadBatch(ctx, ReadSpanBatchRequest{Locators: locators})
+		if value, ok := err.(ReadSpanError); !ok || value.Code != ReadSpanInvalidLocatorCount || value.LocatorIndex != nil {
+			t.Fatalf("count=%d error=%#v", len(locators), err)
+		}
+	}
+	_, err = service.ReadBatch(ctx, ReadSpanBatchRequest{Locators: []ReadSpanRequest{firstRequest, firstRequest}})
+	if value, ok := err.(ReadSpanError); !ok || value.Code != ReadSpanDuplicateLocator || value.LocatorIndex == nil || *value.LocatorIndex != 1 {
+		t.Fatalf("duplicate error=%#v", err)
+	}
+	stale := secondRequest
+	stale.ExpectedSHA256 = strings.Repeat("a", 64)
+	response, err = service.ReadBatch(ctx, ReadSpanBatchRequest{Locators: []ReadSpanRequest{firstRequest, stale}})
+	if value, ok := err.(ReadSpanError); !ok || value.Code != ReadSpanFileStale || value.LocatorIndex == nil || *value.LocatorIndex != 1 || len(response.Evidence) != 0 {
+		t.Fatalf("stale batch response=%#v error=%#v", response, err)
+	}
+	maximum := len(first)
+	if len(second) > maximum {
+		maximum = len(second)
+	}
+	service.Resolved.MCP.HardMaxInlineBytes = maximum
+	response, err = service.ReadBatch(ctx, ReadSpanBatchRequest{Locators: []ReadSpanRequest{firstRequest, secondRequest}})
+	if value, ok := err.(ReadSpanError); !ok || value.Code != ReadSpanBatchTooLarge || value.MaxBytes != maximum || value.LocatorIndex == nil || *value.LocatorIndex != 1 || len(response.Evidence) != 0 {
+		t.Fatalf("aggregate batch response=%#v error=%#v", response, err)
+	}
+}
+
 func TestReadSpanRestrictsEligibleUTF8Source(t *testing.T) {
 	ctx, root := context.Background(), t.TempDir()
 	runGit(t, root, "init")

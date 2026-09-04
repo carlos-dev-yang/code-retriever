@@ -21,6 +21,7 @@ type Server struct {
 	Services             Services
 	MaxConcurrent        int
 	ResultRepresentation ResultRepresentation
+	ReadSpanContract     ReadSpanContract
 	lifecycle            *lifecycle
 }
 type lifecycle struct {
@@ -230,14 +231,21 @@ func (server Server) dispatch(ctx context.Context, request request) (any, *Error
 				return nil, &Error{Code: invalidParams, Message: "INVALID_CURSOR"}
 			}
 		}
-		return map[string]any{"tools": toolRegistry()}, nil
+		return map[string]any{"tools": toolRegistryForReadSpanContract(server.readSpanContract())}, nil
 	case "tools/call":
-		return callToolWithRepresentation(ctx, server.Services, request.Params, server.ResultRepresentation)
+		return callToolWithContract(ctx, server.Services, request.Params, server.ResultRepresentation, server.readSpanContract())
 	case "ping":
 		return map[string]any{}, nil
 	default:
 		return nil, &Error{Code: methodNotFound, Message: "METHOD_NOT_FOUND"}
 	}
+}
+
+func (server Server) readSpanContract() ReadSpanContract {
+	if server.ReadSpanContract == ReadSpanContractBatchV2 {
+		return ReadSpanContractBatchV2
+	}
+	return ReadSpanContractScalarV1
 }
 
 func canonicalRequestID(raw json.RawMessage) (string, bool) {
