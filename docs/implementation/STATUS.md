@@ -103,6 +103,13 @@ This ledger is the authoritative resumable state for implementation work. Update
   batch-v2 reduced round trips but failed the quality and duplicate/overlap
   gates, so no further assistant-interface variant is authorized.
 - Active owner: `/root`
+- 2026-09-05 history consolidation: added
+  [`evidence/README.md`](evidence/README.md) as the durable Phase 00–14 history
+  and handoff entry point and added the missing
+  [`phase-14 evidence index`](evidence/phase-14/README.md). Existing phase
+  evidence remains intact; the new indexes identify current supersessions,
+  rejected branches, checks, and exact resume boundaries so another AI does
+  not reconstruct them from chat history.
 - 2026-09-05 Phase 13 terminal closure: the frozen 60-turn run, blind-grade
   failure boundary, and deterministic journey diagnostics are sealed in
   [`bounded-multi-locator-result-v1.md`](evidence/phase-13/bounded-multi-locator-result-v1.md).

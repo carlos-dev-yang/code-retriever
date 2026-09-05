@@ -69,6 +69,7 @@
 - Relation evidence handoff: [handoff](RELATION-ASSISTANT-VALIDATION-HANDOFF.md)
 - Historical relation completion plan: [semantic admission, contract closure, and assistant-pull plan](RELATION-EVIDENCE-COMPLETION-PLAN.md)
 - Persistent state: [Phase Status Ledger](STATUS.md)
+- Phase history and evidence entry point: [Phases 00–14](evidence/README.md)
 - Owner review index (packaging freeze + remaining work): [OWNER-REVIEW-INDEX.md](OWNER-REVIEW-INDEX.md)
 - Critical/general question-set v2 diagnostic: [critical-general-question-set-v2.md](evidence/phase-07/critical-general-question-set-v2.md)
 - Current lexical remediation: [natural-language FTS query-planner review](evidence/phase-07/natural-language-fts-query-planner-review-r4.md)
@@ -103,6 +104,7 @@
 - Terminal bounded result: [reject batch-v2; retain scalar-v1](evidence/phase-13/bounded-multi-locator-result-v1.md)
 - Terminal bounded review: [independent gate and claim-boundary review](evidence/phase-13/bounded-multi-locator-terminal-review-v1.md)
 - Scalar restoration: [exact baseline restoration and focused validation](evidence/phase-13/bounded-multi-locator-scalar-restoration-v1.md)
+- Phase 14 evidence chronology: [packaging, host, and assistant history](evidence/phase-14/README.md)
 - Remaining-work handoff: [remaining-work-review-handoff-r4.md](evidence/revision-4/remaining-work-review-handoff-r4.md)
 - Final corpus-independent review: [int8/source-profile implementation-to-design review](evidence/revision-4/int8-source-profile-final-review.md)
 - Last updated: 2026-09-05

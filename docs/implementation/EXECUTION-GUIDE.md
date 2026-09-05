@@ -14,6 +14,10 @@ Use the following order of authority:
 6. The active phase document.
 7. The persistent phase ledger: [`STATUS.md`](STATUS.md), phase evidence, and decision logs.
 
+Use the [phase history and evidence index](evidence/README.md) to navigate these
+sources. It is not a separate authority and cannot override the ordered sources
+above.
+
 Conversation history may explain a decision, but it does not prove that a phase is complete. If the documents disagree, stop and reconcile them before implementing code.
 
 ## 2. Context-recovery procedure
@@ -22,7 +26,9 @@ At the start of every implementation session:
 
 1. Open `STATUS.md` and locate every `in_progress` phase.
 2. If no phase is active, select only a `planned` phase whose prerequisite rows are `done` with evidence.
-3. Read this guide, the implementation index, the full active phase document, and prerequisite completion evidence.
+3. Read this guide, the implementation index, the phase-history index, the
+   full active phase document, its evidence-directory `README.md`, and
+   prerequisite completion evidence.
 4. Inspect the workspace and identify existing changes, generated artifacts, and file ownership.
 5. Reconstruct the phase entry gate from files, not memory:
    - required types and schemas exist;
@@ -56,6 +62,10 @@ Before pausing, compaction, or handoff, update the phase document and `STATUS.md
 - unresolved risks or blockers;
 - the exact next action;
 - whether downstream phase entry gates are now satisfied.
+
+Also update the central [`evidence/README.md`](evidence/README.md) whenever a
+phase changes state, its accepted product boundary changes, or its exact next
+handoff changes. Historical result files remain immutable.
 
 Never use “mostly done” as evidence. A successor must be able to resume without relying on private reasoning or chat history.
 
